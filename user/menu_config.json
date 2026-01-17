@@ -1,0 +1,92 @@
+{
+  "menu_items": [
+    {
+      "id": "dashboard",
+      "label": "Dashboard",
+      "icon": "Dashboard.png",
+      "url": "/dashboard",
+      "roles": ["CUSTOMER", "FRANCHISEE", "TEAM"],
+      "always_visible": true
+    },
+    {
+      "id": "referral",
+      "label": "Referral Details",
+      "icon": "ReferralDetails.png",
+      "url": "/referral",
+      "roles": ["CUSTOMER", "TEAM"],
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": false
+        }
+      }
+    },
+    {
+      "id": "collaboration",
+      "label": "Collaboration Details",
+      "icon": "collaboration.png",
+      "url": "/collaboration",
+      "roles": ["CUSTOMER"],
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": true
+        }
+      }
+    },
+    {
+      "id": "kit",
+      "label": "Sales Kit",
+      "icon": "wallet.png",
+      "url": "/kit",
+      "roles": ["CUSTOMER", "TEAM"],
+      "conditions": {
+        "CUSTOMER": {
+          "saleskit_enabled": true
+        }
+      }
+    },
+    {
+      "id": "marketing_kit",
+      "label": "Marketing Kit",
+      "icon": "marketingkit.png",
+      "url": "/kit",
+      "roles": ["CUSTOMER"],
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": true
+        }
+      }
+    },
+    {
+      "id": "verification",
+      "label": "Verification",
+      "icon": "Verification.png",
+      "url": "/verification",
+      "roles": ["FRANCHISEE"],
+      "always_visible": true
+    },
+    {
+      "id": "wallet",
+      "label": "Wallet",
+      "icon": "wallet.png",
+      "url": "/wallet",
+      "roles": ["FRANCHISEE"],
+      "conditions": {
+        "FRANCHISEE": {
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "franchisee_kit",
+      "label": "Franchisee Kit",
+      "icon": "FranchiseeKit.png",
+      "url": "/kit",
+      "roles": ["FRANCHISEE"],
+      "conditions": {
+        "FRANCHISEE": {
+          "is_verified": true
+        }
+      }
+    }
+  ]
+}

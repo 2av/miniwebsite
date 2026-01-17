@@ -1,0 +1,173 @@
+12:11:46 - Razorpay Key ID: rzp_...cZS7
+12:11:46 - Razorpay Key Secret: CjDm...ZKqH
+12:11:46 - Loaded config.php
+12:11:46 - Loaded Razorpay.php
+12:11:46 - No amount specified for payment
+12:11:55 - Razorpay Key ID: rzp_...cZS7
+12:11:55 - Razorpay Key Secret: CjDm...ZKqH
+12:11:55 - Loaded config.php
+12:11:55 - Loaded Razorpay.php
+12:11:55 - No amount specified for payment
+12:27:52 - Razorpay Key ID: rzp_...cZS7
+12:27:52 - Razorpay Key Secret: CjDm...ZKqH
+12:27:52 - Loaded config.php
+12:27:52 - Loaded Razorpay.php
+12:27:52 - No amount specified for payment
+20:30:20 - Razorpay Key ID: rzp_...cZS7
+20:30:20 - Razorpay Key Secret: CjDm...ZKqH
+20:30:20 - Loaded config.php
+20:30:20 - Loaded Razorpay.php
+20:30:20 - No amount specified for payment
+20:30:35 - Razorpay Key ID: rzp_...cZS7
+20:30:35 - Razorpay Key Secret: CjDm...ZKqH
+20:30:35 - Loaded config.php
+20:30:35 - Loaded Razorpay.php
+20:30:35 - No amount specified for payment
+20:41:16 - Razorpay Key ID: rzp_...cZS7
+20:41:16 - Razorpay Key Secret: CjDm...ZKqH
+20:41:16 - Loaded config.php
+20:41:16 - Loaded Razorpay.php
+20:41:16 - Form submitted with deposit amount: 200
+20:41:16 - Set session variables for payment
+20:41:16 - Creating Razorpay order
+20:41:16 - Created Razorpay API instance
+20:41:18 - Created Razorpay order: order_QQ6aB77oE0rqet
+20:41:18 - Prepared payment data
+20:45:33 - Razorpay Key ID: rzp_...cZS7
+20:45:33 - Razorpay Key Secret: CjDm...ZKqH
+20:45:33 - Loaded config.php
+20:45:33 - Loaded Razorpay.php
+20:45:33 - Form submitted with deposit amount: 200
+20:45:33 - Set session variables for payment
+20:45:33 - Creating Razorpay order
+20:45:33 - Created Razorpay API instance
+20:45:34 - Created Razorpay order: order_QQ6ehBITGpbIN6
+20:45:34 - Prepared payment data
+20:47:38 - Razorpay Key ID: rzp_...cZS7
+20:47:38 - Razorpay Key Secret: CjDm...ZKqH
+20:47:38 - Loaded config.php
+20:47:38 - Loaded Razorpay.php
+20:47:38 - Form submitted with deposit amount: 100
+20:47:38 - Set session variables for payment
+20:47:38 - Creating Razorpay order
+20:47:38 - Created Razorpay API instance
+20:47:39 - Created Razorpay order: order_QQ6gtd06TkO4lx
+20:47:39 - Prepared payment data
+20:48:16 - Razorpay Key ID: rzp_...cZS7
+20:48:16 - Razorpay Key Secret: CjDm...ZKqH
+20:48:16 - Loaded config.php
+20:48:16 - Loaded Razorpay.php
+20:48:16 - Form submitted with deposit amount: 100
+20:48:16 - Set session variables for payment
+20:48:16 - Creating Razorpay order
+20:48:16 - Created Razorpay API instance
+20:48:17 - Created Razorpay order: order_QQ6hYqxSVNweqp
+20:48:17 - Prepared payment data
+20:49:18 - Razorpay Key ID: rzp_...cZS7
+20:49:18 - Razorpay Key Secret: CjDm...ZKqH
+20:49:18 - Loaded config.php
+20:49:18 - Loaded Razorpay.php
+20:49:18 - Form submitted with deposit amount: 100
+20:49:18 - Set session variables for payment
+20:49:18 - Creating Razorpay order
+20:49:18 - Created Razorpay API instance
+20:49:19 - Created Razorpay order: order_QQ6iesVX02zl3n
+20:49:19 - Prepared payment data
+20:52:43 - Razorpay Key ID: rzp_...cZS7
+20:52:43 - Razorpay Key Secret: CjDm...ZKqH
+20:52:43 - Loaded config.php
+20:52:43 - Loaded Razorpay.php
+20:52:43 - Form submitted with deposit amount: 100
+20:52:43 - Set session variables for payment
+20:52:43 - Creating Razorpay order
+20:52:43 - Created Razorpay API instance
+20:52:44 - Created Razorpay order: order_QQ6mGd4Ohuv4pT
+20:52:44 - Prepared payment data
+20:59:52 - Razorpay Key ID: rzp_...cZS7
+20:59:52 - Razorpay Key Secret: CjDm...ZKqH
+12:01:24 - Razorpay Key ID: rzp_...To1G
+12:01:24 - Razorpay Key Secret: VHJz...ZtnI
+12:01:24 - Loaded config.php
+12:01:24 - Loaded Razorpay.php
+12:01:24 - Form submitted with deposit amount: 500
+12:01:24 - Set session variables for payment
+12:01:24 - Creating Razorpay order
+12:01:24 - Created Razorpay API instance
+12:01:27 - Created Razorpay order: order_RB3IMVf7DjNimW
+12:01:27 - Prepared payment data
+12:01:56 - Razorpay Key ID: rzp_...To1G
+12:01:56 - Razorpay Key Secret: VHJz...ZtnI
+12:01:56 - Loaded config.php
+12:01:56 - Loaded Razorpay.php
+12:01:56 - Form submitted with deposit amount: 500
+12:01:56 - Set session variables for payment
+12:01:56 - Creating Razorpay order
+12:01:56 - Created Razorpay API instance
+12:02:02 - Created Razorpay order: order_RB3IziHvxlLfHi
+12:02:02 - Prepared payment data
+17:35:26 - Razorpay Key ID: rzp_...To1G
+17:35:26 - Razorpay Key Secret: VHJz...ZtnI
+17:35:26 - Loaded config.php
+17:35:26 - Loaded Razorpay.php
+17:35:26 - Creating Razorpay order
+17:35:26 - Created Razorpay API instance
+17:35:26 - Created Razorpay order: order_RB8zBBBl17egIE
+17:35:26 - Prepared payment data
+17:35:52 - Razorpay Key ID: rzp_...To1G
+17:35:52 - Razorpay Key Secret: VHJz...ZtnI
+17:35:52 - Loaded config.php
+17:35:52 - Loaded Razorpay.php
+17:35:52 - Creating Razorpay order
+17:35:52 - Created Razorpay API instance
+17:35:55 - Created Razorpay order: order_RB8zgMM1KE765G
+17:35:55 - Prepared payment data
+17:43:15 - Razorpay Key ID: rzp_...To1G
+17:43:15 - Razorpay Key Secret: VHJz...ZtnI
+17:43:15 - Loaded config.php
+17:43:15 - Loaded Razorpay.php
+17:43:15 - Creating Razorpay order
+17:43:15 - Created Razorpay API instance
+17:43:16 - Created Razorpay order: order_RB97RXbVM6IFCq
+17:43:16 - Prepared payment data
+18:09:26 - Razorpay Key ID: rzp_...To1G
+18:09:26 - Razorpay Key Secret: VHJz...ZtnI
+18:09:26 - Loaded config.php
+18:09:26 - Loaded Razorpay.php
+18:09:26 - Creating Razorpay order
+18:09:26 - Created Razorpay API instance
+18:09:27 - Created Razorpay order: order_RB9Z76HOXMJbNs
+18:09:27 - Prepared payment data
+18:13:34 - Razorpay Key ID: rzp_...To1G
+18:13:34 - Razorpay Key Secret: VHJz...ZtnI
+18:13:34 - Loaded config.php
+18:13:34 - Loaded Razorpay.php
+18:13:34 - Creating Razorpay order
+18:13:34 - Created Razorpay API instance
+18:13:36 - Created Razorpay order: order_RB9dTzjLk82l7t
+18:13:36 - Prepared payment data
+18:13:53 - Razorpay Key ID: rzp_...To1G
+18:13:53 - Razorpay Key Secret: VHJz...ZtnI
+18:13:53 - Loaded config.php
+18:13:53 - Loaded Razorpay.php
+18:13:53 - Creating Razorpay order
+18:13:53 - Created Razorpay API instance
+18:13:54 - Created Razorpay order: order_RB9dnyRVZDRJfT
+18:13:54 - Prepared payment data
+18:14:08 - Razorpay Key ID: rzp_...To1G
+18:14:08 - Razorpay Key Secret: VHJz...ZtnI
+18:14:08 - Loaded config.php
+18:14:08 - Loaded Razorpay.php
+18:14:08 - Creating Razorpay order
+18:14:08 - Created Razorpay API instance
+18:14:08 - Created Razorpay order: order_RB9e3oraWC9l2O
+18:14:08 - Prepared payment data
+18:19:23 - Razorpay Key ID: rzp_...To1G
+18:19:23 - Razorpay Key Secret: VHJz...ZtnI
+18:19:23 - Loaded config.php
+18:19:23 - Loaded Razorpay.php
+18:19:23 - Creating Razorpay order
+18:19:23 - Created Razorpay API instance
+18:19:25 - Created Razorpay order: order_RB9jcq93u15D4y
+18:19:25 - Prepared payment data
+18:19:51 - Razorpay Key ID: rzp_...To1G
+18:19:51 - Razorpay Key Secret: VHJz...ZtnI

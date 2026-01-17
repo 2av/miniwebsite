@@ -1,0 +1,59 @@
+@media (max-width: 1366px) {
+    .sb-sidenav .sb-sidenav-menu .nav .nav-link .sb-nav-link-icon { width: 40px;}
+    .sb-sidenav .sb-sidenav-menu .nav .nav-link { font-size: 14px;}
+    .main-top .heading { font-size: 18px; line-height: normal;}
+    .Dashboard .card-body label { font-size: 16px; line-height: normal;}
+    .Dashboard .card-body .btn { font-size: 16px; line-height: normal;}
+    .Copyright  { font-size: 18px;}
+    .navbar-expand .navbar-nav .dropdown-menu  { font-size: 18px;}
+    .navbar-expand .navbar-nav .nav-link  { font-size: 15px;}
+    .ReferralDetails-head .card .content p { font-size: 18px; line-height: 32px;}
+    .ReferralDetails-head .card .content h4 { font-size: 24px; line-height: 32px;}
+    .Bank-Details .card .heading { font-size: 18px; line-height: 40px;}
+    .Bank-Details .card p { font-size: 16px;}
+    .Bank-Details .card label { font-size: 16px;}
+
+    thead, tbody, tfoot, tr, td, th {
+        font-size: 14px; font-weight: 500 !important;
+    }
+    .ReferredUsers .dt-button { font-size: 14px;}
+    .CustomerDashboard-head .card .content p { font-size: 18px; line-height: normal;}
+    .social-icons p { font-size: 16px;}
+    .referral-box p { font-size: 16px;}
+
+    .sb-sidenav .sb-sidenav-menu .nav .sb-sidenav-menu-heading { font-size:14px; line-height:normal}
+    .Personal-Details .form-group label , .SocialMedia .card-body .form-group label { font-size:16px; }
+    .Personal-Details .form-group .form-control , .SocialMedia .card-body .form-group .form-control { min-height:50px; font-size:16px;}
+}
+@media (max-width: 1024px) {
+    body, html { font-size: 12px; }
+    .sb-sidenav .sb-sidenav-menu .nav .nav-link { font-size: 12px; }
+    .navbar-expand .navbar-nav .nav-link { font-size: 13px; }
+    .card .content p { font-size: 12px; }
+    .btn { font-size: 12px; }
+    h1, h2, h3, h4, h5, h6 { font-size: 14px; }
+}
+@media (max-width: 991px) {
+    body, html { font-size: 11px; }
+    .sb-sidenav .sb-sidenav-menu .nav .nav-link { font-size: 11px; }
+    .navbar-expand .navbar-nav .nav-link { font-size: 12px; }
+    .card .content p { font-size: 11px; }
+    .btn { font-size: 11px; }
+    table td, table th { font-size: 10px; }
+}
+@media (max-width: 768px) {
+    body, html { font-size: 10px; }
+    .sb-sidenav .sb-sidenav-menu .nav .nav-link { font-size: 10px; }
+    .navbar-expand .navbar-nav .nav-link { font-size: 11px; }
+    .card .content p { font-size: 10px; }
+    .btn { font-size: 10px; }
+    h1, h2, h3, h4, h5, h6 { font-size: 12px; }
+}
+@media (max-width: 520px) {
+    body, html { font-size: 9px; }
+    .sb-sidenav .sb-sidenav-menu .nav .nav-link { font-size: 9px; }
+    .navbar-expand .navbar-nav .nav-link { font-size: 10px; }
+    .card .content p { font-size: 9px; }
+    .btn { font-size: 9px; }
+    table td, table th { font-size: 8px; }
+}

@@ -1,0 +1,158 @@
+
+@import url(https://fonts.googleapis.com/css?family=Montserrat:100,200,300,400,500,600,700);
+
+html {overflow-x: hidden;}
+body {padding: 0;
+    margin: 0;
+    font-family: Montserrat;
+    background: linear-gradient(90deg, black, #3e5ea7f5,black);}
+	a {text-decoration:none;color:unset;}
+div,h1,h2,h3,h4,p,i,a {position:relative;transition:0.4s;}
+
+form,input,textarea,select {font-family:Montserrat;}
+:root {
+	--color:#848484;
+	--color2:#64af35;
+}
+/*alerts */
+div,h1,h2,h3,h4,p,i,a,footer {position:relative;transition:0.4s;}
+
+input,select,textarea,button {font-family: Montserrat;}
+
+a {    text-decoration: unset;
+    color: unset;}
+
+input::placeholder {font-size:12px}
+
+.card{width: 400px;
+    background: #fff3db;
+    overflow: hidden;
+    margin: 20px auto;
+    z-index: 0;
+    background: url(card_images/bg.png);
+    background-size: 100% 100%;
+	}
+	
+	.card_content {text-align: center;
+    margin: 44px auto 10px;
+    z-index: 2;}
+	.card_content img{width: 173px;}
+	.card_content2 {z-index: 2;
+    text-align: center;
+    font-weight: 400;
+    margin: 0;}
+	.card_content2 h2{font-weight: 400;
+    margin: 0px;
+    letter-spacing: -1px;
+    text-transform: capitalize;
+    font-size: 20px;
+    border-bottom: 3px solid #f9aa79;
+    width: fit-content;
+    margin: 0 auto;
+    padding-bottom: 10px;}
+	.card_content2 p{margin: 6px;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 12px;
+    color: gray;}
+
+.dis_flex {display: flex;
+    text-align: center;
+    padding: 0px 14px;}
+.dis_flex .link_btn {background: #f9897b;
+    color: white;
+    margin: 5px;
+    border-radius: 20px;
+    padding: 5px 11px;
+    font-size: 10px;
+    margin: 8px 3px;}
+
+.contact_details {
+    padding: 3px 24px;}
+.contact_details .contact_d{    display: flex;}
+.contact_details .contact_d i{margin: 2px;
+    background: #f9897b;
+    color: white;
+    height: 17px;
+    padding: 11px;
+    border-radius: 100%;
+    text-align: center;
+    width: 16px;}
+.contact_details .contact_d p{margin: 4px 15px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 3;}
+
+.dis_flex .share_wtsp {padding: 0pc;
+    margin: 10px auto;
+    text-align: center;}
+.dis_flex .share_wtsp select {}
+.dis_flex  .share_wtsp input {font-size: 13px;
+    border: 0px;
+    padding: 10px;
+    outline: none;
+    background: white;
+    box-shadow: 0px 0px 10px 0px #0000002e;
+}
+.dis_flex  .share_wtsp input[type=submit]{    background: #47b303;
+    color: white;
+    font-size: 10px;
+    padding: 11px;
+    top: -2px;
+    position: relative;}
+
+.dis_flex .big_btns {background: #149bd2;
+    color: white;
+    border-radius: 3px;
+    font-size: 12px;
+    padding: 10px;
+    text-align: center;
+    margin: 3px 14px;
+    width: -webkit-fill-available;
+    font-weight: 500;}
+.dis_flex .big_btns i{}
+.dis_flex .social_med {padding: 10px;
+    margin: 0px 6px 20px;}
+.dis_flex .social_med i{font-size: 20px;}
+
+.fa-twitter {background: #149bd2;padding: 8px 11px;
+    color: white;}
+.fa-facebook {background: #2c2cda;
+    padding: 8px 11px;
+    color: white;}
+.fa-linkedin {}
+.fa-youtube {}
+.fa-pinterest {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*/
+/*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*/
+/*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*/
+/*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*/
+/*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*/
+/*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*/
+/*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*//*Mobile style*/
+
+
+
+@media screen and (max-width:700px){
+	.card {
+    width: -webkit-fill-available;
+    background: #fff3db;
+    overflow: hidden;
+    margin: 20px auto;
+    z-index: 0;
+    background: url(card_images/bg.png);
+    background-size: 100% 100%;
+}

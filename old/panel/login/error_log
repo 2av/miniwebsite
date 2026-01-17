@@ -1,0 +1,1722 @@
+[13-Jun-2024 08:15:02 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[13-Jun-2024 11:29:29 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[17-Jun-2024 13:27:14 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[18-Jun-2024 13:24:21 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Jun-2024 05:51:00 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Jun-2024 10:26:44 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[20-Jun-2024 22:43:11 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[20-Jun-2024 22:44:51 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[22-Jun-2024 15:23:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Jun-2024 13:17:04 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[23-Jun-2024 13:19:08 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[24-Jun-2024 18:27:53 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Jul-2024 14:14:38 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Jul-2024 19:00:47 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Jul-2024 13:37:39 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[04-Jul-2024 13:37:45 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[08-Jul-2024 05:48:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Jul-2024 13:54:09 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[14-Jul-2024 01:45:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Jul-2024 19:49:26 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Jul-2024 21:52:50 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Jul-2024 22:07:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[17-Jul-2024 23:03:32 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Jul-2024 19:58:30 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Jul-2024 10:23:22 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Jul-2024 19:44:55 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Jul-2024 13:48:03 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Jul-2024 23:37:46 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Jul-2024 12:12:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Jul-2024 13:57:51 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Jul-2024 16:04:59 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Jul-2024 16:26:16 Asia/Kolkata] PHP Warning:  Undefined variable $headers in /home/miniweb/public_html/panel/login/preview_page.php on line 397
+[27-Jul-2024 16:26:16 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/preview_page.php:400
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/preview_page.php on line 400
+[30-Jul-2024 01:25:03 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[01-Aug-2024 21:24:38 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[01-Aug-2024 21:37:05 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[01-Aug-2024 21:43:25 Asia/Kolkata] PHP Warning:  Undefined variable $headers in /home/miniweb/public_html/panel/login/preview_page.php on line 397
+[01-Aug-2024 21:43:25 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/preview_page.php:400
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/preview_page.php on line 400
+[03-Aug-2024 10:42:35 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[05-Aug-2024 16:50:56 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[06-Aug-2024 09:27:02 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Aug-2024 01:13:19 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[10-Aug-2024 15:27:25 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Aug-2024 22:34:38 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Aug-2024 15:41:08 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Aug-2024 16:34:46 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Aug-2024 16:36:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Aug-2024 18:33:02 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Aug-2024 18:58:11 Asia/Kolkata] PHP Warning:  Undefined variable $headers in /home/miniweb/public_html/panel/login/preview_page.php on line 397
+[16-Aug-2024 18:58:11 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/preview_page.php:400
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/preview_page.php on line 400
+[16-Aug-2024 13:29:02 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[16-Aug-2024 13:29:32 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Aug-2024 19:02:45 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Aug-2024 19:02:53 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[18-Aug-2024 07:41:23 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Aug-2024 16:02:43 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Aug-2024 13:41:30 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Aug-2024 13:59:01 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Aug-2024 17:03:23 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Aug-2024 18:04:39 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[02-Sep-2024 13:46:40 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[10-Sep-2024 21:45:56 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[14-Sep-2024 14:28:10 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Sep-2024 16:56:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[15-Sep-2024 17:03:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[15-Sep-2024 17:08:56 Asia/Kolkata] PHP Warning:  Undefined array key "pro_img" in /home/miniweb/public_html/panel/login/js_request.php on line 18
+[15-Sep-2024 17:08:58 Asia/Kolkata] PHP Warning:  Undefined array key "pro_img" in /home/miniweb/public_html/panel/login/js_request.php on line 18
+[15-Sep-2024 17:08:59 Asia/Kolkata] PHP Warning:  Undefined array key "pro_img" in /home/miniweb/public_html/panel/login/js_request.php on line 18
+[15-Sep-2024 17:44:03 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Sep-2024 10:09:16 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Sep-2024 13:22:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Sep-2024 11:57:31 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Sep-2024 00:26:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Sep-2024 11:20:48 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Sep-2024 00:05:26 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Sep-2024 15:12:35 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[01-Oct-2024 23:33:06 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[02-Oct-2024 14:18:28 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[02-Oct-2024 18:34:00 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[03-Oct-2024 11:39:45 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Oct-2024 12:54:05 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Oct-2024 18:24:40 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Oct-2024 06:41:16 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[04-Oct-2024 06:58:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[04-Oct-2024 07:01:41 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Oct-2024 23:23:19 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Oct-2024 20:21:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Oct-2024 13:17:18 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Oct-2024 17:58:51 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Oct-2024 03:42:46 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Oct-2024 08:55:40 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Oct-2024 11:44:56 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Oct-2024 08:32:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Oct-2024 11:11:41 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Oct-2024 11:12:02 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[28-Oct-2024 14:38:30 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[28-Oct-2024 14:41:21 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[28-Oct-2024 15:05:41 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[28-Oct-2024 15:07:35 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[02-Nov-2024 15:41:24 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Nov-2024 17:38:13 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[12-Nov-2024 13:07:06 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[14-Nov-2024 18:14:34 Asia/Kolkata] PHP Warning:  mysqli_connect(): (08004/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[15-Nov-2024 19:11:43 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Nov-2024 11:43:31 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Nov-2024 12:03:23 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Nov-2024 12:10:33 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[16-Nov-2024 12:16:01 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Nov-2024 13:23:54 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Nov-2024 13:25:48 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[17-Nov-2024 10:49:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[17-Nov-2024 13:11:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[18-Nov-2024 14:27:21 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Nov-2024 11:22:21 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Nov-2024 11:23:03 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[20-Nov-2024 20:22:06 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Nov-2024 02:47:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[22-Nov-2024 09:44:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[22-Nov-2024 09:45:28 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[22-Nov-2024 09:45:32 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[22-Nov-2024 09:45:34 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[24-Nov-2024 09:43:26 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Nov-2024 18:20:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[25-Nov-2024 11:20:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[02-Dec-2024 19:33:03 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Dec-2024 20:45:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Dec-2024 15:50:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[06-Dec-2024 11:01:03 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Dec-2024 14:00:59 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Dec-2024 14:19:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[08-Dec-2024 14:22:21 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[08-Dec-2024 15:52:59 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Dec-2024 13:25:35 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Dec-2024 19:01:20 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Dec-2024 21:31:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Dec-2024 21:32:52 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Dec-2024 15:10:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Dec-2024 22:36:32 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Dec-2024 22:37:38 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[16-Dec-2024 22:38:29 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[18-Dec-2024 15:12:02 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Dec-2024 01:11:32 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Dec-2024 12:20:48 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Dec-2024 01:02:20 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Dec-2024 09:32:50 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Dec-2024 23:40:14 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[22-Dec-2024 13:05:06 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[22-Dec-2024 18:47:15 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Dec-2024 13:39:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Dec-2024 18:24:33 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Dec-2024 14:27:48 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Dec-2024 14:58:25 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Dec-2024 17:02:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Dec-2024 19:14:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Dec-2024 19:57:03 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Dec-2024 13:42:01 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Dec-2024 20:28:30 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Dec-2024 20:30:28 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Dec-2024 20:35:54 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[25-Dec-2024 22:55:57 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Dec-2024 13:43:56 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Dec-2024 23:49:19 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Dec-2024 23:51:49 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[27-Dec-2024 23:52:31 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[28-Dec-2024 00:02:15 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[30-Dec-2024 16:12:29 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[30-Dec-2024 19:26:20 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[01-Jan-2025 15:07:35 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Jan-2025 15:56:34 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[05-Jan-2025 15:40:39 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[05-Jan-2025 23:35:57 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Jan-2025 21:58:06 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Jan-2025 04:14:56 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Jan-2025 06:37:27 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Jan-2025 15:29:54 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[10-Jan-2025 00:59:05 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[10-Jan-2025 22:05:29 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Jan-2025 18:13:59 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[17-Jan-2025 22:55:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[18-Jan-2025 02:24:46 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[18-Jan-2025 21:01:21 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Jan-2025 11:59:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Jan-2025 18:39:39 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Jan-2025 04:11:47 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Jan-2025 13:55:01 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[20-Jan-2025 14:23:47 Asia/Kolkata] PHP Warning:  Undefined variable $headers in /home/miniweb/public_html/panel/login/preview_page.php on line 397
+[20-Jan-2025 14:23:47 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/preview_page.php:400
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/preview_page.php on line 400
+[20-Jan-2025 20:00:00 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Jan-2025 18:41:39 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Jan-2025 19:10:08 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Jan-2025 21:00:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Jan-2025 21:23:18 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Jan-2025 14:59:47 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Jan-2025 11:09:50 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Jan-2025 16:17:34 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Jan-2025 10:59:32 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[26-Jan-2025 16:51:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Jan-2025 00:25:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Jan-2025 15:43:57 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Feb-2025 11:06:16 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Feb-2025 16:50:52 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[03-Feb-2025 16:55:14 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[04-Feb-2025 09:58:27 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Feb-2025 16:32:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[05-Feb-2025 12:46:04 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[06-Feb-2025 08:08:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[07-Feb-2025 10:51:04 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Feb-2025 20:32:49 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Feb-2025 22:22:09 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Feb-2025 23:40:31 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Feb-2025 11:23:43 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Feb-2025 10:47:52 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[12-Feb-2025 15:01:23 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[12-Feb-2025 21:23:39 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[14-Feb-2025 10:51:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[14-Feb-2025 17:12:49 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[16-Feb-2025 09:39:17 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[17-Feb-2025 13:20:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[19-Feb-2025 22:21:09 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Feb-2025 12:09:09 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Feb-2025 20:14:47 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Feb-2025 20:40:33 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[22-Feb-2025 12:46:13 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Feb-2025 19:21:36 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[23-Feb-2025 19:21:41 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[23-Feb-2025 19:21:42 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[23-Feb-2025 19:21:52 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[23-Feb-2025 19:22:51 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Feb-2025 19:30:59 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Feb-2025 19:32:22 Asia/Kolkata] PHP Fatal error:  Uncaught TypeError: mysqli_num_rows(): Argument #1 ($result) must be of type mysqli_result, bool given in /home/miniweb/public_html/panel/login/create_card.php:142
+Stack trace:
+#0 /home/miniweb/public_html/panel/login/create_card.php(142): mysqli_num_rows()
+#1 {main}
+  thrown in /home/miniweb/public_html/panel/login/create_card.php on line 142
+[23-Feb-2025 22:58:53 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[24-Feb-2025 16:04:57 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Feb-2025 14:28:33 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/create_card2.php on line 10
+[25-Feb-2025 15:15:19 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[25-Feb-2025 15:26:16 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Feb-2025 15:29:20 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Feb-2025 20:05:37 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Feb-2025 22:26:00 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[25-Feb-2025 23:51:46 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[26-Feb-2025 07:03:16 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[26-Feb-2025 07:29:01 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/create_card4.php on line 10
+[26-Feb-2025 17:47:13 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Feb-2025 19:06:33 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Feb-2025 20:41:31 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[26-Feb-2025 21:47:48 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[26-Feb-2025 22:41:05 Asia/Kolkata] PHP Warning:  mysqli_connect(): (08004/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[27-Feb-2025 13:51:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[27-Feb-2025 17:38:20 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[27-Feb-2025 23:44:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Feb-2025 08:22:11 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Feb-2025 12:00:10 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[28-Feb-2025 13:26:37 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[28-Feb-2025 13:27:04 Asia/Kolkata] PHP Warning:  mysqli_connect(): (08004/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[28-Feb-2025 13:27:17 Asia/Kolkata] PHP Warning:  mysqli_connect(): (08004/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[28-Feb-2025 13:28:04 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[28-Feb-2025 13:28:58 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[28-Feb-2025 18:07:21 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[01-Mar-2025 13:29:08 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[01-Mar-2025 15:29:09 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[01-Mar-2025 15:29:31 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[01-Mar-2025 15:29:40 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[01-Mar-2025 15:30:52 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[01-Mar-2025 17:09:23 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/1040): Too many connections in /home/miniweb/public_html/panel/login/connect.php on line 5
+[01-Mar-2025 18:00:32 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[01-Mar-2025 18:34:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:212
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 212
+[02-Mar-2025 09:14:40 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[02-Mar-2025 09:15:16 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[02-Mar-2025 10:09:36 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[02-Mar-2025 12:05:57 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[02-Mar-2025 12:06:10 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[02-Mar-2025 12:06:14 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[02-Mar-2025 12:06:20 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[02-Mar-2025 20:57:25 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[02-Mar-2025 22:05:00 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Mar-2025 00:35:26 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Mar-2025 04:38:19 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[03-Mar-2025 11:28:07 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[03-Mar-2025 16:57:57 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[04-Mar-2025 08:06:42 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[04-Mar-2025 08:06:46 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[04-Mar-2025 10:11:07 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[04-Mar-2025 15:15:33 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[05-Mar-2025 08:45:06 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[05-Mar-2025 11:54:38 Asia/Kolkata] PHP Warning:  mysqli_connect(): (HY000/2002): Connection refused in /home/miniweb/public_html/panel/login/connect.php on line 5
+[05-Mar-2025 17:11:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[05-Mar-2025 11:48:32 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[05-Mar-2025 11:48:39 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[06-Mar-2025 05:19:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[06-Mar-2025 19:20:37 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[06-Mar-2025 19:22:34 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[07-Mar-2025 16:46:46 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Mar-2025 13:05:48 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Mar-2025 18:51:40 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[08-Mar-2025 19:08:14 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Mar-2025 00:15:25 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[09-Mar-2025 12:25:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[10-Mar-2025 09:32:32 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[10-Mar-2025 10:26:29 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Mar-2025 08:39:58 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Mar-2025 03:16:49 UTC] PHP Warning:  mysqli_connect(): (HY000/1045): Access denied for user 'onbvn_card'@'localhost' (using password: YES) in /home/miniweb/public_html/panel/login/contact_download.php on line 3
+[11-Mar-2025 14:30:01 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Mar-2025 15:01:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Mar-2025 17:05:34 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Mar-2025 18:13:53 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[11-Mar-2025 18:52:51 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[11-Mar-2025 19:19:47 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[12-Mar-2025 10:26:21 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[12-Mar-2025 20:11:33 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[12-Mar-2025 20:12:25 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[13-Mar-2025 12:44:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[13-Mar-2025 16:35:12 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[13-Mar-2025 17:02:29 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[13-Mar-2025 19:35:02 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Mar-2025 12:29:27 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[15-Mar-2025 16:03:28 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[17-Mar-2025 12:36:08 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[17-Mar-2025 16:15:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Mar-2025 14:46:48 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[21-Mar-2025 16:58:22 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[22-Mar-2025 05:19:59 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 09:50:13 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 10:12:30 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 10:12:44 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 10:13:55 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 10:15:33 Asia/Kolkata] PHP Warning:  Undefined variable $headers in /home/miniweb/public_html/panel/login/preview_page.php on line 397
+[23-Mar-2025 10:15:33 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/preview_page.php:400
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/preview_page.php on line 400
+[23-Mar-2025 11:43:26 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 13:01:32 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 15:57:02 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 15:57:46 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 16:33:34 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 16:36:47 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 16:47:03 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 16:47:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 16:48:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 16:49:42 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:160
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 160
+[23-Mar-2025 16:52:54 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 17:31:49 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 17:36:40 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 12:19:50 UTC] PHP Parse error:  syntax error, unexpected token "<", expecting end of file in /home/miniweb/public_html/panel/login/login.php on line 152
+[23-Mar-2025 12:19:54 UTC] PHP Parse error:  syntax error, unexpected token "<", expecting end of file in /home/miniweb/public_html/panel/login/login.php on line 152
+[23-Mar-2025 12:19:57 UTC] PHP Parse error:  syntax error, unexpected token "<", expecting end of file in /home/miniweb/public_html/panel/login/login.php on line 152
+[23-Mar-2025 12:20:06 UTC] PHP Parse error:  syntax error, unexpected token "<", expecting end of file in /home/miniweb/public_html/panel/login/login.php on line 152
+[23-Mar-2025 18:02:57 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 12:51:51 UTC] PHP Parse error:  syntax error, unexpected token "<", expecting end of file in /home/miniweb/public_html/panel/login/login.php on line 136
+[23-Mar-2025 12:52:11 UTC] PHP Parse error:  syntax error, unexpected token "<", expecting end of file in /home/miniweb/public_html/panel/login/login.php on line 136
+[23-Mar-2025 18:38:36 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined array key "card_id_inprocess" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined array key "user_email" in /home/miniweb/public_html/panel/login/preview_page.php on line 14
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 48
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 65
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 124
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 149
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 150
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 152
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 153
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 155
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Undefined variable $row in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 21:39:57 Asia/Kolkata] PHP Warning:  Trying to access array offset on value of type null in /home/miniweb/public_html/panel/login/preview_page.php on line 187
+[23-Mar-2025 22:23:00 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[23-Mar-2025 22:23:12 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[24-Mar-2025 14:09:04 Asia/Kolkata] PHP Warning:  Undefined variable $password in /home/miniweb/public_html/panel/login/login.php on line 90
+[24-Mar-2025 14:09:06 Asia/Kolkata] PHP Warning:  Undefined variable $password in /home/miniweb/public_html/panel/login/login.php on line 90
+[24-Mar-2025 14:09:08 Asia/Kolkata] PHP Warning:  Undefined variable $password in /home/miniweb/public_html/panel/login/login.php on line 90
+[24-Mar-2025 14:09:11 Asia/Kolkata] PHP Warning:  Undefined variable $password in /home/miniweb/public_html/panel/login/login.php on line 90
+[24-Mar-2025 15:55:44 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[24-Mar-2025 13:20:15 UTC] PHP Parse error:  Unmatched '}' in /home/miniweb/public_html/panel/login/login.php on line 107
+[24-Mar-2025 13:20:34 UTC] PHP Parse error:  Unmatched '}' in /home/miniweb/public_html/panel/login/login.php on line 107
+[24-Mar-2025 13:20:58 UTC] PHP Parse error:  Unmatched '}' in /home/miniweb/public_html/panel/login/login.php on line 107
+[24-Mar-2025 13:21:09 UTC] PHP Parse error:  Unmatched '}' in /home/miniweb/public_html/panel/login/login.php on line 107
+[24-Mar-2025 13:21:45 UTC] PHP Parse error:  Unmatched '}' in /home/miniweb/public_html/panel/login/login.php on line 107
+[24-Mar-2025 13:21:59 UTC] PHP Parse error:  Unmatched '}' in /home/miniweb/public_html/panel/login/login.php on line 107
+[24-Mar-2025 19:08:39 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[25-Mar-2025 19:43:52 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[26-Mar-2025 15:37:27 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[27-Mar-2025 16:20:30 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161
+[30-Mar-2025 09:36:09 Asia/Kolkata] PHP Fatal error:  Uncaught Error: Call to undefined function mail() in /home/miniweb/public_html/panel/login/login.php:161
+Stack trace:
+#0 {main}
+  thrown in /home/miniweb/public_html/panel/login/login.php on line 161

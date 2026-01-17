@@ -1,0 +1,26 @@
+# Allow access to uploaded images
+<Files "*.jpg">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+<Files "*.jpeg">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+<Files "*.png">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+<Files "*.gif">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Deny access to PHP files
+<Files "*.php">
+    Order Deny,Allow
+    Deny from all
+</Files>

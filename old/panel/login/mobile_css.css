@@ -1,0 +1,175 @@
+
+@media screen and (max-width:700px){
+	
+	header {
+    background: white;
+    width: -webkit-fill-available;
+    padding: 0;
+    overflow: hidden;
+    position: sticky;
+    display: block;
+    padding: 3px;
+    top: 0;
+    z-index: 22;
+    height: 82px;
+    box-shadow: 0px 0px 10px 0px #00000026;
+}
+
+
+.mobile_home {display:block;    display: block;
+    position: absolute;
+    top: 6px;
+    right: 14px;
+    padding: 10px;
+    font-size: 40px;
+    font-weight: 800;
+    color: black;
+	
+	}
+	
+	header .head_txt {
+    position: relative;
+    right: auto;
+    width: -webkit-fill-available;
+    color: black;
+}
+
+.add_height{
+	height: 185px !important;
+	transition:0.3s;
+}
+
+header .logo h3 {
+    margin: 19px 10px;
+    font-size: 28px;
+        color: #000;
+    font-weight: bold;
+}
+header .logo img {
+    width: 73px;
+    height: 72px;
+}
+
+.login {
+    background: #0aa3b2;
+    height: auto;
+    margin: 3% 5px;
+    box-shadow: 0px 0px 10px 0px #00000024;
+    border-radius: 0px;
+    padding: 34px 24px;
+    width: -webkit-fill-available;
+}
+
+.main3 h1 {
+    font-weight: 400;
+    margin: 13px 0px 33px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.main3 form .input_box {
+ border: 1px solid #c1c1c1;
+    width: auto;
+    border-radius: 4px;
+    margin: 16px auto;
+}
+.main3 form .input_box p {
+    padding: 0px;
+    margin: 0px;
+    font-size: 10px;
+    color: gray;
+    position: absolute;
+    top: -9px;
+    background: white;
+    width: fit-content;
+    left: 16px;
+}
+.main3 {
+   margin: 0px;
+    background: white;
+    padding: 15px;
+    box-shadow: 0px 0px 10px 0px #80808036;
+    border-radius: 0px;
+}
+
+
+.container {
+   background: white;
+    margin: 0px;
+    padding: 0px;
+    min-height: -webkit-fill-available;
+    box-shadow: 0px 0px 10px 0px #0000001f;
+    overflow-x: auto;
+    height: 400px;
+}
+
+.card_row {
+    background: #015fb1;
+    margin: 0px;
+    padding: 0px;
+    display: flex;
+    box-shadow: 0px 0px 10px 0px #0000001f;
+    width: 600px;
+    color: white;
+    font-weight: 600;
+}
+
+.card_row2 {
+    display: flex;
+    width: 600px;
+}
+.divider {
+    background: transparent;
+    width: 250px;
+    padding: 10px;
+    display: inline-block;
+    box-shadow: 0px 0px 10px 0px #00000026;
+    margin: 5px;
+}
+.main3 form img {
+   width: 100px;
+   max-width: 80%;
+    height: 100px;
+    border: 0px;
+    margin: 0 auto;
+    position: relative;
+    transform: unset;
+    left: unset;
+}
+
+.divider .num {
+    width: fit-content;
+    background: #5097d4;
+    color: white;
+    padding: 5px 10px;
+    position: absolute;
+    z-index: 5;
+    left: -17px;
+    top: -6px;
+    border-radius: 0px;
+}
+
+.block_screen_loading .loader {
+  width: 50px;
+    height: 50px;
+    border: 10px solid white;
+    border-bottom: 10px solid black;
+    border-radius: 100%;
+    margin: 50% auto;
+    animation: loader 2s linear infinite;
+    background: #015fb182;
+}
+
+
+.save_contact_popup {
+    background: white;
+    width: 78%;
+    padding: 34px;
+    position: fixed;
+    z-index: 4;
+    top: 51px;
+    left: 50%;
+    transform: translate(-50%, 39px);
+    border-radius: 5px;
+    box-shadow: 0px 0px 42px 0px #00000038;
+}

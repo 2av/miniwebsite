@@ -1,0 +1,360 @@
+=== Verification Started: 2025-05-01 11:51:14 ===
+15:21:14 - Starting payment verification for ID: 264
+15:21:14 - POST data: {"shopping_order_id":"3456","razorpay_payment_id":"pay_QPcabFqkyXf9Sg","razorpay_order_id":"order_QPca0u2ZEsfOJx","razorpay_signature":"15174d51dd2af74bee73a430f9b77e554bd76f4d51e0f79a1abd54a0186abdbf"}
+15:21:14 - SESSION data: {"last_regeneration":1746091290,"id":"264","payment_currency":"INR","reference_number":"77001111950","user_name":" ","user_contact":"","amount":"999","razorpay_order_id":"order_QPca0u2ZEsfOJx","user_email":"akhilesh@yopmail.com","is_logged_in":true,"login_time":1746092968}
+=== Verification Started: 2025-05-02 06:27:27 ===
+09:57:28 - Starting payment verification for ID: 264
+09:57:28 - POST data: {"shopping_order_id":"3456","razorpay_payment_id":"pay_QPvbjCqxFtP2bd","razorpay_order_id":"order_QPvaRz3jjU9fVP","razorpay_signature":"8aa8ef505062ce2c72b3528aa8ead84358624ebcd3704e37811faaa0954f6409"}
+09:57:28 - SESSION data: {"last_regeneration":1746158883,"id":"264","payment_currency":"INR","reference_number":"153102065425","user_name":"Akhilesh Vishwakarma","user_contact":"","amount":"999","razorpay_order_id":"order_QPvaRz3jjU9fVP","user_email":"akhilesh@yopmail.com","is_logged_in":true,"login_time":1746158910,"card_id_inprocess":"264"}
+09:57:28 - Razorpay Key ID: ...
+09:57:28 - Verification parameters:
+09:57:28 - Order ID: order_QPvaRz3jjU9fVP
+09:57:28 - Payment ID: pay_QPvbjCqxFtP2bd
+09:57:28 - Signature: 8aa8ef505062ce2c72b3528aa8ead84358624ebcd3704e37811faaa0954f6409
+09:57:28 - Manual signature check:
+09:57:28 - Payload: order_QPvaRz3jjU9fVP|pay_QPvbjCqxFtP2bd
+09:57:28 - Generated signature: 1c3a58bde366d80ea66207236f0af5c60043a30392d6293aac2cf5d963e2f4a8
+09:57:28 - Received signature: 8aa8ef505062ce2c72b3528aa8ead84358624ebcd3704e37811faaa0954f6409
+09:57:28 - API verification failed, trying manual verification
+09:57:28 - Manual signature verification also failed
+09:57:28 - Verification failed: Invalid signature passed
+09:57:28 - Payment failed: Razorpay Error: Invalid signature passed
+=== Verification Started: 2025-05-02 06:36:07 ===
+10:06:08 - Starting payment verification for ID: 264
+10:06:08 - POST data: {"shopping_order_id":"3456","razorpay_payment_id":"pay_QPvktAOOZH8LOO","razorpay_order_id":"order_QPvkWJm6mLuMvU","razorpay_signature":"8e09b130257ace4ee47b2811274e96b0a81e48b6f17ab5b8aa5c3126c3d20647"}
+10:06:08 - SESSION data: {"last_regeneration":1746158883,"id":"264","payment_currency":"INR","reference_number":"890302062635","user_name":"Akhilesh Vishwakarma","user_contact":"","amount":"999","razorpay_order_id":"order_QPvkWJm6mLuMvU","user_email":"akhilesh@yopmail.com","is_logged_in":true,"login_time":1746158910,"card_id_inprocess":"264"}
+10:06:08 - Razorpay Key ID: ...
+10:06:08 - Verification parameters:
+10:06:08 - Order ID: order_QPvkWJm6mLuMvU
+10:06:08 - Payment ID: pay_QPvktAOOZH8LOO
+10:06:08 - Signature: 8e09b130257ace4ee47b2811274e96b0a81e48b6f17ab5b8aa5c3126c3d20647
+10:06:08 - Manual signature check:
+10:06:08 - Payload: order_QPvkWJm6mLuMvU|pay_QPvktAOOZH8LOO
+10:06:08 - Generated signature: 664311a6761c0fcf34cc2cf27f638e5e583c1f0641762a9c44cf2c3fc6ef7ceb
+10:06:08 - Received signature: 8e09b130257ace4ee47b2811274e96b0a81e48b6f17ab5b8aa5c3126c3d20647
+10:06:08 - API verification failed, trying manual verification
+10:06:08 - Manual signature verification also failed
+10:06:08 - Verification failed: Invalid signature passed
+10:06:08 - Payment failed: Razorpay Error: Invalid signature passed
+=== Verification Started: 2025-05-02 06:44:12 ===
+10:14:13 - Razorpay Key ID: rzp_...cZS7
+10:14:13 - Razorpay Key Secret: CjDm...ZKqH
+10:14:13 - Starting payment verification for ID: 264
+10:14:13 - POST data: {"shopping_order_id":"3456","razorpay_payment_id":"pay_QPvtSCfAia9yA7","razorpay_order_id":"order_QPvt3sjV2H0Qck","razorpay_signature":"31055709af5009b11b4ba2f5872b39b71aa9bc5ce381c92c3d5adc97ab7cd724"}
+10:14:13 - SESSION data: {"last_regeneration":1746161052,"id":"264","payment_currency":"INR","reference_number":"315702063043","user_name":"Akhilesh Vishwakarma","user_contact":"","amount":"999","razorpay_order_id":"order_QPvt3sjV2H0Qck","user_email":"akhilesh@yopmail.com","is_logged_in":true,"login_time":1746158910,"card_id_inprocess":"264","razorpay_key_id":"rzp_test_bbItJwu8YucZS7","razorpay_key_secret":"CjDmiACVQleLZYhNC0WBZKqH"}
+10:14:13 - Using key secret from config.php: CjDm...ZKqH
+10:14:13 - Verification parameters:
+10:14:13 - Order ID: order_QPvt3sjV2H0Qck
+10:14:13 - Payment ID: pay_QPvtSCfAia9yA7
+10:14:13 - Signature: 31055709af5009b11b4ba2f5872b39b71aa9bc5ce381c92c3d5adc97ab7cd724
+10:14:13 - API signature verification successful
+10:14:13 - Payment successful, updating database
+10:14:13 - Executing query: UPDATE digi_card SET 
+                    d_payment_status='Success',
+                    d_card_status='Active',
+                    d_payment_amount='999',
+                    d_order_id='315702063043',
+                    d_payment_date='2025-05-02 10:14:13' 
+                    WHERE id='264'
+10:14:13 - Database update successful
+=== Verification Started: 2025-08-28 12:13:44 ===
+15:43:44 - Starting payment verification for ID: 408
+15:43:44 - POST data: {"razorpay_payment_id":"pay_RAiXjsveMhaV40","razorpay_signature":"7131b9184e57bdf69f8df0ab8bdc30fd028f0957e53d99133fc0615eedfc7158","razorpay_order_id":"order_RAiXBYU7zRhh6t","shopping_order_id":"757828125312"}
+15:43:44 - SESSION data: {"last_regeneration":1756375375,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756372301,"reference_number":"757828125312","amount":1,"payment_currency":"INR","id":"408","razorpay_order_id":"order_RAiXBYU7zRhh6t","card_id":"408"}
+15:43:44 - Using key secret from config.php: VHJz...ZtnI
+15:43:44 - Verification parameters:
+15:43:44 - Order ID: order_RAiXBYU7zRhh6t
+15:43:44 - Payment ID: pay_RAiXjsveMhaV40
+15:43:44 - Signature: 7131b9184e57bdf69f8df0ab8bdc30fd028f0957e53d99133fc0615eedfc7158
+15:43:44 - API signature verification successful
+15:43:44 - SUCCESS: Database connection established
+15:43:44 - SUCCESS: Database updated successfully for card ID: 408
+15:43:44 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+=== Verification Started: 2025-08-28 12:19:34 ===
+15:49:34 - Starting payment verification for ID: 409
+15:49:34 - POST data: {"razorpay_payment_id":"pay_RAidpOKKUJaJH2","razorpay_signature":"004d558a3583cde528870a58ea96b2dec24a353490ff763de4acb9f52dd0d41b","razorpay_order_id":"order_RAicU5oP1v5HsX","shopping_order_id":"750228125417"}
+15:49:34 - SESSION data: {"last_regeneration":1756375375,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756376024,"reference_number":"750228125417","amount":1,"payment_currency":"INR","id":"409","razorpay_order_id":"order_RAicU5oP1v5HsX","card_id":"409","card_id_inprocess":"409"}
+15:49:34 - Using key secret from config.php: VHJz...ZtnI
+15:49:34 - Verification parameters:
+15:49:34 - Order ID: order_RAicU5oP1v5HsX
+15:49:34 - Payment ID: pay_RAidpOKKUJaJH2
+15:49:34 - Signature: 004d558a3583cde528870a58ea96b2dec24a353490ff763de4acb9f52dd0d41b
+15:49:34 - API signature verification successful
+15:49:35 - SUCCESS: Database connection established
+15:49:35 - SUCCESS: Database updated successfully for card ID: 409
+15:49:35 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+=== Verification Started: 2025-08-28 12:38:45 ===
+16:08:45 - Starting payment verification for ID: 410
+16:08:45 - POST data: {"razorpay_payment_id":"pay_RAiyA32JMvkPIs","razorpay_signature":"5b24fce5aa4068fb355242960e0b917df603d14a7c064b4bc4a4f4cd816d06d7","razorpay_order_id":"order_RAixQAMP7SSMfa","shopping_order_id":"152228124337"}
+16:08:45 - SESSION data: {"last_regeneration":1756377368,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756376375,"reference_number":"152228124337","amount":1,"payment_currency":"INR","id":"410","razorpay_order_id":"order_RAixQAMP7SSMfa","card_id":"410","card_id_inprocess":"410"}
+16:08:45 - Using key secret from config.php: VHJz...ZtnI
+16:08:45 - Verification parameters:
+16:08:45 - Order ID: order_RAixQAMP7SSMfa
+16:08:45 - Payment ID: pay_RAiyA32JMvkPIs
+16:08:45 - Signature: 5b24fce5aa4068fb355242960e0b917df603d14a7c064b4bc4a4f4cd816d06d7
+16:08:45 - API signature verification successful
+16:08:45 - SUCCESS: Database connection established
+16:08:45 - SUCCESS: Database updated successfully for card ID: 410
+16:08:45 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+=== Verification Started: 2025-08-28 12:43:45 ===
+16:13:45 - Starting payment verification for ID: 411
+16:13:45 - POST data: {"razorpay_payment_id":"pay_RAj3SQeNktbQUL","razorpay_signature":"c29652f740f3d45454197d0066633db0a720834d7ee397a57792462d8288d946","razorpay_order_id":"order_RAj2TND3uvw2Va","shopping_order_id":"757428123042"}
+16:13:45 - SESSION data: {"last_regeneration":1756377368,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756377525,"reference_number":"757428123042","amount":1,"payment_currency":"INR","id":"411","razorpay_order_id":"order_RAj2TND3uvw2Va","card_id":"411","card_id_inprocess":"411"}
+16:13:45 - Using key secret from config.php: VHJz...ZtnI
+16:13:45 - Verification parameters:
+16:13:45 - Order ID: order_RAj2TND3uvw2Va
+16:13:45 - Payment ID: pay_RAj3SQeNktbQUL
+16:13:45 - Signature: c29652f740f3d45454197d0066633db0a720834d7ee397a57792462d8288d946
+16:13:45 - API signature verification successful
+16:13:46 - SUCCESS: Database connection established
+16:13:46 - SUCCESS: Database updated successfully for card ID: 411
+16:13:46 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+=== Verification Started: 2025-08-28 12:47:49 ===
+16:17:49 - Starting payment verification for ID: 411
+16:17:49 - POST data: {"razorpay_payment_id":"pay_RAj3SQeNktbQUL","razorpay_signature":"c29652f740f3d45454197d0066633db0a720834d7ee397a57792462d8288d946","razorpay_order_id":"order_RAj2TND3uvw2Va","shopping_order_id":"757428123042"}
+16:17:49 - SESSION data: {"last_regeneration":1756377368,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756377826,"reference_number":"757428123042","amount":1,"payment_currency":"INR","id":"411","razorpay_order_id":"order_RAj2TND3uvw2Va","card_id":"411","card_id_inprocess":"411"}
+16:17:49 - Using key secret from config.php: VHJz...ZtnI
+16:17:49 - Verification parameters:
+16:17:49 - Order ID: order_RAj2TND3uvw2Va
+16:17:49 - Payment ID: pay_RAj3SQeNktbQUL
+16:17:49 - Signature: c29652f740f3d45454197d0066633db0a720834d7ee397a57792462d8288d946
+16:17:49 - API signature verification successful
+16:17:49 - SUCCESS: Database connection established
+16:17:49 - SUCCESS: Database updated successfully for card ID: 411
+16:17:49 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+16:17:49 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00001
+=== Verification Started: 2025-08-28 15:00:13 ===
+18:30:13 - Starting payment verification for ID: 411
+18:30:13 - POST data: {"razorpay_payment_id":"pay_RAlNboIkTwPyiX","razorpay_signature":"2a4aa1053ffe4cba7ce224554c2e290743a05b78118ecb46e381cc360d5f8341","razorpay_order_id":"order_RAlN0kzMYbN12F","shopping_order_id":"699828021359"}
+18:30:13 - SESSION data: {"last_regeneration":1756385942,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756385942,"reference_number":"699828021359","amount":1,"payment_currency":"INR","id":"411","razorpay_order_id":"order_RAlN0kzMYbN12F","card_id":"411","card_id_inprocess":"411","invoice_number":"KIR\/00001"}
+18:30:13 - Using key secret from config.php: VHJz...ZtnI
+18:30:13 - Verification parameters:
+18:30:13 - Order ID: order_RAlN0kzMYbN12F
+18:30:13 - Payment ID: pay_RAlNboIkTwPyiX
+18:30:13 - Signature: 2a4aa1053ffe4cba7ce224554c2e290743a05b78118ecb46e381cc360d5f8341
+18:30:13 - API signature verification successful
+18:30:14 - SUCCESS: Database connection established
+18:30:14 - SUCCESS: Database updated successfully for card ID: 411
+18:30:14 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+18:30:14 - GST Calculation Debug:
+18:30:14 - Original Amount: 0
+18:30:14 - Promo Discount: 0
+18:30:14 - Final Amount: 0
+18:30:14 - Sub Total: 0
+18:30:14 - Unit Price: 0
+18:30:14 - Total Price: 0
+18:30:14 - Is Interstate: Yes
+18:30:14 - IGST Amount: 0
+18:30:14 - CGST Amount: 0
+18:30:14 - SGST Amount: 0
+18:30:14 - Total Amount: 0
+=== Verification Started: 2025-08-28 15:01:34 ===
+18:31:34 - Starting payment verification for ID: 411
+18:31:34 - POST data: {"razorpay_payment_id":"pay_RAlNboIkTwPyiX","razorpay_signature":"2a4aa1053ffe4cba7ce224554c2e290743a05b78118ecb46e381cc360d5f8341","razorpay_order_id":"order_RAlN0kzMYbN12F","shopping_order_id":"699828021359"}
+18:31:34 - SESSION data: {"last_regeneration":1756385942,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756386014,"reference_number":"699828021359","amount":1,"payment_currency":"INR","id":"411","razorpay_order_id":"order_RAlN0kzMYbN12F","card_id":"411","card_id_inprocess":"411","invoice_number":"KIR\/00001"}
+18:31:34 - Using key secret from config.php: VHJz...ZtnI
+18:31:34 - Verification parameters:
+18:31:34 - Order ID: order_RAlN0kzMYbN12F
+18:31:34 - Payment ID: pay_RAlNboIkTwPyiX
+18:31:34 - Signature: 2a4aa1053ffe4cba7ce224554c2e290743a05b78118ecb46e381cc360d5f8341
+18:31:34 - API signature verification successful
+18:31:34 - SUCCESS: Database connection established
+18:31:35 - SUCCESS: Database updated successfully for card ID: 411
+18:31:35 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+18:31:35 - GST Calculation Debug:
+18:31:35 - Original Amount: 0
+18:31:35 - Promo Discount: 0
+18:31:35 - Final Amount: 0
+18:31:35 - Sub Total: 0
+18:31:35 - Unit Price: 0
+18:31:35 - Total Price: 0
+18:31:35 - Is Interstate: Yes
+18:31:35 - IGST Amount: 0
+18:31:35 - Total Amount: 0
+18:31:35 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00002
+=== Verification Started: 2025-08-28 15:11:57 ===
+18:41:57 - Starting payment verification for ID: 411
+18:41:57 - POST data: {"razorpay_payment_id":"pay_RAlZulwIssuJU3","razorpay_signature":"f923a09b31ff86c50eedfbd80e6bdd4b12a0c3ebab34d8387e210f040f841d39","razorpay_order_id":"order_RAlZL3s2vNXAXX","shopping_order_id":"611528030011"}
+18:41:57 - SESSION data: {"last_regeneration":1756385942,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756386095,"reference_number":"611528030011","amount":1,"payment_currency":"INR","id":"411","razorpay_order_id":"order_RAlZL3s2vNXAXX","card_id":"411","card_id_inprocess":"411","invoice_number":"KIR\/00002"}
+18:41:57 - Using key secret from config.php: VHJz...ZtnI
+18:41:57 - Verification parameters:
+18:41:57 - Order ID: order_RAlZL3s2vNXAXX
+18:41:57 - Payment ID: pay_RAlZulwIssuJU3
+18:41:57 - Signature: f923a09b31ff86c50eedfbd80e6bdd4b12a0c3ebab34d8387e210f040f841d39
+18:41:57 - API signature verification successful
+18:41:57 - SUCCESS: Database connection established
+18:41:57 - SUCCESS: Database updated successfully for card ID: 411
+18:41:57 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+18:41:57 - Card Payment Amount from DB: 
+18:41:57 - Original Amount calculated: 999
+18:41:57 - GST Calculation Debug:
+18:41:57 - Original Amount: 999
+18:41:57 - Promo Discount: 0
+18:41:57 - Final Amount: 999
+18:41:57 - Sub Total: 999
+18:41:57 - Unit Price: 999
+18:41:57 - Total Price: 999
+18:41:57 - Is Interstate: Yes
+18:41:57 - IGST Amount: 179.82
+18:41:57 - CGST Amount: 0
+18:41:57 - SGST Amount: 0
+18:41:57 - Total Amount: 1178.82
+18:41:57 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00003
+=== Verification Started: 2025-08-28 15:42:08 ===
+19:12:08 - Starting payment verification for ID: 411
+19:12:08 - POST data: {"razorpay_payment_id":"pay_RAm5shSAVrrl2V","razorpay_signature":"f08a590eeedbd0dd4228525e63a550b6e10fae6a122dc2d9b7ed7fc3294b5c16","razorpay_order_id":"order_RAm516NI6M0stm","shopping_order_id":"716228030041"}
+19:12:08 - SESSION data: {"last_regeneration":1756387787,"user_email":"akhilesh@yopmail.com","user_name":" ","user_contact":"1234567890","user_referral_code":"REF5786","collaboration_enabled":true,"is_logged_in":true,"login_time":1756386717,"reference_number":"716228030041","amount":1,"payment_currency":"INR","id":"411","razorpay_order_id":"order_RAm516NI6M0stm","card_id":"411","card_id_inprocess":"411","invoice_number":"KIR\/00003"}
+19:12:08 - Using key secret from config.php: VHJz...ZtnI
+19:12:08 - Verification parameters:
+19:12:08 - Order ID: order_RAm516NI6M0stm
+19:12:08 - Payment ID: pay_RAm5shSAVrrl2V
+19:12:08 - Signature: f08a590eeedbd0dd4228525e63a550b6e10fae6a122dc2d9b7ed7fc3294b5c16
+19:12:08 - API signature verification successful
+19:12:08 - SUCCESS: Database connection established
+19:12:08 - SUCCESS: Database updated successfully for card ID: 411
+19:12:09 - SUCCESS: Session set up for user: akhilesh@yopmail.com
+19:12:09 - Card Payment Amount from DB: 
+19:12:09 - Original Amount calculated: 999
+19:12:09 - GST Calculation Debug:
+19:12:09 - Original Amount: 999
+19:12:09 - Promo Discount: 0
+19:12:09 - Final Amount: 999
+19:12:09 - Sub Total: 846.61016949153
+19:12:09 - Unit Price: 999
+19:12:09 - Total Price: 999
+19:12:09 - Is Interstate: Yes
+19:12:09 - IGST Amount: 152.38983050847
+19:12:09 - CGST Amount: 0
+19:12:09 - SGST Amount: 0
+19:12:09 - Total Amount: 999
+19:12:09 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00004
+=== Verification Started: 2025-09-08 10:58:28 ===
+14:28:28 - Starting payment verification for ID: 441
+14:28:28 - POST data: {"razorpay_payment_id":"pay_RF38ZzaTsNNYUF","razorpay_signature":"81ccc7f7ae24895eb6b15e76ca10f4955d168b445a52266afe15a0b79a0e989d","razorpay_order_id":"order_RF37wJ9yZ9fycz","shopping_order_id":"753608103257"}
+14:28:28 - SESSION data: {"last_regeneration":1757316709,"user_email":"defaultdeal@yopmail.com","user_name":" ","user_contact":"9191919191","user_referral_code":"13106FF5","collaboration_enabled":false,"is_logged_in":true,"login_time":1757316709,"card_id_inprocess":"441","reference_number":"753608103257","amount":8,"payment_currency":"INR","id":"441","razorpay_order_id":"order_RF37wJ9yZ9fycz","card_id":"441","subtotal_amount":7,"cgst_amount":0,"sgst_amount":0,"igst_amount":1,"final_total":8,"is_interstate":true,"gst_state_code":"","promo_code":"TEMP01","promo_discount":"840","auto_applied_promo":true,"promo_check_defaultdeal@yopmail.com_441":true}
+14:28:28 - Using key secret from config.php: VHJz...ZtnI
+14:28:28 - Verification parameters:
+14:28:28 - Order ID: order_RF37wJ9yZ9fycz
+14:28:28 - Payment ID: pay_RF38ZzaTsNNYUF
+14:28:28 - Signature: 81ccc7f7ae24895eb6b15e76ca10f4955d168b445a52266afe15a0b79a0e989d
+14:28:28 - API signature verification successful
+14:28:28 - SUCCESS: Database connection established
+14:28:28 - SUCCESS: Database updated successfully for card ID: 441
+14:28:28 - SUCCESS: Session set up for user: defaultdeal@yopmail.com
+14:28:28 - Card Payment Amount from DB: 
+14:28:28 - Original Amount calculated: 999
+14:28:28 - Tax Values from Payment Page:
+14:28:28 - Original Amount: 999
+14:28:28 - Promo Discount: 840
+14:28:28 - Sub Total (from session): 7
+14:28:28 - Is Interstate (from session): Yes
+14:28:28 - CGST Amount (from session): 0
+14:28:28 - SGST Amount (from session): 0
+14:28:28 - IGST Amount (from session): 1
+14:28:28 - Total Amount (from session): 8
+=== Verification Started: 2025-09-08 10:59:36 ===
+14:29:36 - Starting payment verification for ID: 441
+14:29:36 - POST data: {"razorpay_payment_id":"pay_RF38ZzaTsNNYUF","razorpay_signature":"81ccc7f7ae24895eb6b15e76ca10f4955d168b445a52266afe15a0b79a0e989d","razorpay_order_id":"order_RF37wJ9yZ9fycz","shopping_order_id":"753608103257"}
+14:29:36 - SESSION data: {"last_regeneration":1757316709,"user_email":"defaultdeal@yopmail.com","user_name":" ","user_contact":"9191919191","user_referral_code":"13106FF5","collaboration_enabled":false,"is_logged_in":true,"login_time":1757321908,"card_id_inprocess":"441","reference_number":"753608103257","amount":8,"payment_currency":"INR","id":"441","razorpay_order_id":"order_RF37wJ9yZ9fycz","card_id":"441","subtotal_amount":7,"cgst_amount":0,"sgst_amount":0,"igst_amount":1,"final_total":8,"is_interstate":true,"gst_state_code":"","promo_code":"TEMP01","promo_discount":"840","auto_applied_promo":true,"promo_check_defaultdeal@yopmail.com_441":true}
+14:29:36 - Using key secret from config.php: VHJz...ZtnI
+14:29:36 - Verification parameters:
+14:29:36 - Order ID: order_RF37wJ9yZ9fycz
+14:29:36 - Payment ID: pay_RF38ZzaTsNNYUF
+14:29:36 - Signature: 81ccc7f7ae24895eb6b15e76ca10f4955d168b445a52266afe15a0b79a0e989d
+14:29:36 - API signature verification successful
+14:29:36 - SUCCESS: Database connection established
+14:29:36 - SUCCESS: Database updated successfully for card ID: 441
+14:29:36 - SUCCESS: Session set up for user: defaultdeal@yopmail.com
+14:29:36 - Card Payment Amount from DB: 
+14:29:36 - Original Amount calculated: 999
+14:29:36 - Tax Values from Payment Page:
+14:29:36 - Original Amount: 999
+14:29:36 - Promo Discount: 840
+14:29:36 - Sub Total (from session): 7
+14:29:36 - Is Interstate (from session): Yes
+14:29:36 - CGST Amount (from session): 0
+14:29:36 - SGST Amount (from session): 0
+14:29:36 - IGST Amount (from session): 1
+14:29:36 - Total Amount (from session): 8
+14:29:36 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00009
+=== Verification Started: 2025-09-08 10:59:40 ===
+14:29:40 - Starting payment verification for ID: 441
+14:29:40 - POST data: []
+14:29:40 - SESSION data: {"last_regeneration":1757316709,"user_email":"defaultdeal@yopmail.com","user_name":" ","user_contact":"9191919191","user_referral_code":"13106FF5","collaboration_enabled":false,"is_logged_in":true,"login_time":1757321976,"card_id_inprocess":"441","reference_number":"753608103257","amount":8,"payment_currency":"INR","id":"441","razorpay_order_id":"order_RF37wJ9yZ9fycz","card_id":"441","subtotal_amount":7,"cgst_amount":0,"sgst_amount":0,"igst_amount":1,"final_total":8,"is_interstate":true,"gst_state_code":"","promo_code":"TEMP01","promo_discount":"840","auto_applied_promo":true,"promo_check_defaultdeal@yopmail.com_441":true,"invoice_number":"KIR\/00009"}
+14:29:40 - ERROR: No payment ID received
+14:29:40 - SUCCESS: Database connection established
+14:29:40 - SUCCESS: Database updated successfully for card ID: 441
+14:29:40 - SUCCESS: Session set up for user: defaultdeal@yopmail.com
+14:29:40 - Card Payment Amount from DB: 
+14:29:40 - Original Amount calculated: 999
+14:29:40 - Tax Values from Payment Page:
+14:29:40 - Original Amount: 999
+14:29:40 - Promo Discount: 840
+14:29:40 - Sub Total (from session): 7
+14:29:40 - Is Interstate (from session): Yes
+14:29:40 - CGST Amount (from session): 0
+14:29:40 - SGST Amount (from session): 0
+14:29:40 - IGST Amount (from session): 1
+14:29:40 - Total Amount (from session): 8
+14:29:40 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00010
+=== Verification Started: 2025-09-08 11:01:15 ===
+14:31:15 - Starting payment verification for ID: 441
+14:31:15 - POST data: []
+14:31:15 - SESSION data: {"last_regeneration":1757316709,"user_email":"defaultdeal@yopmail.com","user_name":" ","user_contact":"9191919191","user_referral_code":"13106FF5","collaboration_enabled":false,"is_logged_in":true,"login_time":1757321980,"card_id_inprocess":"441","reference_number":"753608103257","amount":8,"payment_currency":"INR","id":"441","razorpay_order_id":"order_RF37wJ9yZ9fycz","card_id":"441","subtotal_amount":7,"cgst_amount":0,"sgst_amount":0,"igst_amount":1,"final_total":8,"is_interstate":true,"gst_state_code":"","promo_code":"TEMP01","promo_discount":"840","auto_applied_promo":true,"promo_check_defaultdeal@yopmail.com_441":true,"invoice_number":"KIR\/00010"}
+14:31:15 - ERROR: No payment ID received
+14:31:15 - SUCCESS: Database connection established
+14:31:15 - SUCCESS: Database updated successfully for card ID: 441
+14:31:15 - SUCCESS: Session set up for user: defaultdeal@yopmail.com
+14:31:16 - Card Payment Amount from DB: 
+14:31:16 - Original Amount calculated: 999
+14:31:16 - Tax Values from Payment Page:
+14:31:16 - Original Amount: 999
+14:31:16 - Promo Discount: 840
+14:31:16 - Sub Total (from session): 7
+14:31:16 - Is Interstate (from session): Yes
+14:31:16 - CGST Amount (from session): 0
+14:31:16 - SGST Amount (from session): 0
+14:31:16 - IGST Amount (from session): 1
+14:31:16 - Total Amount (from session): 8
+14:31:16 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00011
+=== Verification Started: 2025-09-08 11:01:19 ===
+14:31:19 - Starting payment verification for ID: 441
+14:31:19 - POST data: []
+14:31:19 - SESSION data: {"last_regeneration":1757316709,"user_email":"defaultdeal@yopmail.com","user_name":" ","user_contact":"9191919191","user_referral_code":"13106FF5","collaboration_enabled":false,"is_logged_in":true,"login_time":1757322075,"card_id_inprocess":"441","reference_number":"753608103257","amount":8,"payment_currency":"INR","id":"441","razorpay_order_id":"order_RF37wJ9yZ9fycz","card_id":"441","subtotal_amount":7,"cgst_amount":0,"sgst_amount":0,"igst_amount":1,"final_total":8,"is_interstate":true,"gst_state_code":"","promo_code":"TEMP01","promo_discount":"840","auto_applied_promo":true,"promo_check_defaultdeal@yopmail.com_441":true,"invoice_number":"KIR\/00011"}
+14:31:19 - ERROR: No payment ID received
+14:31:20 - SUCCESS: Database connection established
+14:31:20 - SUCCESS: Database updated successfully for card ID: 441
+14:31:20 - SUCCESS: Session set up for user: defaultdeal@yopmail.com
+14:31:20 - Card Payment Amount from DB: 
+14:31:20 - Original Amount calculated: 999
+14:31:20 - Tax Values from Payment Page:
+14:31:20 - Original Amount: 999
+14:31:20 - Promo Discount: 840
+14:31:20 - Sub Total (from session): 7
+14:31:20 - Is Interstate (from session): Yes
+14:31:20 - CGST Amount (from session): 0
+14:31:20 - SGST Amount (from session): 0
+14:31:20 - IGST Amount (from session): 1
+14:31:20 - Total Amount (from session): 8
+14:31:20 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00012
+=== Verification Started: 2025-09-08 11:02:12 ===
+14:32:12 - Starting payment verification for ID: 441
+14:32:12 - POST data: []
+14:32:12 - SESSION data: {"last_regeneration":1757316709,"user_email":"defaultdeal@yopmail.com","user_name":" ","user_contact":"9191919191","user_referral_code":"13106FF5","collaboration_enabled":false,"is_logged_in":true,"login_time":1757322080,"card_id_inprocess":"441","reference_number":"753608103257","amount":8,"payment_currency":"INR","id":"441","razorpay_order_id":"order_RF37wJ9yZ9fycz","card_id":"441","subtotal_amount":7,"cgst_amount":0,"sgst_amount":0,"igst_amount":1,"final_total":8,"is_interstate":true,"gst_state_code":"","promo_code":"TEMP01","promo_discount":"840","auto_applied_promo":true,"promo_check_defaultdeal@yopmail.com_441":true,"invoice_number":"KIR\/00012"}
+14:32:12 - ERROR: No payment ID received
+14:32:13 - SUCCESS: Database connection established
+14:32:13 - SUCCESS: Database updated successfully for card ID: 441
+14:32:13 - SUCCESS: Session set up for user: defaultdeal@yopmail.com
+14:32:13 - Card Payment Amount from DB: 
+14:32:13 - Original Amount calculated: 999
+14:32:13 - Tax Values from Payment Page:
+14:32:13 - Original Amount: 999
+14:32:13 - Promo Discount: 840
+14:32:13 - Sub Total (from session): 7
+14:32:13 - Is Interstate (from session): Yes
+14:32:13 - CGST Amount (from session): 0
+14:32:13 - SGST Amount (from session): 0
+14:32:13 - IGST Amount (from session): 1
+14:32:13 - Total Amount (from session): 8
+14:32:13 - SUCCESS: Invoice details inserted successfully. Invoice Number: KIR/00013
+14:32:13 - SUCCESS: Referral earnings updated after payment
