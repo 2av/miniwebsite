@@ -150,7 +150,7 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
     
     <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
         <div class="head-left">
-            <a class="navbar-brand ps-3" href="<?php echo $nav_base; ?>/dashboard.php">
+            <a class="navbar-brand ps-3" href="<?php echo $nav_base; ?>/dashboard">
                 <img src="<?php echo $assets_base; ?>/assets/images/logo.png" class="img-fluid" alt="" srcset="">
             </a>
             <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!">
