@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($action == 'add_image') {
             // Handle image upload
             if (isset($_FILES['kit_image']) && $_FILES['kit_image']['error'] == 0) {
-                $upload_dir = '../franchisee/kit/uploads/';
+                $upload_dir = '../assets/upload/kits/';
                 
                 // Check if directory exists, create if not
                 if (!file_exists($upload_dir)) {
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 // Check for upload errors
                 if ($file_error == 0) {
-                    $upload_dir = '../franchisee/kit/uploads/';
+                    $upload_dir = '../assets/upload/kits/';
                     
                     // Check if directory exists, create if not
                     if (!file_exists($upload_dir)) {
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $get_file_query = "SELECT file_path FROM franchisee_kit WHERE id = $item_id";
                 $file_result = mysqli_query($connect, $get_file_query);
                 if ($file_result && $file_row = mysqli_fetch_array($file_result)) {
-                    $file_path = '../franchisee/kit/uploads/' . $file_row['file_path'];
+                    $file_path = '../assets/upload/kits/' . $file_row['file_path'];
                     if (file_exists($file_path)) {
                         unlink($file_path);
                     }
@@ -272,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Handle new image upload if provided
             $image_update = '';
             if (isset($_FILES['edit_kit_image']) && $_FILES['edit_kit_image']['error'] == 0) {
-                $upload_dir = '../franchisee/kit/uploads/';
+                $upload_dir = '../assets/upload/kits/';
                 $file_extension = strtolower(pathinfo($_FILES['edit_kit_image']['name'], PATHINFO_EXTENSION));
                 $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
                     $max_file_size = 10 * 1024 * 1024; // 10MB in bytes
@@ -343,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Handle new file upload if provided
             $file_update = '';
             if (isset($_FILES['edit_file_upload']) && $_FILES['edit_file_upload']['error'] == 0) {
-                $upload_dir = '../franchisee/kit/uploads/';
+                $upload_dir = '../assets/upload/kits/';
                 $file_extension = strtolower(pathinfo($_FILES['edit_file_upload']['name'], PATHINFO_EXTENSION));
                 $allowed_extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', 'mp4', 'avi', 'mov', 'mp3', 'wav'];
                 
@@ -718,11 +718,11 @@ if ($kit_items_result) {
                 </div>
                 <div class="col-md-6">
                     <strong>Upload Directory Status:</strong><br>
-                    Directory: <code><?php echo realpath('../franchisee/kit/uploads/') ?: '../franchisee/kit/uploads/'; ?></code><br>
-                    Exists: <strong><?php echo file_exists('../franchisee/kit/uploads/') ? 'Yes' : 'No'; ?></strong><br>
-                    Writable: <strong><?php echo is_writable('../franchisee/kit/uploads/') ? 'Yes' : 'No'; ?></strong><br>
-                    <?php if (file_exists('../franchisee/kit/uploads/')): ?>
-                    Permissions: <strong><?php echo substr(sprintf('%o', fileperms('../franchisee/kit/uploads/')), -4); ?></strong><br>
+                    Directory: <code><?php echo realpath('../assets/upload/kits/') ?: '../assets/upload/kits/'; ?></code><br>
+                    Exists: <strong><?php echo file_exists('../assets/upload/kits/') ? 'Yes' : 'No'; ?></strong><br>
+                    Writable: <strong><?php echo is_writable('../assets/upload/kits/') ? 'Yes' : 'No'; ?></strong><br>
+                    <?php if (file_exists('../assets/upload/kits/')): ?>
+                    Permissions: <strong><?php echo substr(sprintf('%o', fileperms('../assets/upload/kits/')), -4); ?></strong><br>
                     <?php endif; ?>
                 </div>
             </div>
@@ -732,7 +732,7 @@ if ($kit_items_result) {
                 $post_max = convertToBytes(ini_get('post_max_size'));
                 $required_upload = 10 * 1024 * 1024; // 10MB
                 $required_post = 12 * 1024 * 1024; // 12MB
-                $upload_dir = '../franchisee/kit/uploads/';
+                $upload_dir = '../assets/upload/kits/';
                 $has_php_issue = ($upload_max < $required_upload || $post_max < $required_post);
                 $has_permission_issue = (file_exists($upload_dir) && !is_writable($upload_dir));
                 
@@ -746,7 +746,7 @@ if ($kit_items_result) {
                     <?php endif; ?>
                     <?php if ($has_permission_issue): ?>
                     <strong>2. File Permissions:</strong> Set permissions on upload directory via FTP/cPanel File Manager:<br>
-                    <code>chmod 755</code> or <code>chmod 777</code> on <code>franchisee/kit/uploads/</code><br>
+                    <code>chmod 755</code> or <code>chmod 777</code> on <code>assets/upload/kits/</code><br>
                     <em>In cPanel: Right-click folder → Change Permissions → Set to 755 (or 777 if 755 doesn't work)</em><br><br>
                     <?php endif; ?>
                     <?php if (!$has_php_issue && !$has_permission_issue): ?>
@@ -776,7 +776,7 @@ if ($kit_items_result) {
                         <?php foreach ($image_items as $item): ?>
                             <div class="col-md-4 col-lg-3">
                                 <div class="kit-item-card">
-                                    <img src="../franchisee/kit/uploads/<?php echo htmlspecialchars($item['file_path']); ?>" 
+                                    <img src="../assets/upload/kits/<?php echo htmlspecialchars($item['file_path']); ?>" 
                                          class="kit-image" 
                                          alt="<?php echo htmlspecialchars($item['title'] ?: 'Untitled'); ?>">
                                     <div class="card-body p-3">
@@ -932,7 +932,7 @@ if ($kit_items_result) {
                                         </td>
                                         <td>
                                             <?php 
-                                            $file_path = '../franchisee/kit/uploads/' . $item['file_path'];
+                                            $file_path = '../assets/upload/kits/' . $item['file_path'];
                                             if (file_exists($file_path)) {
                                                 $file_size = filesize($file_path);
                                                 echo formatFileSize($file_size);
@@ -953,7 +953,7 @@ if ($kit_items_result) {
                                         ?></td>
                                         <td>
                                             <div class="action-buttons">
-                                                <a href="../franchisee/kit/uploads/<?php echo htmlspecialchars($item['file_path']); ?>" 
+                                                <a href="../assets/upload/kits/<?php echo htmlspecialchars($item['file_path']); ?>" 
                                                    target="_blank" 
                                                    class="btn btn-outline-info btn-action" 
                                                    title="Download">
@@ -1428,7 +1428,7 @@ if ($kit_items_result) {
                     
                     // Set current image preview
                     if (previewImg && item.file_path) {
-                        previewImg.src = '../franchisee/kit/uploads/' + item.file_path;
+                        previewImg.src = '../assets/upload/kits/' + item.file_path;
                         previewImg.style.display = 'block';
                     }
                     return true;

@@ -72,7 +72,7 @@ function kitLabelCustomer($category) {
                                 <div class="col-md-3 col-sm-6 mb-4">
                                     <div class="">
                                     <div class=" h-100">
-                                        <img src="../../assets/uploads/kit/<?php echo htmlspecialchars($image['file_path']); ?>" 
+                                        <img src="../../assets/upload/kits/<?php echo htmlspecialchars($image['file_path']); ?>" 
                                              class="card-img-top" style="height: 200px; object-fit: cover;" 
                                              alt="<?php echo htmlspecialchars($image['title'] ?: 'Promotional Image'); ?>">
                                         
@@ -80,7 +80,7 @@ function kitLabelCustomer($category) {
                                     
                                             <div class="mt-auto d-flex" style="padding: 10px;    justify-content: space-between;">
                                                 <h6 class="card-title mb-0 bottom_title"><?php echo htmlspecialchars($image['title'] ?: 'Promotional Image'); ?></h6>
-                                                <a href="../../assets/uploads/kit/<?php echo htmlspecialchars($image['file_path']); ?>" 
+                                                <a href="../../assets/upload/kits/<?php echo htmlspecialchars($image['file_path']); ?>" 
                                                    download="<?php echo htmlspecialchars($image['title'] ?: 'promotional_image'); ?>" 
                                                    title="Download">
                                                     <i class="fa fa-download"></i>
@@ -208,7 +208,7 @@ function kitLabelCustomer($category) {
                                             <p class="card-text text-muted small">
                                                 <?php echo strtoupper($file_extension); ?> File
                                             </p>
-                                            <a href="../../franchisee/kit/uploads/<?php echo htmlspecialchars($file['file_path']); ?>" 
+                                            <a href="../../assets/upload/kits/<?php echo htmlspecialchars($file['file_path']); ?>" 
                                                download="<?php echo htmlspecialchars($file['title'] ?: 'file'); ?>" 
                                                class="btn last_download btn-sm">
                                                 <i class="fa fa-download me-1"></i><span>Download</span>
