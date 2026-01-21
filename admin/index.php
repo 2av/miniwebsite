@@ -1,6 +1,62 @@
 <?php
 require_once(__DIR__ . '/../app/config/database.php');
 require('header.php');
+
+/**
+ * Preload dashboard statistics with a small number of efficient aggregate queries
+ * instead of many SELECT * full-table scans on every page load.
+ */
+
+// Default values so the page still renders if a query fails
+$mwStats = [
+    'total_mw'        => 0,
+    'franchisee_sites'=> 0,
+    'active_mw'       => 0,
+    'inactive_mw'     => 0,
+    'trial_mw'        => 0,
+    'total_payment'   => 0.0,
+];
+
+$userStats = [
+    'total_franchisee' => 0,
+    'total_customers'  => 0,
+];
+
+// Aggregate stats for digi_card (single fast query)
+$mwStatsQuery = "
+    SELECT
+        COUNT(*) AS total_mw,
+        SUM(f_user_email <> '') AS franchisee_sites,
+        SUM(d_payment_status = 'Success') AS active_mw,
+        SUM(d_payment_status = 'Failed')  AS inactive_mw,
+        SUM(d_payment_status = 'Created') AS trial_mw,
+        SUM(CASE WHEN d_payment_status = 'Success' THEN d_payment_amount ELSE 0 END) AS total_payment
+    FROM digi_card
+";
+
+if ($result = mysqli_query($connect, $mwStatsQuery)) {
+    $row = mysqli_fetch_assoc($result);
+    if ($row) {
+        $mwStats = array_merge($mwStats, $row);
+    }
+    mysqli_free_result($result);
+}
+
+// Aggregate stats for user_details (single fast query)
+$userStatsQuery = "
+    SELECT
+        SUM(role = 'FRANCHISEE') AS total_franchisee,
+        SUM(role = 'CUSTOMER')   AS total_customers
+    FROM user_details
+";
+
+if ($result = mysqli_query($connect, $userStatsQuery)) {
+    $row = mysqli_fetch_assoc($result);
+    if ($row) {
+        $userStats = array_merge($userStats, $row);
+    }
+    mysqli_free_result($result);
+}
 ?>
 
 <!DOCTYPE html>
@@ -154,10 +210,9 @@ require('header.php');
                                         <i class="fas fa-globe"></i>
                                     </div>
                                     <div class="ms-3">
-                                        <h3 class="mb-0"><?php 
-                                            $query = mysqli_query($connect,'SELECT * FROM digi_card');
-                                            echo mysqli_num_rows($query); 
-                                        ?></h3>
+                                        <h3 class="mb-0">
+                                            <?php echo (int) ($mwStats['total_mw'] ?? 0); ?>
+                                        </h3>
                                         <p class="text-muted mb-0">Total Miniwebsites</p>
                                     </div>
                                 </div>
@@ -171,10 +226,9 @@ require('header.php');
                                         <i class="fas fa-store"></i>
                                     </div>
                                     <div class="ms-3">
-                                        <h3 class="mb-0"><?php 
-                                            $query = mysqli_query($connect,'SELECT * FROM digi_card WHERE f_user_email!=""');
-                                            echo mysqli_num_rows($query); 
-                                        ?></h3>
+                                        <h3 class="mb-0">
+                                            <?php echo (int) ($mwStats['franchisee_sites'] ?? 0); ?>
+                                        </h3>
                                         <p class="text-muted mb-0">Franchisee Sites</p>
                                     </div>
                                 </div>
@@ -188,11 +242,9 @@ require('header.php');
                                         <i class="fas fa-user-tie"></i>
                                     </div>
                                     <div class="ms-3">
-                                        <h3 class="mb-0"><?php 
-                                            // Query user_details table for franchisees
-                                            $query = mysqli_query($connect,'SELECT * FROM user_details WHERE role="FRANCHISEE"');
-                                            echo mysqli_num_rows($query); 
-                                        ?></h3>
+                                        <h3 class="mb-0">
+                                            <?php echo (int) ($userStats['total_franchisee'] ?? 0); ?>
+                                        </h3>
                                         <p class="text-muted mb-0">All Franchisee</p>
                                     </div>
                                 </div>
@@ -206,11 +258,9 @@ require('header.php');
                                         <i class="fas fa-users"></i>
                                     </div>
                                     <div class="ms-3">
-                                        <h3 class="mb-0"><?php 
-                                            // Query user_details table for customers
-                                            $query = mysqli_query($connect,'SELECT * FROM user_details WHERE role="CUSTOMER"');
-                                            echo mysqli_num_rows($query); 
-                                        ?></h3>
+                                        <h3 class="mb-0">
+                                            <?php echo (int) ($userStats['total_customers'] ?? 0); ?>
+                                        </h3>
                                         <p class="text-muted mb-0">All Users</p>
                                     </div>
                                 </div>
@@ -228,35 +278,53 @@ require('header.php');
                                 <div class="card-body">
                                     <div class="row g-3">
                                         <?php
-                                        $stats = [
-                                            ['label' => 'Total MiniWebsites', 'query' => 'SELECT * FROM digi_card', 'icon' => 'fas fa-globe', 'color' => '#667eea'],
-                                            ['label' => 'Active MiniWebsites', 'query' => 'SELECT * FROM digi_card WHERE d_payment_status="Success"', 'icon' => 'fas fa-check-circle', 'color' => '#28a745'],
-                                            ['label' => 'Inactive MiniWebsites', 'query' => 'SELECT * FROM digi_card WHERE d_payment_status="Failed"', 'icon' => 'fas fa-times-circle', 'color' => '#dc3545'],
-                                            ['label' => 'Trial MiniWebsites', 'query' => 'SELECT * FROM digi_card WHERE d_payment_status="Created"', 'icon' => 'fas fa-clock', 'color' => '#ffc107']
+                                        // Use preloaded aggregate stats instead of running many SELECT * queries
+                                        $summaryStats = [
+                                            [
+                                                'label' => 'Total MiniWebsites',
+                                                'value' => (int) ($mwStats['total_mw'] ?? 0),
+                                                'icon'  => 'fas fa-globe',
+                                                'color' => '#667eea',
+                                            ],
+                                            [
+                                                'label' => 'Active MiniWebsites',
+                                                'value' => (int) ($mwStats['active_mw'] ?? 0),
+                                                'icon'  => 'fas fa-check-circle',
+                                                'color' => '#28a745',
+                                            ],
+                                            [
+                                                'label' => 'Inactive MiniWebsites',
+                                                'value' => (int) ($mwStats['inactive_mw'] ?? 0),
+                                                'icon'  => 'fas fa-times-circle',
+                                                'color' => '#dc3545',
+                                            ],
+                                            [
+                                                'label' => 'Trial MiniWebsites',
+                                                'value' => (int) ($mwStats['trial_mw'] ?? 0),
+                                                'icon'  => 'fas fa-clock',
+                                                'color' => '#ffc107',
+                                            ],
                                         ];
 
-                                        foreach($stats as $stat) {
-                                            $query = mysqli_query($connect, $stat['query']);
-                                            $count = mysqli_num_rows($query);
+                                        foreach ($summaryStats as $stat) {
                                             echo '<div class="col-md-6">
                                                     <div class="d-flex align-items-center p-3 bg-light rounded">
-                                                        <i class="'.$stat['icon'].'" style="color: '.$stat['color'].'; font-size: 24px;"></i>
+                                                        <i class="' . $stat['icon'] . '" style="color: ' . $stat['color'] . '; font-size: 24px;"></i>
                                                         <div class="ms-3">
-                                                            <h6 class="mb-0">'.$stat['label'].'</h6>
-                                                            <h4 class="mb-0 text-primary">'.$count.'</h4>
+                                                            <h6 class="mb-0">' . $stat['label'] . '</h6>
+                                                            <h4 class="mb-0 text-primary">' . $stat['value'] . '</h4>
                                                         </div>
                                                     </div>
                                                   </div>';
                                         }
 
-                                        $payment_query = mysqli_query($connect,'SELECT SUM(d_payment_amount) as payment FROM digi_card WHERE d_payment_status="Success"');
-                                        $payment_row = mysqli_fetch_array($payment_query);
+                                        $totalPayment = (float) ($mwStats['total_payment'] ?? 0);
                                         echo '<div class="col-12">
                                                 <div class="d-flex align-items-center p-3 bg-success bg-opacity-10 rounded">
                                                     <i class="fas fa-rupee-sign" style="color: #28a745; font-size: 24px;"></i>
                                                     <div class="ms-3">
                                                         <h6 class="mb-0">Payment Total</h6>
-                                                        <h4 class="mb-0 text-success">₹'.number_format($payment_row['payment'],2).'</h4>
+                                                        <h4 class="mb-0 text-success">₹' . number_format($totalPayment, 2) . '</h4>
                                                     </div>
                                                 </div>
                                               </div>';

@@ -1,0 +1,11 @@
+ErrorDocument 404 /miniwebsite/404.php
+
+RewriteEngine On
+
+# If the requested file or directory exists, serve it directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Otherwise, let PHP/front controller or 404 handle it normally
+

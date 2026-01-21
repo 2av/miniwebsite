@@ -1,6 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-require_once('../common/config.php');
+require_once(__DIR__ . '/../app/config/database.php');
 
 // Authorize admin
 $isAdmin = !empty($_SESSION['admin_email']);

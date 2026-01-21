@@ -142,13 +142,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                         
-                        // Set session variables
+                        // Set generic user session variables (for existing code paths)
                         $_SESSION['user_email'] = $member['member_email'];
                         $_SESSION['user_name'] = $member['member_name'];
                         $_SESSION['user_referral_code'] = $referralCode;
                         $_SESSION['is_logged_in'] = true;
                         $_SESSION['login_time'] = time();
                         $_SESSION['team_member_id'] = $member['id'];
+
+                        // Set TEAM-specific session markers so role_helper correctly identifies this as TEAM
+                        $_SESSION['t_user_email'] = $member['member_email'];
+                        $_SESSION['t_user_name']  = $member['member_name'];
+                        $_SESSION['t_user_id']    = $member['id'];
+                        $_SESSION['t_is_logged_in'] = true;
 
                         // Update last login timestamp
                         $updateStmt = $connect->prepare('UPDATE team_members SET last_login_at = NOW() WHERE id = ?');
@@ -186,7 +192,7 @@ if (!empty($login_messages)) {
 ?>
 <div class="login-wrap">
     <div class="login-container">
-        <h2 class="heading"><a href="/"><i class="fa fa-angle-left" aria-hidden="true"></i></a>Team Login</h2>
+        <h2 class="heading"><a href="<?php echo $base_path; ?>/"><i class="fa fa-angle-left" aria-hidden="true"></i></a>Team Login</h2>
         <p class="text-white">Please enter your team credentials</p>
 
         <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" method="post" autocomplete="off" id="team-login">
@@ -210,8 +216,18 @@ if (!empty($login_messages)) {
     </div>
 </div>
 
-<script src="../assets/js/jquery.min.js"></script>
-<script src="../assets/js/bootstrap.min.js"></script>
+<script src="../assets/js/jquery.slim.min.js"></script>
+<script>
+  if (!window.jQuery) {
+    document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>');
+  }
+</script>
+<script src="../assets/js/bootstrap.bundle.min.js"></script>
+<script>
+  if (!window.bootstrap && !(window.jQuery && window.jQuery.fn && window.jQuery.fn.dropdown)) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"><\/script>');
+  }
+</script>
 <script>
     function showpassword(){
         const passwordField = document.getElementById("password");

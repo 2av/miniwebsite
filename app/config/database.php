@@ -29,7 +29,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Database connection based on environment
 if ($_SERVER['HTTP_HOST'] == "test.miniwebsite.in") {
-    $connect = mysqli_connect("localhost", "miniweb_vcard_test", "miniweb_vcard_test", "miniweb_vcard_test") 
+    $connect = mysqli_connect("localhost", "wwwmoody_miniweb_vcard_test", "8s5@1lX8u", "miniweb_vcard_test") 
         or die('Database not available...');
 } elseif ($_SERVER['HTTP_HOST'] == "localhost") {
     $db_host = "p004.bom1.mysecurecloudhost.com";

@@ -1,7 +1,6 @@
 <?php
 // Admin-side compact view that shows only "Manage Users" list for a franchisee (no iframe)
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-require_once('../common/config.php');
+require_once(__DIR__ . '/../app/config/database.php');
 
 // Authorize: admin session or admin referrer
 $isAdmin = !empty($_SESSION['admin_email']);

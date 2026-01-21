@@ -1,8 +1,8 @@
 <?php
 // Check for export FIRST - before any HTML output
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
-    // For export, use config.php directly (no HTML output)
-    require_once(__DIR__ . '/../common/config.php');
+    // For export, use database config directly (no HTML output)
+    require_once(__DIR__ . '/../app/config/database.php');
     
     if (!isset($_SESSION['admin_email'])) {
         header('Location: login.php');

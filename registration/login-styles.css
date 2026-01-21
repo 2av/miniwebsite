@@ -1,0 +1,96 @@
+/* Password toggle button styling */
+.password-toggle {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+    height: 100%;
+    margin: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    background: transparent;
+    border: none;
+}
+
+.password-toggle i {
+    position: absolute;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.password-toggle .eye-open {
+    opacity: 1;
+}
+
+.password-toggle .eye-closed {
+    opacity: 0;
+}
+
+.password-toggle.visible .eye-open {
+    opacity: 0;
+}
+
+.password-toggle.visible .eye-closed {
+    opacity: 1;
+}
+
+/* Additional icon styling */
+.password-toggle i {
+    font-size: 18px;
+    color: #6c757d;
+}
+
+/* Hover effects */
+.password-toggle:hover {
+    background-color: transparent;
+}
+
+.password-toggle:hover i {
+    color: #007bff;
+    transform: scale(1.05);
+}
+
+/* Active/pressed state */
+.password-toggle:active i {
+    transform: scale(0.95);
+    color: #0056b3;
+}
+
+/* Input group styling */
+.input-group {
+    position: relative;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: 100%;
+}
+
+.input-group-prepend {
+    display: flex;
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    z-index: 5;
+}
+
+.input-group-text {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-control {
+    padding-right: 40px; /* Make room for the icon */
+    width: 100%;
+}
+
+/* Focus state - keep border color consistent when input is focused */
+.form-control:focus + .input-group-prepend .input-group-text {
+    border-color: #80bdff;
+}

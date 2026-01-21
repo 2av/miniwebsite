@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../common/config.php';
+require_once __DIR__ . '/../../app/config/database.php';
 ?>
 
 <title>Admin</title>

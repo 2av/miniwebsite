@@ -601,7 +601,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                     <?php 
                                     // Check if user is akhilesh@yopmail.com for new flow, otherwise use old flow
                                    // if($_SESSION['user_email'] == 'akhilesh@yopmail.com') {
-                                        $edit_link = "../../customer/website/business-name.php?card_number=" . $row['id'];
+                                        $edit_link = "../website/business-name.php?card_number=" . $row['id'];
                                    // } else {
                                       //  $edit_link = "../../panel/login/create_card.php?card_number=" . $row['id'];
                                    // }
@@ -626,7 +626,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                     <?php if($row['complimentary_enabled'] == 'Yes') { ?>
                                         <span class="badge bg-info">Complimentary</span>
                                     <?php } else if($payment_status != 'Success') { ?>
-                                        <button class="btn btn-primary paynow_btn" onclick="window.location.href='../../panel/login/payment_page/pay.php?id=<?php echo $row['id']; ?>&source=customer'">Pay Now</button>
+                                        <button class="btn btn-primary paynow_btn" onclick="window.location.href='<?php echo $assets_base; ?>/payment/pay_miniwebsite.php?id=<?php echo $row['id']; ?>&source=<?php echo strtolower($current_role); ?>'">Pay Now</button>
                                     <?php } else { 
                                         $paid_on = !empty($row['d_payment_date']) ? date('d-m-Y', strtotime($row['d_payment_date'])) : '';
                                         if ($paid_on) { ?>
@@ -656,7 +656,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                                 </div>
                                             <?php } else { ?>
                                                  <div class="d-flex align-items-center">
-                                                 <span class="download"><a target="_blank" href="../dashboard/download_invoice.php?id=<?php echo $row['id']; ?>" title="Download Invoice">
+                                                 <span class="download"><a target="_blank" href="download_invoice_new.php?id=<?php echo $row['id']; ?>" title="Download Invoice">
                                                     <span class="download_icon_style"><i class="fa-solid fa-arrow-down"></i></span>
                                                 </a></span>  </div>
                                              <?php } ?>
@@ -711,7 +711,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                         <div class="referral-id">Mini websites Referral ID</div>                
                                 <div class="referral-container">                                
                                     <div class="referral-box col-md-6">
-                                        <p>https://miniwebsite.in/panel/login/create-account.php?ref=<?php echo $user_referral_code; ?></p>
+                                        <p>https://miniwebsite.in/registration/customer-registration.php?ref=<?php echo $user_referral_code; ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('regular_link')">COPY LINK</button>
                                     </div>
                                     <div class="referral-box col-md-6">
@@ -723,11 +723,11 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                 <div class="social-icons">
                                     <p>Refer Mini Website</p>
                                     <ul>
-                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my referral link: https://miniwebsite.in/panel/login/create-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/whatsapp.png" alt=""></a></li>
-                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://miniwebsite.in/panel/login/create-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/facebook.png" alt=""></a></li>
-                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode('https://miniwebsite.in/panel/login/create-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/instagram.png" alt=""></a></li>
-                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my referral link: https://miniwebsite.in/panel/login/create-account.php?ref='.$user_referral_code); ?>&url=<?php echo urlencode('https://miniwebsite.in/panel/login/create-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/twitter.png" alt=""></a></li>
-                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode('https://miniwebsite.in/panel/login/create-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/linkedin.png" alt=""></a></li>
+                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my referral link: https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
+                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
+                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
+                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my referral link: https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>&url=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>
+                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/linkedin.png" alt=""></a></li>
                                     </ul>
                                 </div>
                     <?php endif; ?>
@@ -741,7 +741,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                             <div class="referral-id">Franchise Referral ID</div>
                                 <div class="referral-container">
                                     <div class="referral-box col-md-6">
-                                        <p>https://miniwebsite.in/panel/login/create-franchisee-account.php?ref=<?php echo $user_referral_code; ?></p>
+                                        <p>https://miniwebsite.in/registration/franchisee-registration.php?ref=<?php echo $user_referral_code; ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('collab_link')">COPY LINK</button>
                                     </div>
                                     <div class="referral-box col-md-6">
@@ -753,11 +753,11 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                 <div class="social-icons">
                                     <p>Refer Franchise</p>
                                     <ul>
-                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my collaboration link: https://miniwebsite.in/panel/login/create-franchisee-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/whatsapp.png" alt=""></a></li>
-                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://miniwebsite.in/panel/login/create-franchisee-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/facebook.png" alt=""></a></li>
-                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode('https://miniwebsite.in/panel/login/create-franchisee-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/instagram.png" alt=""></a></li>
-                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my collaboration link: https://miniwebsite.in/panel/login/create-franchisee-account.php?ref='.$user_referral_code); ?>&url=<?php echo urlencode('https://miniwebsite.in/panel/login/create-franchisee-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/twitter.png" alt=""></a></li>
-                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode('https://miniwebsite.in/panel/login/create-franchisee-account.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../../assets/images/linkedin.png" alt=""></a></li>
+                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my collaboration link: https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
+                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
+                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
+                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my collaboration link: https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>&url=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>
+                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/linkedin.png" alt=""></a></li>
                                     </ul>
                                 </div>
                     <?php endif; ?>

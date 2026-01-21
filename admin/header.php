@@ -1,7 +1,7 @@
 
 <header id="header">
 	<div class="logo" onclick="location.href='index.php'">
-	<img src="../../assets/images/Miniwebsite logo.png?">
+	<img src="../assets/images/Miniwebsite logo.png?">
 		 <h3>Admin Dashboard</h3>
 	</div>
 	<div class="mobile_home">&equiv;</div>
@@ -50,6 +50,8 @@
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
 	<!-- Common Admin CSS -->
 	<link href="../assets/css/common-admin.css" rel="stylesheet">
+	<!-- Main Admin CSS -->
+	<link href="css.css" rel="stylesheet">
 	
 	<!-- jQuery -->
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
@@ -144,13 +146,16 @@
     border: none;
 }
 
-/* Enhanced Header Menu Styling */
+/* Enhanced Header Menu Styling - Override css.css for new menu structure */
 .head_txt {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 1.5rem;
-    margin-right: 80px; /* Space for notification bell */
-    margin-top: -70px;
+    position: absolute !important;
+    right: 100px !important; /* Space for notification bell when present */
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin: 0 !important;
 }
 
 .menu-item {

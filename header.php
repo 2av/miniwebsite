@@ -1,3 +1,19 @@
+<?php
+// Dynamic base path:
+// - localhost subfolder: /miniwebsite
+// - server root: '' (empty)
+if (!function_exists('mw_base_path')) {
+    function mw_base_path(): string {
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        // If running under /miniwebsite/* keep that, otherwise assume root
+        if (strpos($scriptName, '/miniwebsite/') === 0 || $scriptName === '/miniwebsite') {
+            return '/miniwebsite';
+        }
+        return '';
+    }
+}
+$base_path = mw_base_path();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,25 +22,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Mini Website</title>
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon.ico">
-    <link rel="manifest" href="/assets/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?php echo $base_path; ?>/assets/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?php echo $base_path; ?>/assets/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?php echo $base_path; ?>/assets/images/favicon.ico">
+    <link rel="manifest" href="<?php echo $base_path; ?>/assets/images/favicon.ico">
 
     <!-- Google Font -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400..800&family=Baloo+Bhaina+2:wght@400..800&family=Barlow:wght@400;500;600;700;800;900&display=swap">
-    <link rel="stylesheet" href="assets/css/font-awesome.css">
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/font-awesome.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/bootstrap.min.css">
 
 
-<link rel="stylesheet" href="assets/css/owl.carousel.min.css">
-<link rel="stylesheet" href="assets/css/owl.theme.default.css">
-    <link rel="stylesheet" href="assets/css/animate.css">
-    <link rel="stylesheet" href="assets/css/layout.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="stylesheet" href="assets/css/captcha.css">
+<link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/owl.carousel.min.css">
+<link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/owl.theme.default.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/animate.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/layout.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/responsive.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/captcha.css">
 
 </head>
 
@@ -32,11 +48,11 @@
     <header>
         <nav class="navbar navbar-expand-lg px-3">
             <div class="container">
-                <a class="navbar-brand" href="/">
-                    <img class="img-fluid" src="assets/images/main-logo.png" alt="logo">
+                <a class="navbar-brand" href="<?php echo $base_path; ?>/">
+                    <img class="img-fluid" src="<?php echo $base_path; ?>/assets/images/main-logo.png" alt="logo">
                 </a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <img src="assets/images/navbar-img.png" alt="Menu" width="30" height="30" class="img-fluid">
+                    <img src="<?php echo $base_path; ?>/assets/images/navbar-img.png" alt="Menu" width="30" height="30" class="img-fluid">
                 </button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ml-auto">
@@ -63,8 +79,8 @@
                                 Earn With Us <i class="fa fa-angle-double-down"></i>
                             </a>
                              <div class="dropdown-menu scrollable-dropdown">
-                                <a class="dropdown-item" href="refer-and-earn.php">Refer & Earn</a>
-                                <a class="dropdown-item" href="franchisee.php"> Franchise Partner</a>
+                                <a class="dropdown-item" href="<?php echo $base_path; ?>/refer-and-earn.php">Refer & Earn</a>
+                                <a class="dropdown-item" href="<?php echo $base_path; ?>/franchisee.php"> Franchise Partner</a>
                             </div> 
                         </li>
                    
@@ -74,9 +90,9 @@
                                 Login <i class="fa fa-angle-double-down"></i>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right">
-                                <a class="dropdown-item" href="login/customer.php">Customer Login</a>
-                                <a class="dropdown-item" href="login/franchisee.php">Franchise Login</a>
-                                <a class="dropdown-item" href="login/team.php">Team Login</a>
+                                <a class="dropdown-item" href="<?php echo $base_path; ?>/login/customer.php">Customer Login</a>
+                                <a class="dropdown-item" href="<?php echo $base_path; ?>/login/franchisee.php">Franchise Login</a>
+                                <a class="dropdown-item" href="<?php echo $base_path; ?>/login/team.php">Team Login</a>
                             </div>
                         </li>
                     </ul>
@@ -85,9 +101,21 @@
         </nav>
     </header>
 
-    <!-- Bootstrap JavaScript -->
-    <script src="assets/js/jquery.min.js"></script>
-    <script src="assets/js/bootstrap.min.js"></script>
+    <!-- JavaScript (dynamic paths + use files that exist in this repo) -->
+    <script src="<?php echo $base_path; ?>/assets/js/jquery.slim.min.js"></script>
+    <script>
+      // jQuery fallback (some pages still use it)
+      if (!window.jQuery) {
+        document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>');
+      }
+    </script>
+    <script src="<?php echo $base_path; ?>/assets/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Bootstrap fallback (optional)
+      if (!window.bootstrap && !(window.jQuery && window.jQuery.fn && window.jQuery.fn.dropdown)) {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"><\/script>');
+      }
+    </script>
     
     <style>
     /* Scrollable dropdown styles for main header */
@@ -133,36 +161,59 @@
     </style>
     
     <script>
-    // Initialize dropdown functionality for main header
-    $(document).ready(function() {
-        // Enable Bootstrap dropdowns
-        $('.dropdown-toggle').dropdown();
-        
-        // Close dropdown when clicking on menu items
-        $('.dropdown-item').on('click', function() {
-            $(this).closest('.dropdown-menu').removeClass('show');
+    // Dropdown functionality for main header (NO jQuery required)
+    (function () {
+      function closeAllDropdowns() {
+        document.querySelectorAll('.navbar .dropdown-menu.show').forEach(function (m) {
+          m.classList.remove('show');
         });
-        
-        // Close dropdown when clicking outside
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.dropdown').length) {
-                $('.dropdown-menu').removeClass('show');
-            }
+      }
+
+      // Toggle dropdowns on click
+      document.querySelectorAll('.navbar .nav-item.dropdown > .dropdown-toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+          e.preventDefault();
+
+          var menu = toggle.nextElementSibling;
+          if (!menu || !menu.classList.contains('dropdown-menu')) return;
+
+          // close others
+          document.querySelectorAll('.navbar .dropdown-menu.show').forEach(function (m) {
+            if (m !== menu) m.classList.remove('show');
+          });
+
+          menu.classList.toggle('show');
         });
-        
-        // Close dropdown on escape key
-        $(document).on('keydown', function(e) {
-            if (e.key === 'Escape') {
-                $('.dropdown-menu').removeClass('show');
-            }
+      });
+
+      // Close when clicking a dropdown item
+      document.querySelectorAll('.navbar .dropdown-menu .dropdown-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          var menu = item.closest('.dropdown-menu');
+          if (menu) menu.classList.remove('show');
         });
-        
-        // Smooth scrolling for dropdown
-        $('.scrollable-dropdown').on('wheel', function(e) {
-            e.preventDefault();
-            $(this).scrollTop($(this).scrollTop() + e.originalEvent.deltaY);
-        });
-    });
+      });
+
+      // Close on outside click
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.navbar .nav-item.dropdown')) {
+          closeAllDropdowns();
+        }
+      });
+
+      // Close on escape
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeAllDropdowns();
+      });
+
+      // Smooth scrolling inside scrollable dropdowns
+      document.querySelectorAll('.scrollable-dropdown').forEach(function (dd) {
+        dd.addEventListener('wheel', function (e) {
+          e.preventDefault();
+          dd.scrollTop += e.deltaY;
+        }, { passive: false });
+      });
+    })();
     </script>
 
 

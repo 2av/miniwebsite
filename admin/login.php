@@ -1,6 +1,6 @@
 <?php
 // Start session and include database connection FIRST - before any HTML output
-require_once(__DIR__ . '/../common/config.php');
+require_once(__DIR__ . '/../app/config/database.php');
 ?>
 <!DOCTYPE html>
 <html lang="en">

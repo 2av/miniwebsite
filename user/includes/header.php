@@ -102,6 +102,48 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" />
      <!-- Instagram JS (IMPORTANT) -->
     <script async src="https://www.instagram.com/embed.js"></script>
+    <script>
+        function copyToClipboard(type) {
+            let textToCopy = '';
+            switch (type) {
+                case 'link':
+                case 'regular_link':
+                    textToCopy = 'https://miniwebsite.in/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ''); ?>';
+                    break;
+                case 'code':
+                case 'regular_code':
+                    textToCopy = '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
+                    break;
+                case 'collab_link':
+                    textToCopy = 'https://miniwebsite.in/registration/franchisee-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
+                    break;
+                case 'collab_code':
+                    textToCopy = '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
+                    break;
+                default:
+                    textToCopy = type === 'link'
+                        ? 'https://miniwebsite.in/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>'
+                        : '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                if (type.includes('link')) {
+                    alert('Referral link copied!');
+                } else {
+                    alert('Referral code copied!');
+                }
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(type.includes('link') ? 'Referral link copied!' : 'Referral code copied!');
+            });
+        }
+    </script>
 </head>
 
 <body class="sb-nav-fixed">
@@ -156,74 +198,162 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
                         <?php
                         // Get current page directory for active state
                         $current_dir = basename(dirname($_SERVER['PHP_SELF']));
-                        
-                        // Get user conditions for menu visibility
-                        $user_conditions = [];
-                        if ($current_role == 'CUSTOMER') {
-                            $user_conditions['collaboration_enabled'] = $collaboration_enabled;
-                            $user_conditions['saleskit_enabled'] = $saleskit_enabled;
-                        } elseif ($current_role == 'FRANCHISEE') {
-                            $user_conditions['is_verified'] = $is_verified;
-                        }
-                        
-                        // Get visible menu items from JSON config
-                        $visible_menu_items = get_visible_menu_items($current_role, $user_conditions);
-                        
-                        // Debug: Show alert with debug information
-                        if (isset($_GET['menu_debug']) || (isset($_SESSION['menu_debug']) && $_SESSION['menu_debug'] === true)) {
-                            $debug_info = [];
-                            $debug_info[] = "=== MENU CONFIG DEBUG ===";
-                            $debug_info[] = "Current Role: " . $current_role;
-                            $debug_info[] = "User Conditions: " . json_encode($user_conditions, JSON_PRETTY_PRINT);
-                            $debug_info[] = "Visible Menu Items: " . count($visible_menu_items);
-                            $debug_info[] = "";
-                            $debug_info[] = "Visible Menu IDs:";
-                            foreach ($visible_menu_items as $item) {
-                                $debug_info[] = "  - " . ($item['id'] ?? 'unknown') . " (" . ($item['label'] ?? '') . ")";
+
+                        // Special sidebar for website builder pages
+                        if ($current_dir === 'website') {
+                            // Get card_number from session or cookie
+                            $card_number = '';
+                            if (isset($_SESSION['card_id_inprocess']) && !empty($_SESSION['card_id_inprocess'])) {
+                                $card_number = $_SESSION['card_id_inprocess'];
+                            } elseif (isset($_COOKIE['card_id_inprocess']) && !empty($_COOKIE['card_id_inprocess'])) {
+                                $card_number = $_COOKIE['card_id_inprocess'];
                             }
-                            
-                            $debug_alert = "<script>
-                                alert(" . json_encode(implode("\\n", $debug_info)) . ");
-                            </script>";
-                            echo $debug_alert;
-                        }
-                        
-                        // Render menu items
-                        foreach ($visible_menu_items as $menu_item):
-                            // Determine if this menu item is active
-                            $menu_url = trim($menu_item['url'], '/');
-                            $menu_id = str_replace('.php', '', $menu_url);
-                            $is_active = ($current_dir === $menu_id || $current_dir === $menu_url);
-                            
-                            // Get icon path
-                            $icon_path = $assets_base . '/assets/images/' . $menu_item['icon'];
-                            
-                            // Build URL
-                            $menu_link = $nav_base . $menu_item['url'];
+
+                            // Get business name (card_id) from database for Preview link
+                            $business_name_slug = '';
+                            if (!empty($card_number)) {
+                                $safe_card_id = mysqli_real_escape_string($connect, $card_number);
+                                $safe_user_email = mysqli_real_escape_string($connect, $user_email);
+                                $card_query_db = mysqli_query($connect, "SELECT card_id FROM digi_card WHERE id='{$safe_card_id}' AND user_email='{$safe_user_email}'");
+                                if ($card_query_db && mysqli_num_rows($card_query_db) > 0) {
+                                    $card_row = mysqli_fetch_array($card_query_db);
+                                    $business_name_slug = !empty($card_row['card_id']) ? $card_row['card_id'] : '';
+                                }
+                            }
+
+                            // Build query string for menu links if card_number exists
+                            $card_query = !empty($card_number) ? '?card_number=' . htmlspecialchars($card_number) : '';
+                            $current_page_ws = basename($_SERVER['PHP_SELF']);
                         ?>
-                            <a class="nav-link collapsed <?php echo $is_active ? 'active' : ''; ?>" href="<?php echo $menu_link; ?>">
-                                <div class="sb-nav-link-icon"><img src="<?php echo $icon_path; ?>" class="img-fluid" alt="" srcset=""></div>
-                                <?php echo htmlspecialchars($menu_item['label']); ?>
+                            <a class="nav-link collapsed <?php echo ($current_dir == 'dashboard') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/dashboard">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/Dashboard.png" class="img-fluid" alt="" srcset=""></div>
+                                Dashboard
                                 <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                             </a>
-                        <?php endforeach; ?>
-                        
+                            <hr/>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'business-name.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/business-name.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/BusinessName.png" class="img-fluid" alt="" srcset=""></div>
+                                Business Name
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a> 
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'select-theme.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/select-theme.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/SelectTheme.png" class="img-fluid" alt="" srcset=""></div>
+                                Select Theme
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'company-details.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/company-details.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/CompanyDetails.png" class="img-fluid" alt="" srcset=""></div>
+                                Company Details
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'social-links.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/social-links.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/SocialLinks.png" class="img-fluid" alt="" srcset=""></div>
+                                Social Links
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'payment-details.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/payment-details.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/PaymentDetails.png" class="img-fluid" alt="" srcset=""></div>
+                                Payment Details
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'product-and-services.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/product-and-services.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/ProductServices.png" class="img-fluid" alt="" srcset=""></div>
+                                Product &amp; Services
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'product-pricing.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/product-pricing.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/ProductPricing.png" class="img-fluid" alt="" srcset=""></div>
+                                Product Pricing
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'image-gallery.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/image-gallery.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/ImageGallery.png" class="img-fluid" alt="" srcset=""></div>
+                                Image Gallery
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <a target="_blank" class="nav-link collapsed <?php echo (!empty($business_name_slug)) ? 'active' : ''; ?>" href="<?php echo $assets_base; ?>/n.php?n=<?php echo htmlspecialchars($business_name_slug); ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/Preview.png" class="img-fluid" alt="" srcset=""></div>
+                                Preview
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
                         <?php
-                        // Show disabled menu items for franchisee (verification required)
-                        if ($current_role == 'FRANCHISEE' && !$is_verified):
-                            $disabled_items = [
-                                ['label' => 'Wallet', 'icon' => 'wallet.png'],
-                                ['label' => 'Franchisee Kit', 'icon' => 'FranchiseeKit.png']
-                            ];
-                            foreach ($disabled_items as $item):
-                        ?>
-                            <div class="nav-link collapsed" style="opacity: 0.6; cursor: not-allowed;" title="Document verification required">
-                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/<?php echo $item['icon']; ?>" class="img-fluid" alt="" srcset=""></div>
-                                <?php echo htmlspecialchars($item['label']); ?>
-                            </div>
-                        <?php 
-                            endforeach;
-                        endif; 
+                        } else {
+                            // Standard sidebar using JSON menu config
+                            $user_conditions = [];
+                            if ($current_role == 'CUSTOMER') {
+                                $user_conditions['collaboration_enabled'] = $collaboration_enabled;
+                                $user_conditions['saleskit_enabled'] = $saleskit_enabled;
+                            } elseif ($current_role == 'FRANCHISEE') {
+                                $user_conditions['is_verified'] = $is_verified;
+                            }
+                            
+                            $visible_menu_items = get_visible_menu_items($current_role, $user_conditions);
+                            
+                            if (isset($_GET['menu_debug']) || (isset($_SESSION['menu_debug']) && $_SESSION['menu_debug'] === true)) {
+                                $debug_info = [];
+                                $debug_info[] = "=== MENU CONFIG DEBUG ===";
+                                $debug_info[] = "Current Role: " . $current_role;
+                                $debug_info[] = "User Conditions: " . json_encode($user_conditions, JSON_PRETTY_PRINT);
+                                $debug_info[] = "Visible Menu Items: " . count($visible_menu_items);
+                                $debug_info[] = "";
+                                $debug_info[] = "Visible Menu IDs:";
+                                foreach ($visible_menu_items as $item) {
+                                    $debug_info[] = "  - " . ($item['id'] ?? 'unknown') . " (" . ($item['label'] ?? '') . ")";
+                                }
+                                
+                                $debug_alert = "<script>
+                                    alert(" . json_encode(implode("\\n", $debug_info)) . ");
+                                </script>";
+                                echo $debug_alert;
+                            }
+                            
+                            // Render menu items
+                            foreach ($visible_menu_items as $menu_item):
+                                $menu_url = trim($menu_item['url'], '/');
+                                $menu_id = str_replace('.php', '', $menu_url);
+                                $is_active = ($current_dir === $menu_id || $current_dir === $menu_url);
+                                
+                                $icon_path = $assets_base . '/assets/images/' . $menu_item['icon'];
+                                $menu_link = $nav_base . $menu_item['url'];
+                            ?>
+                                <a class="nav-link collapsed <?php echo $is_active ? 'active' : ''; ?>" href="<?php echo $menu_link; ?>">
+                                    <div class="sb-nav-link-icon"><img src="<?php echo $icon_path; ?>" class="img-fluid" alt="" srcset=""></div>
+                                    <?php echo htmlspecialchars($menu_item['label']); ?>
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                                </a>
+                            <?php endforeach; ?>
+                            
+                            <?php
+                            if ($current_role == 'FRANCHISEE' && !$is_verified):
+                                $disabled_items = [
+                                    ['label' => 'Wallet', 'icon' => 'wallet.png'],
+                                    ['label' => 'Franchisee Kit', 'icon' => 'FranchiseeKit.png']
+                                ];
+                                foreach ($disabled_items as $item):
+                            ?>
+                                <div class="nav-link collapsed" style="opacity: 0.6; cursor: not-allowed;" title="Document verification required">
+                                    <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/<?php echo $item['icon']; ?>" class="img-fluid" alt="" srcset=""></div>
+                                    <?php echo htmlspecialchars($item['label']); ?>
+                                </div>
+                            <?php 
+                                endforeach;
+                            endif;
+
+                            // Franchisee-only Download Invoice button (franchisee joining invoice)
+                            if ($current_role == 'FRANCHISEE'):
+                            ?>
+                                <div class="nav-link" style="margin-top: 20px;">
+                                    <a href="<?php echo $nav_base; ?>/dashboard/download_invoice.php"
+                                       class="btn btn-warning btn-sm"
+                                       style="width: 100%; background-color: #ffc107; border-color: #ffc107; color: #000; padding: 10px; border-radius: 5px; text-decoration: none; display: block; text-align: center;"
+                                       target="_blank">
+                                        <i class="fa fa-download"></i>
+                                        <span>Download Invoice</span>
+                                    </a>
+                                </div>
+                            <?php
+                            endif;
+                        } // end sidebar branch
                         ?>
                         
 

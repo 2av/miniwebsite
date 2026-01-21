@@ -173,7 +173,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
 
 <div class="login-wrap">
     <div class="login-container">
-        <h2 class="heading"><a href="/"><i class="fa fa-angle-left" aria-hidden="true"></i></a>Customer Login</h2>
+        <h2 class="heading"><a href="<?php echo $base_path; ?>/"><i class="fa fa-angle-left" aria-hidden="true"></i></a>Customer Login</h2>
         <p class="text-white">Please enter your details</p>
 
         <form action="" method="post" autocomplete="off" id="login">
@@ -203,8 +203,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
     </div>
 </div>
 
-<script src="../assets/js/jquery.min.js"></script>
-<script src="../assets/js/bootstrap.min.js"></script>
+<script src="../assets/js/jquery.slim.min.js"></script>
+<script>
+  if (!window.jQuery) {
+    document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>');
+  }
+</script>
+<script src="../assets/js/bootstrap.bundle.min.js"></script>
+<script>
+  if (!window.bootstrap && !(window.jQuery && window.jQuery.fn && window.jQuery.fn.dropdown)) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"><\/script>');
+  }
+</script>
 <script>
     function showpassword(){
         const passwordField = document.getElementById("user_password");
