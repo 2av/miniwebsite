@@ -197,7 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
         <?php echo $login_error; ?>
         <div class="CreateAccount-wrap">
             <span class="text-white">Don't have an account? &nbsp;
-                <a href="#" class="create-account">Create Account</a>
+                <a href="../registration/customer-registration.php" class="create-account">Create Account</a>
             </span>
         </div>
     </div>

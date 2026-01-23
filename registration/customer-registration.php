@@ -1,15 +1,46 @@
 <?php
+// Start output buffering to allow redirects after HTML output starts
+ob_start();
+
 require('login-connect.php');
 
 // Include PHPMailer and email configuration
-require_once __DIR__ . '/../../vendor/autoload.php';
-require_once __DIR__ . '/../../common/email_config.php';
+$phpmailer_available = false;
+$autoloadCandidates = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../vendor/autoload.php'
+];
+foreach ($autoloadCandidates as $autoloadPath) {
+    if (file_exists($autoloadPath)) {
+        require_once $autoloadPath;
+        $phpmailer_available = true;
+        break;
+    }
+}
+if (!$phpmailer_available) {
+    error_log("PHPMailer not found. Checked paths: " . implode(', ', $autoloadCandidates) . ". Email functionality will be limited.");
+}
+
+require_once __DIR__ . '/../common/email_config.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
+}
+
+// Get base path for redirects (works for both localhost subfolder and production root)
+function get_base_path() {
+    $script_name = $_SERVER['SCRIPT_NAME'];
+    $script_dir = dirname($script_name);
+    // Remove /registration from path to get base
+    $base = preg_replace('#/registration(/.*)?$#', '', $script_dir);
+    // Normalize: if it's just '/', return empty string; otherwise return as is
+    if ($base === '/' || $base === '') {
+        return '';
+    }
+    return $base;
 }
 
 if (isset($_SESSION['sender_token'])) {
@@ -23,6 +54,18 @@ $errors = [];
 
 // Function to send email using PHPMailer
 function sendEmail($to, $subject, $message, $name = '') {
+    global $phpmailer_available;
+    
+    if (!$phpmailer_available) {
+        // Fallback to basic PHP mail() function if PHPMailer is not available
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= "From: MiniWebsite Support <" . (defined('SMTP_USERNAME') ? SMTP_USERNAME : 'noreply@' . $_SERVER['HTTP_HOST']) . ">" . "\r\n";
+        
+        $plainMessage = strip_tags(str_replace('<br>', "\n", $message));
+        return mail($to, $subject, $plainMessage, $headers);
+    }
+    
     try {
         // Create a new PHPMailer instance
         $mail = new PHPMailer(true);
@@ -92,7 +135,7 @@ if (isset($_GET['resend']) && $_GET['resend'] == 'true' && isset($_SESSION['regi
     Thanks,<br>' . $_SERVER['HTTP_HOST'] . ' Team';
 
     if (sendEmail($user_email, $subject, $message, $user_name)) {
-        echo '<div class="alert text-success">New OTP has been sent to your email.</div>';
+        echo '<div class="alert text-success">New OTP has been sent on your registered email('.$user_email.').</div>';
     } else {
         $errors[] = "Error sending OTP email. Please try again.";
     }
@@ -253,10 +296,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
                 <p style="color: #333; font-size: 16px; line-height: 1.6;">Thanks,<br>' . $_SERVER['HTTP_HOST'] . ' Team</p>
             </div>';
 
-            sendEmail($user_email, $subject, $message, $user_name);
+            // Send welcome email (suppress any output to prevent header issues)
+            @sendEmail($user_email, $subject, $message, $user_name);
+            
+            // Get base path for redirect
+            $base_path = get_base_path();
+            
+            // Build absolute URL for redirect - using /user/dashboard as that's the actual path
+            // If /customer/dashboard is needed, create a symlink or .htaccess rewrite
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'];
+            $redirect_url = $protocol . $host . $base_path . '/user/dashboard';
+            
+            // Clear all output buffers and redirect
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
             
             // Redirect to customer dashboard
-            header('Location: ../../customer/dashboard/index.php');
+            header('Location: ' . $redirect_url);
             exit();
             } else {
                 $errors[] = "Error in registration. Please try again.";
@@ -411,7 +469,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
 
 <div class="login-wrap">
     <div class="login-container">
-        <h2 class="heading"> <a href="login.php"><i class="fa fa-angle-left" aria-hidden="true"></i></a> Create An Account</h2>
+        <h2 class="heading"> <a href="../login/customer.php"><i class="fa fa-angle-left" aria-hidden="true"></i></a> Create An Account</h2>
         <p class="text-white">Create an account to create your Mini Website</p>
 
         <?php if (isset($_SESSION['registration_otp']) && isset($_SESSION['registration_data'])): ?>
@@ -424,7 +482,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             </div>
             <input type="submit" name="verify_otp" class="btn btn-login" value="VERIFY OTP">
             <div class="mt-3">
-                <p class="text-white">Didn't receive OTP? <a href="create-account.php?resend=true" class="text-primary">Resend OTP</a></p>
+                <p class="text-white">Didn't receive OTP? <a href="../registration/customer-registration.php?resend=true" class="text-primary">Resend OTP</a></p>
             </div>
             <div class="mt-3">
                 <p class="text-white small">After verification, you'll be automatically logged in and redirected to your dashboard.</p>
