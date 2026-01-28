@@ -114,8 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($login_messages)) {
-        // Authenticate against team_members table
-        $stmt = $connect->prepare('SELECT id, member_name, member_email, password_hash, status, referral_code FROM team_members WHERE member_email = ? LIMIT 1');
+        // Authenticate against unified user_details table for TEAM role
+        $stmt = $connect->prepare('SELECT id, name, email, phone, password, password_hash, status FROM user_details WHERE email = ? AND role = "TEAM" LIMIT 1');
         if ($stmt) {
             $stmt->bind_param('s', $email);
             $stmt->execute();
@@ -124,45 +124,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
 
             if ($member) {
-                // Verify password using password_hash field
-                if (password_verify($password, $member['password_hash'])) {
-                    // Check if account is active
-                    if ($member['status'] !== 'ACTIVE') {
+                $storedHash    = $member['password_hash'] ?? '';
+                $storedPlain   = $member['password'] ?? '';
+                $passwordValid = false;
+
+                // Prefer secure hash if present, otherwise fall back to legacy plain-text comparison
+                if (!empty($storedHash) && password_verify($password, $storedHash)) {
+                    $passwordValid = true;
+                } elseif (!empty($storedPlain) && $password === $storedPlain) {
+                    $passwordValid = true;
+                }
+
+                if ($passwordValid) {
+                    if (($member['status'] ?? 'INACTIVE') !== 'ACTIVE') {
                         $login_messages[] = ['type' => 'info', 'message' => 'This team member account is currently inactive. Please contact the administrator.'];
                     } else {
-                        // Generate referral code if it doesn't exist
-                        $referralCode = $member['referral_code'] ?? '';
-                        if (empty($referralCode)) {
-                            $referralCode = strtoupper(substr(md5($member['member_email'] . time()), 0, 8));
-                            $updateRefStmt = $connect->prepare('UPDATE team_members SET referral_code = ? WHERE id = ?');
-                            if ($updateRefStmt) {
-                                $updateRefStmt->bind_param('si', $referralCode, $member['id']);
-                                $updateRefStmt->execute();
-                                $updateRefStmt->close();
-                            }
-                        }
-                        
                         // Set generic user session variables (for existing code paths)
-                        $_SESSION['user_email'] = $member['member_email'];
-                        $_SESSION['user_name'] = $member['member_name'];
-                        $_SESSION['user_referral_code'] = $referralCode;
+                        $_SESSION['user_email'] = $member['email'];
+                        $_SESSION['user_name'] = $member['name'] ?? '';
+                        $_SESSION['user_referral_code'] = ''; // no separate referral code column in user_details
                         $_SESSION['is_logged_in'] = true;
                         $_SESSION['login_time'] = time();
                         $_SESSION['team_member_id'] = $member['id'];
 
-                        // Set TEAM-specific session markers so role_helper correctly identifies this as TEAM
-                        $_SESSION['t_user_email'] = $member['member_email'];
-                        $_SESSION['t_user_name']  = $member['member_name'];
+                        // TEAM-specific markers
+                        $_SESSION['t_user_email'] = $member['email'];
+                        $_SESSION['t_user_name']  = $member['name'] ?? '';
                         $_SESSION['t_user_id']    = $member['id'];
                         $_SESSION['t_is_logged_in'] = true;
-
-                        // Update last login timestamp
-                        $updateStmt = $connect->prepare('UPDATE team_members SET last_login_at = NOW() WHERE id = ?');
-                        if ($updateStmt) {
-                            $updateStmt->bind_param('i', $member['id']);
-                            $updateStmt->execute();
-                            $updateStmt->close();
-                        }
 
                         // Redirect to dashboard on success
                         header('Location: ' . $base_path . '/user/dashboard');
@@ -209,6 +198,7 @@ if (!empty($login_messages)) {
                         </div>
                     </div>
                 </div>
+                <a href="forgot-password.php?role=TEAM" class="forgot-password">Forgot Password?</a>
             </div>
             <input type="submit" value="LOG IN" class="btn btn-login">
         </form>

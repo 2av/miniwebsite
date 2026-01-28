@@ -282,24 +282,9 @@ $tableError = '';
 $errors = [];
 $successMessage = '';
 
-$createTableSql = "CREATE TABLE IF NOT EXISTS team_members (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    member_name VARCHAR(150) NOT NULL,
-    member_email VARCHAR(255) NOT NULL,
-    member_phone VARCHAR(25) DEFAULT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
-    last_login_at DATETIME NULL DEFAULT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uniq_member_email (member_email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+// All team data now stored in unified user_details table (role="TEAM")
 
-if (!$connect->query($createTableSql)) {
-    $tableError = 'Failed to ensure team members table exists: ' . $connect->error;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($tableError)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'create_member') {
@@ -360,11 +345,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($tableError)) {
         }
 
         if (empty($errors)) {
-            $passwordHash = password_hash($memberPassword, PASSWORD_DEFAULT);
+            require_once(__DIR__ . '/../app/helpers/password_helper.php');
+            // Always store password securely as a hash; keep both columns in sync
+            $passwordHash  = mw_hash_password($memberPassword);
+
             // Insert into user_details table with role='TEAM'
-            $insertStmt = $connect->prepare('INSERT INTO user_details (role, email, phone, name, password_hash, status) VALUES ("TEAM", ?, ?, ?, ?, "ACTIVE")');
+            $insertStmt = $connect->prepare('INSERT INTO user_details (role, email, phone, name, password, password_hash, status) VALUES ("TEAM", ?, ?, ?, ?, ?, "ACTIVE")');
             if ($insertStmt) {
-                $insertStmt->bind_param('ssss', $memberEmail, $memberPhone, $memberName, $passwordHash);
+                $insertStmt->bind_param('sssss', $memberEmail, $memberPhone, $memberName, $passwordHash, $passwordHash);
                 if ($insertStmt->execute()) {
                     $successMessage = 'Team member added successfully.';
                 } else {
@@ -400,11 +388,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($tableError)) {
             $errors[] = 'Please provide a valid password (minimum 6 characters).';
         }
         if (empty($errors)) {
-            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            // Update in user_details - try by legacy_team_id first, then by id
-            $resetStmt = $connect->prepare('UPDATE user_details SET password_hash = ?, updated_at = NOW() WHERE (legacy_team_id = ? OR id = ?) AND role="TEAM"');
+            require_once(__DIR__ . '/../app/helpers/password_helper.php');
+            $newHash = mw_hash_password($newPassword);
+            // Update in user_details (keep both columns in sync) - try by legacy_team_id first, then by id
+            $resetStmt = $connect->prepare('UPDATE user_details SET password = ?, password_hash = ?, updated_at = NOW() WHERE (legacy_team_id = ? OR id = ?) AND role="TEAM"');
             if ($resetStmt) {
-                $resetStmt->bind_param('sii', $newHash, $memberId, $memberId);
+                $resetStmt->bind_param('ssii', $newHash, $newHash, $memberId, $memberId);
                 if ($resetStmt->execute()) {
                     $successMessage = 'Password reset successfully.';
                 } else {

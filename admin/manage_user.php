@@ -65,6 +65,8 @@ if(isset($_GET['remove_deal'])) {
     <title>User Management - Admin Dashboard</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -76,7 +78,7 @@ if(isset($_GET['remove_deal'])) {
             Back to Dashboard
         </a>
         <h2><i class="fas fa-users me-3"></i>User Management</h2>
-        <p>Manage users and their deal mappings (Non-Collaboration Users Only)</p>
+        <p>Manage users, deals, Sales Kit, and Collaboration status</p>
     </div>
     
     <!-- Debug Info -->
@@ -93,7 +95,7 @@ if(isset($_GET['remove_deal'])) {
     <!-- Stats Row -->
     <div class="row stats-row">
         <?php
-        // Build the same where conditions for stats
+        // Build the same where conditions for stats (now for ALL customers, regardless of collaboration)
         $stats_where_conditions = array();
         
         // Status filter for stats (map YES/NO to ACTIVE/INACTIVE)
@@ -129,10 +131,7 @@ if(isset($_GET['remove_deal'])) {
         // Add role filter for customers only
         $stats_where_conditions[] = "cl.role='CUSTOMER'";
         
-        // Add collaboration filter to stats
-        $stats_where_conditions[] = "(cl.collaboration_enabled IS NULL OR cl.collaboration_enabled = 'NO')";
-        
-        // Rebuild stats where clause with collaboration filter
+        // Rebuild stats where clause
         $stats_where_clause = '';
         if(!empty($stats_where_conditions)) {
             $stats_where_clause = 'WHERE ' . implode(' AND ', $stats_where_conditions);
@@ -386,9 +385,6 @@ if(isset($_GET['remove_deal'])) {
                         $where_conditions[] = "(name LIKE '%$search%' OR email LIKE '%$search%' OR phone LIKE '%$search%')";
                     }
                     
-                    // Add collaboration filter to where conditions
-                    $where_conditions[] = "(collaboration_enabled IS NULL OR collaboration_enabled = 'NO')";
-                    
                     // Add status filter if set
                     if(isset($_GET['status_filter']) && $_GET['status_filter']!='') {
                         $status_value = $_GET['status_filter'] == 'YES' ? 'ACTIVE' : 'INACTIVE';
@@ -601,8 +597,9 @@ if(isset($_GET['remove_deal'])) {
                             echo '</td>'; 
                             
                             
-                            // Sales Kit toggle
-                            $saleskit_status = isset($row['saleskit_enabled']) ? $row['saleskit_enabled'] : 'NO';
+                            // Sales Kit toggle (normalize to YES/NO safely)
+                            $saleskit_status_raw = isset($row['saleskit_enabled']) ? $row['saleskit_enabled'] : 'NO';
+                            $saleskit_status = strtoupper(trim($saleskit_status_raw ?: 'NO'));
                             echo '<td class="collab-cell">';
                             echo '<label class="switch">';
                             echo '<input type="checkbox" class="saleskit-toggle" data-user-email="'.$user_email.'" '.($saleskit_status == 'YES' ? 'checked' : '').'>';
@@ -610,8 +607,9 @@ if(isset($_GET['remove_deal'])) {
                             echo '</label>';
                             echo '</td>';
                             
-                            // Collaboration toggle (match behavior from manage_user_card.php)
-                            $collab_status = isset($row['collaboration_enabled']) ? $row['collaboration_enabled'] : 'NO';
+                            // Collaboration toggle (normalize to YES/NO safely)
+                            $collab_status_raw = isset($row['collaboration_enabled']) ? $row['collaboration_enabled'] : 'NO';
+                            $collab_status = strtoupper(trim($collab_status_raw ?: 'NO'));
                             echo '<td class="collab-cell">';
                             echo '<label class="switch">';
                             echo '<input type="checkbox" class="collaboration-toggle" data-user-email="'.$user_email.'" '.($collab_status == 'YES' ? 'checked' : '').'>';
@@ -642,7 +640,7 @@ if(isset($_GET['remove_deal'])) {
                             echo '</td>';
                             
                             // Reset password action
-                            echo '<td><a class="btn btn-sm btn-outline-danger" href="change-password.php?email='.urlencode($user_email).'">Reset</a></td>';
+                            echo '<td><button type="button" class="btn btn-sm btn-outline-danger" onclick="openResetPasswordModal(\''.addslashes($user_email).'\')">Reset</button></td>';
                             echo '</tr>';
                         }
                                          } else {
@@ -839,12 +837,21 @@ if(isset($_GET['remove_deal'])) {
                     alert('Failed to load referral details');
                 });
         }
-        // Collaboration toggle handler (reused from manage_user_card.php)
+        // Collaboration & Sales Kit toggle handlers with confirmation (no auto page refresh)
         document.addEventListener('change', function(e) {
             if (e.target && e.target.classList.contains('collaboration-toggle')) {
                 const userEmail = e.target.getAttribute('data-user-email');
                 const newStatus = e.target.checked ? 'YES' : 'NO';
                 const toggleElement = e.target;
+                
+                // Ask for confirmation before changing collaboration status
+                const actionText = newStatus === 'YES' ? 'enable Collaboration for' : 'disable Collaboration for';
+                if (!confirm('Are you sure you want to ' + actionText + ' ' + userEmail + '?')) {
+                    // Revert toggle if cancelled
+                    toggleElement.checked = !toggleElement.checked;
+                    return;
+                }
+
                 fetch('js_request.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -856,10 +863,8 @@ if(isset($_GET['remove_deal'])) {
                 })
                 .then(resp => resp.text())
                 .then(text => {
-                    if (text.includes('success')) {
-                        // Reload page to show updated state
-                        window.location.reload();
-                    } else {
+                    // On success, we keep the new toggle state and optionally show backend message
+                    if (!text.toLowerCase().includes('success')) {
                         alert('Failed to update collaboration status: ' + text);
                         toggleElement.checked = !toggleElement.checked;
                     }
@@ -873,6 +878,15 @@ if(isset($_GET['remove_deal'])) {
                 const userEmail = e.target.getAttribute('data-user-email');
                 const newStatus = e.target.checked ? 'YES' : 'NO';
                 const toggleElement = e.target;
+                
+                // Ask for confirmation before changing sales kit status
+                const actionText = newStatus === 'YES' ? 'enable Sales Kit for' : 'disable Sales Kit for';
+                if (!confirm('Are you sure you want to ' + actionText + ' ' + userEmail + '?')) {
+                    // Revert toggle if cancelled
+                    toggleElement.checked = !toggleElement.checked;
+                    return;
+                }
+
                 fetch('js_request.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -884,10 +898,8 @@ if(isset($_GET['remove_deal'])) {
                 })
                 .then(resp => resp.text())
                 .then(text => {
-                    if (text.includes('success')) {
-                        // Reload page to show updated state
-                        window.location.reload();
-                    } else {
+                    // On success, we keep the new toggle state and optionally show backend message
+                    if (!text.toLowerCase().includes('success')) {
                         alert('Failed to update saleskit status: ' + text);
                         toggleElement.checked = !toggleElement.checked;
                     }
@@ -1003,8 +1015,8 @@ if(isset($_GET['remove_deal'])) {
     <!-- Pagination -->
     <div class="pagination-modern">
         <?php 
-        // Query user_details table for customers
-        $query2 = mysqli_query($connect,"SELECT COUNT(*) AS total FROM user_details WHERE role='CUSTOMER' AND (collaboration_enabled IS NULL OR collaboration_enabled = 'NO')");
+        // Query user_details table for customers (all, regardless of collaboration)
+        $query2 = mysqli_query($connect,"SELECT COUNT(*) AS total FROM user_details WHERE role='CUSTOMER'");
         $rowCount = $query2 ? mysqli_fetch_assoc($query2) : ['total' => 0];
         $pages = ceil(($rowCount['total'] ?? 0) / $limit);
 
@@ -1048,7 +1060,104 @@ if(isset($_GET['remove_deal'])) {
         ?>
     </div>
 </div>
- 
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resetPasswordModalLabel">Reset Customer Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <div class="text-muted" style="font-size:13px;">You are updating password for:</div>
+          <div><strong id="resetPwEmailText"></strong></div>
+        </div>
+        <div id="resetPwMsg" class="mt-2"></div>
+        <input type="hidden" id="resetPwEmail" value="">
+        <div class="mb-3 mt-3">
+          <label class="form-label">New Password</label>
+          <input type="password" class="form-control" id="resetPwNew" placeholder="Enter new password (min 6 chars)">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirm Password</label>
+          <input type="password" class="form-control" id="resetPwConfirm" placeholder="Confirm new password">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="submitResetPassword()">Update Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openResetPasswordModal(email){
+    document.getElementById('resetPwEmail').value = email;
+    document.getElementById('resetPwEmailText').textContent = email;
+    document.getElementById('resetPwNew').value = '';
+    document.getElementById('resetPwConfirm').value = '';
+    document.getElementById('resetPwMsg').innerHTML = '';
+    const modalEl = document.getElementById('resetPasswordModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+
+  function submitResetPassword(){
+    const email = document.getElementById('resetPwEmail').value;
+    const newPw = document.getElementById('resetPwNew').value;
+    const conf  = document.getElementById('resetPwConfirm').value;
+
+    if(!email){
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-danger mb-0">Email missing.</div>';
+      return;
+    }
+    if(!newPw || newPw.length < 6){
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-warning mb-0">Password must be at least 6 characters.</div>';
+      return;
+    }
+    if(newPw !== conf){
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-warning mb-0">Passwords do not match.</div>';
+      return;
+    }
+    if(!confirm('Reset password for ' + email + '?')){
+      return;
+    }
+
+    const params = new URLSearchParams({
+      email: email,
+      role: 'CUSTOMER',
+      new_password: newPw,
+      confirm_password: conf
+    });
+
+    document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-info mb-0">Updating...</div>';
+
+    fetch('reset_user_password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      credentials: 'same-origin',
+      body: params
+    })
+    .then(r => r.json())
+    .then(data => {
+      if(data && data.success){
+        document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-success mb-0">' + (data.message || 'Password updated') + '</div>';
+      } else {
+        document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-danger mb-0">' + (data.message || 'Failed to update password') + '</div>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-danger mb-0">Failed to update password.</div>';
+    });
+  }
+</script>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   
 </head>
 

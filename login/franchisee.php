@@ -108,41 +108,86 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
         $user_id = trim($_POST['user_id']);
         $user_password = trim($_POST['user_password']);
 
-        // Using Prepared Statement to prevent SQL Injection
-        $stmt = $connect->prepare("SELECT * FROM franchisee_login WHERE f_user_email = ? OR f_user_contact = ?");
-        $stmt->bind_param("ss", $user_id, $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-
-            // Direct password comparison without hashing
-            if ($user_password == $row['f_user_password']) {
-                if ($row['f_user_active'] == "YES") {
-                    // Store user data in session with proper sanitization
-                    $_SESSION['f_user_email'] = htmlspecialchars($row['f_user_email']);
-                    $_SESSION['f_user_name'] = htmlspecialchars($row['f_user_name'] ?? '');
-                    $_SESSION['f_user_contact'] = htmlspecialchars($row['f_user_contact'] ?? '');
-
-                    // Set a session marker to track login status
-                    $_SESSION['f_is_logged_in'] = true;
-                    $_SESSION['f_login_time'] = time();
-
-                    echo '<div class="alert Success">Login Successful, Redirecting...</div>';
-                    echo '<meta http-equiv="refresh" content="1;URL=' . $base_path . '/user/dashboard">';
-                    exit();
-                } else {
-                    $login_error = '<div class="alert info error-msg"><strong>Sorry!</strong> Your account is not Active/Verified. Please contact our support.<br><a href="/#contact"><b>Click here </b></a></div>';
-                }
-            } else {
-                $login_error = '<div class="alert info error-msg">Incorrect Password! Try Again. <br><a href="#"><b>Reset Password</b></a></div>';
-            }
+        // Basic validation: must be valid email or 10‑digit mobile
+        if (!filter_var($user_id, FILTER_VALIDATE_EMAIL) && !preg_match('/^[0-9]{10}$/', $user_id)) {
+            $login_error = '<div class="alert info error-msg">Enter a valid Email ID or 10-digit Mobile Number.</div>';
         } else {
-            $login_error = '<div class="alert info error-msg">Invalid user id or password.</div>';
-        }
+            // Authenticate against unified user_details table (role = FRANCHISEE)
+            $stmt = $connect->prepare("
+                SELECT 
+                    id,
+                    email,
+                    phone,
+                    name,
+                    password,
+                    password_hash,
+                    status
+                FROM user_details
+                WHERE role = 'FRANCHISEE'
+                  AND (email = ? OR phone = ?)
+                LIMIT 1
+            ");
 
-        $stmt->close();
+            if ($stmt) {
+                $stmt->bind_param("ss", $user_id, $user_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                if ($result && $result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
+
+                    $storedPlain = $row['password'] ?? '';
+                    $storedHash  = $row['password_hash'] ?? '';
+                    $passwordOk  = false;
+
+                    // Prefer secure hash if available, otherwise fall back to legacy plain text
+                    if (!empty($storedHash) && password_verify($user_password, $storedHash)) {
+                        $passwordOk = true;
+                    } elseif (!empty($storedPlain) && $user_password === $storedPlain) {
+                        $passwordOk = true;
+                    }
+
+                    if ($passwordOk) {
+                        if (($row['status'] ?? 'INACTIVE') === 'ACTIVE') {
+                            $safeEmail   = htmlspecialchars($row['email'] ?? '');
+                            $safeName    = htmlspecialchars($row['name'] ?? '');
+                            $safePhone   = htmlspecialchars($row['phone'] ?? '');
+                            $safeUserId  = (int)($row['id'] ?? 0);
+
+                            // Franchisee-specific session markers (used by role_helper)
+                            $_SESSION['f_user_email']   = $safeEmail;
+                            $_SESSION['f_user_name']    = $safeName;
+                            $_SESSION['f_user_contact'] = $safePhone;
+                            $_SESSION['f_user_id']      = $safeUserId;
+                            $_SESSION['f_is_logged_in'] = true;
+                            $_SESSION['f_login_time']   = time();
+
+                            // Also set generic user_* sessions for shared dashboard code
+                            $_SESSION['user_email']   = $safeEmail;
+                            $_SESSION['user_name']    = $safeName;
+                            $_SESSION['user_contact'] = $safePhone;
+                            $_SESSION['user_id']      = $safeUserId;
+                            $_SESSION['is_logged_in'] = true;
+                            $_SESSION['login_time']   = time();
+
+                            echo '<div class="alert Success">Login Successful, Redirecting...</div>';
+                            echo '<meta http-equiv="refresh" content="1;URL=' . $base_path . '/user/dashboard">';
+                            exit();
+                        } else {
+                            $login_error = '<div class="alert info error-msg"><strong>Sorry!</strong> Your account is not Active/Verified. Please contact our support.<br><a href="/#contact"><b>Click here </b></a></div>';
+                        }
+                    } else {
+                        $login_error = '<div class="alert info error-msg">Incorrect Password! Try Again. <br><a href="#"><b>Reset Password</b></a></div>';
+                    }
+                } else {
+                    $login_error = '<div class="alert info error-msg">Invalid user id or password.</div>';
+                }
+
+                $stmt->close();
+            } else {
+                $login_error = '<div class="alert danger error-msg">Unable to process login right now. Please try again later.</div>';
+            }
+        }
     } else {
         $login_error = '<div class="alert info error-msg">All fields are required.</div>';
     }
@@ -168,7 +213,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
                         </div>
                     </div>
                 </div>
-                <a href="#" class="forgot-password">Forgot Password?</a>
+                <a href="forgot-password.php?role=FRANCHISEE" class="forgot-password">Forgot Password?</a>
             </div>
             <input type="submit" name="login_user" value="LOG IN" class="btn btn-login">
         </form>

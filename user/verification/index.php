@@ -92,7 +92,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
     }
     
     if($upload_success) {
-        $upload_dir = 'uploads/';
+        // Store verification uploads in a single shared folder:
+        // <project_root>/assets/upload/verification/
+        $upload_dir = __DIR__ . '/../../assets/upload/verification/';
         if(!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
         }
@@ -235,7 +237,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
                                                   <?php endif; ?>
                                                  <!-- Image Preview -->
                                                  <div class="image-preview-container">
-                                                     <img src="uploads/<?php echo htmlspecialchars($pan_card_document); ?>" 
+                                                     <img src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $pan_card_document); ?>" 
                                                           alt="PAN Card" 
                                                           class="img-fluid rounded border" 
                                                           style="max-height: 200px; width: 100%; object-fit: contain;"
@@ -280,7 +282,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
                                             <?php endif; ?>
                                             <!-- Image Preview -->
                                             <div class="image-preview-container">
-                                                <img src="uploads/<?php echo htmlspecialchars($aadhaar_front_document); ?>" 
+                                                <img src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $aadhaar_front_document); ?>" 
                                                      alt="Aadhaar Front" 
                                                      class="img-fluid rounded border" 
                                                      style="max-height: 200px; width: 100%; object-fit: contain;"
@@ -325,7 +327,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
                                             <?php endif; ?>
                                             <!-- Image Preview -->
                                             <div class="image-preview-container">
-                                                <img src="uploads/<?php echo htmlspecialchars($aadhaar_back_document); ?>" 
+                                                <img src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $aadhaar_back_document); ?>" 
                                                      alt="Aadhaar Back" 
                                                      class="img-fluid rounded border" 
                                                      style="max-height: 200px; width: 100%; object-fit: contain;"

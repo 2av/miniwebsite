@@ -122,10 +122,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
         $userSql = "
             SELECT 
                 u.id,
-                u.email      AS user_email,
-                u.phone      AS user_contact,
-                u.name       AS user_name,
-                u.password   AS user_password,
+                u.email         AS user_email,
+                u.phone         AS user_contact,
+                u.name          AS user_name,
+                u.password      AS user_password,
+                u.password_hash AS user_password_hash,
                 u.status,
                 cl.referral_code,
                 cl.collaboration_enabled,
@@ -141,10 +142,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
         $row = $query ? mysqli_fetch_assoc($query) : null;
 
         if ($row) {
-            $storedPassword = $row['user_password'] ?? '';
-
-            // Check password hash or plain text match (supports old accounts)
-            if (!empty($storedPassword) && (password_verify($password, $storedPassword) || $password === $storedPassword)) {
+            $storedPassword     = $row['user_password'] ?? '';
+            $storedPasswordHash = $row['user_password_hash'] ?? '';
+            
+            // Check password hash first; fall back to legacy patterns
+            $passwordValid = false;
+            if (!empty($storedPasswordHash) && password_verify($password, $storedPasswordHash)) {
+                $passwordValid = true;
+            } elseif (!empty($storedPassword) && password_verify($password, $storedPassword)) {
+                $passwordValid = true;
+            } elseif (!empty($storedPassword) && $password === $storedPassword) {
+                $passwordValid = true;
+            }
+            
+            if ($passwordValid) {
                 // Store user data in session with proper sanitization
                 $_SESSION['user_id'] = isset($row['id']) ? (int)$row['id'] : 0;
                 $_SESSION['user_email'] = htmlspecialchars($row['user_email']);
@@ -190,7 +201,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
                         </div>
                     </div>
                 </div>
-                <a href="#" class="forgot-password">Forgot Password?</a>
+                <a href="forgot-password.php?role=CUSTOMER" class="forgot-password">Forgot Password?</a>
             </div>
             <input type="submit" name="login_user" value="LOG IN" class="btn btn-login">
         </form>

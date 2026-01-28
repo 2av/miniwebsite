@@ -222,11 +222,10 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
                                                          $inv_q = mysqli_query($connect, "SELECT id FROM invoice_details WHERE reference_number='" . mysqli_real_escape_string($connect, $invoice_ref) . "' LIMIT 1");
                                                          
                                                          if ($inv_q && mysqli_num_rows($inv_q) > 0) {
-                                                             echo '<a href="../../payment_page/download_receipt.php?ref=' . htmlspecialchars($invoice_ref) . '" target="_blank" class="view_btn">View</a>';
-                                                         } else {
-                                                             
-                                                             echo '<span class="text-muted">-</span>';
-                                                         }
+                                                            echo '<a href="../invoice/download_receipt.php?ref=' . htmlspecialchars($invoice_ref) . '" target="_blank" class="view_btn">View</a>';
+                                                        } else {
+                                                            echo '<span class="text-muted">-</span>';
+                                                        }
                                                          ?>
                                                      </td>
                                                      <td>

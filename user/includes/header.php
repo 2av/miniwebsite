@@ -54,6 +54,18 @@ if ($current_role == 'CUSTOMER') {
     $is_verified = isFranchiseeVerified($user_email);
 }
 
+// Build role-aware menu visibility conditions (used by sidebar + profile dropdown)
+$user_conditions = [];
+if ($current_role == 'CUSTOMER') {
+    $user_conditions['collaboration_enabled'] = $collaboration_enabled;
+    $user_conditions['saleskit_enabled'] = $saleskit_enabled;
+} elseif ($current_role == 'FRANCHISEE') {
+    $user_conditions['is_verified'] = $is_verified;
+}
+
+// Pre-compute visible menu items once (so dropdown + sidebar stay consistent)
+$visible_menu_items = get_visible_menu_items($current_role, $user_conditions);
+
 // Get base path for assets (works for both localhost subfolder and production root)
 function get_assets_base_path() {
     $script_name = $_SERVER['SCRIPT_NAME'];
@@ -103,6 +115,10 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
      <!-- Instagram JS (IMPORTANT) -->
     <script async src="https://www.instagram.com/embed.js"></script>
     <script>
+        // Global variables for upload functionality
+        var APP_BASE_PATH = '<?php echo addslashes($assets_base); ?>';
+        var UPLOAD_PROFILE_URL = '<?php echo addslashes($assets_base . '/common/upload_profile.php'); ?>';
+        
         function copyToClipboard(type) {
             let textToCopy = '';
             switch (type) {
@@ -179,10 +195,26 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
                         </div>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="<?php echo $nav_base; ?>/dashboard.php">Dashboard</a></li>
-                        <?php if ($current_role == 'CUSTOMER'): ?>
-                        <li><a class="dropdown-item" href="<?php echo $nav_base; ?>/profile.php">Change Password</a></li>
-                        <?php endif; ?>
+                        <li><a class="dropdown-item" href="<?php echo $nav_base; ?>/dashboard">Dashboard</a></li>
+                        <?php
+                        // Role-wise quick links (based on same menu config as sidebar)
+                        // Show first few items except dashboard.
+                        $quick = [];
+                        foreach ($visible_menu_items as $mi) {
+                            $mid = $mi['id'] ?? '';
+                            if ($mid === 'dashboard') continue;
+                            $quick[] = $mi;
+                            if (count($quick) >= 3) break;
+                        }
+                        foreach ($quick as $mi):
+                            $label = $mi['label'] ?? '';
+                            $url   = $mi['url'] ?? '';
+                            if ($label === '' || $url === '') continue;
+                            $menu_link = $nav_base . $url;
+                        ?>
+                            <li><a class="dropdown-item" href="<?php echo $menu_link; ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></a></li>
+                        <?php endforeach; ?>
+                        <li><a class="dropdown-item" href="<?php echo $nav_base; ?>/change-password">Change Password</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?php echo $assets_base; ?>/login/logout.php">Logout</a></li>
                     </ul>
@@ -279,15 +311,6 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
                         <?php
                         } else {
                             // Standard sidebar using JSON menu config
-                            $user_conditions = [];
-                            if ($current_role == 'CUSTOMER') {
-                                $user_conditions['collaboration_enabled'] = $collaboration_enabled;
-                                $user_conditions['saleskit_enabled'] = $saleskit_enabled;
-                            } elseif ($current_role == 'FRANCHISEE') {
-                                $user_conditions['is_verified'] = $is_verified;
-                            }
-                            
-                            $visible_menu_items = get_visible_menu_items($current_role, $user_conditions);
                             
                             if (isset($_GET['menu_debug']) || (isset($_SESSION['menu_debug']) && $_SESSION['menu_debug'] === true)) {
                                 $debug_info = [];
@@ -327,7 +350,7 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
                             if ($current_role == 'FRANCHISEE' && !$is_verified):
                                 $disabled_items = [
                                     ['label' => 'Wallet', 'icon' => 'wallet.png'],
-                                    ['label' => 'Franchisee Kit', 'icon' => 'FranchiseeKit.png']
+                                    ['label' => 'Marketing Kit', 'icon' => 'marketingkit.png']
                                 ];
                                 foreach ($disabled_items as $item):
                             ?>

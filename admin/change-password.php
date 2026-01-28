@@ -5,35 +5,45 @@ require('header.php');
 $message = "";
 
 if(isset($_POST['login_user'])){
-    $current_password =  $_POST['current_password'];
-    $new_password =$_POST['new_password'];
-    $confirm_password =  $_POST['confirm_password'];
+    $new_password      = $_POST['new_password'] ?? '';
+    $confirm_password  = $_POST['confirm_password'] ?? '';
 
-	
-    // Fetch admin's current password from user_details table
-    $admin_id = $_SESSION['admin_id'];
+    // Ensure admin is logged in and we know their email
+    $admin_email = $_SESSION['admin_email'] ?? null;
+    if (!$admin_email) {
+        $message = '<div class="alert danger">You must be logged in as an admin to change the password.</div>';
+    } elseif (strlen($new_password) < 6) {
+        $message = '<div class="alert warning">New password must be at least 6 characters long.</div>';
+    } elseif ($new_password !== $confirm_password) {
+        $message = '<div class="alert warning">New passwords do not match.</div>';
+    } else {
+        $safe_email = mysqli_real_escape_string($connect, $admin_email);
 
-	   
-    // Query user_details table for admin
-    $query = mysqli_query($connect, "SELECT password FROM user_details WHERE id = '$admin_id' AND role='ADMIN'");
-    $row = mysqli_fetch_assoc($query);
-	echo $row['password'];   
-    if ($row && $current_password == $row['password']) {
-        if ($new_password === $confirm_password) {
-//$hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-            // Update password in user_details table
-            $update_query = mysqli_query($connect, "UPDATE user_details SET password = '$new_password' WHERE id = '$admin_id' AND role='ADMIN'");
+        // Query user_details table for admin by email + role
+        $query = mysqli_query($connect, "SELECT id FROM user_details WHERE email = '$safe_email' AND role='ADMIN' LIMIT 1");
+        $row   = $query ? mysqli_fetch_assoc($query) : null;
+
+        if ($row) {
+            // Always store hashed; keep legacy column in sync
+            $new_hash      = password_hash($new_password, PASSWORD_DEFAULT);
+            $safe_new_hash = mysqli_real_escape_string($connect, $new_hash);
+
+            $admin_id = (int)$row['id'];
+            $update_query = mysqli_query(
+                $connect,
+                "UPDATE user_details 
+                 SET password = '$safe_new_hash', password_hash = '$safe_new_hash'
+                 WHERE id = '$admin_id' AND role='ADMIN'"
+            );
 
             if ($update_query) {
                 $message = '<div class="alert success">Password changed successfully.</div>';
             } else {
-                $message = '<div class="alert danger">Error updating password.</div>';
+                $message = '<div class="alert danger">Error updating password. Please try again.</div>';
             }
         } else {
-            $message = '<div class="alert warning">New passwords do not match.</div>';
+            $message = '<div class="alert danger">Admin account not found in user details.</div>';
         }
-    } else {
-        $message = '<div class="alert danger">Incorrect current password.</div>';
     }
 }
 ?>
@@ -48,11 +58,6 @@ if(isset($_POST['login_user'])){
     <?php echo $message; ?>
 
     <form action="" method="post" autocomplete="off" id="changepassword">
-        <div class="form-group">
-            <label>Current Password</label>
-            <input type="password" name="current_password" required>
-        </div>
-
         <div class="form-group">
             <label>New Password</label>
             <input type="password" name="new_password" required>

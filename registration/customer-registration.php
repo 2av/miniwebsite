@@ -203,15 +203,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             $referred_by_value = !empty($referred_by_escaped) ? "'$referred_by_escaped'" : "''";
             $insert_user_details = mysqli_query($connect, "
                 INSERT INTO user_details 
-                    (role, email, phone, name, password, ip, status, created_at, legacy_customer_id, referred_by)
+                    (role, email, phone, name, password, password_hash, ip, status, created_at, legacy_customer_id, referred_by)
                 VALUES
-                    ('CUSTOMER', '$user_email', '$user_contact', '$user_name', '$hashed_password', '$ip_address', '$status', NOW(), ".(int)$customer_id.", $referred_by_value)
+                    ('CUSTOMER', '$user_email', '$user_contact', '$user_name', '$hashed_password', '$hashed_password', '$ip_address', '$status', NOW(), ".(int)$customer_id.", $referred_by_value)
                 ON DUPLICATE KEY UPDATE 
-                    referred_by = $referred_by_value,
-                    phone = '$user_contact',
-                    name = '$user_name',
-                    password = '$hashed_password',
-                    updated_at = NOW()
+                    referred_by    = $referred_by_value,
+                    phone          = '$user_contact',
+                    name           = '$user_name',
+                    password       = '$hashed_password',
+                    password_hash  = '$hashed_password',
+                    updated_at     = NOW()
             ");
 
             // If there's a referrer, create referral record with dynamic amount
@@ -400,31 +401,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
                     $referrer_data = mysqli_fetch_array($referrer_query);
                     $referrer_email = !empty($referrer_data['email']) ? trim($referrer_data['email']) : '';
                 } else {
-                    // If not found, check team_members and get email from user_details
-                    // Use BINARY to handle collation mismatch
-                    $team_referrer_query = mysqli_query($connect, "SELECT ud.email 
-                        FROM user_details ud 
-                        INNER JOIN team_members tm ON CAST(ud.email AS BINARY) = CAST(tm.member_email AS BINARY) AND ud.role = 'TEAM'
-                        WHERE UPPER(TRIM(tm.referral_code))='$referrer_code' 
-                        AND ud.email IS NOT NULL AND ud.email != '' 
-                        LIMIT 1");
-                    
-                    if(mysqli_num_rows($team_referrer_query) > 0) {
-                        $team_referrer_data = mysqli_fetch_array($team_referrer_query);
-                        $referrer_email = !empty($team_referrer_data['email']) ? trim($team_referrer_data['email']) : '';
-                    } else {
-                        // Fallback: Check legacy tables directly (for backward compatibility)
-                        $legacy_customer_query = mysqli_query($connect, "SELECT user_email FROM customer_login WHERE UPPER(TRIM(referral_code))='$referrer_code' AND user_email IS NOT NULL AND user_email != '' LIMIT 1");
-                        if(mysqli_num_rows($legacy_customer_query) > 0) {
-                            $legacy_data = mysqli_fetch_array($legacy_customer_query);
-                            $referrer_email = !empty($legacy_data['user_email']) ? trim($legacy_data['user_email']) : '';
-                        } else {
-                            $legacy_team_query = mysqli_query($connect, "SELECT member_email FROM team_members WHERE UPPER(TRIM(referral_code))='$referrer_code' AND member_email IS NOT NULL AND member_email != '' LIMIT 1");
-                            if(mysqli_num_rows($legacy_team_query) > 0) {
-                                $legacy_team_data = mysqli_fetch_array($legacy_team_query);
-                                $referrer_email = !empty($legacy_team_data['member_email']) ? trim($legacy_team_data['member_email']) : '';
-                            }
-                        }
+                    // Fallback: Check legacy tables directly (for backward compatibility)
+                    $legacy_customer_query = mysqli_query($connect, "SELECT user_email FROM customer_login WHERE UPPER(TRIM(referral_code))='$referrer_code' AND user_email IS NOT NULL AND user_email != '' LIMIT 1");
+                    if(mysqli_num_rows($legacy_customer_query) > 0) {
+                        $legacy_data = mysqli_fetch_array($legacy_customer_query);
+                        $referrer_email = !empty($legacy_data['user_email']) ? trim($legacy_data['user_email']) : '';
                     }
                 }
                 

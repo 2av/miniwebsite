@@ -1,6 +1,7 @@
 <?php
 // Start session and include database connection FIRST - before any HTML output
 require_once(__DIR__ . '/../app/config/database.php');
+require_once(__DIR__ . '/../app/helpers/password_helper.php');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -296,17 +297,34 @@ require_once(__DIR__ . '/../app/config/database.php');
         if(isset($_POST['login_user'])){
             // Query user_details table for admin
             $admin_email_input = mysqli_real_escape_string($connect, $_POST['admin_email']);
-            $query = mysqli_query($connect, 'SELECT * FROM user_details WHERE role="ADMIN" AND (email="'.$admin_email_input.'" OR phone="'.$admin_email_input.'")');
+            $admin_password_input = trim($_POST['admin_password'] ?? '');
+            
+            // Fetch both password and password_hash columns for verification
+            $query = mysqli_query($connect, 'SELECT id, email, phone, name, password, password_hash, status FROM user_details WHERE role="ADMIN" AND (email="'.$admin_email_input.'" OR phone="'.$admin_email_input.'") LIMIT 1');
+            
             if(mysqli_num_rows($query) > 0){
-                $row = mysqli_fetch_array($query);
+                $row = mysqli_fetch_assoc($query);
                 
-                if($row['password'] == $_POST['admin_password']){
-                    $_SESSION['admin_email'] = $row['email'];
-                    $_SESSION['admin_name'] = $row['name'];
-                    $_SESSION['admin_contact'] = $row['phone'];
-                    $_SESSION['admin_id'] = $row['id'];
-                    echo '<div class="alert Success"><i class="fas fa-check-circle"></i> Login successful! Redirecting...</div>';
-                    echo '<meta http-equiv="refresh" content="1;URL=index.php">';
+                // Use centralized password verification helper
+                $storedPasswordHash = $row['password_hash'] ?? '';
+                $storedPassword = $row['password'] ?? '';
+                $passwordValid = mw_verify_stored_password($admin_password_input, $storedPasswordHash, $storedPassword);
+                
+                if($passwordValid){
+                    // Check if account is active
+                    if(($row['status'] ?? 'INACTIVE') === 'ACTIVE'){
+                        $_SESSION['admin_email'] = htmlspecialchars($row['email'] ?? '');
+                        $_SESSION['admin_name'] = htmlspecialchars($row['name'] ?? '');
+                        $_SESSION['admin_contact'] = htmlspecialchars($row['phone'] ?? '');
+                        $_SESSION['admin_id'] = (int)($row['id'] ?? 0);
+                        $_SESSION['admin_is_logged_in'] = true;
+                        $_SESSION['admin_login_time'] = time();
+                        
+                        echo '<div class="alert Success"><i class="fas fa-check-circle"></i> Login successful! Redirecting...</div>';
+                        echo '<meta http-equiv="refresh" content="1;URL=index.php">';
+                    } else {
+                        echo '<div class="alert info"><i class="fas fa-exclamation-circle"></i> Your account is inactive. Please contact administrator.</div>';
+                    }
                 } else {
                     echo '<div class="alert info"><i class="fas fa-exclamation-circle"></i> Incorrect password. Please try again.</div>';
                 }

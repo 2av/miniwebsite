@@ -8,6 +8,83 @@ require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 // Require TEAM role
 require_role('TEAM', '/login/team.php');
 
+/**
+ * Ensure customer tracker tables do NOT depend on legacy `team_members` table.
+ * Some DBs still have FK constraints referencing `team_members(id)` which will
+ * break inserts when TEAM users are stored in `user_details`.
+ */
+function ensureCustomerTrackerForeignKeys(mysqli $connect): void {
+    $tablesToFix = [
+        // table => [columns_to_fix]
+        'customer_tracker' => ['team_member_id'],
+        'customer_tracker_followups' => ['team_member_id'],
+        'customer_tracker_history' => ['team_member_id', 'changed_by'],
+    ];
+
+    foreach ($tablesToFix as $table => $columns) {
+        foreach ($columns as $col) {
+            // Find any FK on $col that references team_members
+            $sql = "
+                SELECT
+                    kcu.CONSTRAINT_NAME,
+                    kcu.REFERENCED_TABLE_NAME
+                FROM information_schema.KEY_COLUMN_USAGE kcu
+                WHERE kcu.TABLE_SCHEMA = DATABASE()
+                  AND kcu.TABLE_NAME = ?
+                  AND kcu.COLUMN_NAME = ?
+                  AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
+                LIMIT 1
+            ";
+            $stmt = $connect->prepare($sql);
+            if (!$stmt) {
+                continue;
+            }
+            $stmt->bind_param('ss', $table, $col);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $fk  = $res ? $res->fetch_assoc() : null;
+            $stmt->close();
+
+            if (!$fk) {
+                continue;
+            }
+
+            $constraintName = $fk['CONSTRAINT_NAME'] ?? '';
+            $refTable       = $fk['REFERENCED_TABLE_NAME'] ?? '';
+
+            // If already pointing to user_details, nothing to do
+            if (strcasecmp($refTable, 'user_details') === 0) {
+                continue;
+            }
+
+            // Only auto-fix legacy `team_members` reference
+            if (strcasecmp($refTable, 'team_members') !== 0 || $constraintName === '') {
+                continue;
+            }
+
+            // Best-effort schema fix (may require ALTER privileges)
+            try {
+                // Ensure column type compatible with user_details.id (INT UNSIGNED)
+                @$connect->query("ALTER TABLE `$table` MODIFY `$col` INT UNSIGNED NOT NULL");
+
+                // Drop legacy FK
+                $connect->query("ALTER TABLE `$table` DROP FOREIGN KEY `$constraintName`");
+
+                // Add new FK to user_details(id)
+                // NOTE: MySQL FK can't enforce role='TEAM', role logic is handled in app code.
+                $newFkName = "{$table}_{$col}_ud_fk";
+                $connect->query("ALTER TABLE `$table` ADD CONSTRAINT `$newFkName` FOREIGN KEY (`$col`) REFERENCES `user_details`(`id`) ON DELETE CASCADE");
+            } catch (Throwable $e) {
+                error_log("Failed to migrate FK for {$table}.{$col}: " . $e->getMessage());
+                // If this fails, inserts may still fail; user will need to run ALTER TABLE manually.
+            }
+        }
+    }
+}
+
+// Run FK migration before any insert/update
+ensureCustomerTrackerForeignKeys($connect);
+
 // Get team member details from helpers/session
 $team_member_id = get_user_id();
 $user_email     = get_user_email();
@@ -290,7 +367,15 @@ if ($stmt) {
 // Function to get followups for a tracker record
 function getTrackerFollowups($connect, $tracker_id) {
     $followups = [];
-    $stmt = $connect->prepare('SELECT f.*, tm.member_name FROM customer_tracker_followups f LEFT JOIN team_members tm ON f.team_member_id = tm.id WHERE f.tracker_id = ? ORDER BY f.followup_datetime DESC, f.id DESC');
+    // Join with unified user_details table to get TEAM member name
+    $sql = '
+        SELECT f.*, ud.name AS member_name
+        FROM customer_tracker_followups f
+        LEFT JOIN user_details ud ON f.team_member_id = ud.id AND ud.role = "TEAM"
+        WHERE f.tracker_id = ?
+        ORDER BY f.followup_datetime DESC, f.id DESC
+    ';
+    $stmt = $connect->prepare($sql);
     if ($stmt) {
         $stmt->bind_param('i', $tracker_id);
         $stmt->execute();
@@ -322,7 +407,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                 <div class="CustomerDashboard-head">
                     <div class="row">
                         <div class="col-sm-3 top_section">
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#addTrackerModal" style="text-decoration: none;">
+                            <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#addTrackerModal" style="text-decoration: none;">
                                 <div class="card">
                                     <div class="img addNewCustomer">
                                         <img class="img-fluid" src="<?php echo $assets_base; ?>/assets/images/AddNewCutomer.png" alt="">
@@ -346,7 +431,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                     <?php else: ?>
                         <table class="display table" style="text-align: center;">
                             <thead class="bg-secondary">
-                                <tr>
+                                <tr >
                                     <th>Shop/Person Name</th>
                                     <th>Contact Number</th>
                                     <th>Approached For</th>
@@ -401,7 +486,281 @@ function getTrackerFollowups($connect, $tracker_id) {
     </div>
 </main>
 
-<!-- NOTE: For brevity, modal markup and scripts are identical to old/team/customer-tracker/index.php and should be copied over as needed -->
+<!-- Add New Customer Modal -->
+<div class="modal fade" id="addTrackerModal" tabindex="-1" aria-labelledby="addTrackerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTrackerModalLabel">Add New Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add_tracker">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Shop/Person Name <span class="text-danger">*</span></label>
+                            <input type="text" name="shop_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+                            <input type="text" name="contact_number" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Approached For <span class="text-danger">*</span></label>
+                            <select name="approached_for" class="form-select" required>
+                                <option value="Franchisee Sale" selected>Franchisee Sale</option>
+                                <option value="MiniWebsite Sale">MiniWebsite Sale</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date Visited <span class="text-danger">*</span></label>
+                            <input type="date" name="date_visited" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Final Status <span class="text-danger">*</span></label>
+                            <select name="final_status" class="form-select" required>
+                                <option value="Followup required" selected>Followup required</option>
+                                <option value="Joined">Joined</option>
+                                <option value="Not Interested">Not Interested</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Comments</label>
+                            <input type="text" name="comments" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php if (!empty($records)): ?>
+    <?php foreach ($records as $record): ?>
+        <?php $tracker_id = (int)$record['id']; ?>
+        <!-- View Details Modal -->
+        <div class="modal fade" id="viewModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="viewModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="viewModalLabel<?php echo $tracker_id; ?>">Customer Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-2"><strong>Shop/Person:</strong> <?php echo htmlspecialchars($record['shop_name']); ?></div>
+                            <div class="col-md-6 mb-2"><strong>Contact:</strong> <?php echo htmlspecialchars($record['contact_number'] ?: '-'); ?></div>
+                            <div class="col-md-6 mb-2"><strong>Approached For:</strong> <?php echo htmlspecialchars($record['approached_for'] ?? '-'); ?></div>
+                            <div class="col-md-6 mb-2"><strong>Date Visited:</strong> <?php echo date('d-m-Y', strtotime($record['date_visited'])); ?></div>
+                            <div class="col-md-12 mb-2"><strong>Address:</strong><br><?php echo nl2br(htmlspecialchars($record['address'] ?: '-')); ?></div>
+                            <div class="col-md-6 mb-2"><strong>Final Status:</strong> <?php echo htmlspecialchars($record['final_status']); ?></div>
+                            <div class="col-md-6 mb-2"><strong>Comments:</strong> <?php echo htmlspecialchars($record['comments'] ?: '-'); ?></div>
+                        </div>
+                        <hr>
+                        <h6>Followup History</h6>
+                        <?php $followups = getTrackerFollowups($connect, $tracker_id); ?>
+                        <?php if (empty($followups)): ?>
+                            <p class="text-muted mb-0">No followups recorded yet.</p>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date &amp; Time</th>
+                                            <th>Method</th>
+                                            <th>Status</th>
+                                            <th>Comments</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($followups as $f): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($f['followup_datetime']); ?></td>
+                                                <td><?php echo htmlspecialchars($f['followup_method'] ?: '-'); ?></td>
+                                                <td><?php echo htmlspecialchars($f['followup_status'] ?: '-'); ?></td>
+                                                <td><?php echo htmlspecialchars($f['comments'] ?: '-'); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Record Modal -->
+        <div class="modal fade" id="editModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="editModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editModalLabel<?php echo $tracker_id; ?>">Edit Customer Record</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="post" action="">
+                        <div class="modal-body">
+                            <input type="hidden" name="action" value="update_tracker">
+                            <input type="hidden" name="tracker_id" value="<?php echo $tracker_id; ?>">
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Shop/Person Name</label>
+                                    <input type="text" name="shop_name" class="form-control" value="<?php echo htmlspecialchars($record['shop_name']); ?>" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Contact Number</label>
+                                    <input type="text" name="contact_number" class="form-control" value="<?php echo htmlspecialchars($record['contact_number'] ?: ''); ?>">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Approached For</label>
+                                    <input type="text" name="approached_for" class="form-control" value="<?php echo htmlspecialchars($record['approached_for'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Final Status</label>
+                                    <select name="final_status" class="form-select">
+                                        <?php
+                                        $statusOptions = ['Followup required','Joined','Not Interested'];
+                                        foreach ($statusOptions as $opt):
+                                            $sel = ($record['final_status'] === $opt) ? 'selected' : '';
+                                        ?>
+                                            <option value="<?php echo htmlspecialchars($opt); ?>" <?php echo $sel; ?>>
+                                                <?php echo htmlspecialchars($opt); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Address</label>
+                                <textarea name="address" class="form-control" rows="2"><?php echo htmlspecialchars($record['address'] ?: ''); ?></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Comments</label>
+                                <textarea name="comments" class="form-control" rows="2"><?php echo htmlspecialchars($record['comments'] ?: ''); ?></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Followup / History Modal -->
+        <div class="modal fade" id="historyModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="historyModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="historyModalLabel<?php echo $tracker_id; ?>">Add Followup</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="post" action="">
+                            <input type="hidden" name="action" value="add_followup">
+                            <input type="hidden" name="tracker_id" value="<?php echo $tracker_id; ?>">
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Followup Date &amp; Time <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="followup_datetime" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Followup Method <span class="text-danger">*</span></label>
+                                    <select name="followup_method[]" class="form-select" multiple required>
+                                        <option value="Call">Call</option>
+                                        <option value="WhatsApp">WhatsApp</option>
+                                        <option value="Visit">Visit</option>
+                                        <option value="Email">Email</option>
+                                    </select>
+                                    <small class="text-muted">Hold Ctrl (Cmd on Mac) to select multiple.</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Followup Status <span class="text-danger">*</span></label>
+                                    <select name="followup_status" class="form-select" required>
+                                        <option value="Followup required" selected>Followup required</option>
+                                        <option value="Joined">Joined</option>
+                                        <option value="Not Interested">Not Interested</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Comments</label>
+                                    <input type="text" name="followup_comments" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="modal-footer px-0">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Save Followup</button>
+                            </div>
+                        </form>
+
+                        <hr>
+                        <h6>Previous Followups</h6>
+                        <?php $followups = getTrackerFollowups($connect, $tracker_id); ?>
+                        <?php if (empty($followups)): ?>
+                            <p class="text-muted mb-0">No followups recorded yet.</p>
+                        <?php else: ?>
+                            <div class="table-responsive mt-2">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date &amp; Time</th>
+                                            <th>Method</th>
+                                            <th>Status</th>
+                                            <th>Comments</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($followups as $f): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($f['followup_datetime']); ?></td>
+                                                <td><?php echo htmlspecialchars($f['followup_method'] ?: '-'); ?></td>
+                                                <td><?php echo htmlspecialchars($f['followup_status'] ?: '-'); ?></td>
+                                                <td><?php echo htmlspecialchars($f['comments'] ?: '-'); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 

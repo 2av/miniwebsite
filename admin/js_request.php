@@ -1,7 +1,7 @@
 <?php
 
 require_once(__DIR__ . '/../app/config/database.php');
-require_once(__DIR__ . '/../app/config/email.php');');
+require_once(__DIR__ . '/../app/config/email.php');
 
 // Handle user collaboration toggle - using user_details
 if(isset($_POST['toggle_user_collaboration'])){

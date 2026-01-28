@@ -1,7 +1,51 @@
 <?php
 require_once(__DIR__ . '/app/config/database.php');
+
+// Load email configuration
+$email_config_paths = [
+    __DIR__ . '/app/config/email.php',
+    __DIR__ . '/common/email_config.php'
+];
+foreach($email_config_paths as $email_config_path) {
+    if(file_exists($email_config_path)) {
+        require_once($email_config_path);
+        break;
+    }
+}
+
 // Add autoloader for Composer packages
-require_once __DIR__ . '/../vendor/autoload.php';
+// Check multiple possible locations for vendor/autoload.php
+$vendor_paths = [
+    __DIR__ . '/old/vendor/autoload.php',
+    __DIR__ . '/vendor/autoload.php',
+    __DIR__ . '/../vendor/autoload.php'
+];
+
+$vendor_loaded = false;
+foreach($vendor_paths as $vendor_path) {
+    if(file_exists($vendor_path)) {
+        require_once $vendor_path;
+        $vendor_loaded = true;
+        break;
+    }
+}
+
+if(!$vendor_loaded) {
+    // If vendor autoload is not found, try to load PHPMailer directly
+    $phpmailer_paths = [
+        __DIR__ . '/old/vendor/phpmailer/phpmailer/src/PHPMailer.php',
+        __DIR__ . '/vendor/phpmailer/phpmailer/src/PHPMailer.php'
+    ];
+    
+    foreach($phpmailer_paths as $phpmailer_path) {
+        if(file_exists($phpmailer_path)) {
+            require_once $phpmailer_path;
+            require_once dirname($phpmailer_path) . '/SMTP.php';
+            require_once dirname($phpmailer_path) . '/Exception.php';
+            break;
+        }
+    }
+}
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -1152,15 +1196,41 @@ if(isset($_POST['email_to_client'])){
         }
         
         // Load email configuration if not already loaded
-        if (!defined('SUPPORT_EMAIL') && file_exists(__DIR__ . '/common/email_config.php')) {
-            require_once(__DIR__ . '/app/config/email.php');
+        if (!defined('SUPPORT_EMAIL')) {
+            $email_config_paths = [
+                __DIR__ . '/app/config/email.php',
+                __DIR__ . '/common/email_config.php'
+            ];
+            foreach($email_config_paths as $email_config_path) {
+                if(file_exists($email_config_path)) {
+                    require_once($email_config_path);
+                    break;
+                }
+            }
         }
 
         // Define default values if constants are not defined
+        if (!defined('SMTP_HOST')) {
+            define('SMTP_HOST', 'p004.bom1.mysecurecloudhost.com');
+        }
+        if (!defined('SMTP_PORT')) {
+            define('SMTP_PORT', 465);
+        }
+        if (!defined('SMTP_SECURE')) {
+            define('SMTP_SECURE', 'ssl');
+        }
+        if (!defined('SMTP_AUTH')) {
+            define('SMTP_AUTH', true);
+        }
+        if (!defined('SMTP_USERNAME')) {
+            define('SMTP_USERNAME', 'support@miniwebsite.in');
+        }
+        if (!defined('SMTP_PASSWORD')) {
+            define('SMTP_PASSWORD', 'Kirovahelp@2025');
+        }
         if (!defined('SUPPORT_EMAIL')) {
             define('SUPPORT_EMAIL', 'support@miniwebsite.in');
         }
-
         if (!defined('ALL_EMAILS')) {
             define('ALL_EMAILS', 'allmails@miniwebsite.in');
         }

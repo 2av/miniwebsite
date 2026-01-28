@@ -20,10 +20,12 @@ foreach ($autoloadCandidates as $autoloadPath) {
         break;
     }
 }
-require_once(__DIR__ . '/../app/config/email.php');';
+require_once(__DIR__ . '/../app/config/email.php');
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+
+require_once(__DIR__ . '/../app/helpers/password_helper.php');
 
 // Function to send email using PHPMailer (fallback to mail() if unavailable)
 function sendEmail($to, $subject, $message, $name = '') {
@@ -175,37 +177,60 @@ if(isset($_POST['process1'])){
 		echo '</div>';
 	} else {
 		// Proceed with database operations if validation passes
-		// Check in user_details table with role='FRANCHISEE'
-		$f_user_email = mysqli_real_escape_string($connect, $_POST['f_user_email']);
+		// Uniqueness: email+role FRANCHISEE must be unique, regardless of phone
+		$f_user_email   = mysqli_real_escape_string($connect, $_POST['f_user_email']);
 		$f_user_contact = mysqli_real_escape_string($connect, $_POST['f_user_contact']);
-		$query=mysqli_query($connect,'SELECT * FROM user_details WHERE email="'.$f_user_email.'" AND phone="'.$f_user_contact.'" AND role="FRANCHISEE"');
-		if(mysqli_num_rows($query)>0){
-			
-			
-			echo '<div class="alert info">Account already available.</div>';
-			$row=mysqli_fetch_array($query);
-			
-					
-				
-				
 
-		}else{
+		// Check if a FRANCHISEE already exists with this email
+		$existing_q = mysqli_query($connect,'SELECT id, phone FROM user_details WHERE email="'.$f_user_email.'" AND role="FRANCHISEE" LIMIT 1');
+		if ($existing_q && mysqli_num_rows($existing_q) > 0) {
+			$existing = mysqli_fetch_array($existing_q);
+			$existing_phone = $existing['phone'] ?? '';
+			$phone_note = $existing_phone !== '' ? ' (current mobile: '.htmlspecialchars($existing_phone).')' : '';
+			echo '<div class="alert danger">';
+			echo '<strong>Account already exists:</strong><br>';
+			echo 'A franchisee account with this email is already present'.$phone_note.'.<br>';
+			echo 'Please use a different email ID, or update the existing franchisee record instead of creating a new one.';
+			echo '</div>';
+		} else {
+			
+			
+			// Insert into user_details table with role='FRANCHISEE'
+			$f_user_email_esc = mysqli_real_escape_string($connect, $_POST['f_user_email']);
+			// Always store password securely as a hash (and keep legacy column in sync)
+			$f_user_password_raw = $_POST['f_user_password'];
+			$f_user_password_hash = mw_hash_password($f_user_password_raw);
+			$f_user_password_esc  = mysqli_real_escape_string($connect, $f_user_password_hash);
+			$f_user_contact_esc = mysqli_real_escape_string($connect, $_POST['f_user_contact']);
+			// Use email as name if name is not provided
+			$f_user_name_esc = mysqli_real_escape_string($connect, $_POST['f_user_email']);
 
-		
-				// Insert into user_details table with role='FRANCHISEE'
-				$f_user_email_esc = mysqli_real_escape_string($connect, $_POST['f_user_email']);
-				$f_user_password_esc = mysqli_real_escape_string($connect, $_POST['f_user_password']);
-				$f_user_contact_esc = mysqli_real_escape_string($connect, $_POST['f_user_contact']);
-				// Use email as name if name is not provided
-				$f_user_name_esc = mysqli_real_escape_string($connect, $_POST['f_user_email']);
-				$insert=mysqli_query($connect,'INSERT INTO user_details (role, email, phone, name, password, status) VALUES ("FRANCHISEE", "'.$f_user_email_esc.'", "'.$f_user_contact_esc.'", "'.$f_user_name_esc.'", "'.$f_user_password_esc.'", "ACTIVE")');
-				if($insert){
-					// Send welcome email to the newly created franchisee
-					$user_email = $_POST['f_user_email'];
-					$user_name = $_POST['f_user_email']; // Using email as name since name is not collected in this form
-					
-					$subject = "Welcome to MiniWebsite.in – Your Franchisee Account is Ready!";
-					$message = '
+			try {
+				$insert = mysqli_query(
+					$connect,
+					'INSERT INTO user_details (role, email, phone, name, password, password_hash, status) VALUES ("FRANCHISEE", "'.$f_user_email_esc.'", "'.$f_user_contact_esc.'", "'.$f_user_name_esc.'", "'.$f_user_password_esc.'", "'.$f_user_password_esc.'", "ACTIVE")'
+				);
+			} catch (mysqli_sql_exception $e) {
+				// Handle duplicate key or other DB errors gracefully
+				if ((int)$e->getCode() === 1062) {
+					echo '<div class="alert danger">';
+					echo '<strong>Account already exists:</strong> A franchisee with this email and role is already in the system. Please use a different email ID.';
+					echo '</div>';
+				} else {
+					echo '<div class="alert danger">';
+					echo '<strong>Database error:</strong> '.htmlspecialchars($e->getMessage());
+					echo '</div>';
+				}
+				$insert = false;
+			}
+
+			if($insert){
+				// Send welcome email to the newly created franchisee
+				$user_email = $_POST['f_user_email'];
+				$user_name = $_POST['f_user_email']; // Using email as name since name is not collected in this form
+				
+				$subject = "Welcome to MiniWebsite.in – Your Franchisee Account is Ready!";
+				$message = '
 					<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
 						<p style="color: #333; font-size: 16px; line-height: 1.6;">Hi <strong>' . htmlspecialchars($user_name) . '</strong>,</p>
 						
@@ -253,7 +278,7 @@ if(isset($_POST['process1'])){
 				
 	} // End of validation else block
 }
-
+// Close outer if(isset($_POST['process1']))
 }
 ?>
 
@@ -264,6 +289,25 @@ if(isset($_POST['process1'])){
             <i class="fas fa-table me-2"></i>
             Franchisee Management
         </div>
+        <form method="GET" class="d-flex align-items-center gap-2" style="margin:0;">
+            <input type="hidden" name="page_no" value="1">
+            <input
+                type="text"
+                name="search_email"
+                class="form-control form-control-sm"
+                placeholder="Search by email"
+                value="<?php echo isset($_GET['search_email']) ? htmlspecialchars($_GET['search_email']) : ''; ?>"
+                style="max-width: 260px;"
+            >
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="fas fa-search me-1"></i> Search
+            </button>
+            <?php if (!empty($_GET['search_email'])): ?>
+                <a href="manage_franchisee.php" class="btn btn-sm btn-outline-secondary">
+                    Clear
+                </a>
+            <?php endif; ?>
+        </form>
     </div>
     <div class="table-responsive table-container">
         <table class="table table-striped table-hover modern-table" style="text-align: center;">
@@ -303,8 +347,15 @@ if(isset($_GET['page_no'])){
 			 
 			  $start_from=($_GET['page_no']-1)*$limit;
 			 
+	// Build WHERE clause for franchisees with optional email search
+	$where_f = 'role="FRANCHISEE"';
+	if (isset($_GET['search_email']) && $_GET['search_email'] !== '') {
+	    $search_email = mysqli_real_escape_string($connect, trim($_GET['search_email']));
+	    $where_f .= ' AND email LIKE "%'.$search_email.'%"';
+	}
+
 	// Query user_details table for franchisees
-	$query=mysqli_query($connect,'SELECT * FROM user_details WHERE role="FRANCHISEE" ORDER BY id DESC LIMIT '.$start_from.','.$limit.'');
+	$query=mysqli_query($connect,'SELECT * FROM user_details WHERE '.$where_f.' ORDER BY id DESC LIMIT '.$start_from.','.$limit.'');
 	
 
 		if(mysqli_num_rows($query)>0){
@@ -424,7 +475,7 @@ if(isset($_GET['page_no'])){
                 } else {
                     echo '<td>-</td>';
                 }
-                echo '<td><a class="btn btn-sm btn-outline-danger" href="change-password.php?email='.urlencode($f_user_email).'">Reset</a></td>';
+                echo '<td><button type="button" class="btn btn-sm btn-outline-danger" onclick="openResetPasswordModal(\''.addslashes($f_user_email).'\')">Reset</button></td>';
                 echo '</tr>';
             }
         }else {
@@ -443,19 +494,30 @@ if(isset($_GET['page_no'])){
 
 
 				
-
-				// Query user_details table for franchisees
-				$query2=mysqli_query($connect,'SELECT * FROM user_details WHERE role="FRANCHISEE" ORDER BY id DESC ');
-			
-			 $pages=ceil(mysqli_num_rows($query2)/30);
-
-			for($i=1;$i<=$pages;$i++){
-				if($_GET['page_no']==$i){
-					echo '<a href="?page_no='.$i.'"><div class="page_btn active">'. $i.'</div></a>';
-				}else {
-					echo '<a href="?page_no='.$i.'"><div class="page_btn">'. $i.'</div></a>';
+				// Query user_details table for franchisees (for pagination)
+				$where_f_pagination = 'role="FRANCHISEE"';
+				if (isset($_GET['search_email']) && $_GET['search_email'] !== '') {
+					$search_email_p = mysqli_real_escape_string($connect, trim($_GET['search_email']));
+					$where_f_pagination .= ' AND email LIKE "%'.$search_email_p.'%"';
 				}
 				
+				$query2=mysqli_query($connect,'SELECT COUNT(*) AS total FROM user_details WHERE '.$where_f_pagination);
+				$rowCount = $query2 ? mysqli_fetch_assoc($query2) : ['total' => 0];
+				$pages=ceil(($rowCount['total'] ?? 0)/30);
+
+			// Preserve other query params (like search_email) while paginating
+			$baseParams = $_GET;
+			unset($baseParams['page_no']);
+
+			for($i=1;$i<=$pages;$i++){
+				$params = $baseParams;
+				$params['page_no'] = $i;
+				$url = '?'.http_build_query($params);
+				if($_GET['page_no']==$i){
+					echo '<a href="'.$url.'"><div class="page_btn active">'. $i.'</div></a>';
+				}else {
+					echo '<a href="'.$url.'"><div class="page_btn">'. $i.'</div></a>';
+				}
 			}
 
 
@@ -510,6 +572,100 @@ if(isset($_GET['page_no'])){
 							}
 									
 							</script>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resetPasswordModalLabel">Reset Franchisee Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <div class="text-muted" style="font-size:13px;">You are updating password for:</div>
+          <div><strong id="resetPwEmailText"></strong></div>
+        </div>
+        <div id="resetPwMsg" class="mt-2"></div>
+        <input type="hidden" id="resetPwEmail" value="">
+        <div class="mb-3 mt-3">
+          <label class="form-label">New Password</label>
+          <input type="password" class="form-control" id="resetPwNew" placeholder="Enter new password (min 6 chars)">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirm Password</label>
+          <input type="password" class="form-control" id="resetPwConfirm" placeholder="Confirm new password">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="submitResetPassword()">Update Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openResetPasswordModal(email){
+    document.getElementById('resetPwEmail').value = email;
+    document.getElementById('resetPwEmailText').textContent = email;
+    document.getElementById('resetPwNew').value = '';
+    document.getElementById('resetPwConfirm').value = '';
+    document.getElementById('resetPwMsg').innerHTML = '';
+    const modalEl = document.getElementById('resetPasswordModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+
+  function submitResetPassword(){
+    const email = document.getElementById('resetPwEmail').value;
+    const newPw = document.getElementById('resetPwNew').value;
+    const conf  = document.getElementById('resetPwConfirm').value;
+
+    if(!email){
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-danger mb-0">Email missing.</div>';
+      return;
+    }
+    if(!newPw || newPw.length < 6){
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-warning mb-0">Password must be at least 6 characters.</div>';
+      return;
+    }
+    if(newPw !== conf){
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-warning mb-0">Passwords do not match.</div>';
+      return;
+    }
+    if(!confirm('Reset password for ' + email + '?')){
+      return;
+    }
+
+    const params = new URLSearchParams({
+      email: email,
+      role: 'FRANCHISEE',
+      new_password: newPw,
+      confirm_password: conf
+    });
+
+    document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-info mb-0">Updating...</div>';
+
+    fetch('reset_user_password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      credentials: 'same-origin',
+      body: params
+    })
+    .then(r => r.json())
+    .then(data => {
+      if(data && data.success){
+        document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-success mb-0">' + (data.message || 'Password updated') + '</div>';
+      } else {
+        document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-danger mb-0">' + (data.message || 'Failed to update password') + '</div>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('resetPwMsg').innerHTML = '<div class="alert alert-danger mb-0">Failed to update password.</div>';
+    });
+  }
+</script>
 
 <!-- Franchisee Dashboard Preview Modal -->
 <div id="frPreviewModal" class="modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999;">
@@ -579,7 +735,7 @@ if(isset($_GET['page_no'])){
 											console.log('Successfully loaded documents for:', userEmail);
 											// Set document images
 											if(data.pan_card_document) {
-												var panCardSrc = '../franchisee/verification/uploads/' + data.pan_card_document;
+												var panCardSrc = '../assets/upload/verification/' + data.pan_card_document;
 												console.log('Setting PAN Card image src:', panCardSrc);
 												$('#panCardImage').attr('src', panCardSrc);
 												$('#panCardImage').show();
@@ -599,7 +755,7 @@ if(isset($_GET['page_no'])){
 											}
 											
 											if(data.aadhaar_front_document) {
-												var aadhaarFrontSrc = '../franchisee/verification/uploads/' + data.aadhaar_front_document;
+												var aadhaarFrontSrc = '../assets/upload/verification/' + data.aadhaar_front_document;
 												console.log('Setting Aadhaar Front image src:', aadhaarFrontSrc);
 												$('#aadhaarFrontImage').attr('src', aadhaarFrontSrc);
 												$('#aadhaarFrontImage').show();
@@ -619,7 +775,7 @@ if(isset($_GET['page_no'])){
 											}
 											
 											if(data.aadhaar_back_document) {
-												var aadhaarBackSrc = '../franchisee/verification/uploads/' + data.aadhaar_back_document;
+												var aadhaarBackSrc = '../assets/upload/verification/' + data.aadhaar_back_document;
 												console.log('Setting Aadhaar Back image src:', aadhaarBackSrc);
 												$('#aadhaarBackImage').attr('src', aadhaarBackSrc);
 												$('#aadhaarBackImage').show();

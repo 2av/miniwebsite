@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
         
         // Generate sender token and hash password
-        $sender_token = rand(1000000000, 99999999999999999);
+        $sender_token   = rand(1000000000, 99999999999999999);
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
         // Insert into legacy customer_login table
@@ -93,18 +93,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $customer_id = mysqli_insert_id($connect);
             mysqli_stmt_close($stmt);
             
-            // Also create entry in unified user_details table
+            // Also create/update entry in unified user_details table with referral info (franchisee as referrer)
             $ip = mysqli_real_escape_string($connect, $_SERVER['REMOTE_ADDR'] ?? '');
             $status = 'ACTIVE';
             $safeFullName = mysqli_real_escape_string($connect, $fullName);
             $safeEmail = mysqli_real_escape_string($connect, $emailAddress);
             $safeMobile = mysqli_real_escape_string($connect, $mobileNumber);
+            $safeFranchiseeEmail = mysqli_real_escape_string($connect, $franchisee_email);
             
+            // Insert basic record if it doesn't exist yet
             mysqli_query($connect, "
                 INSERT IGNORE INTO user_details
-                    (role, email, phone, name, password, ip, status, created_at, legacy_customer_id)
+                    (role, email, phone, name, password, password_hash, ip, status, created_at, legacy_customer_id, referred_by)
                 VALUES
-                    ('CUSTOMER', '$safeEmail', '$safeMobile', '$safeFullName', '$hashed_password', '$ip', '$status', NOW(), ".(int)$customer_id.")
+                    ('CUSTOMER', '$safeEmail', '$safeMobile', '$safeFullName', '$hashed_password', '$hashed_password', '$ip', '$status', NOW(), ".(int)$customer_id.", '$safeFranchiseeEmail')
+            ");
+            
+            // Ensure referred_by is set to franchisee for this customer (even if record already existed)
+            mysqli_query($connect, "
+                UPDATE user_details 
+                SET referred_by = '$safeFranchiseeEmail'
+                WHERE email = '$safeEmail' AND role = 'CUSTOMER'
             ");
             
             // Create a basic digi_card entry
@@ -133,8 +142,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 
                 // Send welcome email (if function exists)
                 $email_sent = false;
-                if (file_exists(__DIR__ . '/../../old/common/mailtemplate/send_customer_welcome_email.php')) {
-                    require_once(__DIR__ . '/../../old/common/mailtemplate/send_customer_welcome_email.php');
+                if (file_exists(__DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php')) {
+                    require_once(__DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php');
                     $franchisee_name = 'Franchisee';
                     $franchisee_query = mysqli_query($connect, "SELECT f_user_name FROM franchisee_login WHERE f_user_email = '$franchisee_email'");
                     if ($franchisee_query && mysqli_num_rows($franchisee_query) > 0) {
@@ -209,30 +218,10 @@ $user_email = get_user_email(); // Get email for all roles
 if ($current_role == 'CUSTOMER' || $current_role == 'TEAM') {
     $user_referral_code = $_SESSION['user_referral_code'] ?? '';
     
-    // For team, get referral code from team_members table if not in session
+    // For TEAM, simply generate a referral code and keep it in session (no separate team_members table)
     if ($current_role == 'TEAM' && empty($user_referral_code)) {
-        $team_stmt = $connect->prepare("SELECT referral_code FROM team_members WHERE member_email = ?");
-        if ($team_stmt) {
-            $team_stmt->bind_param("s", $user_email);
-            $team_stmt->execute();
-            $team_result = $team_stmt->get_result();
-            $team_data = $team_result->fetch_assoc();
-            $team_stmt->close();
-            
-            if ($team_data && !empty($team_data['referral_code'])) {
-                $user_referral_code = $team_data['referral_code'];
-                $_SESSION['user_referral_code'] = $user_referral_code;
-            } else {
-                $user_referral_code = strtoupper(substr(md5($user_email . time()), 0, 8));
-                $update_stmt = $connect->prepare("UPDATE team_members SET referral_code = ? WHERE member_email = ?");
-                if ($update_stmt) {
-                    $update_stmt->bind_param("ss", $user_referral_code, $user_email);
-                    $update_stmt->execute();
-                    $update_stmt->close();
-                }
-                $_SESSION['user_referral_code'] = $user_referral_code;
-            }
-        }
+        $user_referral_code = strtoupper(substr(md5($user_email . time()), 0, 8));
+        $_SESSION['user_referral_code'] = $user_referral_code;
     }
     
     $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE user_email='$user_email' ORDER BY id DESC");

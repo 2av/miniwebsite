@@ -48,18 +48,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
                         // Store in session for persistence
                         $_SESSION['idcard_profile_image'] = $profile_image_path;
                         
-                        // Save to database for permanent storage
-                        $team_member_id = $_SESSION['team_member_id'] ?? get_user_id();
+                        // Save to database for permanent storage (unified user_details table for TEAM)
+                        $team_member_id = get_user_id();
                         if (!empty($team_member_id)) {
-                            // Ensure profile_image column exists
-                            $check_profile_image = mysqli_query($connect, "SHOW COLUMNS FROM team_members LIKE 'profile_image'");
+                            // Ensure profile_image column exists on user_details
+                            $check_profile_image = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'profile_image'");
                             if ($check_profile_image && mysqli_num_rows($check_profile_image) == 0) {
-                                mysqli_query($connect, "ALTER TABLE team_members ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL AFTER department");
+                                mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL");
                             }
                             
                             // Update profile image in database
                             $safe_path = mysqli_real_escape_string($connect, $profile_image_path);
-                            mysqli_query($connect, "UPDATE team_members SET profile_image = '{$safe_path}' WHERE id = '" . (int)$team_member_id . "'");
+                            mysqli_query($connect, "UPDATE user_details SET profile_image = '{$safe_path}' WHERE id = '" . (int)$team_member_id . "' AND role='TEAM'");
                         }
                         
                         $upload_message = 'Profile picture uploaded successfully!';
@@ -88,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
     }
 }
 
-// Get team member data from database
-$team_member_id = $_SESSION['team_member_id'] ?? get_user_id();
+// Get TEAM member data from unified user_details table
+$team_member_id = get_user_id();
 $auto_id        = '';
 $auto_email     = get_user_email() ?? '';
 $auto_department= '';
@@ -97,43 +97,26 @@ $auto_mobile    = '';
 $auto_name      = get_user_name() ?? '';
 
 if (!empty($team_member_id)) {
-    // Ensure department column exists
-    $check_department = mysqli_query($connect, "SHOW COLUMNS FROM team_members LIKE 'department'");
+    // Ensure optional columns exist on user_details for TEAM
+    $check_department = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'department'");
     if ($check_department && mysqli_num_rows($check_department) == 0) {
-        mysqli_query($connect, "ALTER TABLE team_members ADD COLUMN department VARCHAR(100) DEFAULT NULL AFTER member_phone");
+        mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN department VARCHAR(100) DEFAULT NULL");
     }
-    
-    // Ensure profile_image column exists
-    $check_profile_image = mysqli_query($connect, "SHOW COLUMNS FROM team_members LIKE 'profile_image'");
+    $check_profile_image = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'profile_image'");
     if ($check_profile_image && mysqli_num_rows($check_profile_image) == 0) {
-        mysqli_query($connect, "ALTER TABLE team_members ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL AFTER department");
+        mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL");
     }
     
-    // Get team member data including profile image
-    $member_query  = "SELECT id, member_name, member_email, member_phone, department, profile_image FROM team_members WHERE id = '" . (int)$team_member_id . "'";
+    // Get TEAM member data including profile image from user_details
+    $member_query  = "SELECT id, name, email, phone, department, profile_image FROM user_details WHERE id = '" . (int)$team_member_id . "' AND role='TEAM' LIMIT 1";
     $member_result = mysqli_query($connect, $member_query);
     if ($member_result && $member = mysqli_fetch_assoc($member_result)) {
-        // Get user ID from user_details table (actual ID from unified table)
-        $user_email_lower   = strtolower(trim($member['member_email'] ?? $auto_email));
-        $user_details_query = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = '$user_email_lower' LIMIT 1");
-        $user_details_id    = 0;
-        if($user_details_query && mysqli_num_rows($user_details_query) > 0) {
-            $user_details_row = mysqli_fetch_array($user_details_query);
-            $user_details_id  = isset($user_details_row['id']) ? intval($user_details_row['id']) : 0;
-        }
-        
         // Use actual user_details ID (6 digits with leading zeros)
-        if($user_details_id > 0) {
-            $auto_id = str_pad($user_details_id, 6, '0', STR_PAD_LEFT);
-        } else {
-            // Fallback to team_members ID if user_details ID not found
-            $auto_id = str_pad((int)$member['id'], 6, '0', STR_PAD_LEFT);
-        }
-        
-        $auto_email      = $member['member_email'] ?? $auto_email;
-        $auto_department = $member['department']     ?? '';
-        $auto_mobile     = $member['member_phone']   ?? '';
-        $auto_name       = $member['member_name']    ?? $auto_name;
+        $auto_id        = str_pad((int)$member['id'], 6, '0', STR_PAD_LEFT);
+        $auto_email     = $member['email']       ?? $auto_email;
+        $auto_department= $member['department']  ?? '';
+        $auto_mobile    = $member['phone']       ?? '';
+        $auto_name      = $member['name']        ?? $auto_name;
         
         // Get profile image from database (permanent storage)
         if (!empty($member['profile_image']) && file_exists(__DIR__ . '/' . $member['profile_image'])) {

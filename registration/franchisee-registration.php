@@ -307,13 +307,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
                 if(mysqli_num_rows($referrer_query) > 0) {
                     $referrer_data = mysqli_fetch_array($referrer_query);
                     $referrer_email = $referrer_data['user_email'];
-                } else {
-                    // If not found in customer_login, check team_members table
-                    $team_referrer_query = mysqli_query($connect, "SELECT member_email FROM team_members WHERE referral_code='$referrer_code'");
-                    if(mysqli_num_rows($team_referrer_query) > 0) {
-                        $team_referrer_data = mysqli_fetch_array($team_referrer_query);
-                        $referrer_email = $team_referrer_data['member_email'];
-                    }
                 }
             }
             

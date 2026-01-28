@@ -2,6 +2,7 @@
 // Start session and include database connection first
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/access_control.php');
+require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 
 // Check page access - redirects to dashboard if unauthorized
 require_page_access('/kit');
@@ -9,9 +10,20 @@ require_page_access('/kit');
 // Now include the header
 include '../includes/header.php';
 
-// Determine kit category based on collaboration status
-// `$collaboration_enabled` is defined in header.php
-$kit_category = ($collaboration_enabled ?? false) ? 'marketing' : 'sales';
+// Determine kit category based on role / collaboration
+// - FRANCHISEE  → Marketing Kit
+// - TEAM (sales team) → Sales Kit
+// - CUSTOMER   → based on collaboration flag (YES = marketing, NO = sales)
+$current_role = get_current_user_role();
+
+if ($current_role === 'FRANCHISEE') {
+    $kit_category = 'marketing';
+} elseif ($current_role === 'TEAM') {
+    $kit_category = 'sales';
+} else {
+    // `$collaboration_enabled` is defined in header.php (for customers)
+    $kit_category = ($collaboration_enabled ?? false) ? 'marketing' : 'sales';
+}
 
 // Get all active kit items for the selected category
 $kit_items_query = "SELECT * FROM franchisee_kit WHERE status = 'active' AND category='" . mysqli_real_escape_string($connect, $kit_category) . "' ORDER BY display_order ASC, created_at DESC";
@@ -47,7 +59,7 @@ function kitLabelCustomer($category) {
 <main class="Dashboard">
     <div class="container-fluid customer_content_area">
     <div class="main-top">
-        <span class="heading">Marketing Kit</span>
+        <span class="heading"><?php echo kitLabelCustomer($kit_category); ?></span>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/">Mini Website </a></li>

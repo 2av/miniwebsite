@@ -49,14 +49,6 @@
       "always_visible": true
     },
     {
-      "id": "franchisee_sales_kit",
-      "label": "Franchisee Sales Kit",
-      "icon": "wallet.png",
-      "url": "/kit",
-      "roles": ["TEAM"],
-      "always_visible": true
-    },
-    {
       "id": "idcard",
       "label": "ID Card",
       "icon": "IDCard.png",
@@ -98,8 +90,8 @@
     },
     {
       "id": "franchisee_kit",
-      "label": "Franchisee Kit",
-      "icon": "FranchiseeKit.png",
+      "label": "Marketing Kit",
+      "icon": "marketingkit.png",
       "url": "/kit",
       "roles": ["FRANCHISEE"],
       "conditions": {

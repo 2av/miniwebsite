@@ -220,44 +220,40 @@ $('#uploadCroppedImage').on('click', function() {
         formData.append('profile_image', blob, currentFile.name);
         
         // Detect upload URL - use absolute URL based on current location
-        var currentPath = window.location.pathname;
         var currentOrigin = window.location.origin;
-        var isTeamPage = currentPath.indexOf('/team/') !== -1;
         var uploadUrl;
-        
-        // Build absolute URL to avoid path resolution issues
-        // Extract the base path (everything before /customer/ or /team/)
-        var pathParts = currentPath.split('/').filter(function(part) {
-            return part.length > 0;
-        });
-        
         var basePath = '';
-        var folderIndex = -1;
         
-        if (isTeamPage) {
-            folderIndex = pathParts.indexOf('team');
-        } else {
-            folderIndex = pathParts.indexOf('customer');
-        }
-        
-        if (folderIndex >= 0) {
-            // Build base path up to and including the folder (team or customer)
-            basePath = '/' + pathParts.slice(0, folderIndex + 1).join('/');
-            uploadUrl = currentOrigin + basePath + '/upload_profile.php';
-        } else {
-            // Fallback: use relative path
-            if (isTeamPage) {
-                uploadUrl = '../upload_profile.php';
+        // Use global variable from header.php if available (most reliable)
+        if (typeof UPLOAD_PROFILE_URL !== 'undefined' && UPLOAD_PROFILE_URL) {
+            // If it's already a full URL, use it directly
+            if (UPLOAD_PROFILE_URL.indexOf('http') === 0) {
+                uploadUrl = UPLOAD_PROFILE_URL;
             } else {
-                uploadUrl = '../upload_profile.php';
+                // Otherwise, build absolute URL
+                uploadUrl = currentOrigin + UPLOAD_PROFILE_URL;
             }
+            basePath = (typeof APP_BASE_PATH !== 'undefined') ? APP_BASE_PATH : '';
+        } else {
+            // Fallback: detect base path from current location
+            var currentPath = window.location.pathname;
+            // Extract the base path (everything before /user/) - similar to PHP get_assets_base_path()
+            // Remove /user and everything after it to get base path
+            basePath = currentPath.replace(/\/user(\/.*)?$/, '');
+            
+            // Normalize: if it's just '/', use empty string; otherwise use as is
+            if (basePath === '/' || basePath === '') {
+                basePath = '';
+            }
+            
+            // Build absolute URL
+            uploadUrl = currentOrigin + basePath + '/common/upload_profile.php';
         }
         
         // Debug: Log the upload URL
         console.log('Upload URL:', uploadUrl);
-        console.log('Current path:', currentPath);
         console.log('Base path:', basePath);
-        console.log('Is team page:', isTeamPage);
+        console.log('Current origin:', currentOrigin);
         
         // Upload
         $.ajax({
@@ -274,12 +270,9 @@ $('#uploadCroppedImage').on('click', function() {
                 if(response && response.status === 'success') {
                     alert('Profile image updated successfully!');
                     // Update profile picture in UI
-                    var newImageSrc;
-                    if (isTeamPage) {
-                        newImageSrc = '../../team/' + response.image_path + '?t=' + new Date().getTime();
-                    } else {
-                        newImageSrc = '../' + response.image_path + '?t=' + new Date().getTime();
-                    }
+                    // Image is stored in assets/upload/profile_image/
+                    // Build absolute path to assets/upload/profile_image/
+                    var newImageSrc = currentOrigin + basePath + '/' + response.image_path + '?t=' + new Date().getTime();
                     $('.profile-pic').attr('src', newImageSrc);
                     // Close modal
                     $('#profileImageCropModal').modal('hide');
