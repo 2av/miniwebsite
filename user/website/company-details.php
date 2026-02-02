@@ -356,7 +356,7 @@ include '../includes/header.php';
                     <div class="upload-container">
                         <div class="logo-placeholder" id="logoPreview" onclick="clickFocus()">
                             <?php if(!empty($row['d_logo'])): ?>
-                                <img id="showPreviewLogo" src="data:image/*;base64,<?php echo base64_encode($row['d_logo']); ?>" alt="Logo Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                                <img id="showPreviewLogo" src="data:image/*;base64,<?php echo base64_encode($row['d_logo']); ?>" alt="Logo Preview">
                             <?php else: ?>
                                 <span>YOUR LOGO</span>
                                 <img id="showPreviewLogo" style="display:none;">
@@ -763,6 +763,18 @@ font-size: 24px !important;
         width:200px;
         height:200px;
         border:2px solid darkgray;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #showPreviewLogo{
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 8px;
     }
     #logoPreview span{
         font-weight: 500;
@@ -860,6 +872,10 @@ padding-bottom:0px;
     height: 125px;
     border: 2px solid darkgray;
     text-align: center;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 #logoPreview span {
     font-weight: 500;

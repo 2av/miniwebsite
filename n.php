@@ -207,9 +207,9 @@ $row = mysqli_fetch_array($query);
  <!-- Required css  -->
 		 <meta      name='viewport'      content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
 
-		<link rel="stylesheet" href="css.css" >
-		<link rel="stylesheet" href="mobile_css.css" >
-		<script src="master_js.js"></script>
+		<link rel="stylesheet" href="assets/css.css" >
+		<link rel="stylesheet" href="assets/css/mobile_css.css" >
+		<script src="assets/js/master_js.js"></script>
 
 
 		<style>
@@ -368,7 +368,16 @@ if(isset($row) && $row && $row['d_card_status']=="Active" && $row['d_payment_sta
 
 
 ?>
-<link rel="stylesheet" href="<?php if(!empty($row['d_css'])){echo 'panel/'.$row['d_css'];}else {echo 'panel/card_css1.css';} ?>" >
+<?php
+		$card_css = !empty($row['d_css']) ? trim($row['d_css']) : 'card_css1.css';
+		// Only prepend folder if d_css is just a filename (theme picker may save full path)
+		if (strpos($card_css, '/') === false && strpos($card_css, '\\') === false) {
+			$card_css = 'assets/css/templates/' . $card_css;
+		}
+		// Normalize path: strip leading ../ so it works from n.php (site root)
+		$card_css = preg_replace('#^\.\./+#', '', $card_css);
+	?>
+<link rel="stylesheet" href="<?php echo htmlspecialchars($card_css); ?>" >
 
 <script>
 

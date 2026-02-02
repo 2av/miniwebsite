@@ -303,6 +303,27 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
                                 Image Gallery
                                 <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                             </a>
+                            <?php if ($collaboration_enabled): ?>
+                            <a class="nav-link collapsed <?php echo ($current_dir == 'collaboration' || $current_dir == 'collaboration-details') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/collaboration/">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/collaboration.png" class="img-fluid" alt="" srcset=""></div>
+                                Collaboration Details
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <?php endif; ?>
+                            <?php if ($saleskit_enabled): ?>
+                            <a class="nav-link collapsed <?php echo ($current_dir == 'kit') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/kit/">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/pay.png" class="img-fluid" alt="" srcset=""></div>
+                                Sales Kit
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <?php endif; ?>
+                            <?php if ($collaboration_enabled): ?>
+                            <a class="nav-link collapsed <?php echo ($current_dir == 'kit') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/kit/">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/marketingkit.png" class="img-fluid" alt="" srcset=""></div>
+                                Marketing Kit
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
+                            <?php endif; ?>
                             <a target="_blank" class="nav-link collapsed <?php echo (!empty($business_name_slug)) ? 'active' : ''; ?>" href="<?php echo $assets_base; ?>/n.php?n=<?php echo htmlspecialchars($business_name_slug); ?>">
                                 <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/Preview.png" class="img-fluid" alt="" srcset=""></div>
                                 Preview

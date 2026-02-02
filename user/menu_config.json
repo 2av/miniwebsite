@@ -43,10 +43,22 @@
     {
       "id": "kit",
       "label": "Sales Kit",
-      "icon": "wallet.png",
+      "icon": "pay.png",
       "url": "/kit",
       "roles": ["TEAM"],
       "always_visible": true
+    },
+    {
+      "id": "sales_kit_customer",
+      "label": "Sales Kit",
+      "icon": "pay.png",
+      "url": "/kit",
+      "roles": ["CUSTOMER"],
+      "conditions": {
+        "CUSTOMER": {
+          "saleskit_enabled": true
+        }
+      }
     },
     {
       "id": "idcard",
