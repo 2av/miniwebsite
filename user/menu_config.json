@@ -43,15 +43,23 @@
     {
       "id": "kit",
       "label": "Sales Kit",
-      "icon": "pay.png",
+      "icon": "SalesKit.png",
       "url": "/kit",
+      "roles": ["TEAM"],
+      "always_visible": true
+    },
+    {
+      "id": "franchisee_sales_kit_team",
+      "label": "Franchisee Sales Kit",
+      "icon": "FranchiseeSalesKit.png",
+      "url": "/kit?kit=franchise_sales",
       "roles": ["TEAM"],
       "always_visible": true
     },
     {
       "id": "sales_kit_customer",
       "label": "Sales Kit",
-      "icon": "pay.png",
+      "icon": "saleskit.png",
       "url": "/kit",
       "roles": ["CUSTOMER"],
       "conditions": {

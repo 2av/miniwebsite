@@ -19,7 +19,9 @@ $current_role = get_current_user_role();
 if ($current_role === 'FRANCHISEE') {
     $kit_category = 'marketing';
 } elseif ($current_role === 'TEAM') {
-    $kit_category = 'sales';
+    // TEAM can view both Sales Kit and Franchisee Sales Kit via menu; kit param: franchise_sales = marketing
+    $get_kit = isset($_GET['kit']) ? trim($_GET['kit']) : '';
+    $kit_category = ($get_kit === 'franchise_sales') ? 'marketing' : 'sales';
 } else {
     // `$collaboration_enabled` is defined in header.php (for customers)
     $kit_category = ($collaboration_enabled ?? false) ? 'marketing' : 'sales';

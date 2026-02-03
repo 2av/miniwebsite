@@ -89,7 +89,7 @@ require_once(__DIR__ . '/../includes/header.php');
 ?>
 
 <main class="Dashboard">
-    <div class="container-fluid px-4">
+    <div class="container-fluid customer_content_area">
         <div class="main-top">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">

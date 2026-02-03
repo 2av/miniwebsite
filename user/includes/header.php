@@ -91,6 +91,9 @@ $nav_base = $assets_base . '/user';
 // Get profile image based on role
 $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-default.png';
 // Profile image logic will be handled by get_profile_image.php or similar
+
+// Dynamic site base URL for referral links (protocol + host from current request)
+$site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'miniwebsite.in');
 ?>
 <head>
     <meta charset="utf-8" />
@@ -124,21 +127,21 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
             switch (type) {
                 case 'link':
                 case 'regular_link':
-                    textToCopy = 'https://miniwebsite.in/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ''); ?>';
+                    textToCopy = '<?php echo addslashes($site_base_url); ?>/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ''); ?>';
                     break;
                 case 'code':
                 case 'regular_code':
                     textToCopy = '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
                     break;
                 case 'collab_link':
-                    textToCopy = 'https://miniwebsite.in/registration/franchisee-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
+                    textToCopy = '<?php echo addslashes($site_base_url); ?>/registration/franchisee-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
                     break;
                 case 'collab_code':
                     textToCopy = '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
                     break;
                 default:
                     textToCopy = type === 'link'
-                        ? 'https://miniwebsite.in/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>'
+                        ? '<?php echo addslashes($site_base_url); ?>/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>'
                         : '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
             }
 
@@ -354,8 +357,19 @@ $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-defau
                             // Render menu items
                             foreach ($visible_menu_items as $menu_item):
                                 $menu_url = trim($menu_item['url'], '/');
-                                $menu_id = str_replace('.php', '', $menu_url);
+                                // Strip query string for path comparison
+                                $menu_path = (strpos($menu_url, '?') !== false) ? substr($menu_url, 0, strpos($menu_url, '?')) : $menu_url;
+                                $menu_id = str_replace('.php', '', $menu_path);
                                 $is_active = ($current_dir === $menu_id || $current_dir === $menu_url);
+                                // Kit page: Sales Kit active when kit param is not franchise_sales; Franchisee Sales Kit active when kit=franchise_sales
+                                if ($current_dir === 'kit' && isset($menu_item['id'])) {
+                                    $kit_param = isset($_GET['kit']) ? trim($_GET['kit']) : '';
+                                    if ($menu_item['id'] === 'franchisee_sales_kit_team') {
+                                        $is_active = ($kit_param === 'franchise_sales');
+                                    } elseif ($menu_item['id'] === 'kit') {
+                                        $is_active = ($kit_param !== 'franchise_sales');
+                                    }
+                                }
                                 
                                 $icon_path = $assets_base . '/assets/images/' . $menu_item['icon'];
                                 $menu_link = $nav_base . $menu_item['url'];

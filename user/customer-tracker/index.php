@@ -157,12 +157,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_contact_number= trim($_POST['contact_number'] ?? '');
         $new_approached_for= trim($_POST['approached_for'] ?? 'Franchisee Sale');
         $new_address       = trim($_POST['address']        ?? '');
-        $new_status        = trim($_POST['final_status']   ?? '');
-        $new_comments      = trim($_POST['comments']       ?? '');
         
         if ($tracker_id > 0) {
-            // Get current record
-            $get_stmt = $connect->prepare('SELECT shop_name, contact_number, approached_for, address, final_status, comments FROM customer_tracker WHERE id = ? AND team_member_id = ?');
+            // Get current record (edit only updates shop_name, contact_number, approached_for, address)
+            $get_stmt = $connect->prepare('SELECT shop_name, contact_number, approached_for, address FROM customer_tracker WHERE id = ? AND team_member_id = ?');
             if ($get_stmt) {
                 $get_stmt->bind_param('ii', $tracker_id, $team_member_id);
                 $get_stmt->execute();
@@ -174,21 +172,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $old_contact_number = $current['contact_number'] ?? '';
                     $old_approached_for = $current['approached_for'] ?? '';
                     $old_address        = $current['address'] ?? '';
-                    $old_status         = $current['final_status'];
-                    $old_comments       = $current['comments'] ?? '';
                     
-                    // Update record
-                    $update_stmt = $connect->prepare('UPDATE customer_tracker SET shop_name = ?, contact_number = ?, approached_for = ?, address = ?, final_status = ?, comments = ? WHERE id = ? AND team_member_id = ?');
+                    // Update only the four edit fields
+                    $update_stmt = $connect->prepare('UPDATE customer_tracker SET shop_name = ?, contact_number = ?, approached_for = ?, address = ? WHERE id = ? AND team_member_id = ?');
                     if ($update_stmt) {
-                        $update_stmt->bind_param('ssssssii', $new_shop_name, $new_contact_number, $new_approached_for, $new_address, $new_status, $new_comments, $tracker_id, $team_member_id);
+                        $update_stmt->bind_param('ssssii', $new_shop_name, $new_contact_number, $new_approached_for, $new_address, $tracker_id, $team_member_id);
                         if ($update_stmt->execute()) {
-                            // Record history for basic fields
+                            // Record history for changed fields only
                             if ($old_shop_name !== $new_shop_name) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $field = 'shop_name';
-                                    $change_type = 'other_change';
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $field, $old_shop_name, $new_shop_name, $change_type, $team_member_id);
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'shop_name', $old_shop_name, $new_shop_name, 'other_change', $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }
@@ -196,9 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($old_contact_number !== $new_contact_number) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $field = 'contact_number';
-                                    $change_type = 'other_change';
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $field, $old_contact_number, $new_contact_number, $change_type, $team_member_id);
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'contact_number', $old_contact_number, $new_contact_number, 'other_change', $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }
@@ -206,9 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($old_approached_for !== $new_approached_for) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $field = 'approached_for';
-                                    $change_type = 'other_change';
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $field, $old_approached_for, $new_approached_for, $change_type, $team_member_id);
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'approached_for', $old_approached_for, $new_approached_for, 'other_change', $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }
@@ -216,32 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($old_address !== $new_address) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $field = 'address';
-                                    $change_type = 'other_change';
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $field, $old_address, $new_address, $change_type, $team_member_id);
-                                    $history_stmt->execute();
-                                    $history_stmt->close();
-                                }
-                            }
-                            // Record history for status change
-                            if ($old_status !== $new_status) {
-                                $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
-                                if ($history_stmt) {
-                                    $field = 'final_status';
-                                    $change_type = 'status_change';
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $field, $old_status, $new_status, $change_type, $team_member_id);
-                                    $history_stmt->execute();
-                                    $history_stmt->close();
-                                }
-                            }
-                            
-                            // Record history for comment change
-                            if ($old_comments !== $new_comments) {
-                                $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
-                                if ($history_stmt) {
-                                    $field = 'comments';
-                                    $change_type = 'comment_change';
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $field, $old_comments, $new_comments, $change_type, $team_member_id);
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'address', $old_address, $new_address, 'other_change', $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }
@@ -413,7 +378,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                                         <img class="img-fluid" src="<?php echo $assets_base; ?>/assets/images/AddNewCutomer.png" alt="">
                                     </div>
                                     <div class="content">
-                                        <p> Add New <br>Customer</p>
+                                        <p> Add Customer <br>Visit</p>
                                     </div>
                                 </div>
                             </a>
@@ -426,7 +391,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                         <div class="text-center py-5">
                             <i class="fa fa-info-circle fa-3x text-muted mb-3"></i>
                             <h4 class="text-muted">No customer visits recorded yet</h4>
-                            <p class="text-muted">Click "Add New Customer" button to add your first visit.</p>
+                            <p class="text-muted">Click "Add Customer Visit" button to add your first visit.</p>
                         </div>
                     <?php else: ?>
                         <table class="display table" style="text-align: center;">
@@ -486,12 +451,83 @@ function getTrackerFollowups($connect, $tracker_id) {
     </div>
 </main>
 
-<!-- Add New Customer Modal -->
+<!-- Add Customer Visit Modal (styled to match design) -->
+<style>
+#addTrackerModal .modal-header {  color: #fff; border-bottom: none; }
+#addTrackerModal .modal-header .modal-title { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+#addTrackerModal .modal-header .modal-title .add-visit-icon { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; }
+#addTrackerModal .modal-header .btn-close { filter: brightness(0) invert(1); opacity: 0.9; }
+#addTrackerModal .modal-body { color: #fff; }
+#addTrackerModal .modal-body .form-label { color: #fff; }
+#addTrackerModal .modal-body .form-control,
+#addTrackerModal .modal-body .form-select { background: #fff; color: #333; }
+#addTrackerModal .modal-body .form-check-label { color: #fff; }
+#addTrackerModal .modal-footer {  border-top: none; justify-content: flex-end; }
+#addTrackerModal .modal-footer .btn-cancel-tracker { background: #6c757d; color: #fff; border-color: #6c757d; }
+#addTrackerModal .modal-footer .btn-save-tracker { background: #f0ad4e; color: #fff; border-color: #f0ad4e; }
+#addTrackerModal .modal-footer .btn-save-tracker:hover { background: #ec971f; border-color: #ec971f; color: #fff; }
+/* Add Followup modal: dark blue header with icon; white form body; table dark with white text and yellow status badge; footer Close only */
+.history-modal-popup .modal-header {  color: #fff; border-bottom: none; }
+.history-modal-popup .modal-header .modal-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.history-modal-popup .modal-header .btn-close { filter: brightness(0) invert(1); opacity: 0.9; }
+.history-modal-popup .history-modal-body { background: #fff; color: #333; padding: 1.25rem; }
+.history-modal-popup .history-modal-body .form-label { color: #333; }
+.history-modal-popup .history-modal-body .form-control,
+.history-modal-popup .history-modal-body .form-select { background: #fff; color: #333; border: 1px solid #ced4da; }
+.history-modal-popup .history-modal-body .form-check-label { color: #333; }
+.history-modal-popup .history-modal-body .add-followup-form-section { margin-bottom: 1rem; }
+.history-modal-popup .history-modal-body hr { margin: 1.25rem 0; border-color: #dee2e6; }
+.history-modal-popup .history-modal-body .followup-table-wrap { background: #2c3e50; padding: 0; border-radius: 4px; overflow: hidden; }
+.history-modal-popup .history-modal-body .followup-table-wrap h6 { color: #fff; margin: 0.75rem 1rem; font-weight: 600; }
+.history-modal-popup .history-modal-body .view-followup-table { margin-bottom: 0; color: #fff; }
+.history-modal-popup .history-modal-body .view-followup-table thead th { background: #2c3e50; color: #fff !important; border-color: rgba(255,255,255,0.2); padding: 0.6rem 0.75rem; }
+.history-modal-popup .history-modal-body .view-followup-table tbody td { background: #34495e; color: #fff !important; border-color: rgba(255,255,255,0.1); padding: 0.6rem 0.75rem; }
+.history-modal-popup .history-modal-body .view-followup-table .add-followup-status-badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; background: #f0ad4e; color: #333; }
+.history-modal-popup .history-modal-body .text-muted { color: #6c757d !important; }
+.history-modal-popup .modal-footer { background: #fff; border-top: 1px solid #dee2e6; }
+.history-modal-popup .modal-footer .btn-followup-close { background: #6c757d; color: #fff; border-color: #6c757d; }
+.history-modal-popup .modal-footer .btn-followup-close:hover { background: #5a6268; color: #fff; }
+.history-modal-popup .btn-add-status { background: #f0ad4e; color: #333; border-color: #f0ad4e; font-weight: 500; }
+.history-modal-popup .btn-add-status:hover { background: #ec971f; border-color: #ec971f; color: #333; }
+/* View modal - Followup History (match design: title + Add Followup button, table with dark header, status pills, Close button) */
+.view-followup-modal .view-followup-header { background: #fff; border-bottom: 1px solid #dee2e6; flex-wrap: wrap; gap: 0.5rem; }
+.view-followup-modal .view-followup-header .modal-title { color: #333; font-weight: 600; }
+.view-followup-modal .btn-add-followup-from-view { background: #f0ad4e; color: #fff; border-color: #f0ad4e; font-weight: 500; }
+.view-followup-modal .btn-add-followup-from-view:hover { background: #ec971f; border-color: #ec971f; color: #fff; }
+.view-followup-modal .view-followup-body { background: #fff; color: #333; }
+.view-followup-modal .view-followup-thead { background: #2c3e50; color: #fff; }
+.view-followup-modal .view-followup-thead th { border: none; font-weight: 600; padding: 0.75rem; color: #fff; }
+.view-followup-modal .view-followup-table tbody tr { background: #fff; }
+.view-followup-modal .view-followup-table tbody td { color: #333; padding: 0.75rem; vertical-align: middle; }
+.view-followup-modal .view-followup-status-badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 50px; font-size: 0.875rem; font-weight: 500; color: #333; }
+.view-followup-modal .view-followup-badge-followup { background: #f0ad4e; color: #333; }
+.view-followup-modal .view-followup-badge-joined { background: #5cb85c; color: #fff; }
+.view-followup-modal .view-followup-badge-notinterested { background: #d9534f; color: #fff; }
+.view-followup-modal .view-followup-footer { background: #fff; border-top: 1px solid #dee2e6; }
+.view-followup-modal .btn-close-followup-view { background: #6c757d; color: #fff; border-color: #6c757d; }
+.view-followup-modal .btn-close-followup-view:hover { background: #5a6268; border-color: #545b62; color: #fff; }
+/* Edit Customer Visit modal - yellow header, dark blue body, radio for Approached For, Update button */
+.edit-customer-visit-modal .modal-header { background: #f0ad4e; color: #333; border-bottom: none; }
+.edit-customer-visit-modal .modal-header .modal-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.edit-customer-visit-modal .modal-header .btn-close { opacity: 0.8; }
+.edit-customer-visit-modal .modal-body {  color: #fff; }
+.edit-customer-visit-modal .modal-body .form-label { color: #fff; }
+.edit-customer-visit-modal .modal-body .form-control,
+.edit-customer-visit-modal .modal-body .form-select { background: #fff; color: #333; border: 1px solid #ced4da; }
+.edit-customer-visit-modal .modal-body .form-check-label { color: #fff; }
+.edit-customer-visit-modal .modal-footer {  border-top: none; }
+.edit-customer-visit-modal .modal-footer .btn-edit-cancel { background: #6c757d; color: #fff; border-color: #6c757d; }
+.edit-customer-visit-modal .modal-footer .btn-edit-update { background: #f0ad4e; color: #333; border-color: #f0ad4e; }
+.edit-customer-visit-modal .modal-footer .btn-edit-update:hover { background: #ec971f; border-color: #ec971f; color: #333; }
+</style>
 <div class="modal fade" id="addTrackerModal" tabindex="-1" aria-labelledby="addTrackerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addTrackerModalLabel">Add New Customer</h5>
+                <h5 class="modal-title" id="addTrackerModalLabel">
+                    <span class="add-visit-icon"><i class="fa fa-plus"></i></span>
+                    Add Customer Visit
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post" action="">
@@ -499,38 +535,40 @@ function getTrackerFollowups($connect, $tracker_id) {
                     <input type="hidden" name="action" value="add_tracker">
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Shop/Person Name <span class="text-danger">*</span></label>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Name of Shop/Person <span class="text-danger">*</span></label>
                             <input type="text" name="shop_name" class="form-control" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12 mb-3">
                             <label class="form-label">Contact Number <span class="text-danger">*</span></label>
-                            <input type="text" name="contact_number" class="form-control" required>
+                            <input type="text" name="contact_number" class="form-control" placeholder="e.g., +91 1234567890" required>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12 mb-3">
                             <label class="form-label">Approached For <span class="text-danger">*</span></label>
-                            <select name="approached_for" class="form-select" required>
-                                <option value="Franchisee Sale" selected>Franchisee Sale</option>
-                                <option value="MiniWebsite Sale">MiniWebsite Sale</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="approached_for" id="approached_franchisee" value="Franchisee Sale" required checked>
+                                    <label class="form-check-label" for="approached_franchisee">Franchisee Sale</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="approached_for" id="approached_miniwebsite" value="MiniWebsite Sale">
+                                    <label class="form-check-label" for="approached_miniwebsite">MiniWebsite Sale</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="approached_for" id="approached_both" value="Both">
+                                    <label class="form-check-label" for="approached_both">Both</label>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="3" style="resize: vertical;"></textarea>
+                        </div>
+                        <div class="col-12 mb-3">
                             <label class="form-label">Date Visited <span class="text-danger">*</span></label>
                             <input type="date" name="date_visited" class="form-control" required>
                         </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Address</label>
-                        <textarea name="address" class="form-control" rows="2"></textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12 mb-3">
                             <label class="form-label">Final Status <span class="text-danger">*</span></label>
                             <select name="final_status" class="form-select" required>
                                 <option value="Followup required" selected>Followup required</option>
@@ -538,15 +576,15 @@ function getTrackerFollowups($connect, $tracker_id) {
                                 <option value="Not Interested">Not Interested</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12 mb-3">
                             <label class="form-label">Comments</label>
-                            <input type="text" name="comments" class="form-control">
+                            <textarea name="comments" class="form-control" rows="2" placeholder="Any additional notes..." style="resize: vertical;"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-cancel-tracker" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-save-tracker"><i class="fa fa-save"></i> Save Record</button>
                 </div>
             </form>
         </div>
@@ -556,46 +594,41 @@ function getTrackerFollowups($connect, $tracker_id) {
 <?php if (!empty($records)): ?>
     <?php foreach ($records as $record): ?>
         <?php $tracker_id = (int)$record['id']; ?>
-        <!-- View Details Modal -->
-        <div class="modal fade" id="viewModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="viewModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
+        <!-- View Details Modal - Followup History (styled to match design) -->
+        <div class="modal fade view-followup-modal" id="viewModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="viewModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="viewModalLabel<?php echo $tracker_id; ?>">Customer Details</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-header view-followup-header d-flex align-items-center justify-content-between flex-wrap">
+                        <h5 class="modal-title mb-0" id="viewModalLabel<?php echo $tracker_id; ?>">Followup History</h5>
+                        <button type="button" class="btn btn-add-followup-from-view" data-bs-dismiss="modal" data-history-modal="#historyModal<?php echo $tracker_id; ?>" aria-label="Add Followup">Add Followup</button>
+                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-2"><strong>Shop/Person:</strong> <?php echo htmlspecialchars($record['shop_name']); ?></div>
-                            <div class="col-md-6 mb-2"><strong>Contact:</strong> <?php echo htmlspecialchars($record['contact_number'] ?: '-'); ?></div>
-                            <div class="col-md-6 mb-2"><strong>Approached For:</strong> <?php echo htmlspecialchars($record['approached_for'] ?? '-'); ?></div>
-                            <div class="col-md-6 mb-2"><strong>Date Visited:</strong> <?php echo date('d-m-Y', strtotime($record['date_visited'])); ?></div>
-                            <div class="col-md-12 mb-2"><strong>Address:</strong><br><?php echo nl2br(htmlspecialchars($record['address'] ?: '-')); ?></div>
-                            <div class="col-md-6 mb-2"><strong>Final Status:</strong> <?php echo htmlspecialchars($record['final_status']); ?></div>
-                            <div class="col-md-6 mb-2"><strong>Comments:</strong> <?php echo htmlspecialchars($record['comments'] ?: '-'); ?></div>
-                        </div>
-                        <hr>
-                        <h6>Followup History</h6>
+                    <div class="modal-body view-followup-body">
                         <?php $followups = getTrackerFollowups($connect, $tracker_id); ?>
                         <?php if (empty($followups)): ?>
                             <p class="text-muted mb-0">No followups recorded yet.</p>
                         <?php else: ?>
                             <div class="table-responsive">
-                                <table class="table table-sm table-striped">
-                                    <thead>
+                                <table class="table table-sm view-followup-table">
+                                    <thead class="view-followup-thead">
                                         <tr>
                                             <th>Date &amp; Time</th>
-                                            <th>Method</th>
-                                            <th>Status</th>
-                                            <th>Comments</th>
+                                            <th>Followup Method</th>
+                                            <th>Followup Status</th>
+                                            <th>Any Comments</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($followups as $f): ?>
+                                        <?php foreach ($followups as $f):
+                                            $st = $f['followup_status'] ?? '';
+                                            $badgeClass = 'view-followup-badge-followup';
+                                            if ($st === 'Joined') $badgeClass = 'view-followup-badge-joined';
+                                            elseif ($st === 'Not Interested') $badgeClass = 'view-followup-badge-notinterested';
+                                        ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($f['followup_datetime']); ?></td>
+                                                <td><?php echo !empty($f['followup_datetime']) ? date('d-m-Y H:i', strtotime($f['followup_datetime'])) : '-'; ?></td>
                                                 <td><?php echo htmlspecialchars($f['followup_method'] ?: '-'); ?></td>
-                                                <td><?php echo htmlspecialchars($f['followup_status'] ?: '-'); ?></td>
+                                                <td><span class="view-followup-status-badge <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($st ?: '-'); ?></span></td>
                                                 <td><?php echo htmlspecialchars($f['comments'] ?: '-'); ?></td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -604,19 +637,27 @@ function getTrackerFollowups($connect, $tracker_id) {
                             </div>
                         <?php endif; ?>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <div class="modal-footer view-followup-footer">
+                        <button type="button" class="btn btn-close-followup-view" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Edit Record Modal -->
-        <div class="modal fade" id="editModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="editModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
+        <!-- Edit Customer Visit Modal (styled to match design) -->
+        <?php
+        $edit_approached = trim($record['approached_for'] ?? '');
+        if (!in_array($edit_approached, ['Franchisee Sale', 'MiniWebsite Sale', 'Both'], true)) {
+            $edit_approached = 'Franchisee Sale';
+        }
+        ?>
+        <div class="modal fade edit-customer-visit-modal" id="editModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="editModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="editModalLabel<?php echo $tracker_id; ?>">Edit Customer Record</h5>
+                        <h5 class="modal-title" id="editModalLabel<?php echo $tracker_id; ?>">
+                            <i class="fa fa-edit"></i> Edit Customer Visit
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form method="post" action="">
@@ -625,135 +666,145 @@ function getTrackerFollowups($connect, $tracker_id) {
                             <input type="hidden" name="tracker_id" value="<?php echo $tracker_id; ?>">
 
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Shop/Person Name</label>
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Shop/Person Name <span class="text-danger">*</span></label>
                                     <input type="text" name="shop_name" class="form-control" value="<?php echo htmlspecialchars($record['shop_name']); ?>" required>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col-12 mb-3">
                                     <label class="form-label">Contact Number</label>
                                     <input type="text" name="contact_number" class="form-control" value="<?php echo htmlspecialchars($record['contact_number'] ?: ''); ?>">
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-12 mb-3">
                                     <label class="form-label">Approached For</label>
-                                    <input type="text" name="approached_for" class="form-control" value="<?php echo htmlspecialchars($record['approached_for'] ?? ''); ?>">
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="approached_for" id="edit_approached_franchisee_<?php echo $tracker_id; ?>" value="Franchisee Sale" <?php echo ($edit_approached === 'Franchisee Sale') ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="edit_approached_franchisee_<?php echo $tracker_id; ?>">Franchisee Sale</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="approached_for" id="edit_approached_miniwebsite_<?php echo $tracker_id; ?>" value="MiniWebsite Sale" <?php echo ($edit_approached === 'MiniWebsite Sale') ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="edit_approached_miniwebsite_<?php echo $tracker_id; ?>">MiniWebsite Sale</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="approached_for" id="edit_approached_both_<?php echo $tracker_id; ?>" value="Both" <?php echo ($edit_approached === 'Both') ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="edit_approached_both_<?php echo $tracker_id; ?>">Both</label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Final Status</label>
-                                    <select name="final_status" class="form-select">
-                                        <?php
-                                        $statusOptions = ['Followup required','Joined','Not Interested'];
-                                        foreach ($statusOptions as $opt):
-                                            $sel = ($record['final_status'] === $opt) ? 'selected' : '';
-                                        ?>
-                                            <option value="<?php echo htmlspecialchars($opt); ?>" <?php echo $sel; ?>>
-                                                <?php echo htmlspecialchars($opt); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Address</label>
+                                    <textarea name="address" class="form-control" rows="3" style="resize: vertical;"><?php echo htmlspecialchars($record['address'] ?: ''); ?></textarea>
                                 </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Address</label>
-                                <textarea name="address" class="form-control" rows="2"><?php echo htmlspecialchars($record['address'] ?: ''); ?></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Comments</label>
-                                <textarea name="comments" class="form-control" rows="2"><?php echo htmlspecialchars($record['comments'] ?: ''); ?></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Update</button>
+                            <button type="button" class="btn btn-edit-cancel" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-edit-update"><i class="fa fa-arrow-up"></i> Update</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Add Followup / History Modal -->
-        <div class="modal fade" id="historyModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="historyModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
+        <!-- Add Followup / History Modal (styled to match design) -->
+        <div class="modal fade history-modal-popup" id="historyModal<?php echo $tracker_id; ?>" tabindex="-1" aria-labelledby="historyModalLabel<?php echo $tracker_id; ?>" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="historyModalLabel<?php echo $tracker_id; ?>">Add Followup</h5>
+                        <h5 class="modal-title" id="historyModalLabel<?php echo $tracker_id; ?>">
+                            <i class="fa fa-refresh"></i> Add Followup
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <form method="post" action="">
+                    <div class="modal-body history-modal-body">
+                        <form method="post" action="" class="add-followup-form-section">
                             <input type="hidden" name="action" value="add_followup">
                             <input type="hidden" name="tracker_id" value="<?php echo $tracker_id; ?>">
 
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Followup Date &amp; Time <span class="text-danger">*</span></label>
-                                    <input type="datetime-local" name="followup_datetime" class="form-control" required>
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Date &amp; Time <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="datetime-local" name="followup_datetime" class="form-control" required>
+                                        <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col-12 mb-3">
                                     <label class="form-label">Followup Method <span class="text-danger">*</span></label>
-                                    <select name="followup_method[]" class="form-select" multiple required>
-                                        <option value="Call">Call</option>
-                                        <option value="WhatsApp">WhatsApp</option>
-                                        <option value="Visit">Visit</option>
-                                        <option value="Email">Email</option>
-                                    </select>
-                                    <small class="text-muted">Hold Ctrl (Cmd on Mac) to select multiple.</small>
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="followup_method" id="followup_method_call_<?php echo $tracker_id; ?>" value="Call" required>
+                                            <label class="form-check-label" for="followup_method_call_<?php echo $tracker_id; ?>">Call</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="followup_method" id="followup_method_visited_<?php echo $tracker_id; ?>" value="Visited">
+                                            <label class="form-check-label" for="followup_method_visited_<?php echo $tracker_id; ?>">Visited</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="followup_method" id="followup_method_message_<?php echo $tracker_id; ?>" value="Message">
+                                            <label class="form-check-label" for="followup_method_message_<?php echo $tracker_id; ?>">Message</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="followup_method" id="followup_method_email_<?php echo $tracker_id; ?>" value="Email">
+                                            <label class="form-check-label" for="followup_method_email_<?php echo $tracker_id; ?>">Email</label>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-12 mb-3">
                                     <label class="form-label">Followup Status <span class="text-danger">*</span></label>
                                     <select name="followup_status" class="form-select" required>
-                                        <option value="Followup required" selected>Followup required</option>
+                                        <option value="Followup required" selected>Followup Required</option>
                                         <option value="Joined">Joined</option>
                                         <option value="Not Interested">Not Interested</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Comments</label>
-                                    <input type="text" name="followup_comments" class="form-control">
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Any Comments</label>
+                                    <textarea name="followup_comments" class="form-control" rows="2" placeholder="Any additional notes..." style="resize: vertical;"></textarea>
                                 </div>
-                            </div>
-
-                            <div class="modal-footer px-0">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-primary">Save Followup</button>
+                                <div class="col-12 mb-0">
+                                    <button type="submit" class="btn btn-add-status">Add Status</button>
+                                </div>
                             </div>
                         </form>
 
                         <hr>
-                        <h6>Previous Followups</h6>
-                        <?php $followups = getTrackerFollowups($connect, $tracker_id); ?>
-                        <?php if (empty($followups)): ?>
-                            <p class="text-muted mb-0">No followups recorded yet.</p>
-                        <?php else: ?>
-                            <div class="table-responsive mt-2">
-                                <table class="table table-sm table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Date &amp; Time</th>
-                                            <th>Method</th>
-                                            <th>Status</th>
-                                            <th>Comments</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($followups as $f): ?>
+                        <div class="followup-table-wrap">
+                            <h6>Followup Records</h6>
+                            <?php $followups = getTrackerFollowups($connect, $tracker_id); ?>
+                            <?php if (empty($followups)): ?>
+                                <p class="text-muted mb-0 px-3 pb-3" style="color: #adb5bd !important;">No followups recorded yet.</p>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm view-followup-table">
+                                        <thead>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($f['followup_datetime']); ?></td>
-                                                <td><?php echo htmlspecialchars($f['followup_method'] ?: '-'); ?></td>
-                                                <td><?php echo htmlspecialchars($f['followup_status'] ?: '-'); ?></td>
-                                                <td><?php echo htmlspecialchars($f['comments'] ?: '-'); ?></td>
+                                                <th>Date &amp; Time</th>
+                                                <th>Followup Method</th>
+                                                <th>Followup Status</th>
+                                                <th>Any Comments</th>
                                             </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endif; ?>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($followups as $f):
+                                                $st = $f['followup_status'] ?? '';
+                                                $badgeClass = 'add-followup-status-badge';
+                                            ?>
+                                                <tr>
+                                                    <td><?php echo !empty($f['followup_datetime']) ? date('d-m-Y H:i', strtotime($f['followup_datetime'])) : '-'; ?></td>
+                                                    <td><?php echo htmlspecialchars($f['followup_method'] ?: '-'); ?></td>
+                                                    <td><span class="<?php echo $badgeClass; ?>"><?php echo htmlspecialchars($st ?: '-'); ?></span></td>
+                                                    <td><?php echo htmlspecialchars($f['comments'] ?: '-'); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-followup-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -761,6 +812,24 @@ function getTrackerFollowups($connect, $tracker_id) {
     <?php endforeach; ?>
 <?php endif; ?>
 
+<script>
+(function() {
+    document.querySelectorAll('.btn-add-followup-from-view').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var targetId = this.getAttribute('data-history-modal');
+            var viewModal = this.closest('.modal');
+            if (viewModal && targetId) {
+                viewModal.addEventListener('hidden.bs.modal', function openHistory() {
+                    var historyEl = document.querySelector(targetId);
+                    if (historyEl && typeof bootstrap !== 'undefined') {
+                        (new bootstrap.Modal(historyEl)).show();
+                    }
+                }, { once: true });
+            }
+        });
+    });
+})();
+</script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 

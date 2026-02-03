@@ -40,7 +40,7 @@ if (mysqli_num_rows($invoice_query) == 0) {
 
 ?>
 
-<div class="container-fluid px-0">
+<div class="container-fluid customer_content_area px-0">
     <div class="row">
         <div class="col-12">
             <h4 class="mb-3 text-dark fw-bold">Invoice History for: <span class="text-primary"><?php echo htmlspecialchars($company_name); ?></span></h4>

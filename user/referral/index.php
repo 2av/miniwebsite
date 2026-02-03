@@ -3,12 +3,14 @@
 // Start session and include database connection first
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/access_control.php');
+require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 
 // Check page access - redirects to dashboard if unauthorized
 require_page_access('/referral');
 
-// Get user's email from session
-$user_email = $_SESSION['user_email'] ?? '';
+// Get user's email (works for CUSTOMER, TEAM, etc.)
+$user_email = get_user_email() ?? '';
+$current_role = get_current_user_role();
 
 // Now include the header
 include '../includes/header.php';
@@ -138,6 +140,26 @@ $referred_users_query = mysqli_query($connect, "SELECT DISTINCT
        OR (re.id IS NOT NULL AND CONVERT(re.referrer_email USING utf8mb4) = CONVERT('$user_email' USING utf8mb4))
     ORDER BY COALESCE(re.id, 0) DESC, ud_referred.created_at DESC");
 
+// For TEAM: Total Sales (referred users with successful payment) and Total MW Created (count of digi_card)
+$total_sales = 0;
+$total_mw_created = 0;
+if ($current_role === 'TEAM' && $user_email !== '') {
+    $ref_cond = "(CONVERT(ud_referred.referred_by USING utf8mb4) = CONVERT('" . mysqli_real_escape_string($connect, $user_email) . "' USING utf8mb4) AND ud_referred.referred_by != '' AND ud_referred.referred_by IS NOT NULL)
+        OR EXISTS (SELECT 1 FROM referral_earnings re WHERE CONVERT(re.referred_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4) AND CONVERT(re.referrer_email USING utf8mb4) = CONVERT('" . mysqli_real_escape_string($connect, $user_email) . "' USING utf8mb4))";
+    $ts_q = mysqli_query($connect, "SELECT COUNT(DISTINCT ud_referred.email) AS total_sales FROM user_details ud_referred
+        INNER JOIN digi_card dc ON CONVERT(dc.user_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4) AND dc.d_payment_status = 'Success'
+        WHERE $ref_cond");
+    if ($ts_q && $r = mysqli_fetch_array($ts_q)) {
+        $total_sales = (int)($r['total_sales'] ?? 0);
+    }
+    $tm_q = mysqli_query($connect, "SELECT COUNT(dc.id) AS total_mw FROM user_details ud_referred
+        LEFT JOIN digi_card dc ON CONVERT(dc.user_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4)
+        WHERE $ref_cond");
+    if ($tm_q && $r = mysqli_fetch_array($tm_q)) {
+        $total_mw_created = (int)($r['total_mw'] ?? 0);
+    }
+}
+
 // Define the sharing message
 $sharing_message = "🚀 Create Your Own MiniWebsite (Digital Business Card) Today!
 
@@ -161,7 +183,7 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
 <meta property="og:url" content="https://miniwebsite.in/panel/login/create-account.php?ref=<?php echo $user_referral_code; ?>" />
 <meta property="og:type" content="website" />
             <main class="Dashboard">
-                <div class="container-fluid px-4">
+                <div class="container-fluid customer_content_area">
                     <div class="main-top">
                         <!-- <h1 class="heading">Referral Details</h1> -->
                         <nav aria-label="breadcrumb">
@@ -174,6 +196,30 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
 
                     <div class="card mb-4">
                         <div class="card-body">
+                            <?php if ($current_role === 'TEAM'): ?>
+                            <div class="ReferralDetails-head">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="card">
+                                            <div class="img"><img src="../../assets/images/totalsales.png" alt=""></div>
+                                            <div class="content">
+                                                <p>Total Sales</p>
+                                                <h4><?php echo (int)$total_sales; ?></h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="card">
+                                            <div class="img"><img src="../../assets/images/TotalMWCreated.png" alt=""></div>
+                                            <div class="content">
+                                                <p>Total MW Created</p>
+                                                <h4><?php echo (int)$total_mw_created; ?></h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php else: ?>
                             <div class="ReferralDetails-head">
                                 <div class="row">
                                     <div class="col-sm-4">
@@ -277,6 +323,7 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                                     </form>
                                 </div>
                             </div>
+                            <?php endif; ?>
                             <div class="ReferredUsers">
                                 <h4 class="heading">Referred Users:</h4>
                                 <style>
@@ -286,6 +333,7 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                                     table[id^="ReferredUsers"] th { white-space: nowrap; }
                                     table[id^="ReferredUsers"] td { white-space: nowrap; }
                                 </style>
+                                <?php $is_team_view = ($current_role === 'TEAM'); ?>
                                 <div class="ref-users-scroll">
                                 <table id="ReferredUsers" class="display table">
                                     <thead>
@@ -296,13 +344,17 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                                             <th class="text-center">User Name</th>
                                             <th class="text-center">User Number</th>
                                             <th class="text-center">Joined On</th>
-                                            <th class="text-center">Referral Source</th> 
+                                            <?php if (!$is_team_view): ?>
+                                            <th class="text-center">Referral Source</th>
+                                            <?php endif; ?>
                                             <th class="text-center">Date Created</th>
                                             <th class="text-center">Validity Date</th>
                                             <th class="text-center">MW Status</th>
                                             <th class="text-center">User Payment Status</th>
+                                            <?php if (!$is_team_view): ?>
                                             <th class="text-center">Referral Amt.</th>
                                             <th class="text-center">MW Payment Status</th>
+                                            <?php endif; ?>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -334,8 +386,9 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                                                 $joined_on = !empty($row['referral_date']) ? date('d-m-Y', strtotime($row['referral_date'])) : '-';
                                                 echo '<td class="text-center">' . $joined_on . '</td>';
                                                 
-                                                // Referral Source (always "Referral" for customer referrals)
-                                                echo '<td class="text-center">Referral</td>';
+                                                if (!$is_team_view) {
+                                                    echo '<td class="text-center">Referral</td>';
+                                                }
                                                 
                                                 // Date Created (card uploaded date)
                                                 $date_created = !empty($row['card_uploaded_date']) ? date('d-m-Y', strtotime($row['card_uploaded_date'])) : '-';
@@ -369,34 +422,36 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                                                 
                                                 // User Payment Status
                                                 echo '<td class="text-center">';
-                                                if($row['d_payment_status'] == 'Success') {
-                                                    $payment_date = $row['d_payment_date'] ? date('d-m-Y', strtotime($row['d_payment_date'])) : date('d-m-Y');
+                                                if(($row['d_payment_status'] ?? '') == 'Success') {
+                                                    $payment_date = !empty($row['d_payment_date']) ? date('d-m-Y', strtotime($row['d_payment_date'])) : date('d-m-Y');
                                                     echo '<span class="bg-success">Paid on ' . $payment_date . '</span>';
                                                 } else {
                                                     echo '<span class="bg-unpaid">Unpaid</span>';
                                                 }
                                                 echo '</td>';
                                                 
-                                                // Referral Amount
-                                                echo '<td class="text-center">₹ ' . number_format($row['amount'], 0) . '</td>';
-                                                
-                                                // MW Payment Status (referral earnings status)
-                                                echo '<td class="text-center">';
-                                                if($row['status'] == 'Paid') {
-                                                    $mw_payment_date = $row['payment_date'] ? date('d-m-Y', strtotime($row['payment_date'])) : 'N/A';
-                                                    echo '<span class="bg-success">Paid on ' . $mw_payment_date . '</span>';
-                                                } elseif($row['status'] == 'Partial' && $row['d_payment_status'] == 'Success') {
-                                                    echo '<span class="bg-pending">Partial Payment</span>';
-                                                } elseif($row['status'] == 'Pending' && $row['d_payment_status'] == 'Success') {
-                                                    echo '<span class="bg-pending">Pending</span>';
-                                                } else {
-                                                    echo '<span class="not-eligible">Not Eligible</span>';
+                                                if (!$is_team_view) {
+                                                    // Referral Amount
+                                                    echo '<td class="text-center">₹ ' . number_format($row['amount'] ?? 0, 0) . '</td>';
+                                                    // MW Payment Status (referral earnings status)
+                                                    echo '<td class="text-center">';
+                                                    if(($row['status'] ?? '') == 'Paid') {
+                                                        $mw_payment_date = !empty($row['payment_date']) ? date('d-m-Y', strtotime($row['payment_date'])) : 'N/A';
+                                                        echo '<span class="bg-success">Paid on ' . $mw_payment_date . '</span>';
+                                                    } elseif(($row['status'] ?? '') == 'Partial' && ($row['d_payment_status'] ?? '') == 'Success') {
+                                                        echo '<span class="bg-pending">Partial Payment</span>';
+                                                    } elseif(($row['status'] ?? '') == 'Pending' && ($row['d_payment_status'] ?? '') == 'Success') {
+                                                        echo '<span class="bg-pending">Pending</span>';
+                                                    } else {
+                                                        echo '<span class="not-eligible">Not Eligible</span>';
+                                                    }
+                                                    echo '</td>';
                                                 }
-                                                echo '</td>';
                                                 echo '</tr>';
                                             }
                                         } else {
-                                            echo '<tr><td colspan="6" class="text-center">No referrals found</td></tr>';
+                                            $colspan = $is_team_view ? 10 : 13;
+                                            echo '<tr><td colspan="' . $colspan . '" class="text-center">No referrals found</td></tr>';
                                         }
                                         ?>
                                     </tbody>

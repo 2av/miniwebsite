@@ -34,8 +34,9 @@ if(isset($_SESSION['f_user_email'])) {
             $admin_remarks = $row['admin_remarks'] ?? '';
             $reviewed_at = $row['reviewed_at'] ?? '';
             $reviewed_by = $row['reviewed_by'] ?? '';
-            $is_locked = ($row['status'] == 'submitted' || $row['status'] == 'approved');
-            // Allow resubmission if rejected
+            // Lock only when approved, or when submitted with all three documents (so user can still add missing docs)
+            $all_docs = !empty($pan_card_document) && !empty($aadhaar_front_document) && !empty($aadhaar_back_document);
+            $is_locked = ($row['status'] == 'approved') || ($row['status'] == 'submitted' && $all_docs);
             if($row['status'] == 'rejected') {
                 $is_locked = false;
             }
@@ -48,15 +49,24 @@ if(isset($_SESSION['f_user_email'])) {
 
 // Handle form submission
 if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
-    $pan_card_file = $_FILES['pan_card_document'];
-    $aadhaar_front_file = $_FILES['aadhaar_front_document'];
-    $aadhaar_back_file = $_FILES['aadhaar_back_document'];
+    $pan_card_file = $_FILES['pan_card_document'] ?? null;
+    $aadhaar_front_file = $_FILES['aadhaar_front_document'] ?? null;
+    $aadhaar_back_file = $_FILES['aadhaar_back_document'] ?? null;
     $upload_success = true;
     $error_message = '';
+    
+    // Fetch existing documents so we keep them when user uploads only some
+    $existing_pan = $pan_card_document;
+    $existing_aadhaar_f = $aadhaar_front_document;
+    $existing_aadhaar_b = $aadhaar_back_document;
     
     // Validate files
     $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
     $max_size = 200 * 1024; // 200KB
+    
+    if (!$pan_card_file) $pan_card_file = ['error' => UPLOAD_ERR_NO_FILE, 'type' => '', 'size' => 0, 'name' => '', 'tmp_name' => ''];
+    if (!$aadhaar_front_file) $aadhaar_front_file = ['error' => UPLOAD_ERR_NO_FILE, 'type' => '', 'size' => 0, 'name' => '', 'tmp_name' => ''];
+    if (!$aadhaar_back_file) $aadhaar_back_file = ['error' => UPLOAD_ERR_NO_FILE, 'type' => '', 'size' => 0, 'name' => '', 'tmp_name' => ''];
     
     // Check PAN Card file
     if($pan_card_file['error'] == 0) {
@@ -91,9 +101,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
         }
     }
     
+    // Allow save if at least one new file is uploaded or we already have some docs (partial save)
+    $has_new_file = ($pan_card_file['error'] == 0 || $aadhaar_front_file['error'] == 0 || $aadhaar_back_file['error'] == 0);
+    $has_any_existing = (!empty($existing_pan) || !empty($existing_aadhaar_f) || !empty($existing_aadhaar_b));
+    if (!$has_new_file && !$has_any_existing) {
+        $error_message = "Please upload at least one document.";
+        $upload_success = false;
+    }
+    
     if($upload_success) {
         // Store verification uploads in a single shared folder:
-        // <project_root>/assets/upload/verification/
         $upload_dir = __DIR__ . '/../../assets/upload/verification/';
         if(!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
@@ -103,7 +120,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
         $aadhaar_front_filename = '';
         $aadhaar_back_filename = '';
         
-        // Upload PAN Card file
+        // Upload PAN Card file (only if new file selected)
         if($pan_card_file['error'] == 0) {
             $pan_card_filename = 'pan_' . time() . '_' . $_SESSION['f_user_email'] . '.' . pathinfo($pan_card_file['name'], PATHINFO_EXTENSION);
             if(!move_uploaded_file($pan_card_file['tmp_name'], $upload_dir . $pan_card_filename)) {
@@ -132,41 +149,58 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
         
         if($upload_success) {
             try {
-                // Insert or update verification record
-                $stmt = $connect->prepare("INSERT INTO franchisee_verification (user_email, pan_card_document, aadhaar_front_document, aadhaar_back_document, status, submitted_at) VALUES (?, ?, ?, ?, 'submitted', NOW()) ON DUPLICATE KEY UPDATE pan_card_document = VALUES(pan_card_document), aadhaar_front_document = VALUES(aadhaar_front_document), aadhaar_back_document = VALUES(aadhaar_back_document), status = 'submitted', submitted_at = NOW()");
-                $stmt->bind_param("ssss", $_SESSION['f_user_email'], $pan_card_filename, $aadhaar_front_filename, $aadhaar_back_filename);
+                // Keep existing document if no new file uploaded for that field
+                $pan_final = !empty($pan_card_filename) ? $pan_card_filename : $existing_pan;
+                $aadhaar_f_final = !empty($aadhaar_front_filename) ? $aadhaar_front_filename : $existing_aadhaar_f;
+                $aadhaar_b_final = !empty($aadhaar_back_filename) ? $aadhaar_back_filename : $existing_aadhaar_b;
+                $all_three_present = (!empty($pan_final) && !empty($aadhaar_f_final) && !empty($aadhaar_b_final));
+                
+                // Check if we already have a row for this user
+                $stmt = $connect->prepare("SELECT id FROM franchisee_verification WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+                $stmt->bind_param("s", $_SESSION['f_user_email']);
                 $stmt->execute();
+                $res = $stmt->get_result();
+                $row_exists = ($res && $res->num_rows > 0);
                 $stmt->close();
                 
-                // Create admin notification for new document submission
-                try {
-                    require_once('../../admin/includes/notification_helper.php');
-                    
-                    $notification_title = "New Franchisee Documents Submitted";
-                    $notification_message = "Franchisee " . $_SESSION['f_user_email'] . " has submitted new documents for verification.";
-                    
-                    createNotification(
-                        'verification',
-                        $notification_title,
-                        $notification_message,
-                        $_SESSION['f_user_email'],
-                        'franchisee',
-                        null,
-                        'high'
-                    );
-                } catch(Exception $e) {
-                    // Log notification error but don't fail the main operation
-                    error_log("Error creating notification: " . $e->getMessage());
+                if ($row_exists) {
+                    if ($all_three_present) {
+                        $stmt = $connect->prepare("UPDATE franchisee_verification SET pan_card_document = ?, aadhaar_front_document = ?, aadhaar_back_document = ?, status = 'submitted', submitted_at = NOW() WHERE user_email = ?");
+                        $stmt->bind_param("ssss", $pan_final, $aadhaar_f_final, $aadhaar_b_final, $_SESSION['f_user_email']);
+                    } else {
+                        $stmt = $connect->prepare("UPDATE franchisee_verification SET pan_card_document = ?, aadhaar_front_document = ?, aadhaar_back_document = ? WHERE user_email = ?");
+                        $stmt->bind_param("ssss", $pan_final, $aadhaar_f_final, $aadhaar_b_final, $_SESSION['f_user_email']);
+                    }
+                    $stmt->execute();
+                    $stmt->close();
+                } else {
+                    $status = $all_three_present ? 'submitted' : 'submitted';
+                    $stmt = $connect->prepare("INSERT INTO franchisee_verification (user_email, pan_card_document, aadhaar_front_document, aadhaar_back_document, status, submitted_at) VALUES (?, ?, ?, ?, ?, NOW())");
+                    $stmt->bind_param("sssss", $_SESSION['f_user_email'], $pan_final, $aadhaar_f_final, $aadhaar_b_final, $status);
+                    $stmt->execute();
+                    $stmt->close();
+                }
+                
+                if ($all_three_present) {
+                    try {
+                        require_once('../../admin/includes/notification_helper.php');
+                        createNotification('verification', "New Franchisee Documents Submitted", "Franchisee " . $_SESSION['f_user_email'] . " has submitted new documents for verification.", $_SESSION['f_user_email'], 'franchisee', null, 'high');
+                    } catch(Exception $e) {
+                        error_log("Error creating notification: " . $e->getMessage());
+                    }
                 }
                 
                 // Update local variables
-                $pan_card_document = $pan_card_filename;
-                $aadhaar_front_document = $aadhaar_front_filename;
-                $aadhaar_back_document = $aadhaar_back_filename;
-                $verification_status = 'submitted';
-                $is_locked = true;
+                $pan_card_document = $pan_final;
+                $aadhaar_front_document = $aadhaar_f_final;
+                $aadhaar_back_document = $aadhaar_b_final;
+                $verification_status = $all_three_present ? 'submitted' : 'submitted';
+                // Lock only when all three docs are uploaded AND status is submitted, or when approved
+                $is_locked = ($verification_status == 'approved') || ($verification_status == 'submitted' && $all_three_present);
                 
-                $success_message = "Documents submitted successfully! Our team will verify them within 48 hours.";
+                $success_message = $all_three_present
+                    ? "Documents submitted successfully! Our team will verify them within 48 hours."
+                    : "Document(s) saved. Please upload the remaining document(s) and submit when all three are ready.";
             } catch(Exception $e) {
                 $error_message = "Database error: " . $e->getMessage();
             }
@@ -174,7 +208,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
     }
 }
 ?>
-<main>
+<main class="Dashboard">
 <div class="container-fluid customer_content_area">
 
     
@@ -198,14 +232,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
             
                     <p class="text-muted mb-4 page_title_description">Upload your PAN Card and Aadhaar Card (Front & Back) for verification. <strong class="text-danger">All documents are mandatory.</strong></p>
                     
-                    <?php if(isset($error_message) && !empty($error_message)): ?>
-                        <div class=""><?php echo htmlspecialchars($error_message); ?></div>
-                    <?php endif; ?>
-                    
-                    <?php if(isset($success_message) && !empty($success_message)): ?>
-                        <div class=""><?php echo htmlspecialchars($success_message); ?></div>
-                    <?php endif; ?>
-                    
                     <form method="POST" enctype="multipart/form-data" id="verificationForm">
                         <div class="row">
                             <!-- PAN Card Upload -->
@@ -225,6 +251,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
                                         <div class="mb-3">
                                             <input type="file" class="form-control-file" name="pan_card_document" accept=".jpg,.jpeg,.png">
                                         </div>
+                                        <div class="verification-preview-wrap mt-2" data-for="pan_card_document"></div>
                                         <?php endif; ?>
                                         
                                         <?php if(!empty($pan_card_document)): ?>
@@ -270,6 +297,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
                                         <div class="mb-3">
                                             <input type="file" class="form-control-file" name="aadhaar_front_document" accept=".jpg,.jpeg,.png">
                                         </div>
+                                        <div class="verification-preview-wrap mt-2" data-for="aadhaar_front_document"></div>
                                         <?php endif; ?>
                                         
                                         <?php if(!empty($aadhaar_front_document)): ?>
@@ -315,6 +343,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
                                         <div class="mb-3">
                                             <input type="file" class="form-control-file" name="aadhaar_back_document" accept=".jpg,.jpeg,.png">
                                         </div>
+                                        <div class="verification-preview-wrap mt-2" data-for="aadhaar_back_document"></div>
                                         <?php endif; ?>
                                         
                                         <?php if(!empty($aadhaar_back_document)): ?>
@@ -439,6 +468,18 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
      </div>
  </div>
                                      </main>
+
+<!-- Toast container for upload feedback -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+    <div id="verificationToast" class="toast border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header text-white">
+            <strong class="me-auto toast-title">Message</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body text-white" id="verificationToastMessage"></div>
+    </div>
+</div>
+
  <!-- Image Modal for Full Size View -->
  <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
      <div class="modal-dialog modal-lg" role="document">
@@ -567,6 +608,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
 .uploaded-file .text-truncate {
     max-width: 200px;
 }
+.verification-preview-wrap {
+    min-height: 0;
+}
+.verification-preview-wrap .image-preview-container img {
+    max-height: 200px;
+    width: 100%;
+    object-fit: contain;
+}
 .card-title{
     font-size:20px;
 }
@@ -623,99 +672,109 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
 
 <script>
 $(document).ready(function() {
-    // File input change handler
-    $('input[type="file"]').on('change', function() {
-        var file = this.files[0];
-        var maxSize = 200 * 1024; // 200KB
-        var inputName = $(this).attr('name');
-        var cardContainer = $(this).closest('.card-body');
-        
-        if(file) {
-            if(file.size > maxSize) {
-                alert('File size must be less than 200KB');
-                this.value = '';
-                return;
-            }
-            
-            var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-            if(!allowedTypes.includes(file.type)) {
-                alert('Only JPG and PNG files are allowed');
-                this.value = '';
-                return;
-            }
-            
-            // Create image preview
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var imagePreview = cardContainer.find('.image-preview-container');
-                if(imagePreview.length === 0) {
-                    // Create new preview container
-                    var previewHtml = '<div class="image-preview-container mt-2">' +
-                        '<img src="' + e.target.result + '" class="img-fluid rounded border" style="max-height: 200px; width: 100%; object-fit: contain;">' +
-                        '</div>';
-                    cardContainer.find('.uploaded-file').remove();
-                    cardContainer.append('<div class="uploaded-file">' + previewHtml + '</div>');
-                } else {
-                    // Update existing preview
-                    imagePreview.find('img').attr('src', e.target.result);
-                }
-            };
-            reader.readAsDataURL(file);
+    // Show toast after upload (success or error)
+    <?php if(isset($success_message) && !empty($success_message)): ?>
+    (function() {
+        var toastEl = document.getElementById('verificationToast');
+        if (toastEl && typeof bootstrap !== 'undefined') {
+            toastEl.classList.add('bg-success');
+            toastEl.querySelector('.toast-title').textContent = 'Success';
+            toastEl.querySelector('.toast-message').textContent = <?php echo json_encode($success_message); ?>;
+            var toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+            toast.show();
         }
+    })();
+    <?php endif; ?>
+    <?php if(isset($error_message) && !empty($error_message)): ?>
+    (function() {
+        var toastEl = document.getElementById('verificationToast');
+        if (toastEl && typeof bootstrap !== 'undefined') {
+            toastEl.classList.add('bg-danger');
+            toastEl.querySelector('.toast-title').textContent = 'Error';
+            toastEl.querySelector('#verificationToastMessage').textContent = <?php echo json_encode($error_message); ?>;
+            var toast = new bootstrap.Toast(toastEl, { delay: 6000 });
+            toast.show();
+        }
+    })();
+    <?php endif; ?>
+
+    // File input change handler – show preview in .verification-preview-wrap
+    $(document).on('change', 'input[type="file"][name="pan_card_document"], input[type="file"][name="aadhaar_front_document"], input[type="file"][name="aadhaar_back_document"]', function() {
+        var input = this;
+        var file = input.files[0];
+        var maxSize = 200 * 1024; // 200KB
+        var inputName = $(input).attr('name');
+        var previewWrap = $(input).closest('.card-body').find('.verification-preview-wrap[data-for="' + inputName + '"]');
+        
+        if (!file) {
+            previewWrap.empty();
+            return;
+        }
+        if (file.size > maxSize) {
+            alert('File size must be less than 200KB');
+            input.value = '';
+            previewWrap.empty();
+            return;
+        }
+        var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Only JPG and PNG files are allowed');
+            input.value = '';
+            previewWrap.empty();
+            return;
+        }
+        
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var alt = (inputName === 'pan_card_document') ? 'PAN Card' : (inputName === 'aadhaar_front_document' ? 'Aadhaar Front' : 'Aadhaar Back');
+            var html = '<div class="image-preview-container">' +
+                '<img src="' + e.target.result + '" alt="' + alt + '" class="img-fluid rounded border" style="max-height: 200px; width: 100%; object-fit: contain; cursor: pointer;">' +
+                '</div>';
+            previewWrap.html(html);
+        };
+        reader.readAsDataURL(file);
     });
     
     // Remove file handler
-    $('.remove-file').on('click', function() {
+    $(document).on('click', '.remove-file', function() {
         var fileType = $(this).data('file');
-        var input = $('input[name="' + fileType + '_document"]');
+        var cardBody = $(this).closest('.card-body');
+        var input = cardBody.find('input[name="' + fileType + '_document"]');
         input.val('');
+        var previewWrap = cardBody.find('.verification-preview-wrap[data-for="' + fileType + '_document"]');
+        if (previewWrap.length) previewWrap.empty();
         $(this).closest('.uploaded-file').remove();
     });
     
-    // Form validation
+    // Form validation: allow submit if at least one file is selected or at least one doc already saved (partial save)
     $('#verificationForm').on('submit', function(e) {
-        var panCardFile = $('input[name="pan_card_document"]')[0].files[0];
-        var aadhaarFrontFile = $('input[name="aadhaar_front_document"]')[0].files[0];
-        var aadhaarBackFile = $('input[name="aadhaar_back_document"]')[0].files[0];
-        
-        // All three files are mandatory
-        if(!panCardFile) {
-            alert('Please upload PAN Card document. All documents are mandatory.');
+        var panCardFile = $('input[name="pan_card_document"]').length ? $('input[name="pan_card_document"]')[0].files[0] : null;
+        var aadhaarFrontFile = $('input[name="aadhaar_front_document"]').length ? $('input[name="aadhaar_front_document"]')[0].files[0] : null;
+        var aadhaarBackFile = $('input[name="aadhaar_back_document"]').length ? $('input[name="aadhaar_back_document"]')[0].files[0] : null;
+        var hasNewFile = !!(panCardFile || aadhaarFrontFile || aadhaarBackFile);
+        var hasExisting = $('#verificationForm .uploaded-file').length > 0;
+        if (!hasNewFile && !hasExisting) {
+            alert('Please upload at least one document.');
             e.preventDefault();
             return false;
         }
-        
-        if(!aadhaarFrontFile) {
-            alert('Please upload Aadhaar Front document. All documents are mandatory.');
-            e.preventDefault();
-            return false;
-        }
-        
-        if(!aadhaarBackFile) {
-            alert('Please upload Aadhaar Back document. All documents are mandatory.');
-            e.preventDefault();
-            return false;
-        }
-        
         return true;
     });
      
-     // Image click handler for modal
-     $(document).on('click', '.image-preview-container img', function() {
-         var imageSrc = $(this).attr('src');
-         var imageAlt = $(this).attr('alt');
-         
-         $('#modalImage').attr('src', imageSrc);
-         $('#modalImage').attr('alt', imageAlt);
-         $('#imageModalLabel').text(imageAlt);
-         
-         var modal = new bootstrap.Modal(document.getElementById('imageModal'));
-         modal.show();
-     });
- });
+    // Image click handler for modal
+    $(document).on('click', '.image-preview-container img', function() {
+        var imageSrc = $(this).attr('src');
+        var imageAlt = $(this).attr('alt') || 'Document Preview';
+        $('#modalImage').attr('src', imageSrc);
+        $('#modalImage').attr('alt', imageAlt);
+        $('#imageModalLabel').text(imageAlt);
+        var modal = new bootstrap.Modal(document.getElementById('imageModal'));
+        modal.show();
+    });
+});
 </script>
 
-<?php include_once('../footer.php'); ?>
+<?php include_once(__DIR__ . '/../includes/footer.php'); ?>
 
 
 

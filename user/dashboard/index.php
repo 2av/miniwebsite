@@ -700,7 +700,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                         <div class="referral-id">Mini websites Referral ID</div>                
                                 <div class="referral-container">                                
                                     <div class="referral-box col-md-6">
-                                        <p>https://miniwebsite.in/registration/customer-registration.php?ref=<?php echo $user_referral_code; ?></p>
+                                        <p><?php echo htmlspecialchars($site_base_url); ?>/registration/customer-registration.php?ref=<?php echo htmlspecialchars($user_referral_code); ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('regular_link')">COPY LINK</button>
                                     </div>
                                     <div class="referral-box col-md-6">
@@ -711,26 +711,27 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 
                                 <div class="social-icons">
                                     <p>Refer Mini Website</p>
+                                    <?php $customer_ref_url = $site_base_url . '/registration/customer-registration.php?ref=' . $user_referral_code; ?>
                                     <ul>
-                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my referral link: https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
-                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
-                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
-                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my referral link: https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>&url=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>
-                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode('https://miniwebsite.in/registration/customer-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/linkedin.png" alt=""></a></li>
+                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my referral link: ' . $customer_ref_url); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
+                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($customer_ref_url); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
+                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode($customer_ref_url); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
+                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my referral link: ' . $customer_ref_url); ?>&url=<?php echo urlencode($customer_ref_url); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>
+                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode($customer_ref_url); ?>" target="_blank"><img src="../../assets/images/linkedin.png" alt=""></a></li>
                                     </ul>
                                 </div>
                     <?php endif; ?>
 
 
-                                <?php if($collaboration_enabled): ?>
-<?php if($mw_referral_id == 1): ?>
+                                <?php if($collaboration_enabled || $current_role == 'TEAM'): ?>
+<?php if($mw_referral_id == 1 || $current_role == 'TEAM'): ?>
 <hr/>
 <?php endif; ?>
 
                             <div class="referral-id">Franchise Referral ID</div>
                                 <div class="referral-container">
                                     <div class="referral-box col-md-6">
-                                        <p>https://miniwebsite.in/registration/franchisee-registration.php?ref=<?php echo $user_referral_code; ?></p>
+                                        <p><?php echo htmlspecialchars($site_base_url); ?>/registration/franchisee-registration.php?ref=<?php echo htmlspecialchars($user_referral_code); ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('collab_link')">COPY LINK</button>
                                     </div>
                                     <div class="referral-box col-md-6">
@@ -741,12 +742,13 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 
                                 <div class="social-icons">
                                     <p>Refer Franchise</p>
+                                    <?php $franchisee_ref_url = $site_base_url . '/registration/franchisee-registration.php?ref=' . $user_referral_code; ?>
                                     <ul>
-                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my collaboration link: https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
-                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
-                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
-                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my collaboration link: https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>&url=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>
-                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode('https://miniwebsite.in/registration/franchisee-registration.php?ref='.$user_referral_code); ?>" target="_blank"><img src="../../assets/images/linkedin.png" alt=""></a></li>
+                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my collaboration link: ' . $franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
+                                        <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
+                                        <li><a href="https://www.instagram.com/share?url=<?php echo urlencode($franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
+                                        <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my collaboration link: ' . $franchisee_ref_url); ?>&url=<?php echo urlencode($franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>
+                                        <li><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo urlencode($franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/linkedin.png" alt=""></a></li>
                                     </ul>
                                 </div>
                     <?php endif; ?>
