@@ -38,20 +38,15 @@ try {
         $meta_keywords = "franchisee, distributor, agreement, partnership";
     }
     
-    // Get user data if email is provided
+    // Get user data if email is provided (from user_details)
     if (!empty($prefill_email)) {
-        $query = "SELECT   user_email  
-              FROM customer_login WHERE user_email = '" . mysqli_real_escape_string($connect, $prefill_email) . "'";
-       
-       
-       $result = mysqli_query($connect, $query);
-        
-          
+        $query = "SELECT email AS user_email FROM user_details WHERE email = '" . mysqli_real_escape_string($connect, $prefill_email) . "' LIMIT 1";
+        $result = mysqli_query($connect, $query);
         if ($result && mysqli_num_rows($result) > 0) {
             $user_data = mysqli_fetch_assoc($result);
             error_log("User found: " . print_r($user_data, true));
         } else {
-            error_log("User NOT found in customer_login for email: " . $prefill_email);
+            error_log("User NOT found in user_details for email: " . $prefill_email);
         }
     }
     

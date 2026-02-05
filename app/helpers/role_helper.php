@@ -12,26 +12,32 @@ require_once(__DIR__ . '/../config/database.php');
  * Returns: 'CUSTOMER', 'FRANCHISEE', 'TEAM', 'ADMIN', or null
  */
 function get_current_user_role() {
-    // Check for admin
+    // Primary source: explicit role stored in session at login
+    if (!empty($_SESSION['user_role'])) {
+        return strtoupper($_SESSION['user_role']);
+    }
+
+    // Fallbacks for older sessions (backward compatibility)
+    // Admin
     if (isset($_SESSION['admin_email']) && isset($_SESSION['admin_is_logged_in']) && $_SESSION['admin_is_logged_in'] === true) {
         return 'ADMIN';
     }
-    
-    // Check for franchisee
+
+    // Franchisee
     if (isset($_SESSION['f_user_email']) && isset($_SESSION['f_is_logged_in']) && $_SESSION['f_is_logged_in'] === true) {
         return 'FRANCHISEE';
     }
-    
-    // Check for team
+
+    // Team
     if (isset($_SESSION['t_user_email']) && isset($_SESSION['t_is_logged_in']) && $_SESSION['t_is_logged_in'] === true) {
         return 'TEAM';
     }
-    
-    // Check for customer
+
+    // Customer (generic frontend login without explicit role)
     if (isset($_SESSION['user_email']) && isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true) {
         return 'CUSTOMER';
     }
-    
+
     return null;
 }
 

@@ -154,13 +154,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
                             $safePhone   = htmlspecialchars($row['phone'] ?? '');
                             $safeUserId  = (int)($row['id'] ?? 0);
 
-                            // Franchisee-specific session markers (used by role_helper)
+                            // Franchisee-specific session markers (legacy; role_helper now prefers user_role)
                             $_SESSION['f_user_email']   = $safeEmail;
                             $_SESSION['f_user_name']    = $safeName;
                             $_SESSION['f_user_contact'] = $safePhone;
                             $_SESSION['f_user_id']      = $safeUserId;
                             $_SESSION['f_is_logged_in'] = true;
                             $_SESSION['f_login_time']   = time();
+                            $_SESSION['user_referral_code'] = $member['referral_code'] ?? '';
 
                             // Also set generic user_* sessions for shared dashboard code
                             $_SESSION['user_email']   = $safeEmail;
@@ -169,6 +170,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
                             $_SESSION['user_id']      = $safeUserId;
                             $_SESSION['is_logged_in'] = true;
                             $_SESSION['login_time']   = time();
+                            // Explicit role from user_details
+                            $_SESSION['user_role'] = 'FRANCHISEE';
 
                             echo '<div class="alert Success">Login Successful, Redirecting...</div>';
                             echo '<meta http-equiv="refresh" content="1;URL=' . $base_path . '/user/dashboard">';

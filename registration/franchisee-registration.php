@@ -302,11 +302,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             $referrer_email = '';
             
             if(!empty($referrer_code)) {
-                // First, try to find referrer in customer_login table
-                $referrer_query = mysqli_query($connect, "SELECT user_email FROM customer_login WHERE referral_code='$referrer_code'");
-                if(mysqli_num_rows($referrer_query) > 0) {
+                // Resolve referrer from user_details (any role with referral_code)
+                $referrer_code_safe = mysqli_real_escape_string($connect, strtoupper(trim($referrer_code)));
+                $referrer_query = mysqli_query($connect, "SELECT email FROM user_details WHERE UPPER(TRIM(referral_code))='$referrer_code_safe' LIMIT 1");
+                if($referrer_query && mysqli_num_rows($referrer_query) > 0) {
                     $referrer_data = mysqli_fetch_array($referrer_query);
-                    $referrer_email = $referrer_data['user_email'];
+                    $referrer_email = !empty($referrer_data['email']) ? trim($referrer_data['email']) : '';
                 }
             }
             

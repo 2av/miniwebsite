@@ -142,12 +142,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Set generic user session variables (for existing code paths)
                         $_SESSION['user_email'] = $member['email'];
                         $_SESSION['user_name'] = $member['name'] ?? '';
-                        $_SESSION['user_referral_code'] = ''; // no separate referral code column in user_details
+                        $_SESSION['user_referral_code'] = $member['referral_code'] ?? '';
                         $_SESSION['is_logged_in'] = true;
                         $_SESSION['login_time'] = time();
                         $_SESSION['team_member_id'] = $member['id'];
+                        // Explicit role from user_details
+                        $_SESSION['user_role'] = 'TEAM';
 
-                        // TEAM-specific markers
+                        // TEAM-specific markers (kept for backward compatibility; not used for role detection anymore)
                         $_SESSION['t_user_email'] = $member['email'];
                         $_SESSION['t_user_name']  = $member['name'] ?? '';
                         $_SESSION['t_user_id']    = $member['id'];

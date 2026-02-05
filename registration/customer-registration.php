@@ -23,6 +23,16 @@ if (!$phpmailer_available) {
 
 require_once __DIR__ . '/../common/email_config.php';
 
+// Ensure unified user_details has a referral_code column (for all roles)
+try {
+    $colCheck = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'referral_code'");
+    if ($colCheck && mysqli_num_rows($colCheck) === 0) {
+        @mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN referral_code VARCHAR(50) DEFAULT ''");
+    }
+} catch (Throwable $e) {
+    // Fail silently; subsequent queries will error if schema truly incompatible
+}
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -154,7 +164,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
     } else {
         // OTP is valid, proceed with registration
         $user_data = $_SESSION['registration_data'];
-
         $user_name = mysqli_real_escape_string($connect, $user_data['user_name']);
         $user_email = mysqli_real_escape_string($connect, $user_data['user_email']);
         $user_contact = mysqli_real_escape_string($connect, $user_data['user_contact']);
@@ -185,36 +194,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             // Generate unique referral code for new user
             $referral_code = strtoupper(substr(md5($user_email . time()), 0, 8));
 
-            // Insert user with referral code into legacy customer_login table (for backward compatibility)
-            // Ensure referred_by is properly set (referrer_email is already escaped above)
-            $insert = mysqli_query($connect, "INSERT INTO customer_login 
-            (user_email, user_name, user_password, user_contact, user_active, sender_token, referral_code, referred_by) 
-            VALUES ('$user_email', '$user_name', '$hashed_password', '$user_contact', 'YES', '$sender_token', '$referral_code', " . (!empty($referrer_email) ? "'$referrer_email'" : "''") . ")");
-
-            if ($insert) {
-            // Also insert into unified user_details table (role = CUSTOMER)
-            $customer_id = mysqli_insert_id($connect);
+            // Insert into unified user_details table only (role = CUSTOMER)
             $ip_address = mysqli_real_escape_string($connect, $_SERVER['REMOTE_ADDR'] ?? '');
             $status = 'ACTIVE';
 
-            // Insert into user_details with referred_by field
-            // Use ON DUPLICATE KEY UPDATE to ensure referred_by is set even if record exists
             $referred_by_escaped = !empty($referrer_email) ? mysqli_real_escape_string($connect, $referrer_email) : '';
-            $referred_by_value = !empty($referred_by_escaped) ? "'$referred_by_escaped'" : "''";
-            $insert_user_details = mysqli_query($connect, "
+            $referred_by_value   = !empty($referred_by_escaped) ? "'$referred_by_escaped'" : "''";
+            $safe_referral_code  = mysqli_real_escape_string($connect, $referral_code);
+            $insert = mysqli_query($connect, "
                 INSERT INTO user_details 
-                    (role, email, phone, name, password, password_hash, ip, status, created_at, legacy_customer_id, referred_by)
+                    (role, email, phone, name, password, password_hash, ip, status, created_at, referred_by, referral_code)
                 VALUES
-                    ('CUSTOMER', '$user_email', '$user_contact', '$user_name', '$hashed_password', '$hashed_password', '$ip_address', '$status', NOW(), ".(int)$customer_id.", $referred_by_value)
+                    ('CUSTOMER', '$user_email', '$user_contact', '$user_name', '$hashed_password', '$hashed_password', '$ip_address', '$status', NOW(), $referred_by_value, '$safe_referral_code')
                 ON DUPLICATE KEY UPDATE 
                     referred_by    = $referred_by_value,
+                    referral_code  = '$safe_referral_code',
                     phone          = '$user_contact',
                     name           = '$user_name',
                     password       = '$hashed_password',
                     password_hash  = '$hashed_password',
                     updated_at     = NOW()
             ");
-
+            
+            if ($insert) {
             // If there's a referrer, create referral record with dynamic amount
             if(!empty($referrer_email)) {
                 $deal_amount = 250.00; // Default amount
@@ -257,6 +259,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             $_SESSION['user_name'] = $user_name;
             $_SESSION['user_contact'] = $user_contact;
             $_SESSION['referral_code'] = $referral_code; // Set the generated referral code
+            // Also set unified referral code session key used on dashboard
+            $_SESSION['user_referral_code'] = $referral_code;
             $_SESSION['just_registered'] = true; // Flag to show welcome message
             
             // Send welcome email
@@ -387,31 +391,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
                 // Normalize referral code (uppercase, trim)
                 $referrer_code = strtoupper(trim($referrer_code));
                 
-                // First, try to find referrer in user_details table by joining with legacy tables
-                // Check if referral code exists in customer_login and get email from user_details
-                // Use BINARY to handle collation mismatch
-                $referrer_query = mysqli_query($connect, "SELECT ud.email 
-                    FROM user_details ud 
-                    INNER JOIN customer_login cl ON CAST(ud.email AS BINARY) = CAST(cl.user_email AS BINARY) AND ud.role = 'CUSTOMER'
-                    WHERE UPPER(TRIM(cl.referral_code))='$referrer_code' 
-                    AND ud.email IS NOT NULL AND ud.email != '' 
+                // Always resolve referral codes using unified user_details table
+                // (works for CUSTOMER, TEAM, FRANCHISEE or any role that has a referral_code)
+                $referrer_query = mysqli_query($connect, "SELECT email 
+                    FROM user_details 
+                    WHERE UPPER(TRIM(referral_code))='$referrer_code' 
                     LIMIT 1");
                 
-                if(mysqli_num_rows($referrer_query) > 0) {
+                if($referrer_query && mysqli_num_rows($referrer_query) > 0) {
                     $referrer_data = mysqli_fetch_array($referrer_query);
                     $referrer_email = !empty($referrer_data['email']) ? trim($referrer_data['email']) : '';
-                } else {
-                    // Fallback: Check legacy tables directly (for backward compatibility)
-                    $legacy_customer_query = mysqli_query($connect, "SELECT user_email FROM customer_login WHERE UPPER(TRIM(referral_code))='$referrer_code' AND user_email IS NOT NULL AND user_email != '' LIMIT 1");
-                    if(mysqli_num_rows($legacy_customer_query) > 0) {
-                        $legacy_data = mysqli_fetch_array($legacy_customer_query);
-                        $referrer_email = !empty($legacy_data['user_email']) ? trim($legacy_data['user_email']) : '';
-                    }
-                }
-                
-                // Debug logging (can be removed in production)
-                if(empty($referrer_email) && !empty($referrer_code)) {
-                    error_log("Referral code lookup failed for code: " . $referrer_code);
                 }
             }
             
@@ -425,6 +414,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
                 'referrer_email' => $referrer_email
             ];
             $_SESSION['registration_otp_time'] = time();
+            
+            // Log what we stored (without password)
+            error_log('REGISTRATION: stored registration_data for email ' . $user_email . ' with referrer_email ' . ($referrer_email ?: '[EMPTY]'));
             
             // Send OTP email
             $subject = $_SERVER['HTTP_HOST'] . " - Your OTP for Registration";

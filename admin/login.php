@@ -319,6 +319,8 @@ require_once(__DIR__ . '/../app/helpers/password_helper.php');
                         $_SESSION['admin_id'] = (int)($row['id'] ?? 0);
                         $_SESSION['admin_is_logged_in'] = true;
                         $_SESSION['admin_login_time'] = time();
+                        // Explicit role from user_details
+                        $_SESSION['user_role'] = 'ADMIN';
                         
                         echo '<div class="alert Success"><i class="fas fa-check-circle"></i> Login successful! Redirecting...</div>';
                         echo '<meta http-equiv="refresh" content="1;URL=index.php">';

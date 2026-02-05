@@ -128,11 +128,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
                 u.password      AS user_password,
                 u.password_hash AS user_password_hash,
                 u.status,
-                cl.referral_code,
-                cl.collaboration_enabled,
-                cl.saleskit_enabled
+                u.referral_code,
+                u.collaboration_enabled,
+                u.saleskit_enabled
             FROM user_details u
-            LEFT JOIN customer_login cl ON cl.user_email = u.email
             WHERE u.role = 'CUSTOMER'
               AND (u.email = '$email_or_contact' OR u.phone = '$email_or_contact')
             LIMIT 1
@@ -168,6 +167,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
                 // Set a session marker to track login status
                 $_SESSION['is_logged_in'] = true;
                 $_SESSION['login_time'] = time();
+                // Explicit role from user_details
+                $_SESSION['user_role'] = 'CUSTOMER';
 
                 echo '<div class="alert success">Login Successful! Redirecting...</div>';
                 echo '<meta http-equiv="refresh" content="2;URL=' . $base_path . '/user/dashboard">';

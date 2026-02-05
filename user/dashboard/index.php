@@ -2,7 +2,7 @@
 // Handle AJAX form submission for creating customer account (FRANCHISEE only) - BEFORE any HTML output
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_customer_account') {
     // Include only what we need for database operations
-    require_once(__DIR__ . '/../../app/config/database.php');
+require_once(__DIR__ . '/../../app/config/database.php');
     require_once(__DIR__ . '/../../app/helpers/role_helper.php');
     
     // Check if user is franchisee
@@ -76,46 +76,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             throw new Exception('Insufficient wallet balance. Please recharge at least Rs. 236. Current balance: ' . number_format($wallet_balance, 2));
         }
         
-        // Generate sender token and hash password
+        // Generate sender token, hash password, and referral code
         $sender_token   = rand(1000000000, 99999999999999999);
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $referral_code   = strtoupper(substr(md5($emailAddress . time()), 0, 8));
         
-        // Insert into legacy customer_login table
-        $insert_query = "INSERT INTO customer_login (user_name, user_email, user_contact, user_password, user_active, sender_token, uploaded_date) 
-                        VALUES (?, ?, ?, ?, 'YES', ?, NOW())";
-        $stmt = mysqli_prepare($connect, $insert_query);
-        if (!$stmt) {
-            throw new Exception('Prepare failed: ' . mysqli_error($connect));
-        }
-        mysqli_stmt_bind_param($stmt, "sssss", $fullName, $emailAddress, $mobileNumber, $hashed_password, $sender_token);
+        // Insert into unified user_details table only
+        $ip = mysqli_real_escape_string($connect, $_SERVER['REMOTE_ADDR'] ?? '');
+        $status = 'ACTIVE';
+        $safeFullName = mysqli_real_escape_string($connect, $fullName);
+        $safeEmail = mysqli_real_escape_string($connect, $emailAddress);
+        $safeMobile = mysqli_real_escape_string($connect, $mobileNumber);
+        $safeFranchiseeEmail = mysqli_real_escape_string($connect, $franchisee_email);
+        $safeReferralCode = mysqli_real_escape_string($connect, $referral_code);
         
-        if (mysqli_stmt_execute($stmt)) {
-            $customer_id = mysqli_insert_id($connect);
-            mysqli_stmt_close($stmt);
-            
-            // Also create/update entry in unified user_details table with referral info (franchisee as referrer)
-            $ip = mysqli_real_escape_string($connect, $_SERVER['REMOTE_ADDR'] ?? '');
-            $status = 'ACTIVE';
-            $safeFullName = mysqli_real_escape_string($connect, $fullName);
-            $safeEmail = mysqli_real_escape_string($connect, $emailAddress);
-            $safeMobile = mysqli_real_escape_string($connect, $mobileNumber);
-            $safeFranchiseeEmail = mysqli_real_escape_string($connect, $franchisee_email);
-            
-            // Insert basic record if it doesn't exist yet
-            mysqli_query($connect, "
-                INSERT IGNORE INTO user_details
-                    (role, email, phone, name, password, password_hash, ip, status, created_at, legacy_customer_id, referred_by)
-                VALUES
-                    ('CUSTOMER', '$safeEmail', '$safeMobile', '$safeFullName', '$hashed_password', '$hashed_password', '$ip', '$status', NOW(), ".(int)$customer_id.", '$safeFranchiseeEmail')
-            ");
-            
-            // Ensure referred_by is set to franchisee for this customer (even if record already existed)
-            mysqli_query($connect, "
-                UPDATE user_details 
-                SET referred_by = '$safeFranchiseeEmail'
-                WHERE email = '$safeEmail' AND role = 'CUSTOMER'
-            ");
-            
+        $insert_ud = mysqli_query($connect, "
+            INSERT INTO user_details
+                (role, email, phone, name, password, password_hash, ip, status, created_at, referred_by, referral_code)
+            VALUES
+                ('CUSTOMER', '$safeEmail', '$safeMobile', '$safeFullName', '$hashed_password', '$hashed_password', '$ip', '$status', NOW(), '$safeFranchiseeEmail', '$safeReferralCode')
+        ");
+        
+        if ($insert_ud) {
             // Create a basic digi_card entry
             $card_insert_query = "INSERT INTO digi_card (user_email, f_user_email, d_comp_name, card_id, d_payment_status, d_card_status, uploaded_date, validity_date) 
                                  VALUES (?, ?, ?, ?, 'Success','Active', NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR))";
@@ -164,8 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 throw new Exception('Failed to create card: ' . mysqli_stmt_error($card_stmt));
             }
         } else {
-            mysqli_stmt_close($stmt);
-            throw new Exception('Failed to create account: ' . mysqli_stmt_error($stmt));
+            throw new Exception('Failed to create account: ' . mysqli_error($connect));
         }
         
     } catch (Exception $e) {
@@ -210,20 +191,47 @@ if (isset($_SESSION['just_registered']) && $_SESSION['just_registered'] === true
     unset($_SESSION['just_registered']);
 }
 
+// Ensure unified user_details has a referral_code column for all roles (CUSTOMER/TEAM/FRANCHISEE)
+try {
+    $colCheckDash = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'referral_code'");
+    if ($colCheckDash && mysqli_num_rows($colCheckDash) === 0) {
+        @mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN referral_code VARCHAR(50) DEFAULT ''");
+    }
+} catch (Throwable $e) {
+    // Silent fallback; if this fails, referral code features may not work but dashboard should still render
+}
+
 // Get user's cards based on role
 $query = null;
 $user_referral_code = '';
 $user_email = get_user_email(); // Get email for all roles
 
 if ($current_role == 'CUSTOMER' || $current_role == 'TEAM') {
+    // 1) Try to get referral code from session
     $user_referral_code = $_SESSION['user_referral_code'] ?? '';
-    
-    // For TEAM, simply generate a referral code and keep it in session (no separate team_members table)
-    if ($current_role == 'TEAM' && empty($user_referral_code)) {
+
+    // 2) If still empty, try to load from user_details table
+    if (empty($user_referral_code)) {
+        $user_email_lower = strtolower(trim($user_email));
+        $ref_q = mysqli_query($connect, "SELECT referral_code FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
+        if ($ref_q && mysqli_num_rows($ref_q) > 0) {
+            $ref_row = mysqli_fetch_array($ref_q);
+            if (!empty($ref_row['referral_code'])) {
+                $user_referral_code = trim($ref_row['referral_code']);
+                $_SESSION['user_referral_code'] = $user_referral_code;
+            }
+        }
+    }
+
+    // 3) If still empty (old users without code), generate and persist
+    if (empty($user_referral_code)) {
         $user_referral_code = strtoupper(substr(md5($user_email . time()), 0, 8));
         $_SESSION['user_referral_code'] = $user_referral_code;
+        // Persist into user_details so it can be used later for referrals
+        $user_email_lower = strtolower(trim($user_email));
+        mysqli_query($connect, "UPDATE user_details SET referral_code='" . mysqli_real_escape_string($connect, $user_referral_code) . "' WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
     }
-    
+
     $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE user_email='$user_email' ORDER BY id DESC");
     // Check if query failed
     if (!$query) {
@@ -255,26 +263,26 @@ if ($current_role == 'CUSTOMER' || $current_role == 'TEAM') {
         $total_cards = intval($total_cards_row['total_cards'] ?? 0);
     }
     
-    // Query for "Manage Users" table - users created by this franchisee
+    // Query for "Manage Users" table - users created by this franchisee (from user_details)
     $manage_users_query = mysqli_query($connect, "
         SELECT 
-            cl.id,
-            cl.user_name,
-            cl.user_contact,
-            cl.user_email,
-            cl.uploaded_date,
-            cl.referral_code,
-            cl.referred_by,
+            ud.id,
+            ud.name AS user_name,
+            ud.phone AS user_contact,
+            ud.email AS user_email,
+            ud.created_at AS uploaded_date,
+            ud.referral_code,
+            ud.referred_by,
             dc.id as card_id,
             dc.d_comp_name,
             dc.d_payment_status,
             dc.uploaded_date as card_created_date,
             dc.d_payment_date,
             dc.validity_date
-        FROM customer_login cl
-        LEFT JOIN digi_card dc ON cl.user_email = dc.user_email
-        WHERE dc.f_user_email = '$franchisee_email'
-        ORDER BY cl.uploaded_date DESC
+        FROM user_details ud
+        INNER JOIN digi_card dc ON ud.email = dc.user_email AND dc.f_user_email = '$franchisee_email'
+        WHERE ud.role = 'CUSTOMER'
+        ORDER BY ud.created_at DESC
     ");
     
     // For franchisee, we don't use the regular $query for the main table
@@ -698,13 +706,13 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                 <br/><br/>
                 <?php if($collaboration_enabled!='Yes' || (isset($mw_referral_id) && $mw_referral_id == 1)): ?>
                         <div class="referral-id">Mini websites Referral ID</div>                
-                                <div class="referral-container">                                
+                                <div class="referral-container">
                                     <div class="referral-box col-md-6">
-                                        <p><?php echo htmlspecialchars($site_base_url); ?>/registration/customer-registration.php?ref=<?php echo htmlspecialchars($user_referral_code); ?></p>
+                                        <p id="regular_link_value"><?php echo htmlspecialchars($site_base_url); ?>/registration/customer-registration.php?ref=<?php echo htmlspecialchars($user_referral_code); ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('regular_link')">COPY LINK</button>
                                     </div>
                                     <div class="referral-box col-md-6">
-                                        <p><?php echo $user_referral_code; ?></p>
+                                        <p id="regular_code_value"><?php echo $user_referral_code; ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('regular_code')">COPY CODE</button>
                                     </div>
                                 </div>
@@ -731,11 +739,11 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                             <div class="referral-id">Franchise Referral ID</div>
                                 <div class="referral-container">
                                     <div class="referral-box col-md-6">
-                                        <p><?php echo htmlspecialchars($site_base_url); ?>/registration/franchisee-registration.php?ref=<?php echo htmlspecialchars($user_referral_code); ?></p>
+                                        <p id="collab_link_value"><?php echo htmlspecialchars($site_base_url); ?>/registration/franchisee-registration.php?ref=<?php echo htmlspecialchars($user_referral_code); ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('collab_link')">COPY LINK</button>
                                     </div>
                                     <div class="referral-box col-md-6">
-                                        <p><?php echo $user_referral_code; ?></p>
+                                        <p id="collab_code_value"><?php echo $user_referral_code; ?></p>
                                         <button class="copy-btn" onclick="copyToClipboard('collab_code')">COPY CODE</button>
                                     </div>
                                 </div>

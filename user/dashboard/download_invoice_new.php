@@ -56,7 +56,7 @@ if ($invoice_query && mysqli_num_rows($invoice_query) > 0) {
     // Modern invoices stored in invoice_details
     $invoice = mysqli_fetch_array($invoice_query);
 } else {
-    // Legacy fallback: treat ID as digi_card ID (old behaviour) and build invoice data from digi_card + customer_login
+    // Legacy fallback: treat ID as digi_card ID (old behaviour) and build invoice data from digi_card + user_details
     $card_id = $invoice_id;
     
     // Ensure card belongs to this user (unless admin bypass)
@@ -70,7 +70,7 @@ if ($invoice_query && mysqli_num_rows($invoice_query) > 0) {
     
     $card = mysqli_fetch_array($card_query);
     
-    // Get basic customer details from legacy customer_login table
+    // Get basic customer details from user_details table
     $legacy_user = [
         'user_name'    => '',
         'user_contact' => ''
@@ -78,7 +78,7 @@ if ($invoice_query && mysqli_num_rows($invoice_query) > 0) {
     if (!empty($card['user_email'])) {
         $legacy_user_query = mysqli_query(
             $connect,
-            'SELECT user_name, user_contact FROM customer_login WHERE user_email="' . mysqli_real_escape_string($connect, $card['user_email']) . '" LIMIT 1'
+            'SELECT name AS user_name, phone AS user_contact FROM user_details WHERE email="' . mysqli_real_escape_string($connect, $card['user_email']) . '" LIMIT 1'
         );
         if ($legacy_user_query && mysqli_num_rows($legacy_user_query) > 0) {
             $legacy_user = mysqli_fetch_array($legacy_user_query);

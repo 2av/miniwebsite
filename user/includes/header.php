@@ -123,26 +123,23 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
         var UPLOAD_PROFILE_URL = '<?php echo addslashes($assets_base . '/common/upload_profile.php'); ?>';
         
         function copyToClipboard(type) {
-            let textToCopy = '';
-            switch (type) {
-                case 'link':
-                case 'regular_link':
-                    textToCopy = '<?php echo addslashes($site_base_url); ?>/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ''); ?>';
-                    break;
-                case 'code':
-                case 'regular_code':
-                    textToCopy = '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
-                    break;
-                case 'collab_link':
-                    textToCopy = '<?php echo addslashes($site_base_url); ?>/registration/franchisee-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
-                    break;
-                case 'collab_code':
-                    textToCopy = '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
-                    break;
-                default:
-                    textToCopy = type === 'link'
-                        ? '<?php echo addslashes($site_base_url); ?>/registration/customer-registration.php?ref=<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>'
-                        : '<?php echo $user_referral_code ?? ($_SESSION['user_referral_code'] ?? ""); ?>';
+            // Map types to element IDs on the page
+            const idMap = {
+                'link': 'regular_link_value',
+                'regular_link': 'regular_link_value',
+                'code': 'regular_code_value',
+                'regular_code': 'regular_code_value',
+                'collab_link': 'collab_link_value',
+                'collab_code': 'collab_code_value'
+            };
+
+            const targetId = idMap[type] || idMap['link'];
+            const el = document.getElementById(targetId);
+            let textToCopy = el ? (el.innerText || el.textContent).trim() : '';
+
+            if (!textToCopy) {
+                alert('Nothing to copy.');
+                return;
             }
 
             navigator.clipboard.writeText(textToCopy).then(() => {

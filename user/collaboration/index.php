@@ -174,20 +174,10 @@ $referred_users_stmt = $connect->prepare("SELECT DISTINCT
     COALESCE(re.amount, 0) as amount,
     COALESCE(re.is_collaboration, 'NO') as is_collaboration,
     ud_referred.id as user_id,
-    cl.id as customer_id,
+    ud_referred.id as customer_id,
     fl.id as franchisee_id,
-    COALESCE(ud_referred.name,
-        CASE 
-            WHEN re.is_collaboration = 'YES' THEN fl.f_user_name
-            ELSE cl.user_name 
-        END
-    ) as user_name,
-    COALESCE(ud_referred.phone,
-        CASE 
-            WHEN re.is_collaboration = 'YES' THEN fl.f_user_contact
-            ELSE cl.user_contact 
-        END
-    ) as user_contact,
+    COALESCE(ud_referred.name, fl.f_user_name) as user_name,
+    COALESCE(ud_referred.phone, fl.f_user_contact) as user_contact,
     dc.id as card_id,
     dc.uploaded_date as card_uploaded_date,
     dc.validity_date as card_validity_date,
@@ -198,7 +188,6 @@ $referred_users_stmt = $connect->prepare("SELECT DISTINCT
     LEFT JOIN referral_earnings re 
         ON CONVERT(re.referred_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4)
         AND CONVERT(re.referrer_email USING utf8mb4) = CONVERT(? USING utf8mb4)
-    LEFT JOIN customer_login cl ON CONVERT(ud_referred.email USING utf8mb4) = CONVERT(cl.user_email USING utf8mb4) AND (COALESCE(re.is_collaboration, 'NO') = 'NO')
     LEFT JOIN franchisee_login fl ON CONVERT(ud_referred.email USING utf8mb4) = CONVERT(fl.f_user_email USING utf8mb4) AND COALESCE(re.is_collaboration, 'NO') = 'YES'
     LEFT JOIN digi_card dc ON CONVERT(dc.user_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4)
     WHERE (CONVERT(ud_referred.referred_by USING utf8mb4) = CONVERT(? USING utf8mb4)
