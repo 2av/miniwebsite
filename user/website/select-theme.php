@@ -172,7 +172,7 @@ $themes = [
                             <span>Back</span>
                         </a>
                         <button type="submit" class="btn btn-primary align-center save_btn">
-                            <img src="../../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                             <span>Save</span>
                         </button>
                         <a href="company-details.php?card_number=<?php echo $_SESSION['card_id_inprocess']; ?>" class="btn btn-secondary align-right">

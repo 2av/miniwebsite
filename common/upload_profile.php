@@ -54,10 +54,10 @@ try {
         throw new Exception('File upload error: ' . $_FILES['profile_image']['error']);
     }
     
-    // Process image: auto crop to 1:1, resize to 600x600, compress to ~250KB
+    // Process image: auto crop to 1:1, resize to 512x512 (matches profile crop UI), compress to ~250KB
     $result = processImageUploadWithAutoCrop(
         $_FILES['profile_image'], 
-        600,      // Target size: 600x600
+        512,      // Target size: 512x512 (same as tests/image_upload_crop)
         250000,   // Target file size: 250KB
         200000,   // Min file size: 200KB
         300000,   // Max file size: 300KB

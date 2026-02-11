@@ -130,7 +130,8 @@ if(mysqli_num_rows($query) == 0){
     echo '<script>alert("Card id does not match with your email account"); window.location.href="business-name.php";</script>';
     exit;
 } else {
-    $row = mysqli_fetch_array($query);
+    // Use a dedicated variable to avoid collisions with included files (e.g. header.php)
+    $cardRow = mysqli_fetch_array($query);
 }
 
 // Handle form submission
@@ -170,6 +171,14 @@ if(isset($_POST['process2'])){
                 return $destination;
             }
         }
+
+        // Ensure company-details upload directory exists (store logo file here)
+        $companyDetailsUploadDirAbs = __DIR__ . '/../../assets/upload/websites/company_details/';
+        if (!is_dir($companyDetailsUploadDirAbs)) {
+            if (!@mkdir($companyDetailsUploadDirAbs, 0775, true) && !is_dir($companyDetailsUploadDirAbs)) {
+                $error_message = '<div class="alert alert-danger">Upload directory not available. Please create: assets/upload/websites/company_details</div>';
+            }
+        }
         
         // Process logo upload if file is selected
         // Check if we have processed image data from AJAX (base64)
@@ -182,9 +191,11 @@ if(isset($_POST['process2'])){
             $updateLogo = mysqli_query($connect, 'UPDATE digi_card SET d_logo="'.$logo.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
             
             // Also save to file system
-            $filename2 = '../../favicons/'.date('ymdsih').'_logo.jpg';
-            if(file_put_contents($filename2, $logoData)) {
-                $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$filename2.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+            $fileNameOnly = date('ymdsih') . '_logo.jpg';
+            $filePathAbs = $companyDetailsUploadDirAbs . $fileNameOnly;
+            if(empty($error_message) && file_put_contents($filePathAbs, $logoData) !== false) {
+                // Save ONLY the filename in DB
+                $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$fileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
             }
         } elseif(!empty($_FILES['d_logo']['tmp_name'])){
             // Use the new automatic crop and resize function
@@ -209,14 +220,17 @@ if(isset($_POST['process2'])){
                     $updateLogo = mysqli_query($connect, 'UPDATE digi_card SET d_logo="'.$logo.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
                     
                     // Also save to file system with original filename
-                    $filename2 = '../../favicons/'.date('ymdsih').'_'.basename($_FILES['d_logo']['name']);
+                    $safeOriginal = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($_FILES['d_logo']['name']));
+                    $fileNameOnly = date('ymdsih') . '_' . $safeOriginal;
                     // Change extension to .jpg since output is always JPEG
-                    $filename2 = preg_replace('/\.[^.]+$/', '.jpg', $filename2);
+                    $fileNameOnly = preg_replace('/\.[^.]+$/', '.jpg', $fileNameOnly);
+                    $filePathAbs = $companyDetailsUploadDirAbs . $fileNameOnly;
                     
-                    // Copy the processed file to favicons directory
-                    if($result['file_path'] && file_exists($result['file_path'])) {
-                        if(copy($result['file_path'], $filename2)) {
-                            $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$filename2.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    // Copy the processed file to company_details upload directory
+                    if(empty($error_message) && $result['file_path'] && file_exists($result['file_path'])) {
+                        if(copy($result['file_path'], $filePathAbs)) {
+                            // Save ONLY the filename in DB
+                            $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$fileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
                         }
                         // Clean up temp file
                         @unlink($result['file_path']);
@@ -234,9 +248,12 @@ if(isset($_POST['process2'])){
                         $logo = $result['data'];
                         $updateLogo = mysqli_query($connect, 'UPDATE digi_card SET d_logo="'.$logo.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
                         
-                        $filename2 = '../../favicons/'.date('ymdsih').$_FILES['d_logo']['name'];
-                        if(copy($_FILES['d_logo']['tmp_name'], $filename2)) {
-                            $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$filename2.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                        $safeOriginal = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($_FILES['d_logo']['name']));
+                        $fileNameOnly = date('ymdsih') . '_' . $safeOriginal;
+                        $filePathAbs = $companyDetailsUploadDirAbs . $fileNameOnly;
+                        if(empty($error_message) && copy($_FILES['d_logo']['tmp_name'], $filePathAbs)) {
+                            // Save ONLY the filename in DB
+                            $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$fileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
                         }
                     } else {
                         $error_message = $result['message'];
@@ -255,10 +272,13 @@ if(isset($_POST['process2'])){
                             
                             $compressimage = compressImage($source, $destination, $quality);
                             $logo = addslashes(file_get_contents($compressimage));
-                            $filename2 = '../../favicons/'.date('ymdsih').$_FILES['d_logo']['name'];
+                            $safeOriginal = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($_FILES['d_logo']['name']));
+                            $fileNameOnly = date('ymdsih') . '_' . $safeOriginal;
+                            $filePathAbs = $companyDetailsUploadDirAbs . $fileNameOnly;
                             
-                            if(move_uploaded_file($compressimage, $filename2)) {
-                                $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$filename2.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                            if(empty($error_message) && move_uploaded_file($compressimage, $filePathAbs)) {
+                                // Save ONLY the filename in DB
+                                $update = mysqli_query($connect, 'UPDATE digi_card SET d_logo_location="'.$fileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
                             } else {
                                 $error_message = '<div class="alert alert-danger">Image Not uploaded</div>';
                             }
@@ -297,12 +317,23 @@ if(isset($_POST['process2'])){
         
         if($update){
             $_SESSION['save_success'] = "Details Updated Successfully!";
-            header('Location: company-details.php?card_number='.$_SESSION['card_id_inprocess']);
-            exit;
+            // Re-fetch updated record so fields show latest saved values
+            $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
+            if($query && mysqli_num_rows($query) > 0){
+                $cardRow = mysqli_fetch_array($query);
+            }
+            // Redirect if possible (prevents form resubmission on refresh)
+            if (!headers_sent()) {
+                header('Location: company-details.php?card_number='.$_SESSION['card_id_inprocess']);
+                exit;
+            }
         } else {
             $_SESSION['save_error'] = "Error! Try Again.";
-            header('Location: company-details.php?card_number='.$_SESSION['card_id_inprocess']);
-            exit;
+            // If headers already sent, fall through and show page with existing $row
+            if (!headers_sent()) {
+                header('Location: company-details.php?card_number='.$_SESSION['card_id_inprocess']);
+                exit;
+            }
         }
     } else {
         $_SESSION['save_error'] = "Detail Not Available. Try Again.";
@@ -355,8 +386,8 @@ include '../includes/header.php';
                     <input type="hidden" name="processed_logo_data" id="processed_logo_data" value="">
                     <div class="upload-container">
                         <div class="logo-placeholder" id="logoPreview" onclick="clickFocus()">
-                            <?php if(!empty($row['d_logo'])): ?>
-                                <img id="showPreviewLogo" src="data:image/*;base64,<?php echo base64_encode($row['d_logo']); ?>" alt="Logo Preview">
+                            <?php if(!empty($cardRow['d_logo'])): ?>
+                                <img id="showPreviewLogo" src="data:image/*;base64,<?php echo base64_encode($cardRow['d_logo']); ?>" alt="Logo Preview">
                             <?php else: ?>
                                 <span>YOUR LOGO</span>
                                 <img id="showPreviewLogo" style="display:none;">
@@ -370,7 +401,7 @@ include '../includes/header.php';
                                 <span id="fileName">No File Chosen</span>
                             </div>                                        
                             <label for="clickMeImage" class="choose-btn">Choose File</label>
-                            <input type="file" name="d_logo" id="clickMeImage" onchange="readURL(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+                            <input type="file" name="d_logo" id="clickMeImage" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" style="display:none;">
                         </div>
                     </div>
                     <div class="Personal-Details">
@@ -379,13 +410,13 @@ include '../includes/header.php';
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_f_name">First Name <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_f_name" id="d_f_name" maxlength="20" placeholder="Enter First Name" class="form-control" value="<?php echo !empty($row['d_f_name']) ? htmlspecialchars($row['d_f_name']) : ''; ?>" required>
+                                    <input type="text" name="d_f_name" id="d_f_name" maxlength="20" placeholder="Enter First Name" class="form-control" value="<?php echo !empty($cardRow['d_f_name']) ? htmlspecialchars($cardRow['d_f_name']) : ''; ?>" required>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_l_name">Last Name (Optional)</label>
-                                    <input type="text" name="d_l_name" id="d_l_name" maxlength="20" placeholder="Enter Last Name (Optional)" class="form-control" value="<?php echo !empty($row['d_l_name']) ? htmlspecialchars($row['d_l_name']) : ''; ?>">
+                                    <input type="text" name="d_l_name" id="d_l_name" maxlength="20" placeholder="Enter Last Name (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_l_name']) ? htmlspecialchars($cardRow['d_l_name']) : ''; ?>">
                                 </div>
                             </div>
                         </div>
@@ -393,13 +424,13 @@ include '../includes/header.php';
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_position">Position/Business Category <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_position" id="d_position" maxlength="20" placeholder="Enter Position/Business Category (Ex. Manager etc.)" class="form-control" value="<?php echo !empty($row['d_position']) ? htmlspecialchars($row['d_position']) : ''; ?>" required>
+                                    <input type="text" name="d_position" id="d_position" maxlength="20" placeholder="Enter Position/Business Category (Ex. Manager etc.)" class="form-control" value="<?php echo !empty($cardRow['d_position']) ? htmlspecialchars($cardRow['d_position']) : ''; ?>" required>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_contact">Phone No <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_contact" id="d_contact" maxlength="13" placeholder="Enter Phone Number" class="form-control" value="<?php echo !empty($row['d_contact']) ? htmlspecialchars($row['d_contact']) : ''; ?>" required>
+                                    <input type="text" name="d_contact" id="d_contact" maxlength="13" placeholder="Enter Phone Number" class="form-control" value="<?php echo !empty($cardRow['d_contact']) ? htmlspecialchars($cardRow['d_contact']) : ''; ?>" required>
                                 </div>
                             </div>
                         </div>
@@ -407,13 +438,13 @@ include '../includes/header.php';
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_contact2">Alternate Phone No (Optional)</label>
-                                    <input type="text" name="d_contact2" id="d_contact2" maxlength="13" placeholder="Enter Alternate Phone Number (Optional)" class="form-control" value="<?php echo !empty($row['d_contact2']) ? htmlspecialchars($row['d_contact2']) : ''; ?>">
+                                    <input type="text" name="d_contact2" id="d_contact2" maxlength="13" placeholder="Enter Alternate Phone Number (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_contact2']) ? htmlspecialchars($cardRow['d_contact2']) : ''; ?>">
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_whatsapp">WhatsApp No <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_whatsapp" id="d_whatsapp" maxlength="13" placeholder="Enter WhatsApp Number" class="form-control" value="<?php echo !empty($row['d_whatsapp']) ? htmlspecialchars($row['d_whatsapp']) : ''; ?>" required>
+                                    <input type="text" name="d_whatsapp" id="d_whatsapp" maxlength="13" placeholder="Enter WhatsApp Number" class="form-control" value="<?php echo !empty($cardRow['d_whatsapp']) ? htmlspecialchars($cardRow['d_whatsapp']) : ''; ?>" required>
                                 </div>
                             </div>
                         </div>
@@ -421,13 +452,13 @@ include '../includes/header.php';
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_email">Email Id <span class="text-danger">*</span></label>
-                                    <input type="email" name="d_email" id="d_email" maxlength="100" placeholder="Enter Email Id" class="form-control" value="<?php echo !empty($row['d_email']) ? htmlspecialchars($row['d_email']) : ''; ?>" required>
+                                    <input type="email" name="d_email" id="d_email" maxlength="100" placeholder="Enter Email Id" class="form-control" value="<?php echo !empty($cardRow['d_email']) ? htmlspecialchars($cardRow['d_email']) : ''; ?>" required>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_website">Website (Optional)</label>
-                                    <input type="text" name="d_website" id="d_website" maxlength="200" placeholder="Website (Optional)" class="form-control" value="<?php echo !empty($row['d_website']) ? htmlspecialchars($row['d_website']) : ''; ?>">
+                                    <input type="text" name="d_website" id="d_website" maxlength="200" placeholder="Website (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_website']) ? htmlspecialchars($cardRow['d_website']) : ''; ?>">
                                 </div>
                             </div>
                         </div>
@@ -435,13 +466,13 @@ include '../includes/header.php';
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_location">Location (Optional)</label>
-                                    <input type="text" name="d_location" id="d_location" maxlength="999" placeholder="Your Business Location (Optional)" class="form-control" value="<?php echo !empty($row['d_location']) ? htmlspecialchars($row['d_location']) : ''; ?>">
+                                    <input type="text" name="d_location" id="d_location" maxlength="999" placeholder="Your Business Location (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_location']) ? htmlspecialchars($cardRow['d_location']) : ''; ?>">
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_comp_est_date">Company Est Date <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_comp_est_date" id="d_comp_est_date" maxlength="200" placeholder="When your comp. was started?" class="form-control" value="<?php echo !empty($row['d_comp_est_date']) ? htmlspecialchars($row['d_comp_est_date']) : ''; ?>" required>
+                                    <input type="text" name="d_comp_est_date" id="d_comp_est_date" maxlength="200" placeholder="When your comp. was started?" class="form-control" value="<?php echo !empty($cardRow['d_comp_est_date']) ? htmlspecialchars($cardRow['d_comp_est_date']) : ''; ?>" required>
                                 </div>
                             </div>
                         </div>
@@ -449,7 +480,7 @@ include '../includes/header.php';
                             <div class="col-sm-12">
                                 <div class="form-group">
                                     <label for="d_address">Address <span class="text-danger">*</span></label>
-                                    <textarea name="d_address" id="d_address" maxlength="500" placeholder="Full Address" class="form-control" required><?php echo !empty($row['d_address']) ? htmlspecialchars($row['d_address']) : ''; ?></textarea>
+                                    <textarea name="d_address" id="d_address" maxlength="500" placeholder="Full Address" class="form-control" required><?php echo !empty($cardRow['d_address']) ? htmlspecialchars($cardRow['d_address']) : ''; ?></textarea>
                                 </div>
                             </div>
                         </div>
@@ -457,7 +488,7 @@ include '../includes/header.php';
                             <div class="col-sm-12">
                                 <div class="form-group">
                                     <label for="d_about_us">About Us <span class="text-danger">*</span></label>
-                                    <textarea name="d_about_us" id="d_about_us" maxlength="1900" placeholder="About your company/business" class="form-control" required><?php echo !empty($row['d_about_us']) ? htmlspecialchars($row['d_about_us']) : ''; ?></textarea>
+                                    <textarea name="d_about_us" id="d_about_us" maxlength="1900" placeholder="About your company/business" class="form-control" required><?php echo !empty($cardRow['d_about_us']) ? htmlspecialchars($cardRow['d_about_us']) : ''; ?></textarea>
                                 </div>
                             </div>
                         </div>
@@ -467,7 +498,7 @@ include '../includes/header.php';
                                 <span>Back</span>
                             </a>
                             <button type="submit" name="process2" class="btn btn-primary align-center save_btn">
-                                <img src="../../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                                <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                                 <span>Save</span>
                             </button>
                             <a href="social-links.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
@@ -483,174 +514,43 @@ include '../includes/header.php';
 </main>
 
 <script>
-// Preserve the current preview so we can revert on invalid selection
-var originalLogoSrc = null;
-$(document).ready(function(){
-    originalLogoSrc = $('#showPreviewLogo').attr('src');
-    if(!originalLogoSrc) {
-        originalLogoSrc = '';
-    }
-    
-    // Helper function to truncate file name
+(function() {
+    var logoUploadInited = false;
     function truncateFileName(fileName, maxLength) {
-        if(fileName.length <= maxLength) {
-            return fileName;
-        }
+        if (fileName.length <= maxLength) return fileName;
         var ext = fileName.substring(fileName.lastIndexOf('.'));
         var nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
         return nameWithoutExt.substring(0, maxLength - ext.length - 3) + '...' + ext;
     }
-    
-    // Handle file input change to show filename
-    $('#clickMeImage').on('change', function(){
-        if(this.files && this.files[0]) {
-            var fileName = truncateFileName(this.files[0].name, 25);
-            $('#fileName').text(fileName).attr('title', this.files[0].name);
-        } else {
-            $('#fileName').text('No File Chosen').removeAttr('title');
-        }
-    });
-});
-
-function clickFocus(){
-    $('#clickMeImage').click();
-}
-
-// Store processed image data for form submission
-var processedImageData = null;
-
-function readURL(input){
-    // Validate file before previewing
-    if(input.files && input.files[0]){
-        var file = input.files[0];
-        var allowedTypes = ['image/jpeg','image/png','image/gif','image/webp'];
-        var maxSize = 10 * 1024 * 1024; // 10MB (will be auto-optimized to 250KB)
-        
-        // Type validation
-        if(allowedTypes.indexOf(file.type) === -1){
-            alert('Only JPG, PNG, GIF, and WEBP images are allowed.');
-            // Revert preview and clear selection
-            if(originalLogoSrc) {
-                $('#showPreviewLogo').attr('src', originalLogoSrc).show();
-            } else {
-                $('#showPreviewLogo').hide();
-                $('#logoPreview span').show();
-            }
-            $(input).val('');
-            $('#fileName').text('No File Chosen').removeAttr('title');
-            processedImageData = null;
-            return;
-        }
-        
-        // Size validation (10MB max - will be auto-optimized to 250KB)
-        if(file.size > maxSize){
-            alert('Image size must be 10MB or less. The image will be automatically optimized to 250KB.');
-            // Revert preview and clear selection
-            if(originalLogoSrc) {
-                $('#showPreviewLogo').attr('src', originalLogoSrc).show();
-            } else {
-                $('#showPreviewLogo').hide();
-                $('#logoPreview span').show();
-            }
-            $(input).val('');
-            $('#fileName').text('No File Chosen').removeAttr('title');
-            processedImageData = null;
-            return;
-        }
-        
-        // Show loading indicator
-        $('#showPreviewLogo').hide();
-        $('#logoPreview span').html('<i class="fa fa-spinner fa-spin"></i> Processing...').show();
-        
-        // Immediately process the image via AJAX (like test page)
-        var formData = new FormData();
-        formData.append('d_logo', file);
-        formData.append('process_logo_ajax', '1');
-        
-        $.ajax({
-            url: window.location.href,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function(response) {
-                if(response && response.success) {
-                    // Show processed image (cropped to 1:1, optimized)
-                    var processedImageSrc = 'data:image/jpeg;base64,' + response.image_data;
-                    $('#showPreviewLogo').attr('src', processedImageSrc).show();
-                    $('#logoPreview span').hide();
-                    
-                    // Store processed image data for form submission
-                    processedImageData = response.image_data;
-                    $('#processed_logo_data').val(response.image_data);
-                    
-                    // Update original src
-                    originalLogoSrc = processedImageSrc;
-                    
-                    // Truncate file name if too long
-                    var fileName = file.name;
-                    var maxLength = 25;
-                    if(fileName.length > maxLength) {
-                        var ext = fileName.substring(fileName.lastIndexOf('.'));
-                        var nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
-                        fileName = nameWithoutExt.substring(0, maxLength - ext.length - 3) + '...' + ext;
-                    }
-                    $('#fileName').text(fileName).attr('title', file.name);
-                } else {
-                    // Error processing
-                    alert(response.message || 'Error processing image. Please try again.');
-                    // Revert preview
-                    if(originalLogoSrc) {
-                        $('#showPreviewLogo').attr('src', originalLogoSrc).show();
-                    } else {
-                        $('#showPreviewLogo').hide();
-                        $('#logoPreview span').text('YOUR LOGO').show();
-                    }
-                    $(input).val('');
-                    $('#fileName').text('No File Chosen').removeAttr('title');
-                    processedImageData = null;
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX Error:', {
-                    status: status,
-                    error: error,
-                    statusCode: xhr.status,
-                    responseText: xhr.responseText ? xhr.responseText.substring(0, 500) : 'No response'
+    function initLogoUpload() {
+        if (logoUploadInited || typeof window.jQuery === 'undefined' || typeof window.ImageCropUpload === 'undefined') return logoUploadInited;
+        logoUploadInited = true;
+        var $ = window.jQuery;
+        $(document).ready(function(){
+            $('#clickMeImage').off('change.logoUpload').on('change.logoUpload', function(){
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+                $('#fileName').text(truncateFileName(file.name, 25)).attr('title', file.name);
+                ImageCropUpload.open(file, {
+                    method: 'base64',
+                    hiddenField: '#processed_logo_data',
+                    previewSelector: '#showPreviewLogo',
+                    spanSelector: '#logoPreview span',
+                    title: 'Adjust & Crop Logo',
+                    onSuccess: function() {},
+                    onError: function(msg) { alert(msg); }
                 });
-                
-                // Try to parse error response
-                var errorMsg = 'Error processing image. Please try again.';
-                try {
-                    if(xhr.responseText) {
-                        var errorResponse = JSON.parse(xhr.responseText);
-                        if(errorResponse && errorResponse.message) {
-                            errorMsg = errorResponse.message;
-                        }
-                    }
-                } catch(e) {
-                    // Not JSON, use default message
-                }
-                
-                alert(errorMsg);
-                // Revert preview
-                if(originalLogoSrc) {
-                    $('#showPreviewLogo').attr('src', originalLogoSrc).show();
-                } else {
-                    $('#showPreviewLogo').hide();
-                    $('#logoPreview span').text('YOUR LOGO').show();
-                }
-                $(input).val('');
-                $('#fileName').text('No File Chosen').removeAttr('title');
-                processedImageData = null;
-                $('#processed_logo_data').val('');
-            }
+                $(this).val('');
+            });
         });
+        return true;
     }
-}
+    if (!initLogoUpload()) {
+        var check = setInterval(function() { if (initLogoUpload()) clearInterval(check); }, 100);
+    }
+    window.clickFocus = function() { if (window.jQuery) window.jQuery('#clickMeImage').click(); };
+})();
 </script>
-
 
 <style>
         footer{

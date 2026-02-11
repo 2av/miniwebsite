@@ -180,7 +180,7 @@ include '../includes/header.php';
                                     <span>Back</span>
                                 </a>
                                 <button type="submit" name="process2" class="btn btn-primary align-center save_btn">
-                                    <img src="../../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                                    <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                                     <span>Save</span>
                                 </button>
                                 <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">

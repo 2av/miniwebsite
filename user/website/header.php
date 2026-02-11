@@ -1,6 +1,7 @@
 <?php
-// Include database connection first
+// Include database connection and role helpers
 require_once(__DIR__ . '/../../app/config/database.php');
+require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 
 // Handle card_number from URL - store in session and cookie
 // MUST be done before any output
@@ -50,8 +51,26 @@ if($current_dir == 'dashboard') {
     $page_title = "Collaboration Details";
 }
 
- 
-// Profile image is now served by get_profile_image.php
+// Load profile image from database (saved by common/upload_profile.php)
+$user_email = get_user_email();
+$current_role = get_current_user_role();
+$user_image = '../../assets/images/profile-default.png';
+if (!empty($user_email) && !empty($current_role) && isset($connect)) {
+    $stmt = $connect->prepare("SELECT image FROM user_details WHERE email = ? AND role = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("ss", $user_email, $current_role);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && ($row = $res->fetch_assoc()) && !empty($row['image'])) {
+            $img_path = $row['image'];
+            $full_path = __DIR__ . '/../../' . $img_path;
+            if (file_exists($full_path)) {
+                $user_image = '../../' . $img_path;
+            }
+        }
+        $stmt->close();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -91,7 +110,7 @@ if($current_dir == 'dashboard') {
                     <a class="nav-link">
                         <div class="upload-profile">
                             <div class="circle">
-                                <img class="profile-pic" src="../<?php echo $user_image; ?>" alt="" srcset=""> 
+                                <img class="profile-pic" src="<?php echo htmlspecialchars($user_image); ?>" alt="" srcset=""> 
                                 <span>
                                     <?php 
                                     echo isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : 'Guest'; 
@@ -204,34 +223,56 @@ if($current_dir == 'dashboard') {
         </div>
         <div id="layoutSidenav_content">
 
-<!-- Profile Image Crop Modal -->
+<!-- Profile Image Crop Modal (same as tests/image_upload_crop: zoom, rotate, flip, preview) -->
 <style>
     #profileImageCropModal .modal-dialog {
-        max-width: 650px;
-        width: 90%;
+        max-width: 900px;
+        width: 95%;
     }
     #profileImageCropModal .img-container {
         width: 100%;
-        height: 550px;
-        max-height: 550px;
+        height: 380px;
+        max-height: 380px;
         overflow: hidden;
-        background: #f0f0f0;
+        background: #000;
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 5px;
     }
     #profileImageCropModal .img-container img {
         max-width: 100%;
         max-height: 100%;
         display: block;
     }
+    #profileImageCropModal .profile-crop-preview-box {
+        width: 160px;
+        height: 160px;
+        overflow: hidden;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        margin: 0 auto;
+    }
+    #profileImageCropModal .profile-crop-preview-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    #profileImageCropModal .profile-crop-zoom-slider {
+        margin-bottom: 0.5rem;
+    }
     @media (max-width: 768px) {
         #profileImageCropModal .modal-dialog {
-            max-width: 95%;
+            max-width: 98%;
         }
         #profileImageCropModal .img-container {
-            height: 400px;
-            max-height: 400px;
+            height: 300px;
+            max-height: 300px;
+        }
+        #profileImageCropModal .profile-crop-preview-box {
+            width: 120px;
+            height: 120px;
         }
     }
 </style>
@@ -249,43 +290,59 @@ if($current_dir == 'dashboard') {
             <div class="modal-body">
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <div class="img-container">
+                        <div class="col-md-8">
+                            <div class="img-container mb-3">
                                 <img id="imageToCrop" src="" alt="Profile Image">
                             </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="btn-toolbar justify-content-center mb-3" role="toolbar">
-                                <div class="btn-group mr-2" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="rotateLeft" title="Rotate Left">
-                                        <i class="fa fa-rotate-left"></i> Rotate Left
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="rotateRight" title="Rotate Right">
-                                        <i class="fa fa-rotate-right"></i> Rotate Right
-                                    </button>
-                                </div>
-                                <div class="btn-group mr-2" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="zoomIn" title="Zoom In">
-                                        <i class="fa fa-search-plus"></i> Zoom In
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="zoomOut" title="Zoom Out">
-                                        <i class="fa fa-search-minus"></i> Zoom Out
-                                    </button>
-                                </div>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="resetCrop" title="Reset">
-                                        <i class="fa fa-refresh"></i> Reset
-                                    </button>
+                            <div class="controls">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Zoom</label>
+                                        <input type="range" class="form-range profile-crop-zoom-slider" id="profileZoomSlider" min="0" max="3" step="0.1" value="1">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomOut" title="Zoom Out">
+                                                <i class="fa fa-search-minus"></i> Zoom Out
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomIn" title="Zoom In">
+                                                <i class="fa fa-search-plus"></i> Zoom In
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Rotate &amp; Flip</label>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="rotateLeft" title="Rotate Left">
+                                                <i class="fa fa-rotate-left"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="rotateRight" title="Rotate Right">
+                                                <i class="fa fa-rotate-right"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="flipHorizontal" title="Flip Horizontal">
+                                                <i class="fa fa-arrows-alt-h"></i> H
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="flipVertical" title="Flip Vertical">
+                                                <i class="fa fa-arrows-alt-v"></i> V
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="resetCrop" title="Reset">
+                                                <i class="fa fa-refresh"></i> Reset
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-4">
+                            <div class="preview-section border rounded p-3 bg-light">
+                                <h6 class="mb-2">Preview (512&times;512)</h6>
+                                <div id="profileCropPreviewBox" class="profile-crop-preview-box"></div>
+                                <p class="small text-muted mt-2 mb-0"><strong>Dimensions:</strong> <span id="profileCroppedDimensions">512 &times; 512 px</span></p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-12 text-center">
+                    <div class="row mt-2">
+                        <div class="col-12 text-center">
                             <p class="text-muted mb-0" style="font-size: 13px;">
-                                <i class="fa fa-info-circle"></i> Drag to adjust the crop area. The image will be automatically optimized to 600x600 pixels and ~250KB after upload.
+                                <i class="fa fa-info-circle"></i> Drag to adjust the crop area. Image will be saved as 512&times;512 and optimized after upload.
                             </p>
                         </div>
                     </div>

@@ -32,6 +32,7 @@
     }
     $assets_base = get_assets_base_path();
     ?>
+    <script src="<?php echo $assets_base; ?>/assets/js/image_upload_crop.js"></script>
     <script src="<?php echo $assets_base; ?>/assets/js/scripts.js"></script>
     <?php
     // Get referral code if available (for customers)

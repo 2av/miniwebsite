@@ -130,7 +130,8 @@ if(mysqli_num_rows($query) == 0){
     echo '<script>alert("Card id does not match with your email account"); window.location.href="business-name.php";</script>';
     exit;
 } else {
-    $row = mysqli_fetch_array($query);
+    // Use dedicated variable to avoid collisions with included files (e.g. header.php)
+    $cardRow = mysqli_fetch_array($query);
 }
 
 // Handle form submission
@@ -149,6 +150,24 @@ if(isset($_POST['process4'])){
         } elseif(file_exists('includes/file_validation.php')) {
             require_once 'includes/file_validation.php';
         }
+
+        // Ensure payment-details upload directory exists (store QR images here)
+        $paymentUploadDirAbs = __DIR__ . '/../../assets/upload/websites/payment-details/';
+        if (!is_dir($paymentUploadDirAbs)) {
+            @mkdir($paymentUploadDirAbs, 0775, true);
+        }
+        // Helper to save a QR binary blob to filesystem (no DB path stored yet)
+        function savePaymentQrToFilesystem($binaryData, $paymentUploadDirAbs, $prefix) {
+            if (empty($binaryData) || empty($paymentUploadDirAbs)) {
+                return;
+            }
+            if (!is_dir($paymentUploadDirAbs)) {
+                return;
+            }
+            $safePrefix = preg_replace('/[^a-zA-Z0-9_-]/', '_', $prefix);
+            $fileName = $safePrefix . '_' . date('ymdsih') . '.jpg';
+            @file_put_contents($paymentUploadDirAbs . $fileName, $binaryData);
+        }
         
         // Process Paytm QR code upload
         // Check if we have processed image data from AJAX (base64)
@@ -157,6 +176,8 @@ if(isset($_POST['process4'])){
             $qrData = base64_decode($_POST['processed_qr_paytm_data']);
             $d_qr_paytm = addslashes($qrData);
             $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_paytm="'.$d_qr_paytm.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+            // Also save QR image to filesystem
+            savePaymentQrToFilesystem($qrData, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_paytm');
         } elseif(!empty($_FILES['d_qr_paytm']['tmp_name'])){
             // Use the new automatic crop and resize function
             if(function_exists('processImageUploadWithAutoCrop')) {
@@ -172,8 +193,11 @@ if(isset($_POST['process4'])){
                 );
                 
                 if($result['status']) {
-                    $d_qr_paytm = addslashes($result['data']);
+                    $binary = $result['data'];
+                    $d_qr_paytm = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_paytm="'.$d_qr_paytm.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    // Also save QR image to filesystem
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_paytm');
                     // Clean up temp file
                     if($result['file_path'] && file_exists($result['file_path'])) {
                         @unlink($result['file_path']);
@@ -185,8 +209,10 @@ if(isset($_POST['process4'])){
                 // Fallback to validation function
                 $validation = validateImageFile($_FILES['d_qr_paytm'], 250000);
                 if($validation['status']) {
-                    $d_qr_paytm = addslashes(file_get_contents($_FILES['d_qr_paytm']['tmp_name']));
+                    $binary = file_get_contents($_FILES['d_qr_paytm']['tmp_name']);
+                    $d_qr_paytm = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_paytm="'.$d_qr_paytm.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_paytm');
                 } else {
                     $error_message = $validation['message'];
                 }
@@ -196,8 +222,10 @@ if(isset($_POST['process4'])){
                 $imageFileType = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
                 $file_allow = array('png', 'jpeg', 'jpg');
                 if(in_array($imageFileType, $file_allow) && $_FILES['d_qr_paytm']['size'] <= 250000) {
-                    $d_qr_paytm = addslashes(file_get_contents($_FILES['d_qr_paytm']['tmp_name']));
+                    $binary = file_get_contents($_FILES['d_qr_paytm']['tmp_name']);
+                    $d_qr_paytm = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_paytm="'.$d_qr_paytm.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_paytm');
                 } else {
                     $error_message = '<div class="alert alert-danger">Paytm QR: Only PNG, JPG, JPEG files allowed (max 250KB)</div>';
                 }
@@ -211,6 +239,7 @@ if(isset($_POST['process4'])){
             $qrData = base64_decode($_POST['processed_qr_google_pay_data']);
             $d_qr_google_pay = addslashes($qrData);
             $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_google_pay="'.$d_qr_google_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+            savePaymentQrToFilesystem($qrData, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_gpay');
         } elseif(!empty($_FILES['d_qr_google_pay']['tmp_name'])){
             // Use the new automatic crop and resize function
             if(function_exists('processImageUploadWithAutoCrop')) {
@@ -226,8 +255,10 @@ if(isset($_POST['process4'])){
                 );
                 
                 if($result['status']) {
-                    $d_qr_google_pay = addslashes($result['data']);
+                    $binary = $result['data'];
+                    $d_qr_google_pay = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_google_pay="'.$d_qr_google_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_gpay');
                     // Clean up temp file
                     if($result['file_path'] && file_exists($result['file_path'])) {
                         @unlink($result['file_path']);
@@ -239,8 +270,10 @@ if(isset($_POST['process4'])){
                 // Fallback to validation function
                 $validation = validateImageFile($_FILES['d_qr_google_pay'], 250000);
                 if($validation['status']) {
-                    $d_qr_google_pay = addslashes(file_get_contents($_FILES['d_qr_google_pay']['tmp_name']));
+                    $binary = file_get_contents($_FILES['d_qr_google_pay']['tmp_name']);
+                    $d_qr_google_pay = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_google_pay="'.$d_qr_google_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_gpay');
                 } else {
                     $error_message = $validation['message'];
                 }
@@ -250,8 +283,10 @@ if(isset($_POST['process4'])){
                 $imageFileType = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
                 $file_allow = array('png', 'jpeg', 'jpg');
                 if(in_array($imageFileType, $file_allow) && $_FILES['d_qr_google_pay']['size'] <= 250000) {
-                    $d_qr_google_pay = addslashes(file_get_contents($_FILES['d_qr_google_pay']['tmp_name']));
+                    $binary = file_get_contents($_FILES['d_qr_google_pay']['tmp_name']);
+                    $d_qr_google_pay = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_google_pay="'.$d_qr_google_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_gpay');
                 } else {
                     $error_message = '<div class="alert alert-danger">Google Pay QR: Only PNG, JPG, JPEG files allowed (max 250KB)</div>';
                 }
@@ -265,6 +300,7 @@ if(isset($_POST['process4'])){
             $qrData = base64_decode($_POST['processed_qr_phone_pay_data']);
             $d_qr_phone_pay = addslashes($qrData);
             $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_phone_pay="'.$d_qr_phone_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+            savePaymentQrToFilesystem($qrData, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_phonepe');
         } elseif(!empty($_FILES['d_qr_phone_pay']['tmp_name'])){
             // Use the new automatic crop and resize function
             if(function_exists('processImageUploadWithAutoCrop')) {
@@ -280,8 +316,10 @@ if(isset($_POST['process4'])){
                 );
                 
                 if($result['status']) {
-                    $d_qr_phone_pay = addslashes($result['data']);
+                    $binary = $result['data'];
+                    $d_qr_phone_pay = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_phone_pay="'.$d_qr_phone_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_phonepe');
                     // Clean up temp file
                     if($result['file_path'] && file_exists($result['file_path'])) {
                         @unlink($result['file_path']);
@@ -293,8 +331,10 @@ if(isset($_POST['process4'])){
                 // Fallback to validation function
                 $validation = validateImageFile($_FILES['d_qr_phone_pay'], 250000);
                 if($validation['status']) {
-                    $d_qr_phone_pay = addslashes(file_get_contents($_FILES['d_qr_phone_pay']['tmp_name']));
+                    $binary = file_get_contents($_FILES['d_qr_phone_pay']['tmp_name']);
+                    $d_qr_phone_pay = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_phone_pay="'.$d_qr_phone_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_phonepe');
                 } else {
                     $error_message = $validation['message'];
                 }
@@ -304,8 +344,10 @@ if(isset($_POST['process4'])){
                 $imageFileType = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
                 $file_allow = array('png', 'jpeg', 'jpg');
                 if(in_array($imageFileType, $file_allow) && $_FILES['d_qr_phone_pay']['size'] <= 250000) {
-                    $d_qr_phone_pay = addslashes(file_get_contents($_FILES['d_qr_phone_pay']['tmp_name']));
+                    $binary = file_get_contents($_FILES['d_qr_phone_pay']['tmp_name']);
+                    $d_qr_phone_pay = addslashes($binary);
                     $update1 = mysqli_query($connect, 'UPDATE digi_card SET d_qr_phone_pay="'.$d_qr_phone_pay.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    savePaymentQrToFilesystem($binary, $paymentUploadDirAbs, $_SESSION['card_id_inprocess'] . '_phonepe');
                 } else {
                     $error_message = '<div class="alert alert-danger">PhonePe QR: Only PNG, JPG, JPEG files allowed (max 250KB)</div>';
                 }
@@ -326,12 +368,22 @@ if(isset($_POST['process4'])){
         
         if($update){
             $_SESSION['save_success'] = "Payment Details Updated Successfully!";
-            header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
-            exit;
+            // Re-fetch updated record so fields show latest saved values
+            $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
+            if($query && mysqli_num_rows($query) > 0){
+                $cardRow = mysqli_fetch_array($query);
+            }
+            // Redirect if possible (prevents form resubmission on refresh)
+            if (!headers_sent()) {
+                header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
+                exit;
+            }
         } else {
             $_SESSION['save_error'] = "Error! Try Again.";
-            header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
-            exit;
+            if (!headers_sent()) {
+                header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
+                exit;
+            }
         }
     } else {
         $_SESSION['save_error'] = "Detail Not Available. Try Again.";
@@ -391,15 +443,15 @@ include '../includes/header.php';
                         <!-- GPay Section -->
                         <div class="card">
                             <div class="logo-placeholder" id="gpayPreview" onclick="clickFocus3()">
-                                <?php if(!empty($row['d_qr_google_pay'])): ?>
-                                    <img id="showPreviewLogo3" src="data:image/*;base64,<?php echo base64_encode($row['d_qr_google_pay']); ?>" alt="Google Pay QR" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
-                                    <?php if(!empty($row['d_qr_google_pay'])): ?>
-                                        <div class="delImg" onclick="event.stopPropagation(); removeData(<?php echo $row['id']; ?>,2)" title="Delete QR Code">
+                                <?php if(!empty($cardRow['d_qr_google_pay'])): ?>
+                                    <img id="showPreviewLogo3" src="data:image/*;base64,<?php echo base64_encode($cardRow['d_qr_google_pay']); ?>" alt="Google Pay QR" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                                    <?php if(!empty($cardRow['d_qr_google_pay'])): ?>
+                                        <div class="delImg" onclick="event.stopPropagation(); removeData(<?php echo $cardRow['id']; ?>,2)" title="Delete QR Code">
                                             <i class="fa fa-times"></i>
                                         </div>
                                     <?php endif; ?>
                                 <?php else: ?>
-                                    <img id="showPreviewLogo3" src="../../../assets/images/Gpay.png" class="img-fluid" style="display:none;">
+                                    <img id="showPreviewLogo3" src="../../assets/images/Gpay.png" class="img-fluid" style="display:none;">
                                     <small>ADD QR CODE</small>
                                 <?php endif; ?>
                             </div>
@@ -411,22 +463,22 @@ include '../includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label for="d_google_pay" class="title">UPI Number (Gpay) (Optional)</label>
-                                <input type="text" name="d_google_pay" id="d_google_pay" maxlength="20" class="form-control" placeholder="Enter Gpay Number" value="<?php echo !empty($row['d_google_pay']) ? htmlspecialchars($row['d_google_pay']) : ''; ?>">
+                                <input type="text" name="d_google_pay" id="d_google_pay" maxlength="20" class="form-control" placeholder="Enter Gpay Number" value="<?php echo !empty($cardRow['d_google_pay']) ? htmlspecialchars($cardRow['d_google_pay']) : ''; ?>">
                             </div>
                         </div>
 
                         <!-- Paytm Section -->
                         <div class="card">
                             <div class="logo-placeholder" id="paytmPreview" onclick="clickFocus10()">
-                                <?php if(!empty($row['d_qr_paytm'])): ?>
-                                    <img id="showPreviewLogo10" src="data:image/*;base64,<?php echo base64_encode($row['d_qr_paytm']); ?>" alt="Paytm QR" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
-                                    <?php if(!empty($row['d_qr_paytm'])): ?>
-                                        <div class="delImg" onclick="event.stopPropagation(); removeData(<?php echo $row['id']; ?>,1)" title="Delete QR Code">
+                                <?php if(!empty($cardRow['d_qr_paytm'])): ?>
+                                    <img id="showPreviewLogo10" src="data:image/*;base64,<?php echo base64_encode($cardRow['d_qr_paytm']); ?>" alt="Paytm QR" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                                    <?php if(!empty($cardRow['d_qr_paytm'])): ?>
+                                        <div class="delImg" onclick="event.stopPropagation(); removeData(<?php echo $cardRow['id']; ?>,1)" title="Delete QR Code">
                                             <i class="fa fa-times"></i>
                                         </div>
                                     <?php endif; ?>
                                 <?php else: ?>
-                                    <img id="showPreviewLogo10" src="../../../assets/images/paytm.png" class="img-fluid" style="display:none;">
+                                    <img id="showPreviewLogo10" src="../../assets/images/paytm.png" class="img-fluid" style="display:none;">
                                     <small>ADD QR CODE</small>
                                 <?php endif; ?>
                             </div>
@@ -438,22 +490,22 @@ include '../includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label for="d_paytm" class="title">UPI Number (Paytm) (Optional)</label>
-                                <input type="text" name="d_paytm" id="d_paytm" maxlength="20" class="form-control" placeholder="Enter Paytm Number" value="<?php echo !empty($row['d_paytm']) ? htmlspecialchars($row['d_paytm']) : ''; ?>">
+                                <input type="text" name="d_paytm" id="d_paytm" maxlength="20" class="form-control" placeholder="Enter Paytm Number" value="<?php echo !empty($cardRow['d_paytm']) ? htmlspecialchars($cardRow['d_paytm']) : ''; ?>">
                             </div>
                         </div>
 
                         <!-- PhonePe Section -->
                         <div class="card">
                             <div class="logo-placeholder" id="phonepePreview" onclick="clickFocus2()">
-                                <?php if(!empty($row['d_qr_phone_pay'])): ?>
-                                    <img id="showPreviewLogo2" src="data:image/*;base64,<?php echo base64_encode($row['d_qr_phone_pay']); ?>" alt="PhonePe QR" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
-                                    <?php if(!empty($row['d_qr_phone_pay'])): ?>
-                                        <div class="delImg" onclick="event.stopPropagation(); removeData(<?php echo $row['id']; ?>,3)" title="Delete QR Code">
+                                <?php if(!empty($cardRow['d_qr_phone_pay'])): ?>
+                                    <img id="showPreviewLogo2" src="data:image/*;base64,<?php echo base64_encode($cardRow['d_qr_phone_pay']); ?>" alt="PhonePe QR" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                                    <?php if(!empty($cardRow['d_qr_phone_pay'])): ?>
+                                        <div class="delImg" onclick="event.stopPropagation(); removeData(<?php echo $cardRow['id']; ?>,3)" title="Delete QR Code">
                                             <i class="fa fa-times"></i>
                                         </div>
                                     <?php endif; ?>
                                 <?php else: ?>
-                                    <img id="showPreviewLogo2" src="../../../assets/images/phonepe.png" class="img-fluid" style="display:none;">
+                                    <img id="showPreviewLogo2" src="../../assets/images/phonepe.png" class="img-fluid" style="display:none;">
                                     <small>ADD QR CODE</small>
                                 <?php endif; ?>
                             </div>
@@ -465,7 +517,7 @@ include '../includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label for="d_phone_pay" class="title">UPI Number (PhonePe) (Optional)</label>
-                                <input type="text" name="d_phone_pay" id="d_phone_pay" maxlength="20" class="form-control" placeholder="Enter PhonePe Number" value="<?php echo !empty($row['d_phone_pay']) ? htmlspecialchars($row['d_phone_pay']) : ''; ?>">
+                                <input type="text" name="d_phone_pay" id="d_phone_pay" maxlength="20" class="form-control" placeholder="Enter PhonePe Number" value="<?php echo !empty($cardRow['d_phone_pay']) ? htmlspecialchars($cardRow['d_phone_pay']) : ''; ?>">
                             </div>
                         </div>
                     </div>
@@ -473,19 +525,19 @@ include '../includes/header.php';
                         <label class="heading1">Bank Account Details:</label>
                         <div class="form-group">
                             <label for="d_bank_name">Bank Name (Optional)</label>
-                            <input type="text" name="d_bank_name" id="d_bank_name" maxlength="100" class="form-control" placeholder="Enter Bank Name" value="<?php echo !empty($row['d_bank_name']) ? htmlspecialchars($row['d_bank_name']) : ''; ?>">
+                            <input type="text" name="d_bank_name" id="d_bank_name" maxlength="100" class="form-control" placeholder="Enter Bank Name" value="<?php echo !empty($cardRow['d_bank_name']) ? htmlspecialchars($cardRow['d_bank_name']) : ''; ?>">
                         </div>
                         <div class="form-group">
                             <label for="d_ac_name">Account Holder Name (Optional)</label>
-                            <input type="text" name="d_ac_name" id="d_ac_name" maxlength="100" class="form-control" placeholder="Account Holder Name" value="<?php echo !empty($row['d_ac_name']) ? htmlspecialchars($row['d_ac_name']) : ''; ?>">
+                            <input type="text" name="d_ac_name" id="d_ac_name" maxlength="100" class="form-control" placeholder="Account Holder Name" value="<?php echo !empty($cardRow['d_ac_name']) ? htmlspecialchars($cardRow['d_ac_name']) : ''; ?>">
                         </div>
                         <div class="form-group">
                             <label for="d_account_no">Bank Account Number (Optional)</label>
-                            <input type="text" name="d_account_no" id="d_account_no" maxlength="100" class="form-control" placeholder="Enter Your Bank Account Number" value="<?php echo !empty($row['d_account_no']) ? htmlspecialchars($row['d_account_no']) : ''; ?>">
+                            <input type="text" name="d_account_no" id="d_account_no" maxlength="100" class="form-control" placeholder="Enter Your Bank Account Number" value="<?php echo !empty($cardRow['d_account_no']) ? htmlspecialchars($cardRow['d_account_no']) : ''; ?>">
                         </div>
                         <div class="form-group">
                             <label for="d_ifsc">Bank IFSC Code (Optional)</label>
-                            <input type="text" name="d_ifsc" id="d_ifsc" maxlength="100" class="form-control" placeholder="Enter IFSC Code" value="<?php echo !empty($row['d_ifsc']) ? htmlspecialchars($row['d_ifsc']) : ''; ?>">
+                            <input type="text" name="d_ifsc" id="d_ifsc" maxlength="100" class="form-control" placeholder="Enter IFSC Code" value="<?php echo !empty($cardRow['d_ifsc']) ? htmlspecialchars($cardRow['d_ifsc']) : ''; ?>">
                         </div>
                     </div>
                     
@@ -493,7 +545,7 @@ include '../includes/header.php';
                         <label class="heading2">GST Identification Number:</label>
                         <div class="form-group">
                             <label for="d_ac_type">GST Number (Optional)</label>
-                            <input type="text" name="d_ac_type" id="d_ac_type" maxlength="100" class="form-control" placeholder="Enter GST Number" value="<?php echo !empty($row['d_ac_type']) ? htmlspecialchars($row['d_ac_type']) : ''; ?>">
+                            <input type="text" name="d_ac_type" id="d_ac_type" maxlength="100" class="form-control" placeholder="Enter GST Number" value="<?php echo !empty($cardRow['d_ac_type']) ? htmlspecialchars($cardRow['d_ac_type']) : ''; ?>">
                         </div>
                     </div>
                     <div class="Product-ServicesBtn" style="margin-top: 20px;">
@@ -502,7 +554,7 @@ include '../includes/header.php';
                             <span>Back</span>
                         </a>
                         <button type="submit" name="process4" class="btn btn-primary align-center save_btn">
-                            <img src="../../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                             <span>Save</span>
                         </button>
                         <a href="product-and-services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
@@ -543,7 +595,36 @@ function readURL10(input){
             $('#processed_qr_paytm_data').val('');
             return;
         }
-        
+
+        // Use common ImageCropUpload cropper when available
+        if (typeof ImageCropUpload !== 'undefined') {
+            alert('[PAYTM] File OK. Opening crop. Size=' + file.size + ' bytes, type=' + file.type);
+            var fileName = file.name;
+            var maxLength = 25;
+            if (fileName.length > maxLength) {
+                var ext = fileName.substring(fileName.lastIndexOf('.'));
+                var nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                fileName = nameWithoutExt.substring(0, maxLength - ext.length - 3) + '...' + ext;
+            }
+            $('#paytmFileName').text(fileName).attr('title', file.name);
+
+            ImageCropUpload.open(file, {
+                method: 'base64',
+                hiddenField: '#processed_qr_paytm_data',
+                previewSelector: '#showPreviewLogo10',
+                spanSelector: '#paytmPreview small',
+                title: 'Adjust & Crop Paytm QR',
+                onSuccess: function(){
+                    var len = $('#processed_qr_paytm_data').val().length;
+                    alert('[PAYTM] Crop saved. Hidden length=' + len);
+                },
+                onError: function(msg){ alert(msg); }
+            });
+
+            $(input).val('');
+            return;
+        }
+
         // Show loading indicator
         $('#showPreviewLogo10').hide();
         $('#paytmPreview small').html('<i class="fa fa-spinner fa-spin"></i> Processing...').show();
@@ -582,7 +663,7 @@ function readURL10(input){
                 } else {
                     alert(response.message || 'Error processing image. Please try again.');
                     // Revert preview
-                    $('#showPreviewLogo10').attr('src', '../../../assets/images/paytm.png').hide();
+                    $('#showPreviewLogo10').attr('src', '../../assets/images/paytm.png').hide();
                     $('#paytmPreview small').text('ADD QR CODE').show();
                     $(input).val('');
                     $('#paytmFileName').text('No File Chosen');
@@ -602,7 +683,7 @@ function readURL10(input){
                 } catch(e) {}
                 alert(errorMsg);
                 // Revert preview
-                $('#showPreviewLogo10').attr('src', '../../../assets/images/paytm.png').hide();
+                $('#showPreviewLogo10').attr('src', '../../assets/images/paytm.png').hide();
                 $('#paytmPreview small').text('ADD QR CODE').show();
                 $(input).val('');
                 $('#paytmFileName').text('No File Chosen');
@@ -637,7 +718,36 @@ function readURL3(input){
             $('#processed_qr_google_pay_data').val('');
             return;
         }
-        
+
+        // Use common ImageCropUpload cropper when available
+        if (typeof ImageCropUpload !== 'undefined') {
+            alert('[GPAY] File OK. Opening crop. Size=' + file.size + ' bytes, type=' + file.type);
+            var fileName = file.name;
+            var maxLength = 25;
+            if (fileName.length > maxLength) {
+                var ext = fileName.substring(fileName.lastIndexOf('.'));
+                var nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                fileName = nameWithoutExt.substring(0, maxLength - ext.length - 3) + '...' + ext;
+            }
+            $('#gpayFileName').text(fileName).attr('title', file.name);
+
+            ImageCropUpload.open(file, {
+                method: 'base64',
+                hiddenField: '#processed_qr_google_pay_data',
+                previewSelector: '#showPreviewLogo3',
+                spanSelector: '#gpayPreview small',
+                title: 'Adjust & Crop Google Pay QR',
+                onSuccess: function(){
+                    var len = $('#processed_qr_google_pay_data').val().length;
+                    alert('[GPAY] Crop saved. Hidden length=' + len);
+                },
+                onError: function(msg){ alert(msg); }
+            });
+
+            $(input).val('');
+            return;
+        }
+
         // Show loading indicator
         $('#showPreviewLogo3').hide();
         $('#gpayPreview small').html('<i class="fa fa-spinner fa-spin"></i> Processing...').show();
@@ -676,7 +786,7 @@ function readURL3(input){
                 } else {
                     alert(response.message || 'Error processing image. Please try again.');
                     // Revert preview
-                    $('#showPreviewLogo3').attr('src', '../../../assets/images/Gpay.png').hide();
+                    $('#showPreviewLogo3').attr('src', '../../assets/images/Gpay.png').hide();
                     $('#gpayPreview small').text('ADD QR CODE').show();
                     $(input).val('');
                     $('#gpayFileName').text('No File Chosen');
@@ -696,7 +806,7 @@ function readURL3(input){
                 } catch(e) {}
                 alert(errorMsg);
                 // Revert preview
-                $('#showPreviewLogo3').attr('src', '../../../assets/images/Gpay.png').hide();
+                $('#showPreviewLogo3').attr('src', '../../assets/images/Gpay.png').hide();
                 $('#gpayPreview small').text('ADD QR CODE').show();
                 $(input).val('');
                 $('#gpayFileName').text('No File Chosen');
@@ -731,7 +841,32 @@ function readURL2(input){
             $('#processed_qr_phone_pay_data').val('');
             return;
         }
-        
+
+        // Use common ImageCropUpload cropper when available
+        if (typeof ImageCropUpload !== 'undefined') {
+            var fileName = file.name;
+            var maxLength = 25;
+            if (fileName.length > maxLength) {
+                var ext = fileName.substring(fileName.lastIndexOf('.'));
+                var nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                fileName = nameWithoutExt.substring(0, maxLength - ext.length - 3) + '...' + ext;
+            }
+            $('#phonepeFileName').text(fileName).attr('title', file.name);
+
+            ImageCropUpload.open(file, {
+                method: 'base64',
+                hiddenField: '#processed_qr_phone_pay_data',
+                previewSelector: '#showPreviewLogo2',
+                spanSelector: '#phonepePreview small',
+                title: 'Adjust & Crop PhonePe QR',
+                onSuccess: function(){},
+                onError: function(msg){ alert(msg); }
+            });
+
+            $(input).val('');
+            return;
+        }
+
         // Show loading indicator
         $('#showPreviewLogo2').hide();
         $('#phonepePreview small').html('<i class="fa fa-spinner fa-spin"></i> Processing...').show();
@@ -770,7 +905,7 @@ function readURL2(input){
                 } else {
                     alert(response.message || 'Error processing image. Please try again.');
                     // Revert preview
-                    $('#showPreviewLogo2').attr('src', '../../../assets/images/phonepe.png').hide();
+                    $('#showPreviewLogo2').attr('src', '../../assets/images/phonepe.png').hide();
                     $('#phonepePreview small').text('ADD QR CODE').show();
                     $(input).val('');
                     $('#phonepeFileName').text('No File Chosen');
@@ -790,7 +925,7 @@ function readURL2(input){
                 } catch(e) {}
                 alert(errorMsg);
                 // Revert preview
-                $('#showPreviewLogo2').attr('src', '../../../assets/images/phonepe.png').hide();
+                $('#showPreviewLogo2').attr('src', '../../assets/images/phonepe.png').hide();
                 $('#phonepePreview small').text('ADD QR CODE').show();
                 $(input).val('');
                 $('#phonepeFileName').text('No File Chosen');
@@ -858,13 +993,13 @@ function removeData(qr_id, qr_num){
             // Update the image source to default after successful deletion
             if(data.includes('success')){
                 if(qr_num == 1) {
-                    $('#showPreviewLogo10').attr('src', '../../../assets/images/paytm.png').hide();
+                    $('#showPreviewLogo10').attr('src', '../../assets/images/paytm.png').hide();
                     $('#paytmPreview small').show();
                 } else if(qr_num == 2) {
-                    $('#showPreviewLogo3').attr('src', '../../../assets/images/Gpay.png').hide();
+                    $('#showPreviewLogo3').attr('src', '../../assets/images/Gpay.png').hide();
                     $('#gpayPreview small').show();
                 } else if(qr_num == 3) {
-                    $('#showPreviewLogo2').attr('src', '../../../assets/images/phonepe.png').hide();
+                    $('#showPreviewLogo2').attr('src', '../../assets/images/phonepe.png').hide();
                     $('#phonepePreview small').show();
                 }
                 setTimeout(function(){

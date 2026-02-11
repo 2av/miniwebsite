@@ -88,9 +88,24 @@ $assets_base = get_assets_base_path();
 // Get base path for navigation links (includes /user)
 $nav_base = $assets_base . '/user';
 
-// Get profile image based on role
+// Load profile image from database (saved by common/upload_profile.php)
 $user_image = ($assets_base ? $assets_base : '') . '/assets/images/profile-default.png';
-// Profile image logic will be handled by get_profile_image.php or similar
+if (!empty($user_email) && !empty($current_role) && isset($connect)) {
+    $stmt = $connect->prepare("SELECT image FROM user_details WHERE email = ? AND role = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("ss", $user_email, $current_role);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && ($row = $res->fetch_assoc()) && !empty($row['image'])) {
+            $img_path = $row['image'];
+            $full_path = __DIR__ . '/../../' . $img_path;
+            if (file_exists($full_path)) {
+                $user_image = ($assets_base ? $assets_base : '') . '/' . $img_path;
+            }
+        }
+        $stmt->close();
+    }
+}
 
 // Dynamic site base URL for referral links (protocol + host from current request)
 $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'miniwebsite.in');
@@ -179,7 +194,7 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                     <a class="nav-link">
                         <div class="upload-profile">
                             <div class="circle">
-                                <img class="profile-pic" src="<?php echo $user_image; ?>" alt="" srcset=""> 
+                                <img class="profile-pic" src="<?php echo htmlspecialchars($user_image); ?>" alt="" srcset=""> 
                                 <span>
                                     <?php 
                                     echo htmlspecialchars($user_name ?? 'Guest'); 
@@ -420,104 +435,7 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
         </div>
         <div id="layoutSidenav_content">
 
-<!-- Profile Image Crop Modal -->
-<style>
-    #profileImageCropModal .modal-dialog {
-        max-width: 650px;
-        width: 90%;
-    }
-    #profileImageCropModal .img-container {
-        width: 100%;
-        height: 550px;
-        max-height: 550px;
-        overflow: hidden;
-        background: #f0f0f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    #profileImageCropModal .img-container img {
-        max-width: 100%;
-        max-height: 100%;
-        display: block;
-    }
-    @media (max-width: 768px) {
-        #profileImageCropModal .modal-dialog {
-            max-width: 95%;
-        }
-        #profileImageCropModal .img-container {
-            height: 400px;
-            max-height: 400px;
-        }
-    }
-</style>
-<div class="modal fade" id="profileImageCropModal" tabindex="-1" role="dialog" aria-labelledby="profileImageCropModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="profileImageCropModalLabel">
-                    <i class="fa fa-image me-2"></i>Adjust & Crop Profile Image
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <div class="img-container">
-                                <img id="imageToCrop" src="" alt="Profile Image">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="btn-toolbar justify-content-center mb-3" role="toolbar">
-                                <div class="btn-group mr-2" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="rotateLeft" title="Rotate Left">
-                                        <i class="fa fa-rotate-left"></i> Rotate Left
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="rotateRight" title="Rotate Right">
-                                        <i class="fa fa-rotate-right"></i> Rotate Right
-                                    </button>
-                                </div>
-                                <div class="btn-group mr-2" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="zoomIn" title="Zoom In">
-                                        <i class="fa fa-search-plus"></i> Zoom In
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="zoomOut" title="Zoom Out">
-                                        <i class="fa fa-search-minus"></i> Zoom Out
-                                    </button>
-                                </div>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="resetCrop" title="Reset">
-                                        <i class="fa fa-refresh"></i> Reset
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12 text-center">
-                            <p class="text-muted mb-0" style="font-size: 13px;">
-                                <i class="fa fa-info-circle"></i> Drag to adjust the crop area. The image will be automatically optimized to 600x600 pixels and ~250KB after upload.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fa fa-times"></i> Cancel
-                </button>
-                <button type="button" class="btn btn-primary" id="uploadCroppedImage">
-                    <i class="fa fa-upload"></i> Upload & Save
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<?php require_once(__DIR__ . '/../../common/image_upload_crop_modal.php'); ?>
 
 
 

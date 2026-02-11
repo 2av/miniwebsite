@@ -171,7 +171,21 @@ $row = mysqli_fetch_array($query);
 
         <!-- Facebook Meta Tags -->
 		 <!--<meta property="og:image" content="https://digiweblive.com/panel/favicons/220118012208Screenshot_20220104-094428_WhatsAppBusiness.jpg">-->
-		 <meta property="og:image" content="https://<?php echo $_SERVER['HTTP_HOST']; ?><?php if(isset($row) && $row && !empty($row['d_logo'])){echo '/'.str_replace('../','',$row['d_logo_location']);} ?>">
+		 <meta property="og:image" content="https://<?php echo $_SERVER['HTTP_HOST']; ?><?php
+            if (isset($row) && $row && !empty($row['d_logo'])) {
+                $logoLoc = isset($row['d_logo_location']) ? trim($row['d_logo_location']) : '';
+                if ($logoLoc !== '') {
+                    // If DB stores ONLY filename, prepend our new folder
+                    if (strpos($logoLoc, '/') === false && strpos($logoLoc, '\\') === false) {
+                        $logoLoc = 'assets/upload/websites/company_details/' . $logoLoc;
+                    }
+                    // Normalize legacy stored paths like ../../favicons/...
+                    $logoLoc = str_replace('\\', '/', $logoLoc);
+                    $logoLoc = preg_replace('#^\.\./+#', '', $logoLoc);
+                    echo '/' . $logoLoc;
+                }
+            }
+         ?>">
 
         <meta property="og:url" content="https://<?php echo $_SERVER['HTTP_HOST'].'/'.(isset($row) && $row ? $row['card_id'] : ''); ?>">
         <meta property="og:type" content="website">
@@ -179,7 +193,20 @@ $row = mysqli_fetch_array($query);
         <meta property="og:description" content=" <?php if(isset($row) && $row && !empty($row['d_f_name'])){echo $row['d_f_name'].' '.$row['d_l_name'];} ?><?php if(isset($row) && $row && !empty($row['d_position'])){echo ' ('.$row['d_position'].')';} ?><?php if(isset($row) && $row && !empty($row['d_about_us'])){echo ' '.$row['d_about_us'].'';} ?>">
 
         <!-- Twitter Meta Tags -->
-		 <meta name="twitter:image" content="<?php if(isset($row) && $row && !empty($row['d_logo'])){echo 'panel/'.str_replace('../','',$row['d_logo_location']);} ?>">
+		 <meta name="twitter:image" content="<?php
+            if (isset($row) && $row && !empty($row['d_logo'])) {
+                $logoLoc = isset($row['d_logo_location']) ? trim($row['d_logo_location']) : '';
+                if ($logoLoc !== '') {
+                    if (strpos($logoLoc, '/') === false && strpos($logoLoc, '\\') === false) {
+                        $logoLoc = 'assets/upload/websites/company_details/' . $logoLoc;
+                    }
+                    $logoLoc = str_replace('\\', '/', $logoLoc);
+                    $logoLoc = preg_replace('#^\.\./+#', '', $logoLoc);
+                    // Keep legacy behavior of prefixing "panel/" for twitter tag output
+                    echo 'panel/' . $logoLoc;
+                }
+            }
+         ?>">
 
         <meta property="twitter:url" content="https://<?php echo $_SERVER['HTTP_HOST'].'/'.(isset($row) && $row ? $row['card_id'] : ''); ?>">
         <meta name="twitter:card" content="summary_large_image">
@@ -861,13 +888,21 @@ if($product_count > 0){ ?>
 					$displayed_products++;
 					echo '<div class="order_box">';
 
-					// Display image if available, otherwise show placeholder
-					if(!empty($row3["product_image"])){
-						echo '<img src="data:image/*;base64,'.base64_encode($row3["product_image"]).'" alt="Product">';
+				// Display image if available, otherwise show placeholder
+				if(!empty($row3["product_image"])){
+					// Check if product_image is just a filename
+					if(is_string($row3["product_image"]) && strpos($row3["product_image"], '/') === false && strpos($row3["product_image"], '\\') === false && strpos($row3["product_image"], '.') !== false) {
+						// It's just a filename - construct the full path
+						$image_src = 'assets/upload/websites/product-pricing/' . htmlspecialchars($row3["product_image"]);
+						echo '<img src="' . $image_src . '" alt="Product">';
 					} else {
-						// Show placeholder div if no image
-						echo '<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#999; border-radius:8px;"><i class="fa fa-image" style="font-size:48px;"></i></div>';
+						// It's binary data - convert to base64 (legacy support)
+						echo '<img src="data:image/*;base64,'.base64_encode($row3["product_image"]).'" alt="Product">';
 					}
+				} else {
+					// Show placeholder div if no image
+					echo '<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#999; border-radius:8px;"><i class="fa fa-image" style="font-size:48px;"></i></div>';
+				}
 					
 					echo '<h2>'.htmlspecialchars($row3["product_name"]).'</h2>';
 					
@@ -962,7 +997,15 @@ if(isset($row['id'])){
 					echo '<p>'.$row2["product_name"].'</p>';
 				}
 				if(!empty($row2["product_image"])){
-					echo '<img src="data:image/*;base64,'.base64_encode($row2["product_image"]).'" alt="Logo">';
+					// Check if product_image is just a filename
+					if(is_string($row2["product_image"]) && strpos($row2["product_image"], '/') === false && strpos($row2["product_image"], '\\') === false && strpos($row2["product_image"], '.') !== false) {
+						// It's just a filename - construct the full path
+						$image_src = 'assets/upload/websites/product-and-services/' . htmlspecialchars($row2["product_image"]);
+						echo '<img src="' . $image_src . '" alt="Logo">';
+					} else {
+						// It's binary data - convert to base64 (legacy support)
+						echo '<img src="data:image/*;base64,'.base64_encode($row2["product_image"]).'" alt="Logo">';
+					}
 				}
 				echo '</div>';
 			}
@@ -1013,7 +1056,15 @@ if(isset($row['id'])){
 		while($row3 = mysqli_fetch_array($query_gallery)){
 			if(!empty($row3["gallery_image"])){
 				echo '<div class="img_gall">';
-				echo '<img src="data:image/*;base64,'.base64_encode($row3["gallery_image"]).'" alt="Gallery Image">';
+				// Check if gallery_image is just a filename
+				if(is_string($row3["gallery_image"]) && strpos($row3["gallery_image"], '/') === false && strpos($row3["gallery_image"], '\\') === false && strpos($row3["gallery_image"], '.') !== false) {
+					// It's just a filename - construct the full path
+					$image_src = 'assets/upload/websites/image-gallery/' . htmlspecialchars($row3["gallery_image"]);
+					echo '<img src="' . $image_src . '" alt="Gallery Image">';
+				} else {
+					// It's binary data - convert to base64 (legacy support)
+					echo '<img src="data:image/*;base64,'.base64_encode($row3["gallery_image"]).'" alt="Gallery Image">';
+				}
 				echo '</div>';
 			}
 		}

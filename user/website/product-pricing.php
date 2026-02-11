@@ -230,6 +230,26 @@ if(isset($_POST['product'])){
         }
         }
         
+        // Ensure product-pricing upload directory exists (store product images here)
+        $productPricingUploadDirAbs = __DIR__ . '/../../assets/upload/websites/product-pricing/';
+        if (!is_dir($productPricingUploadDirAbs)) {
+            @mkdir($productPricingUploadDirAbs, 0775, true);
+        }
+        // Helper to save a product image binary blob to filesystem and return only the filename
+        function saveProductPricingImageToFilesystem($binaryData, $uploadDirAbs, $cardId, $productName) {
+            if (empty($binaryData) || empty($uploadDirAbs) || !is_dir($uploadDirAbs)) {
+                return null;
+            }
+            $safeProductName = preg_replace('/[^a-zA-Z0-9_-]/', '_', substr($productName, 0, 50));
+            $fileName = $cardId . '_' . $safeProductName . '_' . date('ymdsih') . '.jpg';
+            $filePath = $uploadDirAbs . $fileName;
+            if(@file_put_contents($filePath, $binaryData)) {
+                // Return only filename for database storage
+                return $fileName;
+            }
+            return null;
+        }
+        
         $card_id = mysqli_real_escape_string($connect, $_SESSION['card_id_inprocess']);
         $products_processed = false;
         
@@ -267,7 +287,9 @@ if(isset($_POST['product'])){
                 
                 // Process image upload if provided
                 if(!empty($_POST["processed_product_image_data$slot_found"])){
-                    $product_image = base64_decode($_POST["processed_product_image_data$slot_found"]);
+                    $binary_data = base64_decode($_POST["processed_product_image_data$slot_found"]);
+                    // Save to filesystem and get the filename
+                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
                 } elseif(!empty($_FILES["pro_img$slot_found"]['tmp_name'])) {
                     if(function_exists('processImageUploadWithAutoCrop')) {
                         try {
@@ -278,7 +300,7 @@ if(isset($_POST['product'])){
                                 'jpeg', null
                             );
                             if($result['status']) {
-                                $product_image = $result['data'];
+                                $product_image = saveProductPricingImageToFilesystem($result['data'], $productPricingUploadDirAbs, $card_id, $product_name);
                                 if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
                                     @unlink($result['file_path']);
                                 }
@@ -293,7 +315,7 @@ if(isset($_POST['product'])){
                 $verify_query = mysqli_query($connect, "SELECT id FROM card_product_pricing WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id");
                 if(mysqli_num_rows($verify_query) > 0) {
                     if($product_image !== null) {
-                        $product_image_escaped = addslashes($product_image);
+                        $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
                         $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
                         $update_query = "UPDATE card_product_pricing SET product_name='$product_name', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
@@ -340,7 +362,8 @@ if(isset($_POST['product'])){
                 // Process image upload if provided
                 // Check if we have processed image data from AJAX (base64)
                 if(!empty($_POST["processed_product_image_data$x"])){
-                    $product_image = base64_decode($_POST["processed_product_image_data$x"]);
+                    $binary_data = base64_decode($_POST["processed_product_image_data$x"]);
+                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
                 } elseif(!empty($_FILES["pro_img$x"]['tmp_name'])) {
                     // Use the new automatic crop and resize function
                     if(function_exists('processImageUploadWithAutoCrop')) {
@@ -357,7 +380,7 @@ if(isset($_POST['product'])){
                             );
                             
                             if($result['status']) {
-                                $product_image = $result['data'];
+                                $product_image = saveProductPricingImageToFilesystem($result['data'], $productPricingUploadDirAbs, $card_id, $product_name);
                                 // Clean up temp file
                                 if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
                                     @unlink($result['file_path']);
@@ -381,9 +404,11 @@ if(isset($_POST['product'])){
                                     $destination = $_FILES["pro_img$x"]['tmp_name'];
                                     $quality = 65;
                                     $compressimage = compressImage($source, $destination, $quality);
-                                    $product_image = file_get_contents($compressimage);
+                                    $binary_data = file_get_contents($compressimage);
+                                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
                                 } else {
-                                    $product_image = file_get_contents($source);
+                                    $binary_data = file_get_contents($source);
+                                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
                                 }
                             } else {
                                 $error_message .= '<div class="alert alert-danger">File size for Product Image '.$x.' exceeds 250KB limit.</div>';
@@ -408,7 +433,7 @@ if(isset($_POST['product'])){
                     }
                     
                     if($product_image !== null) {
-                        $product_image_escaped = addslashes($product_image);
+                        $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
                         $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
                         $update_query = "UPDATE card_product_pricing SET product_name='$product_name', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
@@ -428,7 +453,7 @@ if(isset($_POST['product'])){
                     $product_name_escaped = mysqli_real_escape_string($connect, $product_name);
                     
                     if($product_image !== null) {
-                        $product_image_escaped = addslashes($product_image);
+                        $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
                         $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_image, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', '$product_image_escaped', $product_mrp, $product_price, $display_order)";
                     } else {
                         $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_mrp, $product_price, $display_order)";
@@ -496,6 +521,8 @@ if(isset($_POST['product'])){
 }
 
 include '../includes/header.php';
+// Include the common image upload/crop modal
+require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 ?>
 
 <main class="Dashboard">
@@ -556,11 +583,21 @@ include '../includes/header.php';
                                     $prod_mrp = !empty($prod['mrp']) && $prod['mrp'] > 0 ? floatval($prod['mrp']) : 0;
                                     $prod_price = !empty($prod['selling_price']) && $prod['selling_price'] > 0 ? floatval($prod['selling_price']) : 0;
                             ?>
-                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $row['id']; ?>">
+                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>">
                                     <td valign="middle"><?php echo $prod_name; ?></td>
                                     <td valign="middle">
                                         <?php if(!empty($prod['product_image'])): ?>
-                                            <img src="data:image/*;base64,<?php echo base64_encode($prod['product_image']); ?>" class="img-fluid" width="100px" alt="">
+                                            <?php
+                                            // Check if product_image is just a filename
+                                            if(is_string($prod['product_image']) && strpos($prod['product_image'], '/') === false && strpos($prod['product_image'], '\\') === false && strpos($prod['product_image'], '.') !== false) {
+                                                // It's just a filename - construct the full path
+                                                $image_src = '../../assets/upload/websites/product-pricing/' . $prod['product_image'];
+                                            } else {
+                                                // It's binary data - convert to base64 (legacy support)
+                                                $image_src = 'data:image/*;base64,' . base64_encode($prod['product_image']);
+                                            }
+                                            ?>
+                                            <img src="<?php echo htmlspecialchars($image_src); ?>" class="img-fluid" width="100px" alt="">
                                         <?php else: ?>
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
@@ -580,12 +617,9 @@ include '../includes/header.php';
                                         <?php endif; ?>
                                     </td>
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $prod_id; ?>, '<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>', '<?php echo $prod_mrp; ?>', '<?php echo $prod_price; ?>')">
-                                            <img src="../../../assets/images/edit1.png" alt="">
-                                        </a>
-                                        <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $row['id']; ?>, <?php echo $prod_id; ?>)">
-                                            <img src="../../../assets/images/delet.png" alt="">
-                                        </a>
+                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $prod_id; ?>, '<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>', '<?php echo $prod_mrp; ?>', '<?php echo $prod_price; ?>')"><img src="../../assets/images/edit1.png" alt=""></a>
+                                        <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $prod_id; ?>)"><img src="../../assets/images/delet.png" alt=""></a>
+                                            
                                     </td>
                                 </tr>
                             <?php 
@@ -620,7 +654,7 @@ include '../includes/header.php';
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
-                        <button class="btn btn-primary align-center save_btn" onclick="saveProducts()"><img src="../../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> <span>Save</span></button>
+                        <button class="btn btn-primary align-center save_btn" onclick="saveProducts()"><img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> <span>Save</span></button>
                         <a href="image-gallery.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
@@ -659,14 +693,14 @@ include '../includes/header.php';
                     </div>
                     <div class="form-group">
                         <label>Product/Service Image</label>
-                        <div class="product-image-preview-modal" style="text-align: center; margin-bottom: 15px;">
+                        <div class="product-image-preview-modal" style="text-align: center; margin-bottom: 15px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
                             <img id="modal_product_image_preview" 
                                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
                                  alt="Product Image" 
                                  onclick="document.getElementById('modal_product_image').click()" 
-                                 style="max-width: 200px; max-height: 200px; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px;">
+                                 style="max-width: 200px; width: auto; max-height: 200px; height: auto; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px; object-fit: contain;">
                         </div>
-                        <input type="file" id="modal_product_image" onchange="readModalImage(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+                        <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
                         <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
                     </div>
@@ -768,11 +802,17 @@ function editProduct(productId, productName, productMrp, productPrice) {
         
         if(existingImg.length > 0) {
             var imgSrc = existingImg.attr('src');
-            // Check if it's a valid image (not SVG placeholder and not "No Image" text)
-            if(imgSrc && imgSrc.startsWith('data:image') && !imgSrc.includes('svg+xml')) {
-                existingImgSrc = imgSrc;
-            } else if(imgSrc && imgSrc.startsWith('data:image/jpeg') || imgSrc.startsWith('data:image/png') || imgSrc.startsWith('data:image/*')) {
-                existingImgSrc = imgSrc;
+            // Check if it's a valid image
+            if(imgSrc) {
+                // Check if it's base64 encoded data
+                if(imgSrc.startsWith('data:image') && !imgSrc.includes('svg+xml')) {
+                    existingImgSrc = imgSrc;
+                } else if(imgSrc.startsWith('data:image/jpeg') || imgSrc.startsWith('data:image/png') || imgSrc.startsWith('data:image/*')) {
+                    existingImgSrc = imgSrc;
+                } else if(imgSrc.includes('assets/upload/websites/product-pricing/') || imgSrc.includes('.jpg') || imgSrc.includes('.png') || imgSrc.includes('.gif')) {
+                    // It's a filesystem image - use the src as is
+                    existingImgSrc = imgSrc;
+                }
             }
         }
     }
@@ -800,14 +840,13 @@ function editProduct(productId, productName, productMrp, productPrice) {
     }, 200); // Increased timeout to ensure modal is fully rendered
 }
 
-// Read modal image
-function readModalImage(input) {
+// Handle product image upload - use common ImageCropUpload modal
+function handleProductImageUpload(input) {
     if(input.files && input.files[0]) {
         var file = input.files[0];
         var allowedTypes = ['image/jpeg','image/png','image/gif','image/webp'];
         var maxSize = 10 * 1024 * 1024; // 10MB (will be auto-optimized to 250KB)
         
-        // Validate file type
         if(allowedTypes.indexOf(file.type) === -1) {
             alert('Only JPG, PNG, GIF, and WEBP images are allowed.');
             $(input).val('');
@@ -815,7 +854,6 @@ function readModalImage(input) {
             return;
         }
         
-        // Validate file size (10MB max - will be auto-optimized to 250KB)
         if(file.size > maxSize) {
             alert('Image size must be 10MB or less. The image will be automatically optimized to 250KB.');
             $(input).val('');
@@ -823,55 +861,64 @@ function readModalImage(input) {
             return;
         }
         
-        // Show loading indicator
-        $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Qcm9jZXNzaW5nLi4uPC90ZXh0Pjwvc3ZnPg==');
+        // Truncate file name if too long
+        var fileName = file.name;
+        var maxLength = 25;
+        if(fileName.length > maxLength) {
+            var ext = fileName.substring(fileName.lastIndexOf('.'));
+            var nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+            fileName = nameWithoutExt.substring(0, maxLength - ext.length - 3) + '...' + ext;
+        }
         
-        // Immediately process the image via AJAX
-        var formData = new FormData();
-        formData.append('product_image', file);
-        formData.append('process_product_image_ajax', '1');
-        
-        $.ajax({
-            url: window.location.href,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function(response) {
-                if(response && response.success) {
-                    // Show processed image (cropped to 1:1, optimized)
-                    var processedImageSrc = 'data:image/jpeg;base64,' + response.image_data;
-                    $('#modal_product_image_preview').attr('src', processedImageSrc);
-                    
-                    // Store processed image data for form submission
-                    processedProductImageData = response.image_data;
-                } else {
-                    alert(response.message || 'Error processing image. Please try again.');
-                    // Revert preview
-                    $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+        // Use common ImageCropUpload modal (from common/image_upload_crop_modal.php)
+        if (typeof ImageCropUpload !== 'undefined') {
+            // Set up the success callback before opening the modal
+            window.productImageCropCallback = function(base64Data) {
+                // base64Data from ImageCropUpload is already clean (no data URI prefix)
+                // Store it for form submission
+                processedProductImageData = base64Data;
+                
+                // Build the data URI for preview display
+                var previewDataUri = 'data:image/jpeg;base64,' + base64Data;
+                console.log('Image crop successful, stored base64 data');
+                
+                // Update preview image with the cropped image
+                $('#modal_product_image_preview').attr('src', previewDataUri);
+                
+                // Add visual feedback with green border
+                $('#modal_product_image_preview').css({
+                    'border': '2px solid #28a745',
+                    'border-radius': '8px',
+                    'max-width': '200px',
+                    'width': 'auto',
+                    'max-height': '200px',
+                    'height': 'auto',
+                    'padding': '10px'
+                });
+            };
+            
+            ImageCropUpload.open(file, {
+                method: 'base64',
+                hiddenField: null,  // We'll handle the base64 data in onSuccess
+                previewSelector: null,  // Don't auto-update preview
+                spanSelector: null,
+                title: 'Adjust & Crop Product Image',
+                onSuccess: function(base64Data) {
+                    // Call our custom callback
+                    if (window.productImageCropCallback) {
+                        window.productImageCropCallback(base64Data);
+                    }
+                },
+                onError: function(msg) {
+                    alert(msg || 'Error processing image. Please try again.');
                     $(input).val('');
                     processedProductImageData = null;
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX Error:', error);
-                var errorMsg = 'Error processing image. Please try again.';
-                try {
-                    if(xhr.responseText) {
-                        var errorResponse = JSON.parse(xhr.responseText);
-                        if(errorResponse && errorResponse.message) {
-                            errorMsg = errorResponse.message;
-                        }
-                    }
-                } catch(e) {}
-                alert(errorMsg);
-                // Revert preview
-                $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-                $(input).val('');
-                processedProductImageData = null;
-            }
-        });
+            });
+            $(input).val('');
+        } else {
+            alert('Image crop tool not available. Please refresh the page.');
+        }
     }
 }
 
@@ -1491,6 +1538,10 @@ padding:0px;
     .Product-ServicesBtn button {
         padding: 7px !important;
         margin-top: 22px !important;
+    }
+    
+    #imageCropModal{
+        z-index: 10000 !important;
     }
 </style>
 
