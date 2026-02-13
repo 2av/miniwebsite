@@ -108,6 +108,111 @@ if(isset($_POST['process_logo_ajax']) && !empty($_FILES['d_logo']['tmp_name'])){
     exit;
 }
 
+// Handle AJAX hero image processing FIRST - before any other output
+// This must be at the very top to prevent any output before JSON response
+if(isset($_POST['process_hero_image_ajax']) && !empty($_FILES['d_hero_image']['tmp_name'])){
+    // Suppress any output and set JSON header
+    ob_start();
+    error_reporting(E_ALL);
+    ini_set('display_errors', 0);
+    
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    
+    try {
+        // Include file validation functions
+        $file_validation_path = __DIR__ . '/../../includes/file_validation.php';
+        if(file_exists($file_validation_path)) {
+            require_once $file_validation_path;
+        } elseif(file_exists('../../includes/file_validation.php')) {
+            require_once '../../includes/file_validation.php';
+        } elseif(file_exists('../includes/file_validation.php')) {
+            require_once '../includes/file_validation.php';
+        } elseif(file_exists('includes/file_validation.php')) {
+            require_once 'includes/file_validation.php';
+        } else {
+            throw new Exception('File validation library not found');
+        }
+        
+        if(!function_exists('processImageUploadWithAutoCrop')) {
+            throw new Exception('Image processing function not available');
+        }
+        
+        // Check file upload error
+        if($_FILES['d_hero_image']['error'] !== UPLOAD_ERR_OK) {
+            throw new Exception('File upload error: ' . $_FILES['d_hero_image']['error']);
+        }
+        
+        $result = processImageUploadWithAutoCrop(
+            $_FILES['d_hero_image'], 
+            1200,     // Target size: 1200x400 (wider aspect ratio for hero)
+            500000,   // Target file size: 500KB
+            300000,   // Min file size: 300KB
+            600000,   // Max file size: 600KB
+            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
+            'jpeg',
+            null
+        );
+        
+        if($result['status']) {
+            // Return processed image as base64 for immediate preview
+            $base64Image = base64_encode($result['data']);
+            
+            // Clear any output buffer
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'image_data' => $base64Image,
+                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 1200, 'height' => 400],
+                'file_size' => isset($result['file_size']) ? $result['file_size'] : 0,
+                'message' => 'Hero image processed successfully'
+            ]);
+            
+            // Clean up temp file
+            if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                @unlink($result['file_path']);
+            }
+        } else {
+            // Clear any output buffer
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            $errorMsg = isset($result['message']) ? strip_tags($result['message']) : 'Unknown error processing image';
+            echo json_encode([
+                'success' => false,
+                'message' => $errorMsg
+            ]);
+        }
+    } catch(Exception $e) {
+        // Clear any output buffer
+        while(ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ]);
+    } catch(Error $e) {
+        // Clear any output buffer
+        while(ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => 'Fatal error: ' . $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
 if(isset($_GET['card_number']) && !empty($_GET['card_number'])){
     $card_number = mysqli_real_escape_string($connect, $_GET['card_number']);
     $_SESSION['card_id_inprocess'] = $card_number;
@@ -294,24 +399,107 @@ if(isset($_POST['process2'])){
             }
         }
         
+        // Process hero image upload if file is selected
+        // Check if we have processed image data from AJAX (base64)
+        if(!empty($_POST['processed_hero_image_data'])){
+            // Use the processed image data from AJAX
+            $heroImageData = base64_decode($_POST['processed_hero_image_data']);
+            
+            // Save to file system only
+            $heroFileNameOnly = date('ymdsih') . '_hero.jpg';
+            $heroFilePathAbs = $companyDetailsUploadDirAbs . $heroFileNameOnly;
+            if(empty($error_message) && file_put_contents($heroFilePathAbs, $heroImageData) !== false) {
+                // Save ONLY the filename in DB
+                $update = mysqli_query($connect, 'UPDATE digi_card SET d_hero_image_location="'.$heroFileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+            }
+        } elseif(!empty($_FILES['d_hero_image']['tmp_name'])){
+            // Use the new automatic crop and resize function
+            if(function_exists('processImageUploadWithAutoCrop')) {
+                // Process image: auto crop, resize to 1200x400, compress
+                $result = processImageUploadWithAutoCrop(
+                    $_FILES['d_hero_image'], 
+                    1200,     // Target size: 1200x400
+                    500000,   // Target file size: 500KB
+                    300000,   // Min file size: 300KB
+                    600000,   // Max file size: 600KB
+                    ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], // Allowed types
+                    'jpeg',   // Output format
+                    null      // No specific destination, use temp file
+                );
+                
+                if($result['status']) {
+                    // Image processed successfully - save to file system only
+                    $safeOriginal = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($_FILES['d_hero_image']['name']));
+                    $heroFileNameOnly = date('ymdsih') . '_' . $safeOriginal;
+                    $heroFilePathAbs = $companyDetailsUploadDirAbs . $heroFileNameOnly;
+                    if(empty($error_message) && file_put_contents($heroFilePathAbs, $result['data']) !== false) {
+                        // Save ONLY the filename in DB (no binary data)
+                        $update = mysqli_query($connect, 'UPDATE digi_card SET d_hero_image_location="'.$heroFileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+                    }
+                } else {
+                    $error_message = '<div class="alert alert-danger">Error processing hero image: ' . (isset($result['message']) ? $result['message'] : 'Unknown error') . '</div>';
+                }
+            }
+        }
+        
         // Escape special characters for certain fields
         $d_about_us = str_replace(array("'",'"',';','(',')','"','"',':','%','`','[',']'), array("\'",'\"','\;','\(','\)','\"','\"','\:','\%','\`','\[','\]'), $_POST['d_about_us']);
         $d_address = str_replace(array("'",'"',';','(',')','"','"',':','%','`','[',']'), array("\'",'\"','\;','\(','\)','\"','\"','\:','\%','\`','\[','\]'), $_POST['d_address']);
-        $d_position = str_replace(array("'",'"',';','(',')','"','"',':','%','`','[',']'), array("\'",'\"','\;','\(','\)','\"','\"','\:','\%','\`','\[','\]'), $_POST['d_position']);
+        $d_address2 = str_replace(array("'",'"',';','(',')','"','"',':','%','`','[',']'), array("\'",'\"','\;','\(','\)','\"','\"','\:','\%','\`','\[','\]'), isset($_POST['d_address2']) ? $_POST['d_address2'] : '');
         $d_comp_est_date = str_replace(array("'",'"',';','(',')','"','"',':','%','`','[',']'), array("\'",'\"','\;','\(','\)','\"','\"','\:','\%','\`','\[','\]'), $_POST['d_comp_est_date']);
-        
+
+        // Helper to add missing columns (no-op if exists)
+        function ensureColumnExists($connect, $table, $column, $definition){
+            $res = @mysqli_query($connect, "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+            if(!$res || mysqli_num_rows($res) == 0){
+                @mysqli_query($connect, "ALTER TABLE `{$table}` ADD `{$column}` {$definition}");
+            }
+        }
+
+        // Ensure required columns exist in digi_card (safe to call on every save)
+        ensureColumnExists($connect, 'digi_card', 'd_position_primary', "VARCHAR(200) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_position_secondary', "VARCHAR(200) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_contact', "VARCHAR(50) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_contact2', "VARCHAR(50) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_whatsapp', "VARCHAR(50) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_gst_number', "VARCHAR(100) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_comp_est_date', "DATE NULL");
+        ensureColumnExists($connect, 'digi_card', 'd_website', "VARCHAR(255) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_address2', "VARCHAR(500) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_city', "VARCHAR(200) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_state', "VARCHAR(200) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_pincode', "VARCHAR(50) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_country', "VARCHAR(200) DEFAULT ''");
+
+        // Sanitize new fields (fall back to empty string when not provided)
+        $d_position_primary = isset($_POST['d_position_primary']) ? mysqli_real_escape_string($connect, $_POST['d_position_primary']) : '';
+        $d_position_secondary = isset($_POST['d_position_secondary']) ? mysqli_real_escape_string($connect, $_POST['d_position_secondary']) : '';
+        $d_city = isset($_POST['d_city']) ? mysqli_real_escape_string($connect, $_POST['d_city']) : '';
+        $d_state = isset($_POST['d_state']) ? mysqli_real_escape_string($connect, $_POST['d_state']) : '';
+        $d_pincode = isset($_POST['d_pincode']) ? mysqli_real_escape_string($connect, $_POST['d_pincode']) : '';
+        $d_country = isset($_POST['d_country']) ? mysqli_real_escape_string($connect, $_POST['d_country']) : '';
+        $d_gst_number = isset($_POST['d_gst_number']) ? mysqli_real_escape_string($connect, $_POST['d_gst_number']) : '';
+
         $update = mysqli_query($connect, 'UPDATE digi_card SET 
         d_f_name="'.mysqli_real_escape_string($connect, $_POST['d_f_name']).'",
         d_l_name="'.mysqli_real_escape_string($connect, $_POST['d_l_name']).'",
-        d_position="'.$d_position.'",
+        d_position_primary="'.$d_position_primary.'",
+        d_position_secondary="'.$d_position_secondary.'",
+        d_position="'.(isset($_POST['d_position']) ? mysqli_real_escape_string($connect, $_POST['d_position']) : $d_position_primary).'",
         d_contact="'.mysqli_real_escape_string($connect, $_POST['d_contact']).'",
         d_contact2="'.mysqli_real_escape_string($connect, $_POST['d_contact2']).'",
         d_whatsapp="'.mysqli_real_escape_string($connect, $_POST['d_whatsapp']).'",
+        d_gst_number="'.$d_gst_number.'",
         d_address="'.$d_address.'",
+        d_address2="'.$d_address2.'",
+        d_city="'.$d_city.'",
+        d_state="'.$d_state.'",
+        d_pincode="'.$d_pincode.'",
+        d_country="'.$d_country.'",
         d_email="'.mysqli_real_escape_string($connect, $_POST['d_email']).'",
         d_website="'.mysqli_real_escape_string($connect, $_POST['d_website']).'",
         d_location="'.mysqli_real_escape_string($connect, $_POST['d_location']).'",
-        d_comp_est_date="'.$d_comp_est_date.'",
+        d_comp_est_date="'.mysqli_real_escape_string($connect, $d_comp_est_date).'",
         d_about_us="'.$d_about_us.'"
         WHERE id="'.$_SESSION['card_id_inprocess'].'"');
         
@@ -383,9 +571,11 @@ include '../includes/header.php';
                 <label class="heading heading1">Company Details:</label>
                 <form action="" method="POST" enctype="multipart/form-data" id="card_form">
                     <!-- Hidden field to store processed image data -->
-                    <input type="hidden" name="processed_logo_data" id="processed_logo_data" value="">
-                    <div class="upload-container">
-                        <div class="logo-placeholder" id="logoPreview" onclick="clickFocus()">
+                     <div class="row">
+                        <div class="col-sm-6">
+                        <input type="hidden" name="processed_logo_data" id="processed_logo_data" value="">
+                        <div class="upload-container">
+                        <div class="logo-placeholder" id="logoPreview" onclick="clickFocusLogo()">
                             <?php if(!empty($cardRow['d_logo'])): ?>
                                 <img id="showPreviewLogo" src="data:image/*;base64,<?php echo base64_encode($cardRow['d_logo']); ?>" alt="Logo Preview">
                             <?php else: ?>
@@ -403,7 +593,34 @@ include '../includes/header.php';
                             <label for="clickMeImage" class="choose-btn">Choose File</label>
                             <input type="file" name="d_logo" id="clickMeImage" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" style="display:none;">
                         </div>
+                        </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                        <input type="hidden" name="processed_hero_image_data" id="processed_hero_image_data" value="">
+                        <div class="upload-container">
+                        <div class="logo-placeholder" id="heroImagePreview" onclick="clickFocusHero()">
+                            <?php if(!empty($cardRow['d_hero_image_location'])): ?>
+                                <img id="showPreviewHero" src="../../assets/upload/websites/company_details/<?php echo htmlspecialchars($cardRow['d_hero_image_location']); ?>" alt="Hero Image Preview">
+                            <?php else: ?>
+                                <span>YOUR HERO IMAGE</span>
+                                <img id="showPreviewHero" style="display:none;">
+                            <?php endif; ?>
+                        </div>
+                        <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
+                        
+                        <p class="addlogo">Add Hero Image</p>
+                        <div class="file-upload">
+                            <div id="fileContainerHero">
+                                <span id="fileNameHero">No File Chosen</span>
+                            </div>                                        
+                            <label for="clickMeImageHero" class="choose-btn">Choose File</label>
+                            <input type="file" name="d_hero_image" id="clickMeImageHero" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" style="display:none;">
+                        </div>
+                        </div>
+                        </div>
                     </div>
+                   
                     <div class="Personal-Details">
                         <label class="heading heading2">Personal Details:</label>
                         <div class="row">
@@ -423,22 +640,44 @@ include '../includes/header.php';
                         <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_position">Position/Business Category <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_position" id="d_position" maxlength="20" placeholder="Enter Position/Business Category (Ex. Manager etc.)" class="form-control" value="<?php echo !empty($cardRow['d_position']) ? htmlspecialchars($cardRow['d_position']) : ''; ?>" required>
+                                    <label for="d_f_name">Business Category(Primary) <span class="text-danger">*</span></label>
+                                    <select name="d_position_primary" id="d_position_primary" class="form-control">
+                                        <option value="">Select Position</option>
+                                        <option value="Manager">Manager</option>
+                                        <option value="Director">Director</option>
+                                        <option value="CEO">CEO</option>
+                                        <option value="CTO">CTO</option>
+                                        <option value="CFO">CFO</option>
+                                    </select>
                                 </div>
                             </div>
+                            <div class="col-sm-6">
+                            <div class="form-group">
+                                    <label for="d_f_name">Business Category(secondary)</label>
+                                    <select name="d_position_secondary" id="d_position_secondary" class="form-control">
+                                        <option value="">Select Business Category(secondary)</option>   
+                                        <option value="Agriculture">Agriculture</option>
+                                        <option value="Automotive">Automotive</option>
+                                        <option value="Banking">Banking</option>
+                                        <option value="Beauty & Spa">Beauty & Spa</option>
+                                        <option value="Beverages">Beverages</option>
+                                        <option value="Clothing">Clothing</option>
+                                        <option value="Construction">Construction</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Food & Drink">Food & Drink</option>
+                                        <option value="Health & Fitness">Health & Fitness</option>
+                                        <option value="Home & Garden">Home & Garden</option>
+                                        <option value="Jewelry">Jewelry</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">                           
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_contact">Phone No <span class="text-danger">*</span></label>
                                     <input type="text" name="d_contact" id="d_contact" maxlength="13" placeholder="Enter Phone Number" class="form-control" value="<?php echo !empty($cardRow['d_contact']) ? htmlspecialchars($cardRow['d_contact']) : ''; ?>" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <div class="form-group">
-                                    <label for="d_contact2">Alternate Phone No (Optional)</label>
-                                    <input type="text" name="d_contact2" id="d_contact2" maxlength="13" placeholder="Enter Alternate Phone Number (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_contact2']) ? htmlspecialchars($cardRow['d_contact2']) : ''; ?>">
                                 </div>
                             </div>
                             <div class="col-sm-6">
@@ -451,38 +690,88 @@ include '../includes/header.php';
                         <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
+                                    <label for="d_contact2">Alternate Phone No (Optional)</label>
+                                    <input type="text" name="d_contact2" id="d_contact2" maxlength="13" placeholder="Enter Alternate Phone Number (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_contact2']) ? htmlspecialchars($cardRow['d_contact2']) : ''; ?>">
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
                                     <label for="d_email">Email Id <span class="text-danger">*</span></label>
                                     <input type="email" name="d_email" id="d_email" maxlength="100" placeholder="Enter Email Id" class="form-control" value="<?php echo !empty($cardRow['d_email']) ? htmlspecialchars($cardRow['d_email']) : ''; ?>" required>
                                 </div>
                             </div>
+                            
+                        </div>
+                        <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_website">Website (Optional)</label>
+                                    <label for="d_contact2">GST Identification Number</label>
+                                    <input type="text" name="d_gst_number" id="d_gst_number" maxlength="13" placeholder="Enter GST Identification Number" class="form-control" value="<?php echo !empty($cardRow['d_gst_number']) ? htmlspecialchars($cardRow['d_gst_number']) : ''; ?>">
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="d_email">Company Establishment Date <span class="text-danger">*</span></label>
+                                    <input type="date" name="d_comp_est_date" id="d_comp_est_date" maxlength="200" placeholder="Enter Company Establishment Date" class="form-control" value="<?php echo !empty($cardRow['d_comp_est_date']) ? htmlspecialchars($cardRow['d_comp_est_date']) : ''; ?>" required>
+                                </div>
+                            </div>
+                            
+                        </div>
+                        <div class="row">
+                            
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="d_website">Website Link</label>
                                     <input type="text" name="d_website" id="d_website" maxlength="200" placeholder="Website (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_website']) ? htmlspecialchars($cardRow['d_website']) : ''; ?>">
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_location">Location (Optional)</label>
+                                    <label for="d_location">Location</label>
                                     <input type="text" name="d_location" id="d_location" maxlength="999" placeholder="Your Business Location (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_location']) ? htmlspecialchars($cardRow['d_location']) : ''; ?>">
                                 </div>
                             </div>
+                        </div>
+                       
+                        <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_comp_est_date">Company Est Date <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_comp_est_date" id="d_comp_est_date" maxlength="200" placeholder="When your comp. was started?" class="form-control" value="<?php echo !empty($cardRow['d_comp_est_date']) ? htmlspecialchars($cardRow['d_comp_est_date']) : ''; ?>" required>
+                                    <label for="d_address">Address Line 1 <span class="text-danger">*</span></label>
+                                    <textarea name="d_address" id="d_address" maxlength="500" placeholder="Full Address" class="form-control" required><?php echo !empty($cardRow['d_address']) ? htmlspecialchars($cardRow['d_address']) : ''; ?></textarea>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="d_address">Address Line 2 <span class="text-danger">*</span></label>
+                                    <textarea name="d_address2" id="d_address2" maxlength="500" placeholder="Full Address" class="form-control" required><?php echo !empty($cardRow['d_address2']) ? htmlspecialchars($cardRow['d_address2']) : ''; ?></textarea>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-sm-12">
+                            <div class="col-sm-3">
                                 <div class="form-group">
-                                    <label for="d_address">Address <span class="text-danger">*</span></label>
-                                    <textarea name="d_address" id="d_address" maxlength="500" placeholder="Full Address" class="form-control" required><?php echo !empty($cardRow['d_address']) ? htmlspecialchars($cardRow['d_address']) : ''; ?></textarea>
+                                    <label for="d_city">City <span class="text-danger">*</span></label>
+                                    <input type="text" name="d_city" id="d_city" maxlength="200" placeholder="Enter City" class="form-control" value="<?php echo !empty($cardRow['d_city']) ? htmlspecialchars($cardRow['d_city']) : ''; ?>" required>
                                 </div>
                             </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="d_state">State <span class="text-danger">*</span></label>
+                                    <input type="text" name="d_state" id="d_state" maxlength="200" placeholder="Enter State" class="form-control" value="<?php echo !empty($cardRow['d_state']) ? htmlspecialchars($cardRow['d_state']) : ''; ?>" required>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="d_pincode">Pincode <span class="text-danger">*</span></label>
+                                    <input type="text" name="d_pincode" id="d_pincode" maxlength="200" placeholder="Enter Pincode" class="form-control" value="<?php echo !empty($cardRow['d_pincode']) ? htmlspecialchars($cardRow['d_pincode']) : ''; ?>" required>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="d_country">Country <span class="text-danger">*</span></label>
+                                    <input type="text" name="d_country" id="d_country" maxlength="200" placeholder="Enter Country" class="form-control" value="<?php echo !empty($cardRow['d_country']) ? htmlspecialchars($cardRow['d_country']) : ''; ?>" required>
+                                </div>
+                            </div>                            
                         </div>
                         <div class="row">
                             <div class="col-sm-12">
@@ -542,13 +831,31 @@ include '../includes/header.php';
                 });
                 $(this).val('');
             });
+            
+            // Hero Image Upload Handler
+            $('#clickMeImageHero').off('change.heroUpload').on('change.heroUpload', function(){
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+                $('#fileNameHero').text(truncateFileName(file.name, 25)).attr('title', file.name);
+                ImageCropUpload.open(file, {
+                    method: 'base64',
+                    hiddenField: '#processed_hero_image_data',
+                    previewSelector: '#showPreviewHero',
+                    spanSelector: '#heroImagePreview span',
+                    title: 'Adjust & Crop Hero Image',
+                    onSuccess: function() {},
+                    onError: function(msg) { alert(msg); }
+                });
+                $(this).val('');
+            });
         });
         return true;
     }
     if (!initLogoUpload()) {
         var check = setInterval(function() { if (initLogoUpload()) clearInterval(check); }, 100);
     }
-    window.clickFocus = function() { if (window.jQuery) window.jQuery('#clickMeImage').click(); };
+    window.clickFocusLogo = function() { if (window.jQuery) window.jQuery('#clickMeImage').click(); };
+    window.clickFocusHero = function() { if (window.jQuery) window.jQuery('#clickMeImageHero').click(); };
 })();
 </script>
 
