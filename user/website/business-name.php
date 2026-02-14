@@ -104,16 +104,47 @@ if(isset($_POST['process1'])){
 // Handle update functionality (process2 - Save button, no redirect) - MUST be before header.php
 if(isset($_POST['process2'])){
     $comp_name = mysqli_real_escape_string($connect, $_POST['d_comp_name']);
-    
+
+    // Ensure the name-change counter column exists; if not, add it with default 0
+    $col_check = mysqli_query($connect, "SHOW COLUMNS FROM digi_card LIKE 'd_name_change_count'");
+    if(!$col_check || mysqli_num_rows($col_check) == 0){
+        // Try to add the column (silent failure will be handled later)
+        @mysqli_query($connect, "ALTER TABLE digi_card ADD COLUMN d_name_change_count INT NOT NULL DEFAULT 0");
+    }
+
+    // Load current record to check change count and current name
+    $current_id = intval($_SESSION['card_id_inprocess']);
+    $current_query = mysqli_query($connect, 'SELECT d_comp_name, d_name_change_count FROM digi_card WHERE id="'.$current_id.'" LIMIT 1');
+    $current_row = mysqli_fetch_array($current_query);
+    $current_change_count = isset($current_row['d_name_change_count']) ? intval($current_row['d_name_change_count']) : 0;
+
+    // Enforce maximum 2 name changes
+    if($current_change_count >= 2){
+        $_SESSION['save_error'] = "You have already reached the maximum of 2 business name changes. Contact support for further assistance.";
+        header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
+        exit;
+    }
+
+    // If the submitted name is the same as current, no-op
+    if(isset($current_row['d_comp_name']) && $comp_name === $current_row['d_comp_name']){
+        $_SESSION['save_success'] = "No changes detected to the company name.";
+        header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
+        exit;
+    }
+
     // Check if company name already exists for a different record
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE d_comp_name="'.$comp_name.'" AND id != "'.$_SESSION['card_id_inprocess'].'"');
-    
+
     if(mysqli_num_rows($query) == 0){
-        // Company name is unique (or belongs to current record), allow update
+        // Company name is unique (or belongs to current record), allow update and increment change counter
         $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $comp_name);
-        $update = mysqli_query($connect, 'UPDATE digi_card SET d_comp_name="'.$comp_name.'", card_id="'.$card_id.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+        $update = mysqli_query($connect, 'UPDATE digi_card SET d_comp_name="'.$comp_name.'", card_id="'.$card_id.'", d_name_change_count = d_name_change_count + 1 WHERE id="'.$_SESSION['card_id_inprocess'].'"');
         if($update){
             $_SESSION['save_success'] = "Company Name Updated Successfully";
+            header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
+            exit;
+        } else {
+            $_SESSION['save_error'] = "Failed to update company name. Please try again.";
             header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
             exit;
         }
@@ -172,7 +203,24 @@ include '../includes/header.php';
                             <div class="form-group top_header_section">
                                 <label for="d_comp_name">Business or Company Name: <span class="text-danger">*</span></label>
                                 <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business or Company Name*" required>
-                                <sup>This name will not be changed later on so choose wisely</sup>
+                                <?php
+                                    // Build public business URL (based on current host)
+                                    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                                    $site_url = $protocol . '://' . $_SERVER['HTTP_HOST'];
+                                    $business_slug = !empty($row['card_id']) ? $row['card_id'] : preg_replace('/[^A-Za-z0-9\-]/', '-', strtolower(trim($row['d_comp_name'])));
+                                    $business_url = $site_url . '/' . $business_slug;
+                                    $change_count = isset($row['d_name_change_count']) ? intval($row['d_name_change_count']) : 0;
+                                    $remaining = max(0, 2 - $change_count);
+                                ?>
+                                <sup>URL: <a href="<?php echo htmlspecialchars($business_url); ?>" target="_blank"><?php echo htmlspecialchars($business_url); ?></a></sup>
+                                <br>
+                                <sup>
+                                    <?php if($remaining > 0): ?>
+                                        You can change your business name <?php echo $remaining; ?> more time<?php echo ($remaining > 1) ? 's' : ''; ?>.
+                                    <?php else: ?>
+                                        You have reached the maximum of 2 business name changes.
+                                    <?php endif; ?>
+                                </sup>
                             </div>
                             <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                                 <a href="../dashboard/" class="btn btn-secondary align-left">

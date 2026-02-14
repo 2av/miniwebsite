@@ -619,7 +619,7 @@ if(isset($_POST['process4'])){
             $products_refresh_query = mysqli_query($connect, "SELECT * FROM card_products_services WHERE card_id='$card_id_refresh' AND user_id=$user_id ORDER BY display_order ASC, id ASC");
             // Just redirect - the page will reload with fresh data from the database query at the top
             if (!headers_sent()) {
-                header('Location: product-and-services.php?card_number='.$_SESSION['card_id_inprocess']);
+                header('Location: services.php?card_number='.$_SESSION['card_id_inprocess']);
                 exit;
             }
         }
@@ -667,7 +667,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 <main class="Dashboard">
     <div class="container-fluid customer_content_area">
         <div class="main-top">
-        <span class="heading">Product & Service</span>
+        <span class="heading">Services</span>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
@@ -692,11 +692,11 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
         <div class="card mb-4">
             <div class="card-body">
-                <label class="heading font-sm-22 font-sm-24">Product &amp; Services:</label>
-                <p class="sub_title">You can add upto 10 products &amp; services which you want to showcase on your Mini Website.</p>
+                <label class="heading font-sm-22 font-sm-24">Services:</label>
+                <p class="sub_title">You can add up to 10 services which you want to showcase on your Mini Website.</p>
                 <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
                 <br>
-                <button type="button" class="btn btn-primary add_product" onclick="openProductModal()"><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Product/Services</span></button>
+                <button type="button" class="btn btn-primary add_product" onclick="openProductModal()"><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Service</span></button>
 
                 <form action="" method="POST" enctype="multipart/form-data" id="productForm" style="display:none;">
                     <!-- Hidden form fields for product data (will be populated dynamically) -->
@@ -706,7 +706,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <table class="display table">
                         <thead class="bg-secondary">
                             <tr>
-                                <th>Product/Service Name</th>
+                                <th>Service Name</th>
                                 <th>Image Details</th>
                                 <th>Manage</th>
                             </tr>
@@ -760,7 +760,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             if($productCount == 0):
                             ?>
                                 <tr>
-                                    <td colspan="3" class="text-center text-muted">No products/services added yet. Click "Add Product/Services" to add.</td>
+                                    <td colspan="3" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -777,7 +777,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                             <span>Save</span>
                         </button>
-                        <a href="product-pricing.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                        <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
                         </a>
@@ -792,7 +792,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="productModalLabel">Add/Edit Product/Service</h5>
+                <h5 class="modal-title" id="productModalLabel">Add/Edit Service</h5>
                 <button type="button" class="close" onclick="closeProductModal()" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -801,8 +801,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <form id="modalProductForm">
                     <input type="hidden" id="modal_product_number" value="">
                     <div class="form-group">
-                        <label for="modal_product_name">Product/Service Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_product_name" maxlength="200" placeholder="Enter Product/Service Name" required>
+                        <label for="modal_product_name">Service Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modal_product_name" maxlength="200" placeholder="Enter Service Name" required>
                     </div>
                     <div class="form-group">
                         <label>Product/Service Image</label>
@@ -821,7 +821,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addProductToForm()">Add Product</button>
+                <button type="button" class="btn btn-primary" onclick="addProductToForm()">Add Service</button>
             </div>
         </div>
     </div>
@@ -839,8 +839,8 @@ function openProductModal() {
     $('#modal_product_name').val('');
     $('#modal_product_image').val('');
     $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-    $('#productModalLabel').text('Add Product/Service');
-    $('.modal-footer button:last').text('Add Product');
+    $('#productModalLabel').text('Add Service');
+    $('.modal-footer button:last').text('Add Service');
     
     // Try Bootstrap 4 method first
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
@@ -890,8 +890,8 @@ function editProduct(productId, productName, productImageData) {
         $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
     }
     
-    $('#productModalLabel').text('Edit Product/Service');
-    $('.modal-footer button:last').text('Update Product');
+    $('#productModalLabel').text('Edit Service');
+    $('.modal-footer button:last').text('Update Service');
     $('#productModal').modal('show');
 }
 
@@ -984,7 +984,7 @@ function handleProductImageUpload(input) {
 function addProductToForm() {
     var productName = $('#modal_product_name').val();
     if(!productName) {
-        alert('Please enter product/service name.');
+        alert('Please enter service name.');
         return;
     }
     
@@ -1019,7 +1019,7 @@ function addProductToForm() {
     }
     
     // Show loading
-    var loadingMsg = '<div class="alert alert-info">Saving product...</div>';
+    var loadingMsg = '<div class="alert alert-info">Saving service...</div>';
     $('#status_remove_img').html(loadingMsg);
     
     // Get image preview first (before AJAX)
@@ -1039,13 +1039,13 @@ function addProductToForm() {
             success: function(response) {
                 if(response && response.success) {
                     // Reload page to show updated data (or refresh table via AJAX)
-                    $('#status_remove_img').html('<div class="alert alert-success">' + (response.message || 'Product saved successfully!') + '</div>');
+                    $('#status_remove_img').html('<div class="alert alert-success">' + (response.message || 'Service saved successfully!') + '</div>');
                     setTimeout(function() {
                         // Reload the page to show updated product list
                         window.location.reload();
                     }, 1000);
                 } else {
-                    $('#status_remove_img').html('<div class="alert alert-danger">' + (response.message || 'Error saving product.') + '</div>');
+                    $('#status_remove_img').html('<div class="alert alert-danger">' + (response.message || 'Error saving service.') + '</div>');
                 }
             },
             error: function(xhr, status, error) {
@@ -1055,12 +1055,12 @@ function addProductToForm() {
                 try {
                     var response = JSON.parse(xhr.responseText);
                     if(response && !response.success) {
-                        $('#status_remove_img').html('<div class="alert alert-danger">' + (response.message || 'Error saving product.') + '</div>');
+                        $('#status_remove_img').html('<div class="alert alert-danger">' + (response.message || 'Error saving service.') + '</div>');
                         return;
                     }
                 } catch(e) {
                     // Not JSON - show the actual response for debugging
-                    var errorMsg = 'Error saving product. ';
+                    var errorMsg = 'Error saving service. ';
                     if(xhr.responseText) {
                         // Try to extract error message from HTML response
                         var textResponse = xhr.responseText.substring(0, 200);
@@ -1107,8 +1107,8 @@ function addProductToForm() {
 
 // Save products - just show success message (no redirect)
 function saveProducts() {
-    // Show success message (products are already saved via AJAX when added)
-    $('#status_remove_img').html('<div class="alert alert-success">All products saved successfully!</div>');
+    // Show success message (services are already saved via AJAX when added)
+    $('#status_remove_img').html('<div class="alert alert-success">All services saved successfully!</div>');
     setTimeout(function(){
         $('#status_remove_img').html('');
     }, 2000);
@@ -1116,7 +1116,7 @@ function saveProducts() {
 
 // Remove product
 function removeData(productId) {
-    if(confirm('Are you sure you want to remove this product/service?')) {
+    if(confirm('Are you sure you want to remove this service?')) {
         $('#status_remove_img').css('color','blue');
         
         $.ajax({
@@ -1133,17 +1133,17 @@ function removeData(productId) {
                     // Check if table is now empty
                     var tableBody = $('.Product-ServicesTable tbody');
                     if(tableBody.find('tr[data-product-id]').length === 0) {
-                        tableBody.html('<tr><td colspan="3" class="text-center text-muted">No products/services added yet. Click "Add Product/Services" to add.</td></tr>');
+                        tableBody.html('<tr><td colspan="3" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td></tr>');
                     }
                     
-                    $('#status_remove_img').html('<div class="alert alert-success">Product removed successfully!</div>');
+                    $('#status_remove_img').html('<div class="alert alert-success">Service removed successfully!</div>');
                     setTimeout(function(){
                         $('#status_remove_img').html('');
                     }, 2000);
                 }
             },
             error: function(){
-                $('#status_remove_img').html('<div class="alert alert-danger">Error deleting product. Please try again.</div>');
+                $('#status_remove_img').html('<div class="alert alert-danger">Error deleting service. Please try again.</div>');
             }
         });
     }
@@ -1184,8 +1184,8 @@ if(typeof jQuery !== 'undefined') {
             $('#modal_product_name').val('');
             $('#modal_product_image').val('');
             $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-            $('#productModalLabel').text('Add Product/Service');
-            $('.modal-footer button:last').text('Add Product');
+            $('#productModalLabel').text('Add Service');
+            $('.modal-footer button:last').text('Add Service');
         }
     });
 
@@ -1503,8 +1503,4 @@ background-color: #ffbe17a6;
 </style>
 
 <?php include '../includes/footer.php'; ?>
-
-
-
-
 

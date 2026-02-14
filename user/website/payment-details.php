@@ -521,7 +521,7 @@ include '../includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <div class="BankDetails">
+                    <div class="BankDetails" style="display:none">
                         <label class="heading1">Bank Account Details:</label>
                         <div class="form-group">
                             <label for="d_bank_name">Bank Name (Optional)</label>
@@ -541,7 +541,7 @@ include '../includes/header.php';
                         </div>
                     </div>
                     
-                    <div class="BankDetails">
+                    <div class="BankDetails" style="display:none">
                         <label class="heading2">GST Identification Number:</label>
                         <div class="form-group">
                             <label for="d_ac_type">GST Number (Optional)</label>

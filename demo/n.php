@@ -142,10 +142,9 @@ $gallery_count = $query_gallery ? mysqli_num_rows($query_gallery) : 0;
 
 // Videos
 $has_videos = false;
-for ($v = 1; $v <= 5; $v++) {
+for ($v = 1; $v <= 20; $v++) {
     if (!empty($row["d_youtube$v"])) { $has_videos = true; break; }
 }
-if (!$has_videos && !empty($row['d_youtube1'])) $has_videos = true;
 
 // Payment QR
 $qr_pay_img = '';
@@ -306,7 +305,7 @@ if (!$qr_pay_img) {
             <div class="mw-videos-grid">
             <?php
             $yt_replace = ['youtu.be/' => 'www.youtube.com/embed/', 'watch?v=' => 'embed/', '&feature=youtu.be' => ''];
-            for ($v = 1; $v <= 5; $v++) {
+            for ($v = 1; $v <= 20; $v++) {
                 if (empty($row["d_youtube$v"])) continue;
                 $embed = str_replace(array_keys($yt_replace), array_values($yt_replace), $row["d_youtube$v"]);
                 if (strpos($embed, 'embed/') === false && preg_match('/v=([^&]+)/', $embed, $m)) $embed = 'https://www.youtube.com/embed/' . $m[1];

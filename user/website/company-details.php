@@ -727,7 +727,7 @@ include '../includes/header.php';
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_location">Location</label>
+                                    <label for="d_location">Add Google Map Link For Direction</label>
                                     <input type="text" name="d_location" id="d_location" maxlength="999" placeholder="Your Business Location (Optional)" class="form-control" value="<?php echo !empty($cardRow['d_location']) ? htmlspecialchars($cardRow['d_location']) : ''; ?>">
                                 </div>
                             </div>
@@ -737,13 +737,13 @@ include '../includes/header.php';
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_address">Address Line 1 <span class="text-danger">*</span></label>
-                                    <textarea name="d_address" id="d_address" maxlength="500" placeholder="Full Address" class="form-control" required><?php echo !empty($cardRow['d_address']) ? htmlspecialchars($cardRow['d_address']) : ''; ?></textarea>
+                                    <input type="text" name="d_address" id="d_address" maxlength="500" placeholder="Full Address" class="form-control" required value="<?php echo !empty($cardRow['d_address']) ? htmlspecialchars($cardRow['d_address']) : ''; ?>">
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_address">Address Line 2 <span class="text-danger">*</span></label>
-                                    <textarea name="d_address2" id="d_address2" maxlength="500" placeholder="Full Address" class="form-control" required><?php echo !empty($cardRow['d_address2']) ? htmlspecialchars($cardRow['d_address2']) : ''; ?></textarea>
+                                    <label for="d_address">Area/Locality<span class="text-danger">*</span></label>
+                                    <input type="text" name="d_address2" id="d_address2" maxlength="500" placeholder="Full Address" class="form-control" required value="<?php echo !empty($cardRow['d_address2']) ? htmlspecialchars($cardRow['d_address2']) : ''; ?>">
                                 </div>
                             </div>
                         </div>

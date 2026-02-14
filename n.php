@@ -946,21 +946,23 @@ if($product_count > 0){ ?>
 
 <!--------------youtube videos--------------------------->
 
-<?php 	if(!empty($row["d_youtube1"]) || !empty($row["d_youtube2"]) || !empty($row["d_youtube3"]) || !empty($row["d_youtube4"]) || !empty($row["d_youtube5"])){ ?>
+<?php
+    // Check if any youtube fields 1..20 are present
+    $has_any_youtube = false;
+    for ($i = 1; $i <= 20; $i++) {
+        if (!empty($row["d_youtube{$i}"])) { $has_any_youtube = true; break; }
+    }
+    if ($has_any_youtube) { ?>
 	<div class="card2" id="youtube_video">
 		<h3>Youtube Videos</h3>
 
 
 		<?php
-		for($x=0;$x<=10;$x++){
+		for($x=1;$x<=20;$x++){
 			if(!empty($row["d_youtube$x"])){
-
-
 				$array1=array('youtu.be/','watch?v=','&feature=youtu.be');
 				$array2=array('www.youtube.com/embed/','embed/','');
-
 				$youtubelink=str_replace($array1,$array2,$row["d_youtube$x"]);
-
 				echo '<iframe src="'.$youtubelink.'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
 			}
 		}

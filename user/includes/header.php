@@ -298,19 +298,24 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                 Social Links
                                 <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                             </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'videos.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/videos.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/Video.png" class="img-fluid" alt="" srcset=""></div>
+                                Videos
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
                             <a class="nav-link collapsed <?php echo ($current_page_ws == 'payment-details.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/payment-details.php<?php echo $card_query; ?>">
                                 <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/PaymentDetails.png" class="img-fluid" alt="" srcset=""></div>
                                 Payment Details
                                 <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                             </a>
-                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'product-and-services.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/product-and-services.php<?php echo $card_query; ?>">
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'services.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/services.php<?php echo $card_query; ?>">
                                 <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/ProductServices.png" class="img-fluid" alt="" srcset=""></div>
-                                Product &amp; Services
+                                Services
                                 <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                             </a>
-                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'product-pricing.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/product-pricing.php<?php echo $card_query; ?>">
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'products.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/products.php<?php echo $card_query; ?>">
                                 <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/ProductPricing.png" class="img-fluid" alt="" srcset=""></div>
-                                Product Pricing
+                                Products
                                 <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                             </a>
                             <a class="nav-link collapsed <?php echo ($current_page_ws == 'image-gallery.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/image-gallery.php<?php echo $card_query; ?>">

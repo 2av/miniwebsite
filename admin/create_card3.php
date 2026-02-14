@@ -53,11 +53,14 @@ if(mysqli_num_rows($query)==0){
 		<div class="input_box"><p>Pinterest Link(Optional)</p><input type="text" name="d_pinterest" maxlength="200" placeholder="Pinterest Link"  value="<?php if(!empty($row['d_pinterest'])){echo $row['d_pinterest'];}?>" ></div>
 		
 		<h3>Youtube Video Links</h3>
-		<div class="input_box"><p>Youtube Video Link (Optional)</p><input type="text" name="d_youtube1" maxlength="200" placeholder="1st Youtube Video Link "  value="<?php if(!empty($row['d_youtube1'])){echo $row['d_youtube1'];}?>" ></div>
-		<div class="input_box"><p>Youtube Video Link 2(Optional)</p><input type="text" name="d_youtube2" maxlength="200" placeholder="2nd Youtube Video Link"  value="<?php if(!empty($row['d_youtube2'])){echo $row['d_youtube2'];}?>" ></div>
-		<div class="input_box"><p>Youtube Video Link 3(Optional)</p><input type="text" name="d_youtube3" maxlength="200" placeholder="3rd Youtube Video Link"  value="<?php if(!empty($row['d_youtube3'])){echo $row['d_youtube3'];}?>" ></div>
-		<div class="input_box"><p>Youtube Video Link 4(Optional)</p><input type="text" name="d_youtube4" maxlength="200" placeholder="4th Youtube Video Link"  value="<?php if(!empty($row['d_youtube4'])){echo $row['d_youtube4'];}?>" ></div>
-		<div class="input_box"><p>Youtube Video Link 5(Optional)</p><input type="text" name="d_youtube5" maxlength="200" placeholder="5th Youtube Video Link"  value="<?php if(!empty($row['d_youtube5'])){echo $row['d_youtube5'];}?>" ></div>
+		<?php
+		// Generate 20 youtube input boxes for admin create flow
+		for ($i = 1; $i <= 20; $i++) {
+			$field = 'd_youtube' . $i;
+			$val = !empty($row[$field]) ? $row[$field] : '';
+		?>
+		<div class="input_box"><p>Youtube Video Link <?php echo $i; ?> (Optional)</p><input type="text" name="<?php echo $field; ?>" maxlength="200" placeholder="<?php echo $i; ?>th Youtube Video Link"  value="<?php echo $val; ?>" ></div>
+		<?php } ?>
 		
 		
 		
@@ -74,20 +77,21 @@ if(mysqli_num_rows($query)==0){
 			
 		// enter details in database
 				
-			$update=mysqli_query($connect,'UPDATE digi_card SET 
-			
-			d_fb="'.$_POST['d_fb'].'",
-			d_twitter="'.$_POST['d_twitter'].'",
-			d_instagram="'.$_POST['d_instagram'].'",
-			d_linkedin="'.$_POST['d_linkedin'].'",
-			d_youtube="'.$_POST['d_youtube'].'",
-			d_pinterest="'.$_POST['d_pinterest'].'",
-			d_youtube1="'.$_POST['d_youtube1'].'",
-			d_youtube2="'.$_POST['d_youtube2'].'",
-			d_youtube3="'.$_POST['d_youtube3'].'",
-			d_youtube4="'.$_POST['d_youtube4'].'",
-			d_youtube5="'.$_POST['d_youtube5'].'"
-			WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+			// Build update SQL dynamically for youtube fields + other social fields
+			$updates = array();
+			$updates[] = 'd_fb="'.mysqli_real_escape_string($connect, $_POST['d_fb']).'"';
+			$updates[] = 'd_twitter="'.mysqli_real_escape_string($connect, $_POST['d_twitter']).'"';
+			$updates[] = 'd_instagram="'.mysqli_real_escape_string($connect, $_POST['d_instagram']).'"';
+			$updates[] = 'd_linkedin="'.mysqli_real_escape_string($connect, $_POST['d_linkedin']).'"';
+			$updates[] = 'd_youtube="'.mysqli_real_escape_string($connect, $_POST['d_youtube']).'"';
+			$updates[] = 'd_pinterest="'.mysqli_real_escape_string($connect, $_POST['d_pinterest']).'"';
+			for ($i = 1; $i <= 20; $i++) {
+				$field = 'd_youtube' . $i;
+				$value = isset($_POST[$field]) ? mysqli_real_escape_string($connect, $_POST[$field]) : '';
+				$updates[] = $field . '="' . $value . '"';
+			}
+			$update_sql = 'UPDATE digi_card SET ' . implode(', ', $updates) . ' WHERE id="'.$_SESSION['card_id_inprocess'].'"';
+			$update = mysqli_query($connect, $update_sql);
 			
 		// enter details in database ending
 		

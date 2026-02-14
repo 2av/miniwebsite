@@ -32,19 +32,20 @@ if(mysqli_num_rows($query) == 0){
 if(isset($_POST['process3'])){
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'"');
     if(mysqli_num_rows($query) == 1){
-        
-        // Update social links in database
-        $update = mysqli_query($connect, 'UPDATE digi_card SET 
-        d_fb="'.mysqli_real_escape_string($connect, $_POST['d_fb']).'",
-        d_twitter="'.mysqli_real_escape_string($connect, $_POST['d_twitter']).'",
-        d_instagram="'.mysqli_real_escape_string($connect, $_POST['d_instagram']).'",
-        d_linkedin="'.mysqli_real_escape_string($connect, $_POST['d_linkedin']).'",
-        d_youtube="'.mysqli_real_escape_string($connect, $_POST['d_youtube']).'",
-        d_pinterest="'.mysqli_real_escape_string($connect, $_POST['d_pinterest']).'"
-        WHERE id="'.$_SESSION['card_id_inprocess'].'"');
-        
+
+        // Build update parts dynamically for 20 youtube fields
+        $updates = array();
+        for($i = 1; $i <= 20; $i++){
+            $field = 'd_youtube' . $i;
+            $value = isset($_POST[$field]) ? mysqli_real_escape_string($connect, $_POST[$field]) : '';
+            $updates[] = $field . '="' . $value . '"';
+        }
+        $update_sql = 'UPDATE digi_card SET ' . implode(', ', $updates) . ' WHERE id="' . $_SESSION['card_id_inprocess'] . '"';
+
+        $update = mysqli_query($connect, $update_sql);
+
         if($update){
-            $_SESSION['save_success'] = "Social Links Updated Successfully!";
+            $_SESSION['save_success'] = "Video Links Updated Successfully!";
             // Re-fetch updated record so fields show latest saved values
             $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
             if($query && mysqli_num_rows($query) > 0){
@@ -75,7 +76,7 @@ include '../includes/header.php';
 <main class="Dashboard">
     <div class="container-fluid customer_content_area">
         <div class="main-top">
-        <span class="heading">Social Media Links</span>
+        <span class="heading">Videos</span>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
@@ -106,35 +107,27 @@ include '../includes/header.php';
 
         <div class="card mb-4">
             <div class="card-body">
-                <label class="heading">Social Media Links:</label>
+            <label class="heading2">YouTube Video Links:</label>
                 <form action="" method="POST" enctype="multipart/form-data" id="card_form">
+                   
+         
+
+                    <?php
+                    // Generate 20 YouTube link inputs
+                    for ($i = 1; $i <= 20; $i++) {
+                        $field = 'd_youtube' . $i;
+                        $labelNum = str_pad($i, 2, '0', STR_PAD_LEFT);
+                        $value = isset($cardRow[$field]) ? htmlspecialchars($cardRow[$field]) : '';
+                    ?>
                     <div class="form-group">
-                        <label for="d_fb">Facebook  <img src="../../../assets/images/facebook.png" width="30" alt=""></label>
-                        <input type="text" name="d_fb" id="d_fb" maxlength="200" class="form-control" placeholder="Enter Your Facebook Business Page/Profile Link" value="<?php echo !empty($cardRow['d_fb']) ? htmlspecialchars($cardRow['d_fb']) : ''; ?>">
+                        <label for="<?php echo $field; ?>">YouTube Video Link <?php echo $labelNum; ?> </label>
+                        <input type="text" name="<?php echo $field; ?>" id="<?php echo $field; ?>" maxlength="200" class="form-control" placeholder="Enter Your YouTube Video Link" value="<?php echo $value; ?>">
                     </div>
-                    <div class="form-group">
-                        <label for="d_instagram">Instagram  <img src="../../../assets/images/instagram.png" width="30" alt=""></label>
-                        <input type="text" name="d_instagram" id="d_instagram" maxlength="200" class="form-control" placeholder="Enter Your Instagram Link" value="<?php echo !empty($cardRow['d_instagram']) ? htmlspecialchars($cardRow['d_instagram']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_youtube">YouTube  <img src="../../../assets/images/youtube.png" width="30" alt=""></label>
-                        <input type="text" name="d_youtube" id="d_youtube" maxlength="200" class="form-control" placeholder="Enter Your YouTube Channel Link" value="<?php echo !empty($cardRow['d_youtube']) ? htmlspecialchars($cardRow['d_youtube']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_twitter">X (Twitter)  <img src="../../../assets/images/twitter.png" width="30" alt=""></label>
-                        <input type="text" name="d_twitter" id="d_twitter" maxlength="200" class="form-control" placeholder="Enter Your X Link" value="<?php echo !empty($cardRow['d_twitter']) ? htmlspecialchars($cardRow['d_twitter']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_linkedin">LinkedIn  <img src="../../../assets/images/linkedin.png" width="30" alt=""></label>
-                        <input type="text" name="d_linkedin" id="d_linkedin" maxlength="200" class="form-control" placeholder="Enter Your LinkedIn Profile Link" value="<?php echo !empty($cardRow['d_linkedin']) ? htmlspecialchars($cardRow['d_linkedin']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_pinterest">Pinterest  <img src="../../../assets/images/pinterest.png" width="30" alt=""></label>
-                        <input type="text" name="d_pinterest" id="d_pinterest" maxlength="200" class="form-control" placeholder="Enter Your Pinterest Link" value="<?php echo !empty($cardRow['d_pinterest']) ? htmlspecialchars($cardRow['d_pinterest']) : ''; ?>">
-                    </div>
+                    <?php } ?>
+
 
                     <div class="Product-ServicesBtn" style="margin-top: 20px;">
-                        <a href="company-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
+                        <a href="social-links.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
@@ -142,7 +135,7 @@ include '../includes/header.php';
                             <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                             <span>Save</span>
                         </button>
-                        <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                        <a href="payment-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
                         </a>
