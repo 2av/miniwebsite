@@ -205,10 +205,11 @@ include '../includes/header.php';
                                 <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business or Company Name*" required>
                                 <?php
                                     // Build public business URL (based on current host)
+                                    // Use n.php?n=slug for preview pages (consistent with site preview router)
                                     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                                     $site_url = $protocol . '://' . $_SERVER['HTTP_HOST'];
                                     $business_slug = !empty($row['card_id']) ? $row['card_id'] : preg_replace('/[^A-Za-z0-9\-]/', '-', strtolower(trim($row['d_comp_name'])));
-                                    $business_url = $site_url . '/' . $business_slug;
+                                    $business_url = $site_url . '/n.php?n=' . urlencode($business_slug);
                                     $change_count = isset($row['d_name_change_count']) ? intval($row['d_name_change_count']) : 0;
                                     $remaining = max(0, 2 - $change_count);
                                 ?>

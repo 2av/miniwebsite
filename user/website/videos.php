@@ -53,19 +53,19 @@ if(isset($_POST['process3'])){
             }
             // Redirect if possible (prevents form resubmission on refresh)
             if (!headers_sent()) {
-                header('Location: social-links.php?card_number='.$_SESSION['card_id_inprocess']);
+                header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
                 exit;
             }
         } else {
             $_SESSION['save_error'] = "Error! Try Again.";
             if (!headers_sent()) {
-                header('Location: social-links.php?card_number='.$_SESSION['card_id_inprocess']);
+                header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
                 exit;
             }
         }
     } else {
         $_SESSION['save_error'] = "Detail Not Available. Try Again.";
-        header('Location: social-links.php?card_number='.$_SESSION['card_id_inprocess']);
+        header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
         exit;
     }
 }
