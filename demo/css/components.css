@@ -3,6 +3,35 @@
  * Rules: Mobile-first, same HTML/JS, no hard-coded colors/fonts.
  * All tokens from theme.css.
  */
+/* Fallback theme variables (used when template theme.css is missing) */
+:root {
+  --bg-body: #ffffff;
+  --text-primary: #222222;
+  --text-secondary: #555555;
+  --text-muted: #777777;
+  --font-primary: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --font-weight-bold: 700;
+  --font-weight-medium: 500;
+  --font-weight-regular: 400;
+  --space-xs: 6px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --card-radius: 12px;
+  --btn-radius: 8px;
+  --card-bg: #ffffff;
+  --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --color-primary: #E85A8C;
+  --color-secondary: #222222;
+  --color-accent: #F6A623;
+  --btn-text-color: #ffffff;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.9rem;
+  --font-size-base: 1rem;
+  --font-size-xl: 1.25rem;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -242,6 +271,7 @@ body {
   margin-top: var(--space-xs);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

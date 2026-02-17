@@ -1289,6 +1289,7 @@ padding:0px;
     #imageCropModal{
         z-index: 10000 !important;
     }
+    
 </style>
 
 <?php include '../includes/footer.php'; ?>

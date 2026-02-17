@@ -992,6 +992,11 @@ document.addEventListener('click', function(event) {
     if(event.target === modal) closeProductModal();
 });
 </script>
+<style>
+    #imageCropModal{
+        z-index: 10000 !important;
+    }
+</style>
 
 <?php include '../includes/footer.php'; ?>
 

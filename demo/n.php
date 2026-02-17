@@ -168,7 +168,9 @@ if (!$qr_pay_img) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../panel/awesome.min.css">
     <link rel="stylesheet" href="css/components.css">
+    <?php if (is_readable($templates_dir . '/' . $template_id . '/theme.css')): ?>
     <link rel="stylesheet" href="<?php echo htmlspecialchars($template_theme_css); ?>">
+    <?php endif; ?>
     <script type="application/ld+json">
     {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Where can I find <?php echo $mw_business_name; ?>?","acceptedAnswer":{"@type":"Answer","text":"<?php echo $mw_business_name; ?> is located in <?php echo $mw_location_text ?: $mw_city; ?>."}},{"@type":"Question","name":"How can I contact <?php echo $mw_business_name; ?>?","acceptedAnswer":{"@type":"Answer","text":"You can contact via WhatsApp or call on <?php echo htmlspecialchars($row['d_contact'] ?? $row['d_whatsapp'] ?? ''); ?>."}}]}
     </script>
@@ -434,10 +436,6 @@ if (!$qr_pay_img) {
         </div>
     </div>
 
-    <script>
-    window.MW_SITE_URL = '<?php echo addslashes($mw_site_url); ?>';
-    window.MW_BUSINESS_NAME = '<?php echo addslashes($mw_business_name); ?>';
-    </script>
-    <script src="js/mw-core.js"></script>
+    <!-- JavaScript removed: external dependency deleted, templates use CSS-only components.css -->
 </body>
 </html>
