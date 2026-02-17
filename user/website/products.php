@@ -931,7 +931,7 @@ function removeData(productId) {
     if(confirm('Are you sure you want to remove this product?')) {
         $('#status_remove_img').css('color','blue');
         $.ajax({
-            url: '../../panel/login/js_request.php',
+            url: '../../admin/js_request.php',
             method: 'POST',
             data: {product_id: productId, action: 'delete_product'},
             dataType: 'text',
@@ -949,7 +949,7 @@ function removeData(productId) {
             },
             error: function(){
                 $('#status_remove_img').html('<div class="alert alert-danger">Error deleting product. Please try again.</div>');
-            }
+            }   
         });
     }
 }

@@ -67,7 +67,13 @@ if(!empty($row_customer['sender_user_id'])){
 
 // Handle form submission (Save button - no redirect) - MUST be before header.php
 if(isset($_POST['process1'])){
-    $comp_name = mysqli_real_escape_string($connect, $_POST['d_comp_name']);
+    $comp_name = preg_replace('/[^A-Za-z0-9\s\-]/', '', trim($_POST['d_comp_name'] ?? ''));
+    if ($comp_name === '') {
+        $_SESSION['save_error'] = "Please enter a valid business name (only letters, numbers, spaces and hyphen allowed).";
+        header('Location: business-name.php');
+        exit;
+    }
+    $comp_name = mysqli_real_escape_string($connect, $comp_name);
     
     // Check if company name already exists - MUST be unique
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE d_comp_name="'.$comp_name.'"');
@@ -103,7 +109,13 @@ if(isset($_POST['process1'])){
 
 // Handle update functionality (process2 - Save button, no redirect) - MUST be before header.php
 if(isset($_POST['process2'])){
-    $comp_name = mysqli_real_escape_string($connect, $_POST['d_comp_name']);
+    $comp_name = preg_replace('/[^A-Za-z0-9\s\-]/', '', trim($_POST['d_comp_name'] ?? ''));
+    if ($comp_name === '') {
+        $_SESSION['save_error'] = "Please enter a valid business name (only letters, numbers, spaces and hyphen allowed).";
+        header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
+        exit;
+    }
+    $comp_name = mysqli_real_escape_string($connect, $comp_name);
 
     // Ensure the name-change counter column exists; if not, add it with default 0
     $col_check = mysqli_query($connect, "SHOW COLUMNS FROM digi_card LIKE 'd_name_change_count'");
@@ -156,6 +168,27 @@ if(isset($_POST['process2'])){
     }
 }
 
+// AJAX: check if business name already exists (for live validation)
+$is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+if ($is_ajax && (isset($_GET['check_business_name']) || isset($_POST['check_business_name']))) {
+    header('Content-Type: application/json');
+    $name = isset($_REQUEST['d_comp_name']) ? preg_replace('/[^A-Za-z0-9\s\-]/', '', trim($_REQUEST['d_comp_name'])) : '';
+    $exclude_id = isset($_REQUEST['card_number']) ? intval($_REQUEST['card_number']) : (isset($_SESSION['card_id_inprocess']) ? intval($_SESSION['card_id_inprocess']) : 0);
+    $exists = false;
+    if ($name !== '') {
+        $name_esc = mysqli_real_escape_string($connect, $name);
+        $q = 'SELECT id FROM digi_card WHERE d_comp_name="' . $name_esc . '"';
+        if ($exclude_id > 0) {
+            $q .= ' AND id != "' . $exclude_id . '"';
+        }
+        $q .= ' LIMIT 1';
+        $res = mysqli_query($connect, $q);
+        $exists = $res && mysqli_num_rows($res) > 0;
+    }
+    echo json_encode(array('exists' => $exists));
+    exit;
+}
+
 include '../includes/header.php';
 ?>
 
@@ -199,17 +232,21 @@ include '../includes/header.php';
                 <div class="card mb-4">
                     <div class="card-body">
                         
-                        <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form">
+                        <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="<?php echo isset($_GET['card_number']) ? (int)$_GET['card_number'] : ''; ?>">
                             <div class="form-group top_header_section">
                                 <label for="d_comp_name">Business or Company Name: <span class="text-danger">*</span></label>
-                                <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business or Company Name*" required>
+                                <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business or Company Name*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
+                                <div class="business_name_preview mt-2 d-none" aria-live="polite">
+                                    <strong>Preview:</strong> <span class="preview_url_text"><?php echo htmlspecialchars($business_url); ?></span>
+                                </div>
+                                <br/>
                                 <?php
                                     // Build public business URL (based on current host)
                                     // Use n.php?n=slug for preview pages (consistent with site preview router)
                                     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                                     $site_url = $protocol . '://' . $_SERVER['HTTP_HOST'];
                                     $business_slug = !empty($row['card_id']) ? $row['card_id'] : preg_replace('/[^A-Za-z0-9\-]/', '-', strtolower(trim($row['d_comp_name'])));
-                                    $business_url = $site_url . '/n.php?n=' . urlencode($business_slug);
+                                    $business_url = $site_url . '/' . urlencode($business_slug);
                                     $change_count = isset($row['d_name_change_count']) ? intval($row['d_name_change_count']) : 0;
                                     $remaining = max(0, 2 - $change_count);
                                 ?>
@@ -222,6 +259,10 @@ include '../includes/header.php';
                                         You have reached the maximum of 2 business name changes.
                                     <?php endif; ?>
                                 </sup>
+                                
+                                <div class="business_name_exists_msg mt-2 d-none text-danger" role="alert">
+                                    This business name already exists. Please choose a different name.
+                                </div>
                             </div>
                             <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                                 <a href="../dashboard/" class="btn btn-secondary align-left">
@@ -253,11 +294,17 @@ include '../includes/header.php';
             <div class="card mb-4">
                 <div class="card-body">
                     
-                    <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form">
+                    <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="">
                         <div class="form-group top_header_section">
                             <label for="d_comp_name">Business or Company Name: <span class="text-danger">*</span></label>
-                            <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business or Company Name*" required>
+                            <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business or Company Name*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                             <sup>This name will not be changed later on so choose wisely</sup>
+                            <div class="business_name_preview mt-2 d-none" aria-live="polite">
+                                <strong>Preview:</strong> <span class="preview_url_text">—</span>
+                            </div>
+                            <div class="business_name_exists_msg alert alert-warning mt-2 d-none" role="alert">
+                                This business name already exists. Please choose a different name.
+                            </div>
                         </div>
                         <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                             <a href="../dashboard/" class="btn btn-secondary align-left">
@@ -280,27 +327,132 @@ include '../includes/header.php';
 </main>
 
 <script>
-// Hide "Save" button when textbox has value
 document.addEventListener('DOMContentLoaded', function () {
     var nameInput = document.querySelector('input[name="d_comp_name"]');
     var saveNextBtn = document.querySelector('.Product-ServicesBtn .btn.btn-primary.align-center');
+    var previewEl = document.querySelector('.preview_url_text');
+    var previewContainer = document.querySelector('.business_name_preview');
+    var existsMsgEl = document.querySelector('.business_name_exists_msg');
+    var form = nameInput ? nameInput.closest('form') : null;
+    var cardNumber = form && form.getAttribute('data-card-number') ? form.getAttribute('data-card-number') : '';
+    var checkTimeout = null;
+    var lastCheckedName = '';
+    var nameExists = false;
 
+    // Build URL slug from business name (same logic as PHP: space . & / [ ] )
+    function nameToSlug(name) {
+        if (!name || typeof name !== 'string') return '';
+        return name.replace(/\s/g, '-').replace(/\./g, '').replace(/&/g, '').replace(/\//g, '-').replace(/\[/g, '').replace(/\]/g, '').trim();
+    }
+
+    // Update preview as user types; show preview only when typing, hide when empty or after save
+    function updatePreview() {
+        if (!nameInput || !previewEl) return;
+        var name = nameInput.value.trim();
+        if (name === '') {
+            if (previewContainer) previewContainer.classList.add('d-none');
+            previewEl.textContent = '—';
+            return;
+        }
+        if (previewContainer) previewContainer.classList.remove('d-none');
+        var slug = nameToSlug(name);
+        var url = window.location.origin + '/' + (slug || 'your-business');
+        previewEl.textContent = url;
+    }
+
+    // Check if name exists (debounced)
+    function checkNameExists() {
+        var name = nameInput.value.trim();
+        if (name === '') {
+            if (existsMsgEl) existsMsgEl.classList.add('d-none');
+            nameExists = false;
+            setSaveDisabled(false);
+            return;
+        }
+        if (name === lastCheckedName) {
+            setSaveDisabled(nameExists);
+            return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'business-name.php', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== 4) return;
+            try {
+                var data = JSON.parse(xhr.responseText || '{}');
+                lastCheckedName = name;
+                nameExists = data.exists === true;
+                if (existsMsgEl) {
+                    if (nameExists) existsMsgEl.classList.remove('d-none');
+                    else existsMsgEl.classList.add('d-none');
+                }
+                setSaveDisabled(nameExists);
+            } catch (e) {
+                setSaveDisabled(false);
+            }
+        };
+        xhr.send('check_business_name=1&d_comp_name=' + encodeURIComponent(name) + (cardNumber ? '&card_number=' + encodeURIComponent(cardNumber) : ''));
+    }
+
+    function setSaveDisabled(disabled) {
+        if (!saveNextBtn) return;
+        if (disabled) {
+            saveNextBtn.disabled = true;
+            saveNextBtn.setAttribute('aria-disabled', 'true');
+        } else {
+            saveNextBtn.disabled = false;
+            saveNextBtn.removeAttribute('aria-disabled');
+        }
+    }
+
+    function scheduleCheck() {
+        if (checkTimeout) clearTimeout(checkTimeout);
+        checkTimeout = setTimeout(function () {
+            checkTimeout = null;
+            checkNameExists();
+        }, 500);
+    }
+
+    // Show Save when textbox is empty; hide when it has value (original behavior)
     function toggleSaveNextVisibility() {
         if (!nameInput || !saveNextBtn) return;
-
         if (nameInput.value.trim() !== '') {
-            // Textbox has value – hide Save
             saveNextBtn.classList.add('d-none');
         } else {
-            // Empty – show Save
             saveNextBtn.classList.remove('d-none');
         }
     }
 
+    // Allow only letters, numbers, spaces and hyphen (-)
+    function sanitizeBusinessName(val) {
+        return (val || '').replace(/[^A-Za-z0-9\s\-]/g, '');
+    }
+
     if (nameInput) {
+        nameInput.addEventListener('input', function () {
+            var start = this.selectionStart, end = this.selectionEnd;
+            var sanitized = sanitizeBusinessName(this.value);
+            if (sanitized !== this.value) {
+                this.value = sanitized;
+                var len = sanitized.length;
+                this.setSelectionRange(Math.min(start, len), Math.min(end, len));
+            }
+            updatePreview();
+            scheduleCheck();
+            toggleSaveNextVisibility();
+        });
+        nameInput.addEventListener('change', function () {
+            var sanitized = sanitizeBusinessName(this.value);
+            if (sanitized !== this.value) this.value = sanitized;
+            updatePreview();
+            scheduleCheck();
+            toggleSaveNextVisibility();
+        });
+        updatePreview();
         toggleSaveNextVisibility();
-        nameInput.addEventListener('input', toggleSaveNextVisibility);
-        nameInput.addEventListener('change', toggleSaveNextVisibility);
+        // Initial check if field has value (e.g. edit form)
+        if (nameInput.value.trim() !== '') scheduleCheck();
     }
 });
 </script>

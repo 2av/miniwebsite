@@ -953,7 +953,7 @@ function removeData(cardId, imageId) {
         $('#status_remove_img').css('color','blue');
         
         $.ajax({
-            url: '../../panel/login/js_request.php',
+            url: '../../admin/js_request.php',
             method: 'POST',
             data: {action: 'delete_gallery_image', image_id: imageId},
             dataType: 'text',

@@ -150,8 +150,16 @@ function send_formatted_email($to, $subject, $message_content, $sender, $additio
 
 
 
-// Get the card ID from the URL parameter
+// Get the card ID from the URL parameter (n.php?n=xxx) or from clean URL (e.g. /akhitest3)
 $card_id = isset($_GET['n']) ? $_GET['n'] : '';
+if ($card_id === '' && isset($_SERVER['REQUEST_URI'])) {
+	$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+	$path = trim($path, '/');
+	// Single segment only (no slashes), no file extension
+	if ($path !== '' && strpos($path, '/') === false && strpos($path, '.') === false) {
+		$card_id = $path;
+	}
+}
 
 // Query the database for the card
 $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE card_id="'.$card_id.'" ');

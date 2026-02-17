@@ -1120,7 +1120,7 @@ function removeData(productId) {
         $('#status_remove_img').css('color','blue');
         
         $.ajax({
-            url: '../../panel/login/js_request.php',
+            url: '../../admin/js_request.php',
             method: 'POST',
             data: {product_id: productId, action: 'delete_product'},
             dataType: 'text',

@@ -210,6 +210,114 @@ function sendBasicCollaborationEmail($user_email) {
 }
 
 // image remove from page 
+// AJAX: delete product from card_products_services
+if(isset($_POST['action']) && $_POST['action'] === 'delete_product' && isset($_POST['product_id'])) {
+    $product_id = intval($_POST['product_id']);
+
+    // Ensure user is logged in
+    if(!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
+        echo '<div class="alert danger">Unauthorized. Please login and try again.</div>';
+        exit;
+    }
+
+    $user_email = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $user_email_lower = strtolower(trim($user_email));
+
+    // Get user id
+    $user_q = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = '$user_email_lower' LIMIT 1");
+    if(!$user_q || mysqli_num_rows($user_q) == 0) {
+        echo '<div class="alert danger">User account not found. Please login again.</div>';
+        exit;
+    }
+    $user_row = mysqli_fetch_array($user_q);
+    $user_id = intval($user_row['id']);
+
+    // Try to find the product in card_products_services first (services)
+    $verify_q = mysqli_query($connect, "SELECT id, product_image FROM card_products_services WHERE id = $product_id AND user_id = $user_id LIMIT 1");
+    if($verify_q && mysqli_num_rows($verify_q) > 0) {
+        $prod = mysqli_fetch_array($verify_q);
+        // Delete product from services table
+        $del_q = mysqli_query($connect, "DELETE FROM card_products_services WHERE id = $product_id AND user_id = $user_id LIMIT 1");
+        if($del_q) {
+            // Remove associated image file if exists and looks like a filename
+            if(!empty($prod['product_image']) && is_string($prod['product_image']) && strpos($prod['product_image'], '.') !== false) {
+                $file_path = __DIR__ . '/../assets/upload/websites/product-and-services/' . $prod['product_image'];
+                if(file_exists($file_path)) {
+                    @unlink($file_path);
+                }
+            }
+            echo '<div class="alert success">success</div>';
+        } else {
+            echo '<div class="alert danger">Failed to delete product: ' . mysqli_error($connect) . '</div>';
+        }
+        exit;
+    }
+
+    // If not found, try card_product_pricing (products)
+    $verify_q2 = mysqli_query($connect, "SELECT id, product_image FROM card_product_pricing WHERE id = $product_id AND user_id = $user_id LIMIT 1");
+    if($verify_q2 && mysqli_num_rows($verify_q2) > 0) {
+        $prod = mysqli_fetch_array($verify_q2);
+        $del_q2 = mysqli_query($connect, "DELETE FROM card_product_pricing WHERE id = $product_id AND user_id = $user_id LIMIT 1");
+        if($del_q2) {
+            if(!empty($prod['product_image']) && is_string($prod['product_image']) && strpos($prod['product_image'], '.') !== false) {
+                $file_path = __DIR__ . '/../assets/upload/websites/product-pricing/' . $prod['product_image'];
+                if(file_exists($file_path)) {
+                    @unlink($file_path);
+                }
+            }
+            echo '<div class="alert success">success</div>';
+        } else {
+            echo '<div class="alert danger">Failed to delete product: ' . mysqli_error($connect) . '</div>';
+        }
+        exit;
+    }
+
+    // Not found in either table
+    echo '<div class="alert danger">Product not found or access denied.</div>';
+    exit;
+}
+
+// AJAX: delete gallery image from card_image_gallery (image-gallery.php)
+if(isset($_POST['action']) && $_POST['action'] === 'delete_gallery_image' && isset($_POST['image_id'])) {
+    $image_id = intval($_POST['image_id']);
+
+    if(!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
+        echo '<div class="alert danger">Unauthorized. Please login and try again.</div>';
+        exit;
+    }
+
+    $user_email = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $user_email_lower = strtolower(trim($user_email));
+
+    $user_q = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = '$user_email_lower' LIMIT 1");
+    if(!$user_q || mysqli_num_rows($user_q) == 0) {
+        echo '<div class="alert danger">User account not found. Please login again.</div>';
+        exit;
+    }
+    $user_row = mysqli_fetch_array($user_q);
+    $user_id = intval($user_row['id']);
+
+    $verify_q = mysqli_query($connect, "SELECT id, gallery_image FROM card_image_gallery WHERE id = $image_id AND user_id = $user_id LIMIT 1");
+    if(!$verify_q || mysqli_num_rows($verify_q) == 0) {
+        echo '<div class="alert danger">Image not found or access denied.</div>';
+        exit;
+    }
+    $img = mysqli_fetch_array($verify_q);
+
+    $del_q = mysqli_query($connect, "DELETE FROM card_image_gallery WHERE id = $image_id AND user_id = $user_id LIMIT 1");
+    if($del_q) {
+        if(!empty($img['gallery_image']) && is_string($img['gallery_image']) && strpos($img['gallery_image'], '.') !== false) {
+            $file_path = __DIR__ . '/../assets/upload/websites/image-gallery/' . $img['gallery_image'];
+            if(file_exists($file_path)) {
+                @unlink($file_path);
+            }
+        }
+        echo '<div class="alert success">success</div>';
+    } else {
+        echo '<div class="alert danger">Failed to delete image: ' . mysqli_error($connect) . '</div>';
+    }
+    exit;
+}
 
 if(isset($_POST['id'])){
 	$query=mysqli_query($connect,'SELECT * FROM digi_card2 WHERE id="'.$_POST['id'].'" ');
