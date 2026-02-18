@@ -68,12 +68,21 @@ if(!empty($row_customer['sender_user_id'])){
 // Handle form submission (Save button - no redirect) - MUST be before header.php
 if(isset($_POST['process1'])){
     $comp_name = preg_replace('/[^A-Za-z0-9\s\-]/', '', trim($_POST['d_comp_name'] ?? ''));
+    $display_name = trim($_POST['d_display_name'] ?? '');
+    
     if ($comp_name === '') {
         $_SESSION['save_error'] = "Please enter a valid business name (only letters, numbers, spaces and hyphen allowed).";
         header('Location: business-name.php');
         exit;
     }
+    if ($display_name === '') {
+        $_SESSION['save_error'] = "Please enter a display name.";
+        header('Location: business-name.php');
+        exit;
+    }
+    
     $comp_name = mysqli_real_escape_string($connect, $comp_name);
+    $display_name = mysqli_real_escape_string($connect, $display_name);
     
     // Check if company name already exists - MUST be unique
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE d_comp_name="'.$comp_name.'"');
@@ -82,7 +91,7 @@ if(isset($_POST['process1'])){
         $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $comp_name);
         $date = date('Y-m-d H:i:s');
         
-        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date) VALUES ("'.$comp_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id.'","'.$franchisee_email.'",DATE_ADD("'.$date.'", INTERVAL 1 YEAR))');
+        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,d_display_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date) VALUES ("'.$comp_name.'","'.$display_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id.'","'.$franchisee_email.'",DATE_ADD("'.$date.'", INTERVAL 1 YEAR))');
         
         if($insert){
             // Insert data in 2nd and 3rd database tables
@@ -110,12 +119,21 @@ if(isset($_POST['process1'])){
 // Handle update functionality (process2 - Save button, no redirect) - MUST be before header.php
 if(isset($_POST['process2'])){
     $comp_name = preg_replace('/[^A-Za-z0-9\s\-]/', '', trim($_POST['d_comp_name'] ?? ''));
+    $display_name = trim($_POST['d_display_name'] ?? '');
+    
     if ($comp_name === '') {
         $_SESSION['save_error'] = "Please enter a valid business name (only letters, numbers, spaces and hyphen allowed).";
         header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
         exit;
     }
+    if ($display_name === '') {
+        $_SESSION['save_error'] = "Please enter a display name.";
+        header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
+        exit;
+    }
+    
     $comp_name = mysqli_real_escape_string($connect, $comp_name);
+    $display_name = mysqli_real_escape_string($connect, $display_name);
 
     // Ensure the name-change counter column exists; if not, add it with default 0
     $col_check = mysqli_query($connect, "SHOW COLUMNS FROM digi_card LIKE 'd_name_change_count'");
@@ -150,7 +168,7 @@ if(isset($_POST['process2'])){
     if(mysqli_num_rows($query) == 0){
         // Company name is unique (or belongs to current record), allow update and increment change counter
         $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $comp_name);
-        $update = mysqli_query($connect, 'UPDATE digi_card SET d_comp_name="'.$comp_name.'", card_id="'.$card_id.'", d_name_change_count = d_name_change_count + 1 WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+        $update = mysqli_query($connect, 'UPDATE digi_card SET d_comp_name="'.$comp_name.'", d_display_name="'.$display_name.'", card_id="'.$card_id.'", d_name_change_count = d_name_change_count + 1 WHERE id="'.$_SESSION['card_id_inprocess'].'"');
         if($update){
             $_SESSION['save_success'] = "Company Name Updated Successfully";
             header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
@@ -234,6 +252,10 @@ include '../includes/header.php';
                         
                         <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="<?php echo isset($_GET['card_number']) ? (int)$_GET['card_number'] : ''; ?>">
                             <div class="form-group top_header_section">
+                                <label for="d_display_name">Display Name: <span class="text-danger">*</span></label>
+                                <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_display_name']); ?>" placeholder="Enter Display Name*" required>
+                            </div>
+                            <div class="form-group top_header_section">
                                 <label for="d_comp_name">Business or Company Name: <span class="text-danger">*</span></label>
                                 <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business or Company Name*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                                 <div class="business_name_preview mt-2 d-none" aria-live="polite">
@@ -295,6 +317,10 @@ include '../includes/header.php';
                 <div class="card-body">
                     
                     <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="">
+                        <div class="form-group top_header_section">
+                            <label for="d_display_name">Display Name: <span class="text-danger">*</span></label>
+                            <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" placeholder="Enter Display Name*" required>
+                        </div>
                         <div class="form-group top_header_section">
                             <label for="d_comp_name">Business or Company Name: <span class="text-danger">*</span></label>
                             <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business or Company Name*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>

@@ -329,12 +329,22 @@ if(isset($_POST['process4'])){
     
         for($x = 1; $x <= 10; $x++) {
         $product_name = '';
+        $product_description = '';
         $product_id = null;
         
         // Check if product name was submitted
         if(isset($_POST["d_pro_name$x"]) && !empty(trim($_POST["d_pro_name$x"]))) {
             $products_processed = true;
             $product_name = mysqli_real_escape_string($connect, trim($_POST["d_pro_name$x"]));
+            
+            // Get product description if provided
+            if(isset($_POST["d_pro_desc$x"])) {
+                $product_description = mysqli_real_escape_string($connect, trim($_POST["d_pro_desc$x"]));
+                // Enforce max character limit (500 characters)
+                if(strlen($product_description) > 500) {
+                    $product_description = substr($product_description, 0, 500);
+                }
+            }
             
             // Check if this is an update (product_id might be in hidden field)
             // Priority: product_id$x > direct product_id
@@ -443,10 +453,10 @@ if(isset($_POST['process4'])){
                     // Escape the file path string for database
                     error_log("  Storing filename in DB: " . $product_image);
                     $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
-                    $update_query = "UPDATE card_products_services SET product_name='$product_name', product_image='$product_image_escaped' WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
+                    $update_query = "UPDATE card_products_services SET product_name='$product_name', product_description='$product_description', product_image='$product_image_escaped' WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
                 } else {
                     error_log("  No image to update");
-                    $update_query = "UPDATE card_products_services SET product_name='$product_name' WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
+                    $update_query = "UPDATE card_products_services SET product_name='$product_name', product_description='$product_description' WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
                 }
                 $update_result = mysqli_query($connect, $update_query);
                 if(!$update_result) {
@@ -498,9 +508,9 @@ if(isset($_POST['process4'])){
                 // Attempt prepared statement (more secure)
                 if($product_image !== null) {
                     // Prepare statement with image path (now a string)
-                    $stmt = $connect->prepare("INSERT INTO card_products_services (card_id, user_id, product_name, product_image, display_order) VALUES (?, ?, ?, ?, ?)");
+                    $stmt = $connect->prepare("INSERT INTO card_products_services (card_id, user_id, product_name, product_description, product_image, display_order) VALUES (?, ?, ?, ?, ?, ?)");
                     if($stmt) {
-                        $stmt->bind_param("sissi", $card_id, $user_id, $product_name, $product_image, $display_order);
+                        $stmt->bind_param("sisssi", $card_id, $user_id, $product_name, $product_description, $product_image, $display_order);
                         $insert_success = $stmt->execute();
                         if(!$insert_success) {
                             $insert_error = $stmt->error;
@@ -509,9 +519,9 @@ if(isset($_POST['process4'])){
                     }
                 } else {
                     // Prepare statement without image
-                    $stmt = $connect->prepare("INSERT INTO card_products_services (card_id, user_id, product_name, display_order) VALUES (?, ?, ?, ?)");
+                    $stmt = $connect->prepare("INSERT INTO card_products_services (card_id, user_id, product_name, product_description, display_order) VALUES (?, ?, ?, ?, ?)");
                     if($stmt) {
-                        $stmt->bind_param("sisi", $card_id, $user_id, $product_name, $display_order);
+                        $stmt->bind_param("sissi", $card_id, $user_id, $product_name, $product_description, $display_order);
                         $insert_success = $stmt->execute();
                         if(!$insert_success) {
                             $insert_error = $stmt->error;
@@ -525,13 +535,14 @@ if(isset($_POST['process4'])){
                     // Escape values for regular query
                     $card_id_escaped = mysqli_real_escape_string($connect, $card_id);
                     $product_name_escaped = mysqli_real_escape_string($connect, $product_name);
+                    $product_description_escaped = mysqli_real_escape_string($connect, $product_description);
                     
                     if($product_image !== null) {
                         // Escape the file path string
                         $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
-                        $insert_query = "INSERT INTO card_products_services (card_id, user_id, product_name, product_image, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', '$product_image_escaped', $display_order)";
+                        $insert_query = "INSERT INTO card_products_services (card_id, user_id, product_name, product_description, product_image, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', '$product_description_escaped', '$product_image_escaped', $display_order)";
                     } else {
-                        $insert_query = "INSERT INTO card_products_services (card_id, user_id, product_name, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $display_order)";
+                        $insert_query = "INSERT INTO card_products_services (card_id, user_id, product_name, product_description, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', '$product_description_escaped', $display_order)";
                     }
                     
                     $insert_result = mysqli_query($connect, $insert_query);
@@ -707,6 +718,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         <thead class="bg-secondary">
                             <tr>
                                 <th>Service Name</th>
+                                <th>Service Description</th>
                                 <th>Image Details</th>
                                 <th>Manage</th>
                             </tr>
@@ -719,10 +731,20 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $productCount++;
                                     $product_id = intval($product['id']);
                                     $product_name = htmlspecialchars($product['product_name']);
+                                    $product_description = isset($product['product_description']) ? htmlspecialchars($product['product_description']) : '';
                                     $product_image = $product['product_image'];
                             ?>
                                 <tr data-product-id="<?php echo $product_id; ?>" data-card-id="<?php echo $card_id; ?>">
                                     <td valign="middle"><?php echo !empty($product_name) ? $product_name : 'No Name'; ?></td>
+                                    <td valign="middle">
+                                        <?php if(!empty($product_description)): ?>
+                                            <span class="text-truncate" title="<?php echo $product_description; ?>">
+                                                <?php echo strlen($product_description) > 50 ? substr($product_description, 0, 50) . '...' : $product_description; ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted">No Description</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td valign="middle">
                                         <?php if(!empty($product_image)): ?>
                                             <?php
@@ -744,7 +766,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                         <?php endif; ?>
                                     </td>
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>')">
+                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>', '<?php echo $product_description; ?>')">
                                             <img src="../../assets/images/edit1.png" alt="">
                                         </a>
                                         <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $product_id; ?>)">
@@ -760,7 +782,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             if($productCount == 0):
                             ?>
                                 <tr>
-                                    <td colspan="3" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td>
+                                    <td colspan="4" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -805,7 +827,14 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         <input type="text" class="form-control" id="modal_product_name" maxlength="200" placeholder="Enter Service Name" required>
                     </div>
                     <div class="form-group">
-                        <label>Product/Service Image</label>
+                        <label for="modal_product_description">Service Description</label>
+                        <textarea class="form-control" id="modal_product_description" maxlength="500" placeholder="Enter service description (max 500 characters)" rows="4"></textarea>
+                        <small class="form-text text-muted">
+                            <strong id="char_counter_display">0/500</strong> characters
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>Service Image</label>
                         <div class="product-image-preview-modal" style="text-align: center; margin-bottom: 15px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
                             <img id="modal_product_image_preview" 
                                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
@@ -831,16 +860,44 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 var currentProductId = null;
 var productImageFiles = {};
 
+// Update character count display
+function updateCharCount() {
+    var textarea = document.getElementById('modal_product_description');
+    var counter = document.getElementById('char_counter_display');
+    
+    if(textarea && counter) {
+        var length = textarea.value.length;
+        counter.textContent = length + '/500';
+    }
+}
+
+// Bind character count to textarea input using both jQuery and native event listeners
+$(document).on('input keyup change', '#modal_product_description', function() {
+    updateCharCount();
+});
+
+// Also add native event listener for extra reliability
+document.addEventListener('DOMContentLoaded', function() {
+    var textarea = document.getElementById('modal_product_description');
+    if(textarea) {
+        textarea.addEventListener('input', updateCharCount);
+        textarea.addEventListener('keyup', updateCharCount);
+        textarea.addEventListener('change', updateCharCount);
+    }
+});
+
 // Open product modal
 function openProductModal() {
     currentProductId = null;
     processedProductImageData = null; // Reset processed image data
     $('#modal_product_number').val('');
     $('#modal_product_name').val('');
+    $('#modal_product_description').val('');
     $('#modal_product_image').val('');
     $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
     $('#productModalLabel').text('Add Service');
     $('.modal-footer button:last').text('Add Service');
+    updateCharCount();
     
     // Try Bootstrap 4 method first
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
@@ -865,11 +922,12 @@ function openProductModal() {
 }
 
 // Edit product
-function editProduct(productId, productName, productImageData) {
+function editProduct(productId, productName, productImageData, productDescription) {
     currentProductId = productId;
     processedProductImageData = null; // Reset processed image data
     $('#modal_product_number').val(productId);
     $('#modal_product_name').val(productName);
+    $('#modal_product_description').val(productDescription || '');
     
     // Load existing image if available
     if(productImageData && productImageData !== '') {
@@ -893,6 +951,7 @@ function editProduct(productId, productName, productImageData) {
     $('#productModalLabel').text('Edit Service');
     $('.modal-footer button:last').text('Update Service');
     $('#productModal').modal('show');
+    updateCharCount();
 }
 
 // Store processed image data for form submission
@@ -988,6 +1047,7 @@ function addProductToForm() {
         return;
     }
     
+    var productDescription = $('#modal_product_description').val();
     var productId = $('#modal_product_number').val();
     var isEdit = (productId && productId !== '');
     
@@ -998,6 +1058,7 @@ function addProductToForm() {
     // Use a temporary slot number for form submission (PHP will handle the actual insert/update)
     var tempSlot = '1'; // Use slot 1 for simplicity, PHP will handle ID logic
     formData.append('d_pro_name' + tempSlot, productName);
+    formData.append('d_pro_desc' + tempSlot, productDescription);
     
     // If editing, include product_id both ways for compatibility
     if(isEdit) {
@@ -1133,7 +1194,7 @@ function removeData(productId) {
                     // Check if table is now empty
                     var tableBody = $('.Product-ServicesTable tbody');
                     if(tableBody.find('tr[data-product-id]').length === 0) {
-                        tableBody.html('<tr><td colspan="3" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td></tr>');
+                        tableBody.html('<tr><td colspan="4" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td></tr>');
                     }
                     
                     $('#status_remove_img').html('<div class="alert alert-success">Service removed successfully!</div>');
@@ -1279,13 +1340,23 @@ document.addEventListener('click', function(event) {
 }
 .Product-ServicesTable table th,
 .Product-ServicesTable table td{
-    width: 33%;
+    width: 25%;
 }
 .Product-ServicesTable table th:nth-child(2),
 .Product-ServicesTable table th:nth-child(3),
+.Product-ServicesTable table th:nth-child(4),
 .Product-ServicesTable table td:nth-child(2),
-.Product-ServicesTable table td:nth-child(3){
+.Product-ServicesTable table td:nth-child(3),
+.Product-ServicesTable table td:nth-child(4){
     text-align:center !important;
+}
+
+.Product-ServicesTable .text-truncate {
+    display: inline-block;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .Product-ServicesBtn button{
     display: flex !important;

@@ -33,10 +33,10 @@ if(isset($_POST['process3'])){
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'"');
     if(mysqli_num_rows($query) == 1){
 
-        // Build update parts dynamically for 20 youtube fields
+        // Build update parts dynamically for 20  fields
         $updates = array();
         for($i = 1; $i <= 20; $i++){
-            $field = 'd_youtube' . $i;
+            $field = 'd_' . $i;
             $value = isset($_POST[$field]) ? mysqli_real_escape_string($connect, $_POST[$field]) : '';
             $updates[] = $field . '="' . $value . '"';
         }
@@ -53,13 +53,13 @@ if(isset($_POST['process3'])){
             }
             // Redirect if possible (prevents form resubmission on refresh)
             if (!headers_sent()) {
-                header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
+                header('Location: videos.php?card_number='.$_SESSION['card_id_inprocess']);
                 exit;
             }
         } else {
             $_SESSION['save_error'] = "Error! Try Again.";
             if (!headers_sent()) {
-                header('Location: payment-details.php?card_number='.$_SESSION['card_id_inprocess']);
+                header('Location: videos.php?card_number='.$_SESSION['card_id_inprocess']);
                 exit;
             }
         }
@@ -107,21 +107,21 @@ include '../includes/header.php';
 
         <div class="card mb-4">
             <div class="card-body">
-            <label class="heading2">YouTube Video Links:</label>
+            <label class="heading2">Video Links:</label>
                 <form action="" method="POST" enctype="multipart/form-data" id="card_form">
                    
          
 
                     <?php
-                    // Generate 20 YouTube link inputs
+                    // Generate 20  link inputs
                     for ($i = 1; $i <= 20; $i++) {
-                        $field = 'd_youtube' . $i;
+                        $field = 'd_' . $i;
                         $labelNum = str_pad($i, 2, '0', STR_PAD_LEFT);
                         $value = isset($cardRow[$field]) ? htmlspecialchars($cardRow[$field]) : '';
                     ?>
                     <div class="form-group">
-                        <label for="<?php echo $field; ?>">YouTube Video Link <?php echo $labelNum; ?> </label>
-                        <input type="text" name="<?php echo $field; ?>" id="<?php echo $field; ?>" maxlength="200" class="form-control" placeholder="Enter Your YouTube Video Link" value="<?php echo $value; ?>">
+                        <label for="<?php echo $field; ?>"> Video Link <?php echo $labelNum; ?> </label>
+                        <input type="text" name="<?php echo $field; ?>" id="<?php echo $field; ?>" maxlength="200" class="form-control" placeholder="Enter Your  Video Link" value="<?php echo $value; ?>">
                     </div>
                     <?php } ?>
 

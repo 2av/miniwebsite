@@ -27,32 +27,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Database connection based on environment
-if ($_SERVER['HTTP_HOST'] == "test.miniwebsite.in") {
-    $connect = mysqli_connect("localhost", "wwwmoody_miniweb_vcard_test", "59fK%9vd1", "miniweb_vcard_test") 
-        or die('Database not available...');
-} elseif ($_SERVER['HTTP_HOST'] == "localhost") {
-    $db_host = "p004.bom1.mysecurecloudhost.com";
-    $db_user = "wwwmoody_miniweb_vcard_test";
-    $db_pass = "59fK%9vd1";
-    $db_name = "miniweb_vcard_test";
-    
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    if ($connect->connect_error) {
-        die("Database connection failed: " . $connect->connect_error);
-    }
-} else {
+
     // Production database connection
     $db_host = "p004.bom1.mysecurecloudhost.com";
-    $db_user = "wwwmoody_miniweb_vcard";
-    $db_pass = "miniweb_vcard";
-    $db_name = "miniweb_vcard";
+    $db_user = "wwwmoody_akhilesh";
+    $db_pass = "akhilesh@admin";
+    $db_name = "miniwebsite_live";
     
     $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
     if ($connect->connect_error) {
         die("Database connection failed: " . $connect->connect_error);
     }
-}
+
 
 // Current date/time
 $date = date('Y-m-d H:i:s');
