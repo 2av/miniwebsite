@@ -91,7 +91,7 @@ if(isset($_POST['process1'])){
         $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $comp_name);
         $date = date('Y-m-d H:i:s');
         
-        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,d_display_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date) VALUES ("'.$comp_name.'","'.$display_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id.'","'.$franchisee_email.'",DATE_ADD("'.$date.'", INTERVAL 1 YEAR))');
+        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,d_display_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date) VALUES ("'.$comp_name.'","'.$display_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id.'","'.$franchisee_email.'",DATE_ADD("'.$date.'", INTERVAL 7 DAY))');
         
         if($insert){
             // Insert data in 2nd and 3rd database tables
@@ -338,7 +338,7 @@ include '../includes/header.php';
                                 <span>Back</span>
                             </a>
                             <button type="submit" name="process1" class="btn btn-primary align-center save_btn">
-                                <img src="../../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                                <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                                 <span>Save</span>
                             </button>
                             <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">

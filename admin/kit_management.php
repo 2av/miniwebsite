@@ -8,18 +8,18 @@ require_once('connect.php');
 include_once('header.php');
 
 // Determine active kit tab
-$allowed_kits = array('franchisee','sales','marketing','franchise_sales');
-$current_kit = isset($_GET['kit']) && in_array(strtolower($_GET['kit']), $allowed_kits) ? strtolower($_GET['kit']) : 'franchisee';
+$allowed_kits = array('sales','marketing','franchise_sales');
+$current_kit = isset($_GET['kit']) && in_array(strtolower($_GET['kit']), $allowed_kits) ? strtolower($_GET['kit']) : 'sales';
 
 function kitLabel($key) {
     if ($key === 'sales') return 'Sales Kit';
     if ($key === 'marketing') return 'Marketing Kit';
     if ($key === 'franchise_sales') return 'Franchise Sales Kit';
-    return 'Franchisee Kit';
+    return '';
 }
 
 // Counts per kit for badges
-$kit_counts = array('franchisee' => 0, 'sales' => 0, 'marketing' => 0, 'franchise_sales' => 0);
+$kit_counts = array('sales' => 0, 'marketing' => 0, 'franchise_sales' => 0);
 $count_res = mysqli_query($connect, "SELECT category, COUNT(*) AS c FROM franchisee_kit GROUP BY category");
 if ($count_res) {
     while ($cr = mysqli_fetch_array($count_res)) {
@@ -615,12 +615,6 @@ if ($kit_items_result) {
 
         <!-- Kit Tabs -->
         <ul class="nav nav-tabs content-tabs" role="tablist" style="margin-top:-10px;gap:8px;border-bottom:none;">
-            <li class="nav-item" role="presentation">
-                <a class="nav-link <?php echo $current_kit=='franchisee' ? 'active' : ''; ?>" href="?kit=franchisee" style="border:1px solid #e9ecef;border-bottom-width:3px;border-radius:10px;padding:10px 16px;">
-                    <i class="fas fa-toolbox me-2"></i><?php echo kitLabel('franchisee'); ?>
-                    <span class="badge bg-light text-dark ms-2"><?php echo $kit_counts['franchisee']; ?></span>
-                </a>
-            </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link <?php echo $current_kit=='sales' ? 'active' : ''; ?>" href="?kit=sales" style="border:1px solid #e9ecef;border-bottom-width:3px;border-radius:10px;padding:10px 16px;">
                     <i class="fas fa-briefcase me-2"></i><?php echo kitLabel('sales'); ?>

@@ -603,7 +603,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                       //  $edit_link = "../../panel/login/create_card.php?card_number=" . $row['id'];
                                    // }
                                     ?>
-                                    <span class="view"> <a href="https://<?php echo $_SERVER['HTTP_HOST']; ?>/n.php?n=<?php echo $row['card_id']; ?>" target="_blank" style="text-decoration: none; color: inherit;">
+                                    <span class="view"> <a href="https://<?php echo $_SERVER['HTTP_HOST']; ?>/<?php echo $row['card_id']; ?>" target="_blank" style="text-decoration: none; color: inherit;">
                                      <!-- <img src="../../../assets/images/eye.png" class="img-fluid" width="30px" alt="">      -->
                                      <span class="view_icon_style"><i class="fa-regular fa-eye"></i></span>
                                    
