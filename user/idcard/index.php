@@ -7,6 +7,97 @@ require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 // Require TEAM role
 require_role('TEAM', '/login/team.php');
 
+// Handle AJAX image processing FIRST - before any other output
+if(isset($_POST['process_profile_picture_ajax']) && !empty($_FILES['profile_picture']['tmp_name'])){
+    ob_start();
+    error_reporting(E_ALL);
+    ini_set('display_errors', 0);
+    
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    
+    try {
+        $file_validation_path = __DIR__ . '/../../includes/file_validation.php';
+        if(file_exists($file_validation_path)) {
+            require_once $file_validation_path;
+        } elseif(file_exists('../../includes/file_validation.php')) {
+            require_once '../../includes/file_validation.php';
+        } else {
+            throw new Exception('File validation library not found');
+        }
+        
+        if(!function_exists('processImageUploadWithAutoCrop')) {
+            throw new Exception('Image processing function not available');
+        }
+        
+        if($_FILES['profile_picture']['error'] !== UPLOAD_ERR_OK) {
+            throw new Exception('File upload error: ' . $_FILES['profile_picture']['error']);
+        }
+        
+        $result = processImageUploadWithAutoCrop(
+            $_FILES['profile_picture'], 
+            400,      // Target size: 400x400 (square for ID card)
+            250000,   // Target file size: 250KB
+            200000,   // Min file size: 200KB
+            300000,   // Max file size: 300KB
+            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
+            'jpeg',
+            null
+        );
+        
+        if($result['status']) {
+            $base64Image = base64_encode($result['data']);
+            
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'image_data' => $base64Image,
+                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 400, 'height' => 400],
+                'file_size' => isset($result['file_size']) ? $result['file_size'] : 0,
+                'message' => 'Image processed successfully'
+            ]);
+            
+            if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                @unlink($result['file_path']);
+            }
+        } else {
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            $errorMsg = isset($result['message']) ? strip_tags($result['message']) : 'Unknown error processing image';
+            echo json_encode([
+                'success' => false,
+                'message' => $errorMsg
+            ]);
+        }
+    } catch(Exception $e) {
+        while(ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ]);
+    } catch(Error $e) {
+        while(ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => 'Fatal error: ' . $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
 // Include shared header/layout
 include __DIR__ . '/../includes/header.php';
 
@@ -15,75 +106,38 @@ $upload_message = '';
 $upload_status  = '';
 $profile_image_path = '';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_picture'])) {
-    $file = $_FILES['profile_picture'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_profile']) && !empty($_POST['processed_profile_data'])){
+    // Use processed image data from AJAX
+    $profileData = base64_decode($_POST['processed_profile_data']);
     
-    if ($file['error'] == UPLOAD_ERR_OK) {
-        $filename       = $file['name'];
-        $imageFileType  = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        $file_allow     = array('png', 'jpeg', 'jpg', 'gif');
-        $filesize       = $file['size'];
-        $maxSize        = 250000; // 250KB
+    // Create upload directory if it doesn't exist
+    $upload_dir = __DIR__ . '/uploads/';
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0755, true);
+    }
+    
+    $unique_filename = date('ymdsih') . '_profile.jpg';
+    $upload_path     = $upload_dir . $unique_filename;
+    
+    if (file_put_contents($upload_path, $profileData) !== false) {
+        $profile_image_path = 'uploads/' . $unique_filename;
+        $_SESSION['idcard_profile_image'] = $profile_image_path;
         
-        // Check file type
-        if (in_array($imageFileType, $file_allow)) {
-            // Check file size
-            if ($filesize <= $maxSize) {
-                // Verify it's actually an image
-                $check = getimagesize($file['tmp_name']);
-                if ($check !== false) {
-                    // Create upload directory if it doesn't exist
-                    $upload_dir = __DIR__ . '/uploads/';
-                    if (!file_exists($upload_dir)) {
-                        mkdir($upload_dir, 0755, true);
-                    }
-                    
-                    // Generate unique filename
-                    $unique_filename = uniqid() . '_' . time() . '.' . $imageFileType;
-                    $upload_path     = $upload_dir . $unique_filename;
-                    
-                    // Move uploaded file to destination
-                    if (move_uploaded_file($file['tmp_name'], $upload_path)) {
-                        $profile_image_path = 'uploads/' . $unique_filename;
-                        // Store in session for persistence
-                        $_SESSION['idcard_profile_image'] = $profile_image_path;
-                        
-                        // Save to database for permanent storage (unified user_details table for TEAM)
-                        $team_member_id = get_user_id();
-                        if (!empty($team_member_id)) {
-                            // Ensure profile_image column exists on user_details
-                            $check_profile_image = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'profile_image'");
-                            if ($check_profile_image && mysqli_num_rows($check_profile_image) == 0) {
-                                mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL");
-                            }
-                            
-                            // Update profile image in database
-                            $safe_path = mysqli_real_escape_string($connect, $profile_image_path);
-                            mysqli_query($connect, "UPDATE user_details SET profile_image = '{$safe_path}' WHERE id = '" . (int)$team_member_id . "' AND role='TEAM'");
-                        }
-                        
-                        $upload_message = 'Profile picture uploaded successfully!';
-                        $upload_status  = 'success';
-                        header('Location: index.php?upload=success');
-                        exit;
-                    } else {
-                        $upload_message = 'Failed to move uploaded file.';
-                        $upload_status  = 'error';
-                    }
-                } else {
-                    $upload_message = 'File is not a valid image.';
-                    $upload_status  = 'error';
-                }
-            } else {
-                $upload_message = 'File size exceeds 250KB limit. Please select a smaller image.';
-                $upload_status  = 'error';
+        $team_member_id = get_user_id();
+        if (!empty($team_member_id)) {
+            $check_profile_image = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'profile_image'");
+            if ($check_profile_image && mysqli_num_rows($check_profile_image) == 0) {
+                mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL");
             }
-        } else {
-            $upload_message = 'Only PNG, JPG, JPEG or GIF files are allowed.';
-            $upload_status  = 'error';
+            
+            $safe_path = mysqli_real_escape_string($connect, $profile_image_path);
+            mysqli_query($connect, "UPDATE user_details SET profile_image = '{$safe_path}' WHERE id = '" . (int)$team_member_id . "' AND role='TEAM'");
         }
+        
+        $upload_message = 'Profile picture uploaded successfully!';
+        $upload_status  = 'success';
     } else {
-        $upload_message = 'Error uploading file. Please try again.';
+        $upload_message = 'Failed to save image.';
         $upload_status  = 'error';
     }
 }
@@ -187,9 +241,10 @@ $website_name = 'www.miniwebsite.in';
                                 <form method="POST" enctype="multipart/form-data" id="uploadForm">
                                     <div class="form-group displayFlex">
                                         <label for="profile_picture" class="font-weight-semibold heading">Choose Profile Picture</label>
-                                        <input type="file" class="form-control-file" id="profile_picture" name="profile_picture" accept="image/*" onchange="previewProfilePicture(this)">
+                                        <input type="file" class="form-control-file" id="profile_picture" name="profile_picture" accept="image/*">
                                         <small class="form-text text-muted">Max 250KB • JPG, PNG, GIF • Square image works best</small>
                                     </div>
+                                    <input type="hidden" name="processed_profile_data" id="processed_profile_data" value="">
                                     <div class="form-group ">
                                         <div id="profilePreview" class="profile-preview">
                                             <?php if (!empty($profile_image_path)): ?>
@@ -200,7 +255,7 @@ $website_name = 'www.miniwebsite.in';
                                         </div>
                                     </div>
                                     <div class="action-buttons d-flex flex-column flex-sm-row align-items-center justify-content-between">
-                                        <button type="submit" class="btn btn-primary flex-grow-1 mb-3 mb-sm-0">
+                                        <button type="submit" name="process_profile" class="btn btn-primary flex-grow-1 mb-3 mb-sm-0">
                                             Upload & Refresh Preview
                                         </button>
                                         <button type="button" class="btn btn-success flex-grow-1" onclick="downloadIdCard()">
@@ -428,12 +483,126 @@ function previewProfilePicture(input) {
     }
 }
 
+// Image Crop Upload Handler - similar to company-details.php
+(function() {
+    var profileUploadInited = false;
+    function truncateFileName(fileName, maxLength) {
+        if (fileName.length <= maxLength) return fileName;
+        var ext = fileName.substring(fileName.lastIndexOf('.'));
+        var nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+        return nameWithoutExt.substring(0, maxLength - ext.length - 3) + '...' + ext;
+    }
+    function initProfileUpload() {
+        if (profileUploadInited || typeof window.jQuery === 'undefined' || typeof window.ImageCropUpload === 'undefined') return profileUploadInited;
+        profileUploadInited = true;
+        var $ = window.jQuery;
+        $(document).ready(function(){
+            $('#profile_picture').off('change.profileUpload').on('change.profileUpload', function(){
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+                ImageCropUpload.open(file, {
+                    method: 'base64',
+                    hiddenField: '#processed_profile_data',
+                    previewSelector: '#previewImg',
+                    spanSelector: '#profilePreview p',
+                    title: 'Adjust & Crop Profile Picture',
+                    onSuccess: function(data) {
+                        // Update preview immediately
+                        var processedData = $('#processed_profile_data').val();
+                        if (processedData) {
+                            var previewDiv = document.getElementById('profilePreview');
+                            previewDiv.innerHTML = '<img src="data:image/jpeg;base64,' + processedData + '" alt="Profile Preview" id="previewImg" style="max-width: 200px; max-height: 200px; border-radius: 50%; object-fit: cover;">';
+                            
+                            // Update canvas with cropped image
+                            profileImage.onload = function() {
+                                profileImageLoaded = true;
+                                drawIdCard();
+                            };
+                            profileImage.src = 'data:image/jpeg;base64,' + processedData;
+                        }
+                    },
+                    onError: function(msg) { alert(msg); }
+                });
+                $(this).val('');
+            });
+        });
+        return true;
+    }
+    if (!initProfileUpload()) {
+        var check = setInterval(function() { if (initProfileUpload()) clearInterval(check); }, 100);
+    }
+})();
+
 function downloadIdCard() {
     const link = document.createElement('a');
     link.download = 'id_card_' + Date.now() + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
 }
+
+// Handle form submission to upload without page redirect
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('uploadForm');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const processedData = document.getElementById('processed_profile_data').value;
+            if (!processedData) {
+                alert('Please select and adjust a profile picture first');
+                return;
+            }
+            
+            const formData = new FormData(uploadForm);
+            
+            fetch('index.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.setAttribute('role', 'alert');
+                alertDiv.setAttribute('id', 'successAlert_' + Date.now());
+                alertDiv.innerHTML = `
+                    Profile picture uploaded successfully!
+                    <button type="button" class="close" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                `;
+                
+                const mainTop = document.querySelector('.main-top');
+                mainTop.parentNode.insertBefore(alertDiv, mainTop.nextSibling);
+                
+                // Add close button functionality
+                const closeBtn = alertDiv.querySelector('.close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function() {
+                        alertDiv.classList.remove('show');
+                        setTimeout(() => alertDiv.remove(), 150);
+                    });
+                }
+                
+                // Auto-hide alert after 5 seconds
+                setTimeout(() => {
+                    if (alertDiv && alertDiv.parentNode) {
+                        alertDiv.classList.remove('show');
+                        setTimeout(() => alertDiv.remove(), 150);
+                    }
+                }, 5000);
+                
+                // Keep the preview and canvas visible for download
+                console.log('Profile picture saved successfully');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading profile picture');
+            });
+        });
+    }
+});
 
 // Helper to draw website icon
 function drawWebsiteIcon(iconX, centerY, iconWidth) {

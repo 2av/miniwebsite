@@ -182,7 +182,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($old_shop_name !== $new_shop_name) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'shop_name', $old_shop_name, $new_shop_name, 'other_change', $team_member_id);
+                                    $changed_field = 'shop_name';
+                                    $change_type = 'other_change';
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $changed_field, $old_shop_name, $new_shop_name, $change_type, $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }
@@ -190,7 +192,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($old_contact_number !== $new_contact_number) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'contact_number', $old_contact_number, $new_contact_number, 'other_change', $team_member_id);
+                                    $changed_field = 'contact_number';
+                                    $change_type = 'other_change';
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $changed_field, $old_contact_number, $new_contact_number, $change_type, $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }
@@ -198,7 +202,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($old_approached_for !== $new_approached_for) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'approached_for', $old_approached_for, $new_approached_for, 'other_change', $team_member_id);
+                                    $changed_field = 'approached_for';
+                                    $change_type = 'other_change';
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $changed_field, $old_approached_for, $new_approached_for, $change_type, $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }
@@ -206,7 +212,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($old_address !== $new_address) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
-                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, 'address', $old_address, $new_address, 'other_change', $team_member_id);
+                                    $changed_field = 'address';
+                                    $change_type = 'other_change';
+                                    $history_stmt->bind_param('iissssi', $tracker_id, $team_member_id, $changed_field, $old_address, $new_address, $change_type, $team_member_id);
                                     $history_stmt->execute();
                                     $history_stmt->close();
                                 }

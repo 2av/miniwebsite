@@ -76,7 +76,7 @@ if(isset($_POST['process1'])){
         exit;
     }
     if ($display_name === '') {
-        $_SESSION['save_error'] = "Please enter a display name.";
+        $_SESSION['save_error'] = "Please enter a Business Name.";
         header('Location: business-name.php');
         exit;
     }
@@ -127,7 +127,7 @@ if(isset($_POST['process2'])){
         exit;
     }
     if ($display_name === '') {
-        $_SESSION['save_error'] = "Please enter a display name.";
+        $_SESSION['save_error'] = "Please enter a Business Name.";
         header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
         exit;
     }
@@ -252,14 +252,17 @@ include '../includes/header.php';
                         
                         <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="<?php echo isset($_GET['card_number']) ? (int)$_GET['card_number'] : ''; ?>">
                             <div class="form-group top_header_section">
-                                <label for="d_display_name">Display Name: <span class="text-danger">*</span></label>
-                                <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_display_name']); ?>" placeholder="Enter Display Name*" required>
+                                <label for="d_display_name">Business Name: <span class="text-danger">*</span></label>
+                                <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_display_name']); ?>" placeholder="Enter Business Name*" required>
                             </div>
                             <div class="form-group top_header_section">
-                                <label for="d_comp_name">Business or Company Name: <span class="text-danger">*</span></label>
-                                <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business or Company Name*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
+                                <label for="d_comp_name">Business URL: <span class="text-danger">*</span></label>
+                                <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business URL*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                                 <div class="business_name_preview mt-2 d-none" aria-live="polite">
                                     <strong>Preview:</strong> <span class="preview_url_text"><?php echo htmlspecialchars($business_url); ?></span>
+                                </div>
+                                <div class="business_name_exists_msg mt-2 d-none text-danger" role="alert">
+                                    This URL is already taken. Please choose something else.
                                 </div>
                                 <br/>
                                 <?php
@@ -282,9 +285,7 @@ include '../includes/header.php';
                                     <?php endif; ?>
                                 </sup>
                                 
-                                <div class="business_name_exists_msg mt-2 d-none text-danger" role="alert">
-                                    This business name already exists. Please choose a different name.
-                                </div>
+                                
                             </div>
                             <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                                 <a href="../dashboard/" class="btn btn-secondary align-left">
@@ -318,18 +319,17 @@ include '../includes/header.php';
                     
                     <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="">
                         <div class="form-group top_header_section">
-                            <label for="d_display_name">Display Name: <span class="text-danger">*</span></label>
-                            <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" placeholder="Enter Display Name*" required>
+                            <label for="d_display_name">Business Name: <span class="text-danger">*</span></label>
+                            <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" placeholder="Enter Business Name*" required>
                         </div>
                         <div class="form-group top_header_section">
-                            <label for="d_comp_name">Business or Company Name: <span class="text-danger">*</span></label>
-                            <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business or Company Name*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
-                            <sup>This name will not be changed later on so choose wisely</sup>
+                            <label for="d_comp_name">Business URL: <span class="text-danger">*</span></label>
+                            <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business URL*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                             <div class="business_name_preview mt-2 d-none" aria-live="polite">
                                 <strong>Preview:</strong> <span class="preview_url_text">—</span>
                             </div>
-                            <div class="business_name_exists_msg alert alert-warning mt-2 d-none" role="alert">
-                                This business name already exists. Please choose a different name.
+                            <div class="business_name_exists_msg mt-2 d-none text-danger" role="alert">
+                                This URL is already taken. Please choose something else.
                             </div>
                         </div>
                         <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
@@ -355,15 +355,16 @@ include '../includes/header.php';
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var nameInput = document.querySelector('input[name="d_comp_name"]');
-    var saveNextBtn = document.querySelector('.Product-ServicesBtn .btn.btn-primary.align-center');
-    var previewEl = document.querySelector('.preview_url_text');
-    var previewContainer = document.querySelector('.business_name_preview');
-    var existsMsgEl = document.querySelector('.business_name_exists_msg');
     var form = nameInput ? nameInput.closest('form') : null;
+    var saveNextBtn = form ? form.querySelector('button.btn.btn-primary.align-center') : null;
+    var previewEl = form ? form.querySelector('.preview_url_text') : null;
+    var previewContainer = form ? form.querySelector('.business_name_preview') : null;
+    var existsMsgEl = form ? form.querySelector('.business_name_exists_msg') : null;
     var cardNumber = form && form.getAttribute('data-card-number') ? form.getAttribute('data-card-number') : '';
     var checkTimeout = null;
     var lastCheckedName = '';
     var nameExists = false;
+    var originalValue = nameInput ? nameInput.value.trim() : '';
 
     // Build URL slug from business name (same logic as PHP: space . & / [ ] )
     function nameToSlug(name) {
@@ -455,6 +456,12 @@ document.addEventListener('DOMContentLoaded', function () {
         return (val || '').replace(/[^A-Za-z0-9\s\-]/g, '');
     }
 
+    // Check if value has changed from original
+    function hasValueChanged() {
+        if (!nameInput) return false;
+        return nameInput.value.trim() !== originalValue;
+    }
+
     if (nameInput) {
         nameInput.addEventListener('input', function () {
             var start = this.selectionStart, end = this.selectionEnd;
@@ -465,6 +472,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.setSelectionRange(Math.min(start, len), Math.min(end, len));
             }
             updatePreview();
+            
+            // Enable button only if value has changed and is not empty
+            var currentValue = this.value.trim();
+            if (hasValueChanged() && currentValue !== '') {
+                setSaveDisabled(false);
+            } else {
+                setSaveDisabled(true);
+            }
+            
             scheduleCheck();
             toggleSaveNextVisibility();
         });
@@ -477,9 +493,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         updatePreview();
         toggleSaveNextVisibility();
-        // Initial check if field has value (e.g. edit form)
-        if (nameInput.value.trim() !== '') scheduleCheck();
+        // Disable button on page load
+        setSaveDisabled(true);
     }
+
 });
 </script>
 
