@@ -170,6 +170,9 @@ if ($result = mysqli_query($connect, $userStatsQuery)) {
                         <a class="nav-link" href="manage_content.php">
                             <i class="fas fa-file-alt me-2"></i> Content Management
                         </a>
+                        <a class="nav-link" href="category_management_hierarchical.php">
+                            <i class="fas fa-list me-2"></i> Category Management
+                        </a>    
                         <a class="nav-link" href="kit_management.php">
                             <i class="fas fa-toolbox me-2"></i> Kit Management
                         </a>

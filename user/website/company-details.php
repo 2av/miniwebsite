@@ -455,10 +455,26 @@ if(isset($_POST['process2'])){
                 @mysqli_query($connect, "ALTER TABLE `{$table}` ADD `{$column}` {$definition}");
             }
         }
+        
+        // Helper to convert position columns from VARCHAR to INT (for storing category IDs)
+        function convertPositionColumnsToInt($connect, $table, $column) {
+            $res = @mysqli_query($connect, "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+            if($res && mysqli_num_rows($res) > 0) {
+                $col_info = mysqli_fetch_assoc($res);
+                // If column is VARCHAR and not empty, we need to convert it
+                if(strpos($col_info['Type'], 'VARCHAR') !== false) {
+                    // First, convert empty strings and NULL values to prevent conversion errors
+                    @mysqli_query($connect, "UPDATE `{$table}` SET `{$column}` = NULL WHERE `{$column}` = '' OR `{$column}` IS NULL OR TRIM(`{$column}`) = ''");
+                    // Now modify the column type to INT
+                    @mysqli_query($connect, "ALTER TABLE `{$table}` MODIFY `{$column}` INT(11) DEFAULT NULL");
+                }
+            }
+        }
 
         // Ensure required columns exist in digi_card (safe to call on every save)
-        ensureColumnExists($connect, 'digi_card', 'd_position_primary', "VARCHAR(200) DEFAULT ''");
-        ensureColumnExists($connect, 'digi_card', 'd_position_secondary', "VARCHAR(200) DEFAULT ''");
+        // d_position_primary and d_position_secondary now store category IDs (INT) instead of names
+        convertPositionColumnsToInt($connect, 'digi_card', 'd_position_primary');
+        convertPositionColumnsToInt($connect, 'digi_card', 'd_position_secondary');
         ensureColumnExists($connect, 'digi_card', 'd_contact', "VARCHAR(50) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_contact2', "VARCHAR(50) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_whatsapp', "VARCHAR(50) DEFAULT ''");
@@ -471,9 +487,9 @@ if(isset($_POST['process2'])){
         ensureColumnExists($connect, 'digi_card', 'd_pincode', "VARCHAR(50) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_country', "VARCHAR(200) DEFAULT ''");
 
-        // Sanitize new fields (fall back to empty string when not provided)
-        $d_position_primary = isset($_POST['d_position_primary']) ? mysqli_real_escape_string($connect, $_POST['d_position_primary']) : '';
-        $d_position_secondary = isset($_POST['d_position_secondary']) ? mysqli_real_escape_string($connect, $_POST['d_position_secondary']) : '';
+        // Sanitize new fields (fall back to empty string when not provided) - now storing as ID
+        $d_position_primary = isset($_POST['d_position_primary']) && !empty($_POST['d_position_primary']) ? intval($_POST['d_position_primary']) : '';
+        $d_position_secondary = isset($_POST['d_position_secondary']) && !empty($_POST['d_position_secondary']) ? intval($_POST['d_position_secondary']) : '';
         $d_city = isset($_POST['d_city']) ? mysqli_real_escape_string($connect, $_POST['d_city']) : '';
         $d_state = isset($_POST['d_state']) ? mysqli_real_escape_string($connect, $_POST['d_state']) : '';
         $d_pincode = isset($_POST['d_pincode']) ? mysqli_real_escape_string($connect, $_POST['d_pincode']) : '';
@@ -640,35 +656,79 @@ include '../includes/header.php';
                         <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_f_name">Business Category(Primary) <span class="text-danger">*</span></label>
+                                    <label for="d_position_primary">Business Category(Primary) <span class="text-danger">*</span></label>
                                     <select name="d_position_primary" id="d_position_primary" class="form-control">
-                                        <option value="">Select Position</option>
-                                        <option value="Manager">Manager</option>
-                                        <option value="Director">Director</option>
-                                        <option value="CEO">CEO</option>
-                                        <option value="CTO">CTO</option>
-                                        <option value="CFO">CFO</option>
+                                        <option value="">-- Select Primary Category --</option>   
+                                        <?php
+                                        // Get all categories with their parents for secondary (grouped by parent)
+                                        $all_cats_query = mysqli_query($connect, "
+                                            SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name
+                                            FROM product_categories c
+                                            LEFT JOIN product_categories p ON c.parent_id = p.id
+                                            WHERE c.is_active = 1 AND c.category_type = 'business'
+                                            ORDER BY p.display_order, c.display_order ASC
+                                        ");
+                                        
+                                        $current_group = null;
+                                        while($cat = mysqli_fetch_assoc($all_cats_query)) {
+                                            // Add optgroup header when parent changes (but only for children)
+                                            if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
+                                                if($current_group !== null) {
+                                                    echo '</optgroup>';
+                                                }
+                                                echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
+                                                $current_group = $cat['parent_name'];
+                                            }
+                                            
+                                            // Show child categories only (those with parent_id)
+                                            if($cat['parent_id'] !== null) {
+                                                $selected = (!empty($cardRow['d_position_primary']) && $cardRow['d_position_primary'] == $cat['id']) ? 'selected' : '';
+                                                echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
+                                            }
+                                        }
+                                        if($current_group !== null) {
+                                            echo '</optgroup>';
+                                        }
+                                        ?>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                             <div class="form-group">
-                                    <label for="d_f_name">Business Category(secondary)</label>
+                                    <label for="d_position_secondary">Business Category(secondary)</label>
                                     <select name="d_position_secondary" id="d_position_secondary" class="form-control">
-                                        <option value="">Select Business Category(secondary)</option>   
-                                        <option value="Agriculture">Agriculture</option>
-                                        <option value="Automotive">Automotive</option>
-                                        <option value="Banking">Banking</option>
-                                        <option value="Beauty & Spa">Beauty & Spa</option>
-                                        <option value="Beverages">Beverages</option>
-                                        <option value="Clothing">Clothing</option>
-                                        <option value="Construction">Construction</option>
-                                        <option value="Education">Education</option>
-                                        <option value="Entertainment">Entertainment</option>
-                                        <option value="Food & Drink">Food & Drink</option>
-                                        <option value="Health & Fitness">Health & Fitness</option>
-                                        <option value="Home & Garden">Home & Garden</option>
-                                        <option value="Jewelry">Jewelry</option>
+                                        <option value="">-- Select Secondary Category --</option>   
+                                        <?php
+                                        // Get all categories with their parents for secondary (grouped by parent)
+                                        $all_cats_query = mysqli_query($connect, "
+                                            SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name
+                                            FROM product_categories c
+                                            LEFT JOIN product_categories p ON c.parent_id = p.id
+                                            WHERE c.is_active = 1 AND c.category_type = 'business'
+                                            ORDER BY p.display_order, c.display_order ASC
+                                        ");
+                                        
+                                        $current_group = null;
+                                        while($cat = mysqli_fetch_assoc($all_cats_query)) {
+                                            // Add optgroup header when parent changes (but only for children)
+                                            if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
+                                                if($current_group !== null) {
+                                                    echo '</optgroup>';
+                                                }
+                                                echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
+                                                $current_group = $cat['parent_name'];
+                                            }
+                                            
+                                            // Show child categories only (those with parent_id)
+                                            if($cat['parent_id'] !== null) {
+                                                $selected = (!empty($cardRow['d_position_secondary']) && $cardRow['d_position_secondary'] == $cat['id']) ? 'selected' : '';
+                                                echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
+                                            }
+                                        }
+                                        if($current_group !== null) {
+                                            echo '</optgroup>';
+                                        }
+                                        ?>
                                     </select>
                                 </div>
                             </div>

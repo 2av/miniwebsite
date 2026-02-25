@@ -1,0 +1,24 @@
+Category Name,Type,Parent Category,Description,Icon Class,Display Order
+Electronics,category,,Electronic gadgets and devices,fa-laptop,1
+Laptops,product,Electronics,Laptop computers and notebooks,fa-laptop,1
+Phones,product,Electronics,Mobile phones and smartphones,fa-mobile,2
+Tablets,product,Electronics,Tablet devices and iPads,fa-tablet-alt,3
+Accessories,product,Electronics,Tech accessories and gadgets,fa-plug,4
+Clothing,category,,Apparel and fashion items,fa-tshirt,2
+Men,product,Clothing,Men clothing and fashion,fa-male,1
+Women,product,Clothing,Women clothing and fashion,fa-female,2
+Kids,product,Clothing,Children clothing and fashion,fa-child,3
+Books,category,,Books and educational materials,fa-book,3
+Fiction,product,Books,Fiction novels and stories,fa-book,1
+Non-Fiction,product,Books,Non-fiction and educational books,fa-book-open,2
+Educational,product,Books,Educational textbooks and guides,fa-graduation-cap,3
+Home & Garden,category,,Furniture and home decoration,fa-home,4
+Bedroom,product,Home & Garden,Bedroom furniture and decor,fa-door-open,1
+Living Room,product,Home & Garden,Living room furniture,fa-couch,2
+Kitchen,product,Home & Garden,Kitchen equipment and furniture,fa-utensils,3
+Sports & Outdoors,category,,Sports equipment and outdoor gear,fa-football-ball,5
+Sports,product,Sports & Outdoors,Sports equipment,fa-dumbbell,1
+Outdoor Gear,product,Sports & Outdoors,Camping and outdoor gear,fa-tent,2
+Fitness,product,Sports & Outdoors,Fitness and gym equipment,fa-heartbeat,3
+Business,business,,Business products and services,fa-briefcase,6
+Product,product,Business,Business products,fa-box,1
