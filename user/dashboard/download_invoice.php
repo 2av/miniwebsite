@@ -13,11 +13,10 @@ if($current_role !== 'FRANCHISEE') {
 $franchisee_email = get_user_email();
 
 // Get franchisee payment invoice details from invoice_details table
-// Check both user_email and billing_email, and try multiple payment_type values for backward compatibility
+// First, try to find any invoice for this email (most recent)
 $invoice_query = "SELECT * FROM invoice_details 
-                  WHERE (user_email = ? OR billing_email = ?) 
-                  AND (payment_type = 'Franchisee' OR payment_type = 'franchisee' OR payment_type LIKE '%Franchisee%' OR payment_type IS NULL)
-                  ORDER BY created_at DESC LIMIT 1";
+                  WHERE (user_email = ? OR billing_email = ?)
+                  ORDER BY created_at DESC, id DESC LIMIT 1";
 
 $stmt = $connect->prepare($invoice_query);
 if (!$stmt) {
@@ -34,28 +33,25 @@ if (!$result) {
 }
 
 $invoice_data = null;
-if($result && $invoice_data = $result->fetch_assoc()) {
-    // Invoice found
-    error_log("Invoice found for franchisee: " . $franchisee_email . ", Invoice #: " . ($invoice_data['invoice_number'] ?? 'N/A') . ", Payment Type: " . ($invoice_data['payment_type'] ?? 'NULL'));
+if($result && $result->num_rows > 0) {
+    $invoice_data = $result->fetch_assoc();
+    error_log("Invoice found - Number: " . ($invoice_data['invoice_number'] ?? 'N/A') . 
+              ", Amount: " . ($invoice_data['total_amount'] ?? 'N/A'));
 } else {
-    // No invoice found - log for debugging
-    error_log("No invoice found for franchisee email: " . $franchisee_email);
-    // Try alternative query without payment_type restriction (check both emails)
-    $alt_query = "SELECT * FROM invoice_details 
-                  WHERE (user_email = ? OR billing_email = ?)
-                  ORDER BY created_at DESC LIMIT 1";
-    $alt_stmt = $connect->prepare($alt_query);
-    if ($alt_stmt) {
-        $alt_stmt->bind_param("ss", $franchisee_email, $franchisee_email);
-        $alt_stmt->execute();
-        $alt_result = $alt_stmt->get_result();
-        if($alt_result && $alt_data = $alt_result->fetch_assoc()) {
-            error_log("Found invoice with payment_type: " . ($alt_data['payment_type'] ?? 'NULL') . " for email: " . $franchisee_email . ", user_email: " . ($alt_data['user_email'] ?? 'NULL') . ", billing_email: " . ($alt_data['billing_email'] ?? 'NULL'));
-            // Use this invoice if found
-            $invoice_data = $alt_data;
-        }
-        $alt_stmt->close();
+    error_log("No invoice found for email: " . $franchisee_email);
+}
+
+$stmt->close();
+
+// Get base path for assets (needed for error pages too)
+function get_assets_base_path() {
+    $script_name = $_SERVER['SCRIPT_NAME'];
+    $script_dir = dirname($script_name);
+    $base = preg_replace('#/user(/.*)?$#', '', $script_dir);
+    if ($base === '/' || $base === '') {
+        return '';
     }
+    return $base;
 }
 
 if($invoice_data) {
@@ -163,16 +159,6 @@ if($invoice_data) {
 
     $amount_in_words = numberToWords($total_amount) . " Only";
 
-    // Get base path for assets
-    function get_assets_base_path() {
-        $script_name = $_SERVER['SCRIPT_NAME'];
-        $script_dir = dirname($script_name);
-        $base = preg_replace('#/user(/.*)?$#', '', $script_dir);
-        if ($base === '/' || $base === '') {
-            return '';
-        }
-        return $base;
-    }
     $assets_base = get_assets_base_path();
 
     // Create HTML content with same design as download_receipt.php
@@ -529,58 +515,45 @@ $html .= '
     </body>
     </html>';
 
-// Check if this is a direct view request
-if (isset($_GET['view']) && $_GET['view'] == 'true') {
-    echo $html;
-    exit;
-}
-
-// Generate PDF using mPDF (if available)
-$vendor_path = __DIR__ . '/../../vendor/autoload.php';
-if (file_exists($vendor_path)) {
-    require_once $vendor_path;
-    
-    try {
-        $mpdf = new \Mpdf\Mpdf([
-            'mode' => 'utf-8',
-            'format' => 'A4',
-            'margin_left' => 10,
-            'margin_right' => 10,
-            'margin_top' => 10,
-            'margin_bottom' => 10,
-        ]);
-        
-        $mpdf->SetTitle('Franchise Registration Invoice #' . $invoice_number);
-        $mpdf->WriteHTML($html);
-        $mpdf->Output('Franchise_Invoice_' . $invoice_number . '.pdf', 'D');
-        exit;
-    } catch (Exception $e) {
-        echo '<div style="color: red; padding: 20px;">Error generating PDF: ' . $e->getMessage() . '</div>';
-        echo $html;
-    }
-} else {
-    // Fallback to HTML
-    header('Content-Type: text/html');
-    echo $html;
-}
+// Display the HTML invoice directly in browser
+header('Content-Type: text/html; charset=utf-8');
+echo $html;
 
 } else {
     // No invoice found
     $nav_base = get_assets_base_path() . '/user';
+    error_log("No invoice found - showing error page");
     echo '<!DOCTYPE html>
     <html>
     <head>
         <title>Invoice Not Found</title>
         <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            .error { color: #d32f2f; font-size: 18px; margin-bottom: 20px; }
-            .back-btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
+            .container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; padding: 40px; }
+            .error { color: #d32f2f; font-size: 18px; margin-bottom: 20px; font-weight: bold; }
+            .msg { color: #666; font-size: 14px; margin: 15px 0; }
+            .back-btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+            .back-btn:hover { background: #0056b3; }
+            .info { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin-top: 20px; text-align: left; border-radius: 4px; }
+            .info p { margin: 5px 0; }
         </style>
     </head>
     <body>
-        <div class="error">No invoice found for your franchisee registration payment.</div>
-        <p style="color: #666; font-size: 14px; margin: 10px 0;">If you have made a payment, please contact support.</p>
-        <a href="' . $nav_base . '/dashboard" class="back-btn">Back to Dashboard</a>
+        <div class="container">
+            <div class="error">⚠️ Invoice Not Found</div>
+            <div class="msg">No invoice found for your franchisee registration payment.</div>
+            <div class="msg">Email: <strong>' . htmlspecialchars($franchisee_email) . '</strong></div>
+            
+            <div class="info">
+                <p><strong>Possible reasons:</strong></p>
+                <p>• Your payment is still being processed</p>
+                <p>• The payment may not have been completed</p>
+                
+            </div>
+            
+            <div class="msg">Please contact support if you believe this is an error.</div>
+            <a href="' . $nav_base . '/dashboard" class="back-btn">← Back to Dashboard</a>
+        </div>
     </body>
     </html>';
 }

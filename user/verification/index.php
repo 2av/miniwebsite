@@ -47,164 +47,309 @@ if(isset($_SESSION['f_user_email'])) {
     }
 }
 
-// Handle form submission
-if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
-    $pan_card_file = $_FILES['pan_card_document'] ?? null;
-    $aadhaar_front_file = $_FILES['aadhaar_front_document'] ?? null;
-    $aadhaar_back_file = $_FILES['aadhaar_back_document'] ?? null;
-    $upload_success = true;
-    $error_message = '';
+// Include file validation functions early
+$file_validation_path = __DIR__ . '/../../includes/file_validation.php';
+if(file_exists($file_validation_path)) {
+    require_once $file_validation_path;
+} elseif(file_exists('../../includes/file_validation.php')) {
+    require_once '../../includes/file_validation.php';
+}
+
+// Handle AJAX image processing - same as company-details.php
+if(isset($_POST['process_pan_ajax']) && !empty($_FILES['pan_card_document']['tmp_name'])){
+    ob_start();
+    error_reporting(E_ALL);
+    ini_set('display_errors', 0);
     
-    // Fetch existing documents so we keep them when user uploads only some
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    
+    try {
+        if(!function_exists('processImageUploadWithAutoCrop')) {
+            throw new Exception('Image processing function not available');
+        }
+        
+        $result = processImageUploadWithAutoCrop(
+            $_FILES['pan_card_document'], 
+            600,
+            250000,
+            200000,
+            300000,
+            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
+            'jpeg',
+            null
+        );
+        
+        if($result['status']) {
+            $base64Image = base64_encode($result['data']);
+            
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'image_data' => $base64Image,
+                'message' => 'Document processed successfully'
+            ]);
+            
+            if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                @unlink($result['file_path']);
+            }
+        } else {
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => false,
+                'message' => isset($result['message']) ? $result['message'] : 'Error processing image'
+            ]);
+        }
+    } catch(Exception $e) {
+        while(ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
+if(isset($_POST['process_aadhaar_front_ajax']) && !empty($_FILES['aadhaar_front_document']['tmp_name'])){
+    ob_start();
+    error_reporting(E_ALL);
+    ini_set('display_errors', 0);
+    
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    
+    try {
+        if(!function_exists('processImageUploadWithAutoCrop')) {
+            throw new Exception('Image processing function not available');
+        }
+        
+        $result = processImageUploadWithAutoCrop(
+            $_FILES['aadhaar_front_document'], 
+            600,
+            250000,
+            200000,
+            300000,
+            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
+            'jpeg',
+            null
+        );
+        
+        if($result['status']) {
+            $base64Image = base64_encode($result['data']);
+            
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'image_data' => $base64Image,
+                'message' => 'Document processed successfully'
+            ]);
+            
+            if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                @unlink($result['file_path']);
+            }
+        } else {
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => false,
+                'message' => isset($result['message']) ? $result['message'] : 'Error processing image'
+            ]);
+        }
+    } catch(Exception $e) {
+        while(ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
+if(isset($_POST['process_aadhaar_back_ajax']) && !empty($_FILES['aadhaar_back_document']['tmp_name'])){
+    ob_start();
+    error_reporting(E_ALL);
+    ini_set('display_errors', 0);
+    
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    
+    try {
+        if(!function_exists('processImageUploadWithAutoCrop')) {
+            throw new Exception('Image processing function not available');
+        }
+        
+        $result = processImageUploadWithAutoCrop(
+            $_FILES['aadhaar_back_document'], 
+            600,
+            250000,
+            200000,
+            300000,
+            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
+            'jpeg',
+            null
+        );
+        
+        if($result['status']) {
+            $base64Image = base64_encode($result['data']);
+            
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'image_data' => $base64Image,
+                'message' => 'Document processed successfully'
+            ]);
+            
+            if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                @unlink($result['file_path']);
+            }
+        } else {
+            while(ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            echo json_encode([
+                'success' => false,
+                'message' => isset($result['message']) ? $result['message'] : 'Error processing image'
+            ]);
+        }
+    } catch(Exception $e) {
+        while(ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
+// Handle form submission - save images to folder and store only filename in DB
+if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])){
+    $upload_dir = __DIR__ . '/../../assets/upload/verification/';
+    if (!is_dir($upload_dir)) {
+        @mkdir($upload_dir, 0775, true);
+    }
+    
     $existing_pan = $pan_card_document;
     $existing_aadhaar_f = $aadhaar_front_document;
     $existing_aadhaar_b = $aadhaar_back_document;
     
-    // Validate files
-    $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
-    $max_size = 200 * 1024; // 200KB
+    $pan_card_filename = '';
+    $aadhaar_front_filename = '';
+    $aadhaar_back_filename = '';
     
-    if (!$pan_card_file) $pan_card_file = ['error' => UPLOAD_ERR_NO_FILE, 'type' => '', 'size' => 0, 'name' => '', 'tmp_name' => ''];
-    if (!$aadhaar_front_file) $aadhaar_front_file = ['error' => UPLOAD_ERR_NO_FILE, 'type' => '', 'size' => 0, 'name' => '', 'tmp_name' => ''];
-    if (!$aadhaar_back_file) $aadhaar_back_file = ['error' => UPLOAD_ERR_NO_FILE, 'type' => '', 'size' => 0, 'name' => '', 'tmp_name' => ''];
-    
-    // Check PAN Card file
-    if($pan_card_file['error'] == 0) {
-        if(!in_array($pan_card_file['type'], $allowed_types)) {
-            $error_message = "PAN Card file must be JPG or PNG format.";
-            $upload_success = false;
-        } elseif($pan_card_file['size'] > $max_size) {
-            $error_message = "PAN Card file size must be less than 200KB.";
-            $upload_success = false;
+    // Process PAN Card
+    if(!empty($_POST['processed_pan_data'])){
+        $panData = base64_decode($_POST['processed_pan_data']);
+        $fileNameOnly = date('ymdsih') . '_pan.jpg';
+        $filePathAbs = $upload_dir . $fileNameOnly;
+        if(file_put_contents($filePathAbs, $panData) !== false) {
+            $pan_card_filename = $fileNameOnly;
         }
     }
     
-    // Check Aadhaar Front file
-    if($aadhaar_front_file['error'] == 0) {
-        if(!in_array($aadhaar_front_file['type'], $allowed_types)) {
-            $error_message = "Aadhaar Front file must be JPG or PNG format.";
-            $upload_success = false;
-        } elseif($aadhaar_front_file['size'] > $max_size) {
-            $error_message = "Aadhaar Front file size must be less than 200KB.";
-            $upload_success = false;
+    // Process Aadhaar Front
+    if(!empty($_POST['processed_aadhaar_front_data'])){
+        $aadhaarFrontData = base64_decode($_POST['processed_aadhaar_front_data']);
+        $fileNameOnly = date('ymdsih') . '_aadhaar_front.jpg';
+        $filePathAbs = $upload_dir . $fileNameOnly;
+        if(file_put_contents($filePathAbs, $aadhaarFrontData) !== false) {
+            $aadhaar_front_filename = $fileNameOnly;
         }
     }
     
-    // Check Aadhaar Back file
-    if($aadhaar_back_file['error'] == 0) {
-        if(!in_array($aadhaar_back_file['type'], $allowed_types)) {
-            $error_message = "Aadhaar Back file must be JPG or PNG format.";
-            $upload_success = false;
-        } elseif($aadhaar_back_file['size'] > $max_size) {
-            $error_message = "Aadhaar Back file size must be less than 200KB.";
-            $upload_success = false;
+    // Process Aadhaar Back
+    if(!empty($_POST['processed_aadhaar_back_data'])){
+        $aadhaarBackData = base64_decode($_POST['processed_aadhaar_back_data']);
+        $fileNameOnly = date('ymdsih') . '_aadhaar_back.jpg';
+        $filePathAbs = $upload_dir . $fileNameOnly;
+        if(file_put_contents($filePathAbs, $aadhaarBackData) !== false) {
+            $aadhaar_back_filename = $fileNameOnly;
         }
     }
     
-    // Allow save if at least one new file is uploaded or we already have some docs (partial save)
-    $has_new_file = ($pan_card_file['error'] == 0 || $aadhaar_front_file['error'] == 0 || $aadhaar_back_file['error'] == 0);
-    $has_any_existing = (!empty($existing_pan) || !empty($existing_aadhaar_f) || !empty($existing_aadhaar_b));
-    if (!$has_new_file && !$has_any_existing) {
-        $error_message = "Please upload at least one document.";
-        $upload_success = false;
-    }
+    // Save to database - only filename, not full path
+    $pan_final = !empty($pan_card_filename) ? $pan_card_filename : $existing_pan;
+    $aadhaar_f_final = !empty($aadhaar_front_filename) ? $aadhaar_front_filename : $existing_aadhaar_f;
+    $aadhaar_b_final = !empty($aadhaar_back_filename) ? $aadhaar_back_filename : $existing_aadhaar_b;
+    $all_three_present = (!empty($pan_final) && !empty($aadhaar_f_final) && !empty($aadhaar_b_final));
     
-    if($upload_success) {
-        // Store verification uploads in a single shared folder:
-        $upload_dir = __DIR__ . '/../../assets/upload/verification/';
-        if(!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
+    try {
+        // Check if we already have a row for this user
+        $stmt = $connect->prepare("SELECT id FROM franchisee_verification WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+        $stmt->bind_param("s", $_SESSION['f_user_email']);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row_exists = ($res && $res->num_rows > 0);
+        $stmt->close();
         
-        $pan_card_filename = '';
-        $aadhaar_front_filename = '';
-        $aadhaar_back_filename = '';
-        
-        // Upload PAN Card file (only if new file selected)
-        if($pan_card_file['error'] == 0) {
-            $pan_card_filename = 'pan_' . time() . '_' . $_SESSION['f_user_email'] . '.' . pathinfo($pan_card_file['name'], PATHINFO_EXTENSION);
-            if(!move_uploaded_file($pan_card_file['tmp_name'], $upload_dir . $pan_card_filename)) {
-                $error_message = "Failed to upload PAN Card file.";
-                $upload_success = false;
+        if ($row_exists) {
+            if ($all_three_present) {
+                $stmt = $connect->prepare("UPDATE franchisee_verification SET pan_card_document = ?, aadhaar_front_document = ?, aadhaar_back_document = ?, status = 'submitted', submitted_at = NOW() WHERE user_email = ?");
+                $stmt->bind_param("ssss", $pan_final, $aadhaar_f_final, $aadhaar_b_final, $_SESSION['f_user_email']);
+            } else {
+                $stmt = $connect->prepare("UPDATE franchisee_verification SET pan_card_document = ?, aadhaar_front_document = ?, aadhaar_back_document = ? WHERE user_email = ?");
+                $stmt->bind_param("ssss", $pan_final, $aadhaar_f_final, $aadhaar_b_final, $_SESSION['f_user_email']);
             }
+            $stmt->execute();
+            $stmt->close();
+        } else {
+            $status = $all_three_present ? 'submitted' : 'submitted';
+            $stmt = $connect->prepare("INSERT INTO franchisee_verification (user_email, pan_card_document, aadhaar_front_document, aadhaar_back_document, status, submitted_at) VALUES (?, ?, ?, ?, ?, NOW())");
+            $stmt->bind_param("sssss", $_SESSION['f_user_email'], $pan_final, $aadhaar_f_final, $aadhaar_b_final, $status);
+            $stmt->execute();
+            $stmt->close();
         }
         
-        // Upload Aadhaar Front file
-        if($aadhaar_front_file['error'] == 0) {
-            $aadhaar_front_filename = 'aadhaar_front_' . time() . '_' . $_SESSION['f_user_email'] . '.' . pathinfo($aadhaar_front_file['name'], PATHINFO_EXTENSION);
-            if(!move_uploaded_file($aadhaar_front_file['tmp_name'], $upload_dir . $aadhaar_front_filename)) {
-                $error_message = "Failed to upload Aadhaar Front file.";
-                $upload_success = false;
-            }
-        }
-        
-        // Upload Aadhaar Back file
-        if($aadhaar_back_file['error'] == 0) {
-            $aadhaar_back_filename = 'aadhaar_back_' . time() . '_' . $_SESSION['f_user_email'] . '.' . pathinfo($aadhaar_back_file['name'], PATHINFO_EXTENSION);
-            if(!move_uploaded_file($aadhaar_back_file['tmp_name'], $upload_dir . $aadhaar_back_filename)) {
-                $error_message = "Failed to upload Aadhaar Back file.";
-                $upload_success = false;
-            }
-        }
-        
-        if($upload_success) {
+        if ($all_three_present) {
             try {
-                // Keep existing document if no new file uploaded for that field
-                $pan_final = !empty($pan_card_filename) ? $pan_card_filename : $existing_pan;
-                $aadhaar_f_final = !empty($aadhaar_front_filename) ? $aadhaar_front_filename : $existing_aadhaar_f;
-                $aadhaar_b_final = !empty($aadhaar_back_filename) ? $aadhaar_back_filename : $existing_aadhaar_b;
-                $all_three_present = (!empty($pan_final) && !empty($aadhaar_f_final) && !empty($aadhaar_b_final));
-                
-                // Check if we already have a row for this user
-                $stmt = $connect->prepare("SELECT id FROM franchisee_verification WHERE user_email = ? ORDER BY id DESC LIMIT 1");
-                $stmt->bind_param("s", $_SESSION['f_user_email']);
-                $stmt->execute();
-                $res = $stmt->get_result();
-                $row_exists = ($res && $res->num_rows > 0);
-                $stmt->close();
-                
-                if ($row_exists) {
-                    if ($all_three_present) {
-                        $stmt = $connect->prepare("UPDATE franchisee_verification SET pan_card_document = ?, aadhaar_front_document = ?, aadhaar_back_document = ?, status = 'submitted', submitted_at = NOW() WHERE user_email = ?");
-                        $stmt->bind_param("ssss", $pan_final, $aadhaar_f_final, $aadhaar_b_final, $_SESSION['f_user_email']);
-                    } else {
-                        $stmt = $connect->prepare("UPDATE franchisee_verification SET pan_card_document = ?, aadhaar_front_document = ?, aadhaar_back_document = ? WHERE user_email = ?");
-                        $stmt->bind_param("ssss", $pan_final, $aadhaar_f_final, $aadhaar_b_final, $_SESSION['f_user_email']);
-                    }
-                    $stmt->execute();
-                    $stmt->close();
-                } else {
-                    $status = $all_three_present ? 'submitted' : 'submitted';
-                    $stmt = $connect->prepare("INSERT INTO franchisee_verification (user_email, pan_card_document, aadhaar_front_document, aadhaar_back_document, status, submitted_at) VALUES (?, ?, ?, ?, ?, NOW())");
-                    $stmt->bind_param("sssss", $_SESSION['f_user_email'], $pan_final, $aadhaar_f_final, $aadhaar_b_final, $status);
-                    $stmt->execute();
-                    $stmt->close();
-                }
-                
-                if ($all_three_present) {
-                    try {
-                        require_once('../../admin/includes/notification_helper.php');
-                        createNotification('verification', "New Franchisee Documents Submitted", "Franchisee " . $_SESSION['f_user_email'] . " has submitted new documents for verification.", $_SESSION['f_user_email'], 'franchisee', null, 'high');
-                    } catch(Exception $e) {
-                        error_log("Error creating notification: " . $e->getMessage());
-                    }
-                }
-                
-                // Update local variables
-                $pan_card_document = $pan_final;
-                $aadhaar_front_document = $aadhaar_f_final;
-                $aadhaar_back_document = $aadhaar_b_final;
-                $verification_status = $all_three_present ? 'submitted' : 'submitted';
-                // Lock only when all three docs are uploaded AND status is submitted, or when approved
-                $is_locked = ($verification_status == 'approved') || ($verification_status == 'submitted' && $all_three_present);
-                
-                $success_message = $all_three_present
-                    ? "Documents submitted successfully! Our team will verify them within 48 hours."
-                    : "Document(s) saved. Please upload the remaining document(s) and submit when all three are ready.";
+                require_once('../../admin/includes/notification_helper.php');
+                createNotification('verification', "New Franchisee Documents Submitted", "Franchisee " . $_SESSION['f_user_email'] . " has submitted new documents for verification.", $_SESSION['f_user_email'], 'franchisee', null, 'high');
             } catch(Exception $e) {
-                $error_message = "Database error: " . $e->getMessage();
+                error_log("Error creating notification: " . $e->getMessage());
             }
         }
+        
+        // Update local variables
+        $pan_card_document = $pan_final;
+        $aadhaar_front_document = $aadhaar_f_final;
+        $aadhaar_back_document = $aadhaar_b_final;
+        $verification_status = $all_three_present ? 'submitted' : 'submitted';
+        $is_locked = ($verification_status == 'approved') || ($verification_status == 'submitted' && $all_three_present);
+        
+        $success_message = $all_three_present
+            ? "Documents submitted successfully! Our team will verify them within 48 hours."
+            : "Document(s) saved. Please upload the remaining document(s) and submit when all three are ready.";
+    } catch(Exception $e) {
+        $error_message = "Database error: " . $e->getMessage();
     }
 }
 ?>
@@ -236,139 +381,88 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
                         <div class="row">
                             <!-- PAN Card Upload -->
                             <div class="col-md-4 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                       
-                                         <h4 class="card-title">PAN CARD <span class="text-danger">*</span></h4>
-                                         <?php if(!$is_locked): ?>
-                                         <div class="mb-3">
-                                             <small class="text-muted d-block">File Size - Not more than 200KB</small>
-                                             <small class="text-muted d-block">File Supported - .png, .jpg</small>
-                                         </div>
-                                         <?php endif; ?>
-                                        
-                                        <?php if(!$is_locked): ?>
-                                        <div class="mb-3">
-                                            <input type="file" class="form-control-file" name="pan_card_document" accept=".jpg,.jpeg,.png">
-                                        </div>
-                                        <div class="verification-preview-wrap mt-2" data-for="pan_card_document"></div>
-                                        <?php endif; ?>
-                                        
+                                <input type="hidden" name="processed_pan_data" id="processed_pan_data" value="">
+                                <div class="upload-container">
+                                    <div class="document-placeholder" id="panPreview" onclick="clickFocusPan()">
                                         <?php if(!empty($pan_card_document)): ?>
-                                                                                           <div class="uploaded-file">
-                                                  <?php if(!$is_locked): ?>
-                                                  <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded mb-2">
-                                                      <span class="text-truncate"><?php echo htmlspecialchars($pan_card_document); ?></span>
-                                                      <button type="button" class="btn btn-sm btn-outline-danger remove-file" data-file="pan_card">×</button>
-                                                  </div>
-                                                  <?php endif; ?>
-                                                 <!-- Image Preview -->
-                                                 <div class="image-preview-container">
-                                                     <img src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $pan_card_document); ?>" 
-                                                          alt="PAN Card" 
-                                                          class="img-fluid rounded border" 
-                                                          style="max-height: 200px; width: 100%; object-fit: contain;"
-                                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                                     <div class="text-center p-3 bg-light border rounded" style="display: none;">
-                                                         <i class="fa fa-image text-muted" style="font-size: 2rem;"></i>
-                                                         <p class="text-muted mt-2">Image not available</p>
-                                                     </div>
-                                                 </div>
-                                             </div>
-                                         <?php endif; ?>
+                                            <span style="display:none;">PAN CARD</span>
+                                            <img id="showPreviewPan" src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $pan_card_document); ?>" alt="PAN Card Preview">
+                                        <?php else: ?>
+                                            <span>PAN CARD</span>
+                                            <img id="showPreviewPan" style="display:none;" alt="PAN Card Preview">
+                                        <?php endif; ?>
                                     </div>
+                                    <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
+                                    
+                                    <p class="addlogo">Add PAN Card</p>
+                                    <div class="file-upload">
+                                        <label for="panCardInput" class="choose-btn">Choose File</label>
+                                        <input type="file" name="pan_card_document" id="panCardInput" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" style="display:none;">
+                                    </div>
+                                    
+                                    <?php if(!empty($pan_card_document) && !$is_locked): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100 remove-file" data-file="pan_card">
+                                        <i class="fa fa-trash"></i> Remove
+                                    </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             
                             <!-- Aadhaar Front Upload -->
                             <div class="col-md-4 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                         
-                                        <h4 class="card-title">AADHAAR FRONT <span class="text-danger">*</span></h4>
-                                        <?php if(!$is_locked): ?>
-                                        <div class="mb-3">
-                                            <small class="text-muted d-block">File Size - Not more than 200KB</small>
-                                            <small class="text-muted d-block">File Supported - .png, .jpg</small>
-                                        </div>
-                                        <?php endif; ?>
-                                        
-                                        <?php if(!$is_locked): ?>
-                                        <div class="mb-3">
-                                            <input type="file" class="form-control-file" name="aadhaar_front_document" accept=".jpg,.jpeg,.png">
-                                        </div>
-                                        <div class="verification-preview-wrap mt-2" data-for="aadhaar_front_document"></div>
-                                        <?php endif; ?>
-                                        
+                                <input type="hidden" name="processed_aadhaar_front_data" id="processed_aadhaar_front_data" value="">
+                                <div class="upload-container">
+                                    <div class="document-placeholder" id="aadhaarFrontPreview" onclick="clickFocusAadhaarFront()">
                                         <?php if(!empty($aadhaar_front_document)): ?>
-                                        <div class="uploaded-file">
-                                            <?php if(!$is_locked): ?>
-                                            <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded mb-2">
-                                                <span class="text-truncate"><?php echo htmlspecialchars($aadhaar_front_document); ?></span>
-                                                <button type="button" class="btn btn-sm btn-outline-danger remove-file" data-file="aadhaar_front">×</button>
-                                            </div>
-                                            <?php endif; ?>
-                                            <!-- Image Preview -->
-                                            <div class="image-preview-container">
-                                                <img src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $aadhaar_front_document); ?>" 
-                                                     alt="Aadhaar Front" 
-                                                     class="img-fluid rounded border" 
-                                                     style="max-height: 200px; width: 100%; object-fit: contain;"
-                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                                <div class="text-center p-3 bg-light border rounded" style="display: none;">
-                                                    <i class="fa fa-image text-muted" style="font-size: 2rem;"></i>
-                                                    <p class="text-muted mt-2">Image not available</p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            <span style="display:none;">AADHAAR FRONT</span>
+                                            <img id="showPreviewAadhaarFront" src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $aadhaar_front_document); ?>" alt="Aadhaar Front Preview">
+                                        <?php else: ?>
+                                            <span>AADHAAR FRONT</span>
+                                            <img id="showPreviewAadhaarFront" style="display:none;" alt="Aadhaar Front Preview">
                                         <?php endif; ?>
                                     </div>
+                                    <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
+                                    
+                                    <p class="addlogo">Add Aadhaar Front</p>
+                                    <div class="file-upload">
+                                        <label for="aadhaarFrontInput" class="choose-btn">Choose File</label>
+                                        <input type="file" name="aadhaar_front_document" id="aadhaarFrontInput" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" style="display:none;">
+                                    </div>
+                                    
+                                    <?php if(!empty($aadhaar_front_document) && !$is_locked): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100 remove-file" data-file="aadhaar_front">
+                                        <i class="fa fa-trash"></i> Remove
+                                    </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             
                             <!-- Aadhaar Back Upload -->
                             <div class="col-md-4 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                         
-                                        <h4 class="card-title">AADHAAR BACK <span class="text-danger">*</span></h4>
-                                        <?php if(!$is_locked): ?>
-                                        <div class="mb-3">
-                                            <small class="text-muted d-block">File Size - Not more than 200KB</small>
-                                            <small class="text-muted d-block">File Supported - .png, .jpg</small>
-                                        </div>
-                                        <?php endif; ?>
-                                        
-                                        <?php if(!$is_locked): ?>
-                                        <div class="mb-3">
-                                            <input type="file" class="form-control-file" name="aadhaar_back_document" accept=".jpg,.jpeg,.png">
-                                        </div>
-                                        <div class="verification-preview-wrap mt-2" data-for="aadhaar_back_document"></div>
-                                        <?php endif; ?>
-                                        
+                                <input type="hidden" name="processed_aadhaar_back_data" id="processed_aadhaar_back_data" value="">
+                                <div class="upload-container">
+                                    <div class="document-placeholder" id="aadhaarBackPreview" onclick="clickFocusAadhaarBack()">
                                         <?php if(!empty($aadhaar_back_document)): ?>
-                                        <div class="uploaded-file">
-                                            <?php if(!$is_locked): ?>
-                                            <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded mb-2">
-                                                <span class="text-truncate"><?php echo htmlspecialchars($aadhaar_back_document); ?></span>
-                                                <button type="button" class="btn btn-sm btn-outline-danger remove-file" data-file="aadhaar_back">×</button>
-                                            </div>
-                                            <?php endif; ?>
-                                            <!-- Image Preview -->
-                                            <div class="image-preview-container">
-                                                <img src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $aadhaar_back_document); ?>" 
-                                                     alt="Aadhaar Back" 
-                                                     class="img-fluid rounded border" 
-                                                     style="max-height: 200px; width: 100%; object-fit: contain;"
-                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                                <div class="text-center p-3 bg-light border rounded" style="display: none;">
-                                                    <i class="fa fa-image text-muted" style="font-size: 2rem;"></i>
-                                                    <p class="text-muted mt-2">Image not available</p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            <span style="display:none;">AADHAAR BACK</span>
+                                            <img id="showPreviewAadhaarBack" src="<?php echo htmlspecialchars($assets_base . '/assets/upload/verification/' . $aadhaar_back_document); ?>" alt="Aadhaar Back Preview">
+                                        <?php else: ?>
+                                            <span>AADHAAR BACK</span>
+                                            <img id="showPreviewAadhaarBack" style="display:none;" alt="Aadhaar Back Preview">
                                         <?php endif; ?>
                                     </div>
+                                    <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
+                                    
+                                    <p class="addlogo">Add Aadhaar Back</p>
+                                    <div class="file-upload">
+                                        <label for="aadhaarBackInput" class="choose-btn">Choose File</label>
+                                        <input type="file" name="aadhaar_back_document" id="aadhaarBackInput" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" style="display:none;">
+                                    </div>
+                                    
+                                    <?php if(!empty($aadhaar_back_document) && !$is_locked): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100 remove-file" data-file="aadhaar_back">
+                                        <i class="fa fa-trash"></i> Remove
+                                    </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -619,6 +713,81 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
 .card-title{
     font-size:20px;
 }
+.document-placeholder {
+    width: 200px;
+    height: 200px;
+    border: 2px solid darkgray;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin: 0 auto;
+}
+
+.document-placeholder span {
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 33px;
+    text-align: center;
+    color: #666;
+}
+
+.document-placeholder img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.upload-container {
+    background: white;
+    padding: 20px;
+}
+
+.upload-container .file-info {
+    font-size: 14px;    
+    color: #666;
+    margin-bottom: 10px;
+    text-align: center;
+    padding-top: 10px;
+    line-height: 20px;
+}
+
+.file-upload {
+    display: none;
+}
+
+.choose-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.choose-btn:hover {
+    background-color: #0056b3;
+    text-decoration: none;
+    color: white;
+}
+
+.choose-btn i {
+    margin-right: 8px;
+}
+
+.addlogo {
+    font-size: 18px !important;
+    margin-bottom: 10px;
+    margin-top: 15px;
+    text-align: center;
+}
 @media screen and (max-width: 768px) {
         .sb-topnav .navbar-brand img {
         max-height: 60px;
@@ -671,15 +840,130 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])) {
 </style>
 
 <script>
+(function() {
+    var documentUploadInited = false;
+    
+    function initDocumentUpload() {
+        if (documentUploadInited || typeof window.jQuery === 'undefined' || typeof window.ImageCropUpload === 'undefined') return documentUploadInited;
+        documentUploadInited = true;
+        var $ = window.jQuery;
+        
+        $(document).ready(function(){
+            // PAN Card upload handler
+            $('#panCardInput').off('change.panUpload').on('change.panUpload', function(){
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+                
+                ImageCropUpload.open(file, {
+                    method: 'base64',
+                    hiddenField: '#processed_pan_data',
+                    previewSelector: '#panPreview',
+                    imgIdToUpdate: '#showPreviewPan',
+                    spanSelector: '#panPreview span',
+                    title: 'Adjust & Crop PAN Card',
+                    onSuccess: function() {
+                        // Get base64 data from hidden field
+                        var base64Data = $('#processed_pan_data').val();
+                        if(base64Data) {
+                            $('#showPreviewPan').attr('src', 'data:image/jpeg;base64,' + base64Data).show();
+                            $('#panPreview span').hide();
+                        }
+                    },
+                    onError: function(msg) { alert(msg); }
+                });
+                $(this).val('');
+            });
+            
+            // Aadhaar Front upload handler
+            $('#aadhaarFrontInput').off('change.aadhaarFrontUpload').on('change.aadhaarFrontUpload', function(){
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+                
+                ImageCropUpload.open(file, {
+                    method: 'base64',
+                    hiddenField: '#processed_aadhaar_front_data',
+                    previewSelector: '#aadhaarFrontPreview',
+                    imgIdToUpdate: '#showPreviewAadhaarFront',
+                    spanSelector: '#aadhaarFrontPreview span',
+                    title: 'Adjust & Crop Aadhaar Front',
+                    onSuccess: function() {
+                        // Get base64 data from hidden field
+                        var base64Data = $('#processed_aadhaar_front_data').val();
+                        if(base64Data) {
+                            $('#showPreviewAadhaarFront').attr('src', 'data:image/jpeg;base64,' + base64Data).show();
+                            $('#aadhaarFrontPreview span').hide();
+                        }
+                    },
+                    onError: function(msg) { alert(msg); }
+                });
+                $(this).val('');
+            });
+            
+            // Aadhaar Back upload handler
+            $('#aadhaarBackInput').off('change.aadhaarBackUpload').on('change.aadhaarBackUpload', function(){
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+                
+                ImageCropUpload.open(file, {
+                    method: 'base64',
+                    hiddenField: '#processed_aadhaar_back_data',
+                    previewSelector: '#aadhaarBackPreview',
+                    imgIdToUpdate: '#showPreviewAadhaarBack',
+                    spanSelector: '#aadhaarBackPreview span',
+                    title: 'Adjust & Crop Aadhaar Back',
+                    onSuccess: function() {
+                        // Get base64 data from hidden field
+                        var base64Data = $('#processed_aadhaar_back_data').val();
+                        if(base64Data) {
+                            $('#showPreviewAadhaarBack').attr('src', 'data:image/jpeg;base64,' + base64Data).show();
+                            $('#aadhaarBackPreview span').hide();
+                        }
+                    },
+                    onError: function(msg) { alert(msg); }
+                });
+                $(this).val('');
+            });
+            
+            // Remove file handler
+            $(document).on('click', '.remove-file', function() {
+                var fileType = $(this).data('file');
+                
+                if(fileType === 'pan_card') {
+                    $('#processed_pan_data').val('');
+                    $('#showPreviewPan').hide();
+                    $('#panPreview span').show();
+                } else if(fileType === 'aadhaar_front') {
+                    $('#processed_aadhaar_front_data').val('');
+                    $('#showPreviewAadhaarFront').hide();
+                    $('#aadhaarFrontPreview span').show();
+                } else if(fileType === 'aadhaar_back') {
+                    $('#processed_aadhaar_back_data').val('');
+                    $('#showPreviewAadhaarBack').hide();
+                    $('#aadhaarBackPreview span').show();
+                }
+            });
+        });
+        
+        return true;
+    }
+    
+    if (!initDocumentUpload()) {
+        var check = setInterval(function() { if (initDocumentUpload()) clearInterval(check); }, 100);
+    }
+    
+    window.clickFocusPan = function() { if (window.jQuery) window.jQuery('#panCardInput').click(); };
+    window.clickFocusAadhaarFront = function() { if (window.jQuery) window.jQuery('#aadhaarFrontInput').click(); };
+    window.clickFocusAadhaarBack = function() { if (window.jQuery) window.jQuery('#aadhaarBackInput').click(); };
+})();
+
 $(document).ready(function() {
-    // Show toast after upload (success or error)
     <?php if(isset($success_message) && !empty($success_message)): ?>
     (function() {
         var toastEl = document.getElementById('verificationToast');
         if (toastEl && typeof bootstrap !== 'undefined') {
             toastEl.classList.add('bg-success');
             toastEl.querySelector('.toast-title').textContent = 'Success';
-            toastEl.querySelector('.toast-message').textContent = <?php echo json_encode($success_message); ?>;
+            toastEl.querySelector('#verificationToastMessage').textContent = <?php echo json_encode($success_message); ?>;
             var toast = new bootstrap.Toast(toastEl, { delay: 5000 });
             toast.show();
         }
@@ -697,80 +981,6 @@ $(document).ready(function() {
         }
     })();
     <?php endif; ?>
-
-    // File input change handler – show preview in .verification-preview-wrap
-    $(document).on('change', 'input[type="file"][name="pan_card_document"], input[type="file"][name="aadhaar_front_document"], input[type="file"][name="aadhaar_back_document"]', function() {
-        var input = this;
-        var file = input.files[0];
-        var maxSize = 200 * 1024; // 200KB
-        var inputName = $(input).attr('name');
-        var previewWrap = $(input).closest('.card-body').find('.verification-preview-wrap[data-for="' + inputName + '"]');
-        
-        if (!file) {
-            previewWrap.empty();
-            return;
-        }
-        if (file.size > maxSize) {
-            alert('File size must be less than 200KB');
-            input.value = '';
-            previewWrap.empty();
-            return;
-        }
-        var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-        if (!allowedTypes.includes(file.type)) {
-            alert('Only JPG and PNG files are allowed');
-            input.value = '';
-            previewWrap.empty();
-            return;
-        }
-        
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            var alt = (inputName === 'pan_card_document') ? 'PAN Card' : (inputName === 'aadhaar_front_document' ? 'Aadhaar Front' : 'Aadhaar Back');
-            var html = '<div class="image-preview-container">' +
-                '<img src="' + e.target.result + '" alt="' + alt + '" class="img-fluid rounded border" style="max-height: 200px; width: 100%; object-fit: contain; cursor: pointer;">' +
-                '</div>';
-            previewWrap.html(html);
-        };
-        reader.readAsDataURL(file);
-    });
-    
-    // Remove file handler
-    $(document).on('click', '.remove-file', function() {
-        var fileType = $(this).data('file');
-        var cardBody = $(this).closest('.card-body');
-        var input = cardBody.find('input[name="' + fileType + '_document"]');
-        input.val('');
-        var previewWrap = cardBody.find('.verification-preview-wrap[data-for="' + fileType + '_document"]');
-        if (previewWrap.length) previewWrap.empty();
-        $(this).closest('.uploaded-file').remove();
-    });
-    
-    // Form validation: allow submit if at least one file is selected or at least one doc already saved (partial save)
-    $('#verificationForm').on('submit', function(e) {
-        var panCardFile = $('input[name="pan_card_document"]').length ? $('input[name="pan_card_document"]')[0].files[0] : null;
-        var aadhaarFrontFile = $('input[name="aadhaar_front_document"]').length ? $('input[name="aadhaar_front_document"]')[0].files[0] : null;
-        var aadhaarBackFile = $('input[name="aadhaar_back_document"]').length ? $('input[name="aadhaar_back_document"]')[0].files[0] : null;
-        var hasNewFile = !!(panCardFile || aadhaarFrontFile || aadhaarBackFile);
-        var hasExisting = $('#verificationForm .uploaded-file').length > 0;
-        if (!hasNewFile && !hasExisting) {
-            alert('Please upload at least one document.');
-            e.preventDefault();
-            return false;
-        }
-        return true;
-    });
-     
-    // Image click handler for modal
-    $(document).on('click', '.image-preview-container img', function() {
-        var imageSrc = $(this).attr('src');
-        var imageAlt = $(this).attr('alt') || 'Document Preview';
-        $('#modalImage').attr('src', imageSrc);
-        $('#modalImage').attr('alt', imageAlt);
-        $('#imageModalLabel').text(imageAlt);
-        var modal = new bootstrap.Modal(document.getElementById('imageModal'));
-        modal.show();
-    });
 });
 </script>
 
