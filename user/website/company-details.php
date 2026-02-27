@@ -810,26 +810,32 @@ include '../includes/header.php';
                         <div class="row">
                             <div class="col-sm-3">
                                 <div class="form-group">
-                                    <label for="d_city">City <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_city" id="d_city" maxlength="200" placeholder="Enter City" class="form-control" value="<?php echo !empty($cardRow['d_city']) ? htmlspecialchars($cardRow['d_city']) : ''; ?>" required>
+                                    <label for="d_country">Country <span class="text-danger">*</span></label>
+                                    <select name="d_country" id="d_country" class="form-control" required data-saved="<?php echo !empty($cardRow['d_country']) ? htmlspecialchars($cardRow['d_country']) : ''; ?>">
+                                        <option value="">Select Country</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
                                     <label for="d_state">State <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_state" id="d_state" maxlength="200" placeholder="Enter State" class="form-control" value="<?php echo !empty($cardRow['d_state']) ? htmlspecialchars($cardRow['d_state']) : ''; ?>" required>
+                                    <select name="d_state" id="d_state" class="form-control" required disabled data-saved="<?php echo !empty($cardRow['d_state']) ? htmlspecialchars($cardRow['d_state']) : ''; ?>">
+                                        <option value="">Select State</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="d_city">City <span class="text-danger">*</span></label>
+                                    <select name="d_city" id="d_city" class="form-control" required disabled data-saved="<?php echo !empty($cardRow['d_city']) ? htmlspecialchars($cardRow['d_city']) : ''; ?>">
+                                        <option value="">Select City</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
                                     <label for="d_pincode">Pincode <span class="text-danger">*</span></label>
                                     <input type="text" name="d_pincode" id="d_pincode" maxlength="200" placeholder="Enter Pincode" class="form-control" value="<?php echo !empty($cardRow['d_pincode']) ? htmlspecialchars($cardRow['d_pincode']) : ''; ?>" required>
-                                </div>
-                            </div>
-                            <div class="col-sm-3">
-                                <div class="form-group">
-                                    <label for="d_country">Country <span class="text-danger">*</span></label>
-                                    <input type="text" name="d_country" id="d_country" maxlength="200" placeholder="Enter Country" class="form-control" value="<?php echo !empty($cardRow['d_country']) ? htmlspecialchars($cardRow['d_country']) : ''; ?>" required>
                                 </div>
                             </div>                            
                         </div>
@@ -916,6 +922,184 @@ include '../includes/header.php';
     }
     window.clickFocusLogo = function() { if (window.jQuery) window.jQuery('#clickMeImage').click(); };
     window.clickFocusHero = function() { if (window.jQuery) window.jQuery('#clickMeImageHero').click(); };
+})();
+</script>
+
+<script>
+(function() {
+    const API_BASE = 'https://countriesnow.space/api/v0.1/countries';
+    let countriesData = [];
+    
+    // Get saved values from database (if any)
+    const savedCountry = document.getElementById('d_country').getAttribute('data-saved') || '';
+    const savedState = document.getElementById('d_state').getAttribute('data-saved') || '';
+    const savedCity = document.getElementById('d_city').getAttribute('data-saved') || '';
+    
+    function showLoading(elementId) {
+        document.getElementById(elementId).innerHTML = '<option value="">Loading...</option>';
+        document.getElementById(elementId).disabled = true;
+    }
+    
+    function showError(elementId) {
+        document.getElementById(elementId).innerHTML = '<option value="">Error loading data</option>';
+        document.getElementById(elementId).disabled = true;
+    }
+    
+    async function fetchCountries() {
+        try {
+            showLoading('d_country');
+            const response = await fetch(API_BASE);
+            const result = await response.json();
+            
+            if (result && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                countriesData = result.data;
+                const countrySelect = document.getElementById('d_country');
+                countrySelect.innerHTML = '<option value="">Select Country</option>';
+                
+                result.data.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.country;
+                    option.textContent = country.country;
+                    countrySelect.appendChild(option);
+                });
+                
+                countrySelect.disabled = false;
+                
+                // Auto-select saved country if exists
+                if (savedCountry) {
+                    countrySelect.value = savedCountry;
+                    await fetchStates(savedCountry);
+                }
+            } else {
+                showError('d_country');
+            }
+        } catch (error) {
+            console.error('Error fetching countries:', error);
+            showError('d_country');
+        }
+    }
+    
+    async function fetchStates(country) {
+        try {
+            showLoading('d_state');
+            
+            const response = await fetch(API_BASE + '/states', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ country: country })
+            });
+            
+            const data = await response.json();
+            
+            if (data && data.data && Array.isArray(data.data.states) && data.data.states.length > 0) {
+                const stateSelect = document.getElementById('d_state');
+                stateSelect.innerHTML = '<option value="">Select State</option>';
+                
+                data.data.states.forEach(state => {
+                    const option = document.createElement('option');
+                    option.value = state.name;
+                    option.textContent = state.name;
+                    stateSelect.appendChild(option);
+                });
+                
+                stateSelect.disabled = false;
+                
+                // Auto-select saved state if exists
+                if (savedState) {
+                    stateSelect.value = savedState;
+                    await fetchCities(country, savedState);
+                } else {
+                    // Reset city dropdown when country changes
+                    document.getElementById('d_city').innerHTML = '<option value="">Select City</option>';
+                    document.getElementById('d_city').disabled = true;
+                }
+            } else {
+                showError('d_state');
+            }
+        } catch (error) {
+            console.error('Error fetching states:', error);
+            showError('d_state');
+        }
+    }
+    
+    async function fetchCities(country, state) {
+        try {
+            showLoading('d_city');
+            
+            const response = await fetch(API_BASE + '/state/cities', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    country: country,
+                    state: state
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+                const citySelect = document.getElementById('d_city');
+                citySelect.innerHTML = '<option value="">Select City</option>';
+                
+                data.data.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+                
+                citySelect.disabled = false;
+                
+                // Auto-select saved city if exists
+                if (savedCity) {
+                    citySelect.value = savedCity;
+                }
+            } else {
+                showError('d_city');
+            }
+        } catch (error) {
+            console.error('Error fetching cities:', error);
+            showError('d_city');
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch countries on page load
+        fetchCountries();
+        
+        // Handle country selection change
+        const countrySelect = document.getElementById('d_country');
+        if (countrySelect) {
+            countrySelect.addEventListener('change', function() {
+                if (this.value) {
+                    fetchStates(this.value);
+                } else {
+                    document.getElementById('d_state').innerHTML = '<option value="">Select State</option>';
+                    document.getElementById('d_state').disabled = true;
+                    document.getElementById('d_city').innerHTML = '<option value="">Select City</option>';
+                    document.getElementById('d_city').disabled = true;
+                }
+            });
+        }
+        
+        // Handle state selection change
+        const stateSelect = document.getElementById('d_state');
+        if (stateSelect) {
+            stateSelect.addEventListener('change', function() {
+                const country = document.getElementById('d_country').value;
+                if (this.value && country) {
+                    fetchCities(country, this.value);
+                } else {
+                    document.getElementById('d_city').innerHTML = '<option value="">Select City</option>';
+                    document.getElementById('d_city').disabled = true;
+                }
+            });
+        }
+    });
 })();
 </script>
 
