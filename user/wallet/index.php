@@ -137,9 +137,9 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
                         <div class="card_area">
                             <div class="card RechargeWallet">
                                 <p>Recharge Your Wallet</p>
-                                <form method="POST" action="payment-page/pay.php" id=walletRechargeForm>
+                                <form method="POST" action="../../payment/wallet_recharge.php" id=walletRechargeForm>
                                     <div class="recharge_input_section">
-                                        <input type="number" name="recharge_amount" class="form-control recharge_amount" placeholder="Enter Recharge Amount" min="500" step="100" value="500" required>
+                                        <input type="number" name="recharge_amount" class="form-control recharge_amount" placeholder="Enter Recharge Amount" min="350" step="100" value="350" required>
                                         <!-- <small>Min Amount: ₹500/-</small> -->
                                     </div>
                                     <?php
@@ -363,7 +363,7 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
     justify-content: space-evenly ;
     gap: 10px;
     width: 18rem;
-    height:14vh;
+  
     
 }
 .FranchiseeDashboard-head .row-items-3{

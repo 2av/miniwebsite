@@ -123,10 +123,23 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         $customer_query = mysqli_query($connect, "SELECT phone as user_contact, referred_by FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
         $contactno = "";
         $referred_by = "";
+        $is_referred_by_team = false;
         if ($customer_query && mysqli_num_rows($customer_query) > 0) {
             $customer_row = mysqli_fetch_array($customer_query);
             $contactno = $customer_row['user_contact'] ?? '';
             $referred_by = $customer_row['referred_by'] ?? '';
+            
+            // Check if referred_by is a team member
+            if (!empty($referred_by)) {
+                $referrer_query = mysqli_query($connect, "SELECT role FROM user_details WHERE email='$referred_by' LIMIT 1");
+                if ($referrer_query && mysqli_num_rows($referrer_query) > 0) {
+                    $referrer_row = mysqli_fetch_array($referrer_query);
+                    $referrer_type = $referrer_row['role'] ?? '';
+                    if ($referrer_type === 'TEAM') {
+                        $is_referred_by_team = true;
+                    }
+                }
+            }
         }
         
         // Determine payment amount
@@ -356,6 +369,22 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
             font-size: 13px;
             margin-top: 5px;
         }
+        .plan-label {
+            cursor: pointer;
+        }
+        .plan-label:hover {
+            background: rgba(255,255,255,0.15) !important;
+        }
+        .plan-label input[type="radio"]:checked + span {
+            color: #ffc107 !important;
+        }
+        .plan-label input[type="radio"]:checked {
+            accent-color: #ffc107;
+        }
+        .plan-label input[type="radio"]:checked ~ .plan-highlight {
+            border-color: #ffc107 !important;
+            background: rgba(255,193,7,0.1) !important;
+        }
     </style>
 </head>
 <body>
@@ -416,6 +445,128 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
         <input type="text" id="gst_pincode" name="gst_pincode" placeholder="Pin Code" 
                value="<?php echo isset($_SESSION['billing_gst_pincode']) ? htmlspecialchars($_SESSION['billing_gst_pincode']) : (isset($_SESSION['pincode']) ? htmlspecialchars($_SESSION['pincode']) : ''); ?>" 
                required style="width: 100%; padding: 12px 15px; margin-bottom: 25px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        
+        <!-- Plan Selection -->
+        <div style="margin-bottom: 25px;">
+            <label style="color: white; font-weight: 600; display: block; margin-bottom: 15px; font-size: 15px;">SELECT PLAN</label>
+            
+            <style>
+                input[type="radio"]:checked ~ span {
+                    color: white !important;
+                }
+                #plan_6month:checked ~ span { color: white !important; }
+                #plan_1year:checked ~ span { color: white !important; }
+                #plan_2year:checked ~ span { color: white !important; }
+                #plan_3year:checked ~ span { color: white !important; }
+            </style>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <?php 
+                $is_team_source = isset($_GET['source']) && $_GET['source'] === 'team';
+                $show_500_plan = $is_team_source || (isset($is_referred_by_team) && $is_referred_by_team);
+                $first_plan_shown = false;
+                ?>
+                
+                <!-- Plan 1: 6 Months -->
+                <label class="plan-label" id="label_6month" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
+                    <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="590"
+                           <?php echo !$first_plan_shown ? 'checked' : ''; ?>
+                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
+                    <span style="color: white; flex: 1; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 15px; display: block; color: white;">6 Months</strong>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 83/month + 18% GST</small>
+                            </div>
+                            <strong style="font-size: 16px; color: white;">₹ 590</strong>
+                        </div>
+                    </span>
+                </label>
+                <?php $first_plan_shown = true; ?>
+                
+                <!-- Plan 2: 1 Year -->
+                <label class="plan-label" id="label_1year" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
+                    <input type="radio" name="plan_choice" value="plan_1year" id="plan_1year" data-amount="999"
+                           <?php echo !$first_plan_shown ? 'checked' : ''; ?>
+                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
+                    <span style="color: white; flex: 1; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 15px; display: block; color: white;">1 Year</strong>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 70/month + 18% GST</small>
+                            </div>
+                            <strong style="font-size: 16px; color: white;">₹ 999</strong>
+                        </div>
+                    </span>
+                </label>
+                <?php $first_plan_shown = true; ?>
+                
+                <!-- Plan 3: 2 Years (BEST VALUE) -->
+                <label class="plan-label" id="label_2year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; cursor: pointer;">
+                    <div style="position: absolute; top: 9px; right: 85px; background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                        <span style="font-size: 14px;">⭐</span> BEST VALUE
+                    </div>
+                    <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1770"
+                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
+                    <span style="color: white; flex: 1; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <strong style="font-size: 15px; display: block; color: #FF9800;">2 Years</strong>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 63/month + 18% GST</small>
+                                <div style="margin-top: 5px;">
+
+                                <?php if($show_500_plan): ?>
+                                    <small style="font-weight: normal; opacity: 0.8; color: #90EE90; display: block;">✓ Save 25% compared to 6 months</small>
+                                 <?php endif; ?>
+                                 
+                                    <small style="font-weight: normal; opacity: 0.8; color: #90EE90; display: block;">✓ Save 11% compared to 1 year</small>
+                                    </div>
+                            </div>
+                            <strong style="font-size: 16px; color: white;">₹ 1,770</strong>
+                        </div>
+                    </span>
+                </label>
+                
+                <!-- Plan 4: 3 Years (MAXIMUM SAVINGS) -->
+                <label class="plan-label" id="label_3year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; cursor: pointer;">
+                    <div style="position: absolute; top: 9px; right: 85px; background: #FF9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                        <span style="font-size: 14px;">⭐</span> MAXIMUM SAVINGS
+                    </div>
+                    <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2478"
+                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
+                    <span style="color: white; flex: 1; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 15px; display: block; color: white;">3 Years</strong>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 58/month + 18% GST</small>
+                            </div>
+                            <strong style="font-size: 16px; color: white;">₹ 2,478</strong>
+                        </div>
+                    </span>
+                </label>
+                
+                <script>
+                    // Function to update border color
+                    function updatePlanBorderColor() {
+                        document.querySelectorAll('.plan-label').forEach(label => {
+                            label.style.borderColor = 'transparent';
+                        });
+                        const checkedRadio = document.querySelector('input[name="plan_choice"]:checked');
+                        if (checkedRadio) {
+                            document.getElementById('label_' + checkedRadio.id.replace('plan_', '')).style.borderColor = '#FF9800';
+                        }
+                    }
+                    
+                    // Set initial border color on page load
+                    document.addEventListener('DOMContentLoaded', updatePlanBorderColor);
+                    
+                    // Update border color on radio button change
+                    document.querySelectorAll('input[name="plan_choice"]').forEach(radio => {
+                        radio.addEventListener('change', updatePlanBorderColor);
+                    });
+                </script>
+            </div>
+        </div>
     </div>
     
     <!-- Price Breakdown -->
@@ -537,6 +688,35 @@ document.addEventListener('DOMContentLoaded', function() {
     var originalAmount = <?php echo isset($original_amount) ? $original_amount : 0; ?>;
     var currentDiscount = <?php echo isset($discount_amount) ? $discount_amount : 0; ?>;
     
+    // Initialize with selected plan amount on page load
+    var checkedPlan = document.querySelector('input[name="plan_choice"]:checked');
+    if (checkedPlan) {
+        var selectedPlanAmount = parseFloat(checkedPlan.getAttribute('data-amount'));
+        if (selectedPlanAmount > 0) {
+            originalAmount = selectedPlanAmount;
+            currentDiscount = 0;
+            updatePriceDisplay(selectedPlanAmount, 0);
+            // Call update tax calculation after a small delay to ensure DOM is ready
+            setTimeout(function() {
+                updateTaxCalculation(selectedPlanAmount, 0);
+            }, 100);
+        }
+    }
+    
+    // Plan selection handler
+    var planRadios = document.querySelectorAll('input[name="plan_choice"]');
+    planRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var selectedPlanAmount = parseFloat(this.getAttribute('data-amount'));
+            if (selectedPlanAmount > 0) {
+                originalAmount = selectedPlanAmount;
+                currentDiscount = 0;
+                updatePriceDisplay(selectedPlanAmount, 0);
+                updateTaxCalculation(selectedPlanAmount, 0);
+            }
+        });
+    });
+    
     // Function to update tax calculation
     function updateTaxCalculation(originalAmount, discountAmount) {
         var subtotal = originalAmount - discountAmount;
@@ -597,6 +777,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         return finalAmount;
+    }
+    
+    // Update price display when plan changes
+    function updatePriceDisplay(planAmount, discountAmount) {
+        var subtotal = planAmount - discountAmount;
+        
+        // Update original price display
+        var originalPriceElements = document.querySelectorAll('.original-price');
+        if (originalPriceElements.length >= 2) {
+            originalPriceElements[1].innerHTML = '<strong>₹ ' + planAmount.toFixed(2) + '</strong>';
+        }
+        
+        // Update discount display
+        var discountElements = document.querySelectorAll('.discount');
+        if (discountElements.length >= 2) {
+            discountElements[1].innerHTML = '<strong>₹ ' + discountAmount.toFixed(2) + '</strong>';
+        }
+        
+        // Update subtotal display
+        var subtotalElements = document.querySelectorAll('.subtotal');
+        if (subtotalElements.length >= 2) {
+            subtotalElements[1].innerHTML = '<strong>₹ ' + subtotal.toFixed(2) + '</strong>';
+        }
     }
     
     // Global function for inline events
@@ -783,6 +986,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('gst_pincode').style.border = "2px solid red";
             }
             
+            var selectedPlan = document.querySelector('input[name="plan_choice"]:checked');
+            if (!selectedPlan) {
+                isValid = false;
+                errorMessage += "Please select a plan\n";
+            }
+            
             if (!isValid) {
                 alert(errorMessage);
                 return false;
@@ -802,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('gst_state', document.getElementById('gst_state').value);
             formData.append('gst_city', document.getElementById('gst_city').value);
             formData.append('gst_pincode', document.getElementById('gst_pincode').value);
+            formData.append('plan_choice', document.querySelector('input[name="plan_choice"]:checked').value);
             
             // Recalculate tax before saving
             var finalAmount = updateTaxCalculation(originalAmount, currentDiscount);
