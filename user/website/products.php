@@ -13,6 +13,41 @@ if($is_ajax && isset($_POST['product'])) {
 // MUST be done before any output (before including header.php)
 require_once(__DIR__ . '/../../app/config/database.php');
 
+// Handle AJAX request to get product names by category
+if($is_ajax && isset($_GET['action']) && $_GET['action'] == 'get_product_names') {
+    header('Content-Type: application/json');
+    
+    if(isset($_GET['category_id'])) {
+        $category_id = intval($_GET['category_id']);
+        
+        // Get product names for the selected product category
+        $query = "SELECT id, category_name FROM product_categories 
+                 WHERE parent_id = $category_id AND is_active = 1 AND category_type = 'product-name'
+                 ORDER BY display_order, category_name ASC";
+        
+        $result = mysqli_query($connect, $query);
+        $products = [];
+        
+        while($row = mysqli_fetch_assoc($result)) {
+            $products[] = [
+                'id' => $row['id'],
+                'name' => htmlspecialchars($row['category_name'])
+            ];
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'products' => $products
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Category ID not provided'
+        ]);
+    }
+    exit;
+}
+
 // Handle AJAX image processing FIRST - before any other output
 // This must be at the very top to prevent any output before JSON response
 if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image']['tmp_name'])){
@@ -736,49 +771,89 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <form id="modalProductForm">
                     <input type="hidden" id="modal_product_id" value="">
                     <input type="hidden" id="modal_product_number" value="">
-                    <div class="form-group">
-                        <label for="modal_product_name">Product Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_product_name" maxlength="200" placeholder="Enter Product Name" required>
-                    </div>
+                   
                     <div class="form-group">
                         <label for="modal_product_category">Product Category</label>
-                        <select name="modal_product_category" id="modal_product_category" class="form-control">
-                            <option value="">Select Product Category</option>
-                            <?php
-                            // Fetch child categories based on d_position_primary from digi_card
-                            if(!empty($card_d_position_primary)) {
-                                // d_position_primary now stores the category ID directly
-                               
-                                $parent_query = mysqli_query($connect, "
-                                    SELECT id, category_name FROM product_categories 
-                                    WHERE parent_id = $card_d_position_primary
-                                ");
-                                 
-                                if(!$parent_query) {
-                                    echo '<script>alert("SQL Error: " + "' . mysqli_error($connect) . '");</script>';
-                                } else if(mysqli_num_rows($parent_query) > 0) {
-                                    $parent_row = mysqli_fetch_assoc($parent_query);
+                        <div style="display: flex; gap: 10px;">
+                            <select name="modal_product_category" id="modal_product_category" class="form-control" style="flex: 1;">
+                                <option value="">Select Product Category</option>
+                                <?php
+                                // Fetch child categories based on d_position_primary from digi_card
+                                if(!empty($card_d_position_primary)) {
+                                    // d_position_primary now stores the category ID directly
                                    
+                                    $parent_query = mysqli_query($connect, "
+                                        SELECT id, category_name FROM product_categories 
+                                        WHERE parent_id = $card_d_position_primary
+                                    ");
+                                     
+                                    if(!$parent_query) {
+                                        echo '<script>alert("SQL Error: " + "' . mysqli_error($connect) . '");</script>';
+                                    } else if(mysqli_num_rows($parent_query) > 0) {
+                                        $parent_row = mysqli_fetch_assoc($parent_query);
+                                       
+                                    }
                                 }
-                            }
-                            
-                            // Fetch child categories from the selected parent category
-                            if($card_d_position_primary !== null) {
-                                $child_cats_query = mysqli_query($connect, "
-                                    SELECT id, category_name, display_order 
-                                    FROM product_categories 
-                                    WHERE parent_id = $card_d_position_primary 
-                                    AND is_active = 1
-                                    AND category_type = 'product'
-                                    ORDER BY display_order ASC
-                                ");
                                 
-                                while($cat = mysqli_fetch_assoc($child_cats_query)) {
-                                    echo '<option value="' . intval($cat['id']) . '">' . htmlspecialchars($cat['category_name']) . '</option>';
+                                // Fetch product categories from the selected business category
+                                if($card_d_position_primary !== null) {
+                                    $child_cats_query = mysqli_query($connect, "
+                                        SELECT id, category_name, display_order 
+                                        FROM product_categories 
+                                        WHERE parent_id = $card_d_position_primary 
+                                        AND is_active = 1
+                                        AND category_type = 'product-category'
+                                        ORDER BY display_order ASC
+                                    ");
+                                    
+                                    while($cat = mysqli_fetch_assoc($child_cats_query)) {
+                                        echo '<option value="' . intval($cat['id']) . '">' . htmlspecialchars($cat['category_name']) . '</option>';
+                                    }
+                                    
+                                    // Get user ID for custom categories
+                                    $user_email_escaped = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+                                    $user_query = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = LOWER(TRIM('$user_email_escaped')) LIMIT 1");
+                                    $user_id = 0;
+                                    if($user_query && mysqli_num_rows($user_query) > 0) {
+                                        $user_row = mysqli_fetch_assoc($user_query);
+                                        $user_id = intval($user_row['id']);
+                                    }
+                                    
+                                    // Get user custom product categories
+                                    if($user_id > 0) {
+                                        $custom_cats_query = mysqli_query($connect, "
+                                            SELECT id, category_name FROM user_custom_categories
+                                            WHERE user_id = $user_id AND category_type = 'product-category' AND is_active = 1
+                                            ORDER BY created_at DESC
+                                        ");
+                                        
+                                        if(mysqli_num_rows($custom_cats_query) > 0) {
+                                            echo '<optgroup label="My Custom Categories">';
+                                            while($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
+                                                echo '<option value="' . intval($custom_cat['id']) . '">[Custom] ' . htmlspecialchars($custom_cat['category_name']) . '</option>';
+                                            }
+                                            echo '</optgroup>';
+                                        }
+                                    }
                                 }
-                            }
-                            ?>
-                        </select>
+                                ?>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomProductCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category">
+                                <i class="fa fa-plus" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="modal_product_name">Product Name <span class="text-danger">*</span></label>
+                        <div style="display: flex; gap: 10px;">
+                            <select class="form-control" id="modal_product_name" required style="flex: 1;">
+                                <option value="">-- Select Product Name --</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomProductNameModal()" style="min-width: 40px; padding: 0;" title="Add Custom Product Name">
+                                <i class="fa fa-plus" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Product names are populated based on selected product category</small>
                     </div>
                     <div class="form-group">
                         <label for="modal_product_mrp">MRP</label>
@@ -833,12 +908,7 @@ function updateCharCount() {
     }
 }
 
-// Bind character count to textarea input using both jQuery and native event listeners
-$(document).on('input keyup change', '#modal_product_description', function() {
-    updateCharCount();
-});
-
-// Also add native event listener for extra reliability
+// Add native event listeners for character count
 document.addEventListener('DOMContentLoaded', function() {
     var textarea = document.getElementById('modal_product_description');
     if(textarea) {
@@ -848,23 +918,150 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Load product names when category is selected
+document.addEventListener('DOMContentLoaded', function() {
+    var categorySelect = document.getElementById('modal_product_category');
+    if(categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            loadProductNames(this.value);
+        });
+    }
+});
+
+function loadProductNames(categoryId) {
+    var productSelect = document.getElementById('modal_product_name');
+    
+    if(!categoryId) {
+        // Clear product names if no category selected
+        productSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
+        productSelect.disabled = true;
+        return;
+    }
+    
+    // Disable the select and show loading state
+    productSelect.disabled = true;
+    productSelect.innerHTML = '<option value="">Loading products...</option>';
+    
+    // Fetch product names via AJAX
+    fetch('?action=get_product_names&category_id=' + encodeURIComponent(categoryId), {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        productSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
+        
+        if(data.success && data.products.length > 0) {
+            data.products.forEach(product => {
+                var option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = product.name;
+                productSelect.appendChild(option);
+            });
+        }
+        
+        // Load custom product names
+        fetch('../../user/ajax/custom_categories.php?action=get_custom&type=product-name', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(customData => {
+            if(customData.success && customData.categories.length > 0) {
+                var optgroup = document.createElement('optgroup');
+                optgroup.label = 'My Custom Product Names';
+                
+                customData.categories.forEach(category => {
+                    var option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = '[Custom] ' + category.name;
+                    optgroup.appendChild(option);
+                });
+                
+                productSelect.appendChild(optgroup);
+            }
+            
+            // Check if we have any products
+            if((data.success && data.products.length > 0) || (customData.success && customData.categories.length > 0)) {
+                productSelect.disabled = false;
+            } else {
+                var option = document.createElement('option');
+                option.disabled = true;
+                option.textContent = 'No products available for this category';
+                productSelect.appendChild(option);
+                productSelect.disabled = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading custom products:', error);
+            // Still enable if we have system products
+            if(data.success && data.products.length > 0) {
+                productSelect.disabled = false;
+            } else {
+                productSelect.disabled = true;
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error loading products:', error);
+        productSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
+        var option = document.createElement('option');
+        option.disabled = true;
+        option.textContent = 'Error loading products';
+        productSelect.appendChild(option);
+        productSelect.disabled = true;
+    });
+}
+
 function openProductModal() {
     currentProductId = null;
     processedProductImageData = null;
-    $('#modal_product_id').val('');
-    $('#modal_product_number').val('');
-    $('#modal_product_name').val('');
-    $('#modal_product_category').val('');
-    $('#modal_product_mrp').val('');
-    $('#modal_product_price').val('');
-    $('#modal_product_description').val('');
-    $('#modal_product_image').val('');
-    $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-    $('#productModalLabel').text('Add Product');
-    $('.modal-footer button:last').text('Add Product');
+    
+    // Reset form fields using vanilla JavaScript
+    var fields = [
+        'modal_product_id',
+        'modal_product_number',
+        'modal_product_name',
+        'modal_product_category',
+        'modal_product_mrp',
+        'modal_product_price',
+        'modal_product_description',
+        'modal_product_image'
+    ];
+    
+    fields.forEach(function(fieldId) {
+        var field = document.getElementById(fieldId);
+        if(field) {
+            field.value = '';
+        }
+    });
+    
+    // Reset image preview
+    var imgPreview = document.getElementById('modal_product_image_preview');
+    if(imgPreview) {
+        imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+    }
+    
+    // Update modal title and button text
+    var modalLabel = document.getElementById('productModalLabel');
+    if(modalLabel) {
+        modalLabel.textContent = 'Add Product';
+    }
+    
+    var submitBtn = document.querySelector('.modal-footer button:last-child');
+    if(submitBtn) {
+        submitBtn.textContent = 'Add Product';
+    }
+    
     updateCharCount();
+    
+    // Show modal
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#productModal').modal('show');
+        jQuery('#productModal').modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modalElement = document.getElementById('productModal');
         var modal = new bootstrap.Modal(modalElement);
@@ -883,25 +1080,80 @@ function openProductModal() {
 function editProduct(productId, productName, productCategoryId, mrp, price, productDescription) {
     currentProductId = productId;
     processedProductImageData = null;
-    $('#modal_product_id').val(productId);
-    $('#modal_product_number').val(productId);
-    $('#modal_product_name').val(productName);
-    $('#modal_product_category').val(productCategoryId || '');
-    $('#modal_product_mrp').val(mrp || '');
-    $('#modal_product_price').val(price || '');
-    $('#modal_product_description').val(productDescription || '');
-    var row = $('tr[data-product-id="' + productId + '"]');
-    var img = row.find('img').first();
-    if(img && img.attr('src')) {
-        $('#modal_product_image_preview').attr('src', img.attr('src'));
-    } else {
-        $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+    
+    // Set form values using vanilla JavaScript
+    var modalProductIdField = document.getElementById('modal_product_id');
+    var modalProductNumberField = document.getElementById('modal_product_number');
+    var modalProductMrpField = document.getElementById('modal_product_mrp');
+    var modalProductPriceField = document.getElementById('modal_product_price');
+    var modalProductDescField = document.getElementById('modal_product_description');
+    var modalProductCategoryField = document.getElementById('modal_product_category');
+    var modalProductNameField = document.getElementById('modal_product_name');
+    
+    if(modalProductIdField) modalProductIdField.value = productId;
+    if(modalProductNumberField) modalProductNumberField.value = productId;
+    if(modalProductMrpField) modalProductMrpField.value = mrp || '';
+    if(modalProductPriceField) modalProductPriceField.value = price || '';
+    if(modalProductDescField) modalProductDescField.value = productDescription || '';
+    
+    // Clear the product name dropdown first
+    if(modalProductNameField) {
+        modalProductNameField.innerHTML = '<option value="">-- Select Product Name --</option>';
+        modalProductNameField.disabled = true;
     }
-    $('#productModalLabel').text('Edit Product/Service');
-    $('.modal-footer button:last').text('Update Product');
+    
+    // Set category and load product names
+    if(modalProductCategoryField) {
+        modalProductCategoryField.value = productCategoryId || '';
+    }
+    
+    if(productCategoryId) {
+        loadProductNames(productCategoryId);
+        // Set the product name after options have loaded (300ms to be safe)
+        setTimeout(function() {
+            if(modalProductNameField) {
+                modalProductNameField.value = productName || '';
+            }
+        }, 300);
+    }
+    
+    // Get and set product image preview
+    var row = document.querySelector('tr[data-product-id="' + productId + '"]');
+    var imgPreview = document.getElementById('modal_product_image_preview');
+    
+    if(row && imgPreview) {
+        var img = row.querySelector('img');
+        if(img && img.src) {
+            imgPreview.src = img.src;
+        } else {
+            imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+        }
+    }
+    
+    // Update modal title and button text
+    var modalLabel = document.getElementById('productModalLabel');
+    if(modalLabel) {
+        modalLabel.textContent = 'Edit Product/Service';
+    }
+    
+    var submitBtn = document.querySelector('.modal-footer button:last-child');
+    if(submitBtn) {
+        submitBtn.textContent = 'Update Product';
+    }
+    
     updateCharCount();
+    
+    // Show modal
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#productModal').modal('show');
+        jQuery('#productModal').modal('show');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modalElement = document.getElementById('productModal');
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        document.getElementById('productModal').style.display = 'block';
+        document.getElementById('productModal').classList.add('show');
+        document.body.classList.add('modal-open');
     }
 }
 
@@ -912,13 +1164,13 @@ function handleProductImageUpload(input) {
         var maxSize = 10 * 1024 * 1024;
         if(allowedTypes.indexOf(file.type) === -1) {
             alert('Only JPG, PNG, GIF, and WEBP images are allowed.');
-            $(input).val('');
+            input.value = '';
             processedProductImageData = null;
             return;
         }
         if(file.size > maxSize) {
             alert('Image size must be 10MB or less. The image will be automatically optimized to 250KB.');
-            $(input).val('');
+            input.value = '';
             processedProductImageData = null;
             return;
         }
@@ -926,8 +1178,17 @@ function handleProductImageUpload(input) {
             window.productImageCropCallback = function(base64Data) {
                 processedProductImageData = base64Data;
                 var previewDataUri = 'data:image/jpeg;base64,' + base64Data;
-                $('#modal_product_image_preview').attr('src', previewDataUri);
-                $('#modal_product_image_preview').css({'border':'2px solid #28a745','border-radius':'8px','max-width':'200px','width':'auto','max-height':'200px','height':'auto','padding':'10px'});
+                var imgPreview = document.getElementById('modal_product_image_preview');
+                if(imgPreview) {
+                    imgPreview.src = previewDataUri;
+                    imgPreview.style.border = '2px solid #28a745';
+                    imgPreview.style.borderRadius = '8px';
+                    imgPreview.style.maxWidth = '200px';
+                    imgPreview.style.width = 'auto';
+                    imgPreview.style.maxHeight = '200px';
+                    imgPreview.style.height = 'auto';
+                    imgPreview.style.padding = '10px';
+                }
             };
             ImageCropUpload.open(file, {
                 method: 'base64',
@@ -937,11 +1198,11 @@ function handleProductImageUpload(input) {
                 },
                 onError: function(msg) {
                     alert(msg || 'Error processing image. Please try again.');
-                    $(input).val('');
+                    input.value = '';
                     processedProductImageData = null;
                 }
             });
-            $(input).val('');
+            input.value = '';
         } else {
             alert('Image crop tool not available. Please refresh the page.');
         }
@@ -949,80 +1210,107 @@ function handleProductImageUpload(input) {
 }
 
 function addProductToForm() {
-    var productName = $('#modal_product_name').val();
-    if(!productName) {
+    var modalProductNameField = document.getElementById('modal_product_name');
+    var productNameValue = modalProductNameField ? modalProductNameField.value : '';
+    
+    if(!productNameValue) {
         alert('Please enter product name.');
         return;
     }
-    var productId = $('#modal_product_id').val();
+    
+    // Get the product name text (not just the ID)
+    var productNameText = productNameValue;
+    if(modalProductNameField && modalProductNameField.selectedIndex > -1) {
+        var selectedOption = modalProductNameField.options[modalProductNameField.selectedIndex];
+        if(selectedOption) {
+            productNameText = selectedOption.text;
+            // Remove [Custom] prefix if present for storage
+            productNameText = productNameText.replace('[Custom] ', '').trim();
+        }
+    }
+    
+    var modalProductIdField = document.getElementById('modal_product_id');
+    var productId = modalProductIdField ? modalProductIdField.value : '';
     var isEdit = (productId && productId !== '');
+    
     var formData = new FormData();
     formData.append('product', '1');
     var tempSlot = '1';
-    formData.append('pro_name' + tempSlot, productName);
-    var category = $('#modal_product_category').val();
+    formData.append('pro_name' + tempSlot, productNameText);
+    
+    var modalProductCategoryField = document.getElementById('modal_product_category');
+    var category = modalProductCategoryField ? modalProductCategoryField.value : '';
     if(category) formData.append('pro_category' + tempSlot, category);
-    var mrp = $('#modal_product_mrp').val();
+    
+    var modalProductMrpField = document.getElementById('modal_product_mrp');
+    var mrp = modalProductMrpField ? modalProductMrpField.value : '';
     if(mrp) formData.append('pro_mrp' + tempSlot, mrp);
-    var price = $('#modal_product_price').val();
+    
+    var modalProductPriceField = document.getElementById('modal_product_price');
+    var price = modalProductPriceField ? modalProductPriceField.value : '';
     if(price) formData.append('pro_price' + tempSlot, price);
-    var description = $('#modal_product_description').val();
+    
+    var modalProductDescField = document.getElementById('modal_product_description');
+    var description = modalProductDescField ? modalProductDescField.value : '';
     if(description) formData.append('pro_desc' + tempSlot, description);
+    
     if(isEdit) {
         formData.append('product_id' + tempSlot, productId);
         formData.append('product_id', productId);
     }
+    
     if(processedProductImageData) {
         formData.append('processed_product_image_data' + tempSlot, processedProductImageData);
     } else {
-        var imageFile = document.getElementById('modal_product_image').files[0];
-        if(imageFile) formData.append('pro_img' + tempSlot, imageFile);
+        var imageFileInput = document.getElementById('modal_product_image');
+        if(imageFileInput && imageFileInput.files[0]) {
+            formData.append('pro_img' + tempSlot, imageFileInput.files[0]);
+        }
     }
-    $('#status_remove_img').html('<div class="alert alert-info">Saving product...</div>');
+    
+    var statusElement = document.getElementById('status_remove_img');
+    if(statusElement) {
+        statusElement.innerHTML = '<div class="alert alert-info">Saving product...</div>';
+    }
+    
     var updateTableCallback = function() {
-        $.ajax({
-            url: window.location.href,
+        fetch(window.location.href, {
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {'X-Requested-With': 'XMLHttpRequest'},
-            dataType: 'json',
-            success: function(response) {
-                if(response && response.success) {
-                    $('#status_remove_img').html('<div class="alert alert-success">' + (response.message || 'Product saved successfully!') + '</div>');
-                    setTimeout(function(){ window.location.reload(); }, 800);
-                } else {
-                    $('#status_remove_img').html('<div class="alert alert-danger">' + (response.message || 'Error saving product.') + '</div>');
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data && data.success) {
+                var statusEl = document.getElementById('status_remove_img');
+                if(statusEl) {
+                    statusEl.innerHTML = '<div class="alert alert-success">' + (data.message || 'Product saved successfully!') + '</div>';
                 }
-            },
-            error: function(xhr, status, error) {
-                try {
-                    var response = JSON.parse(xhr.responseText);
-                    if(response && !response.success) {
-                        $('#status_remove_img').html('<div class="alert alert-danger">' + (response.message || 'Error saving product.') + '</div>');
-                        return;
-                    }
-                } catch(e) {
-                    var errorMsg = 'Error saving product. ';
-                    if(xhr.responseText) {
-                        errorMsg += 'Response: ' + xhr.responseText.substring(0,200);
-                    } else {
-                        errorMsg += 'Status: ' + status + ', Error: ' + error;
-                    }
-                    $('#status_remove_img').html('<div class="alert alert-danger">' + errorMsg + '</div>');
+                setTimeout(function(){ window.location.reload(); }, 800);
+            } else {
+                var statusEl = document.getElementById('status_remove_img');
+                if(statusEl) {
+                    statusEl.innerHTML = '<div class="alert alert-danger">' + (data.message || 'Error saving product.') + '</div>';
                 }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            var statusEl = document.getElementById('status_remove_img');
+            if(statusEl) {
+                statusEl.innerHTML = '<div class="alert alert-danger">Error saving product. Please try again.</div>';
             }
         });
     };
+    
     if(processedProductImageData) {
         updateTableCallback();
     } else {
-        var imageFile = document.getElementById('modal_product_image').files[0];
-        if(imageFile) {
+        var imageFileInput = document.getElementById('modal_product_image');
+        if(imageFileInput && imageFileInput.files[0]) {
             var reader = new FileReader();
             reader.onload = function(e) { updateTableCallback(); };
-            reader.readAsDataURL(imageFile);
+            reader.readAsDataURL(imageFileInput.files[0]);
         } else {
             updateTableCallback();
         }
@@ -1037,34 +1325,57 @@ function saveProducts() {
 
 function removeData(productId) {
     if(confirm('Are you sure you want to remove this product?')) {
-        $('#status_remove_img').css('color','blue');
-        $.ajax({
-            url: '../../admin/js_request.php',
+        var statusElement = document.getElementById('status_remove_img');
+        if(statusElement) {
+            statusElement.style.color = 'blue';
+        }
+        
+        fetch('../../admin/js_request.php', {
             method: 'POST',
-            data: {product_id: productId, action: 'delete_product'},
-            dataType: 'text',
-            success: function(data){
-                $('#status_remove_img').html(data);
-                if(data.includes('success')){
-                    $('tr[data-product-id="' + productId + '"]').remove();
-                    var tableBody = $('.Product-ServicesTable tbody');
-                    if(tableBody.find('tr[data-product-id]').length === 0) {
-                        tableBody.html('<tr><td colspan="6" class="text-center text-muted">No products added yet. Click \"Add Product\" to add.</td></tr>');
-                    }
-                    $('#status_remove_img').html('<div class="alert alert-success">Product removed successfully!</div>');
-                    setTimeout(function(){ $('#status_remove_img').html(''); }, 2000);
-                }
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
-            error: function(){
-                $('#status_remove_img').html('<div class="alert alert-danger">Error deleting product. Please try again.</div>');
-            }   
+            body: 'product_id=' + encodeURIComponent(productId) + '&action=delete_product'
+        })
+        .then(response => response.text())
+        .then(data => {
+            var statusEl = document.getElementById('status_remove_img');
+            if(statusEl) {
+                statusEl.innerHTML = data;
+            }
+            
+            if(data.includes('success')){
+                var row = document.querySelector('tr[data-product-id="' + productId + '"]');
+                if(row) {
+                    row.remove();
+                }
+                
+                var tableBody = document.querySelector('.Product-ServicesTable tbody');
+                var hasProducts = tableBody ? tableBody.querySelector('tr[data-product-id]') : null;
+                
+                if(tableBody && !hasProducts) {
+                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td></tr>';
+                }
+                
+                if(statusEl) {
+                    statusEl.innerHTML = '<div class="alert alert-success">Product removed successfully!</div>';
+                    setTimeout(function(){ statusEl.innerHTML = ''; }, 2000);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            var statusEl = document.getElementById('status_remove_img');
+            if(statusEl) {
+                statusEl.innerHTML = '<div class="alert alert-danger">Error deleting product. Please try again.</div>';
+            }
         });
     }
 }
 
 function closeProductModal() {
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#productModal').modal('hide');
+        jQuery('#productModal').modal('hide');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modalElement = document.getElementById('productModal');
         var modal = bootstrap.Modal.getInstance(modalElement);
@@ -1076,35 +1387,339 @@ function closeProductModal() {
         var backdrop = document.getElementById('modalBackdrop');
         if(backdrop) backdrop.remove();
     }
-    $('#modal_product_id').val('');
-    $('#modal_product_number').val('');
+    
+    var modalProductIdField = document.getElementById('modal_product_id');
+    var modalProductNumberField = document.getElementById('modal_product_number');
+    
+    if(modalProductIdField) modalProductIdField.value = '';
+    if(modalProductNumberField) modalProductNumberField.value = '';
+    
     processedProductImageData = null;
-}
-
-if(typeof jQuery !== 'undefined') {
-    $('#productModal').on('show.bs.modal', function() {
-        if(!$('#modal_product_id').val()) {
-            $('#modal_product_id').val('');
-            $('#modal_product_number').val('');
-            $('#modal_product_name').val('');
-            $('#modal_product_image').val('');
-            $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-            $('#productModalLabel').text('Add Product');
-            $('.modal-footer button:last').text('Add Product');
-        }
-    });
 }
 
 document.addEventListener('click', function(event) {
     var modal = document.getElementById('productModal');
     if(event.target === modal) closeProductModal();
 });
+
+// ============= Custom Category Functions =============
+
+function openCustomProductCategoryModal() {
+    var nameField = document.getElementById('custom_product_category_name');
+    if(nameField) nameField.value = '';
+    
+    var errorElement = document.getElementById('customProductCategoryError');
+    var successElement = document.getElementById('customProductCategorySuccess');
+    
+    if(errorElement) errorElement.style.display = 'none';
+    if(successElement) successElement.style.display = 'none';
+    
+    var modalElement = document.getElementById('customProductCategoryModal');
+    
+    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        jQuery(modalElement).modal('show');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        // Fallback: show modal manually
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        document.body.classList.add('modal-open');
+        var backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+    }
+}
+
+function closeCustomProductCategoryModal() {
+    var modalElement = document.getElementById('customProductCategoryModal');
+    
+    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        jQuery(modalElement).modal('hide');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = bootstrap.Modal.getInstance(modalElement);
+        if(modal) modal.hide();
+    } else {
+        // Fallback: hide modal manually
+        modalElement.style.display = 'none';
+        modalElement.classList.remove('show');
+        document.body.classList.remove('modal-open');
+        var backdrop = document.querySelector('.modal-backdrop');
+        if(backdrop) backdrop.remove();
+    }
+}
+
+function saveCustomProductCategory() {
+    var categoryName = document.getElementById('custom_product_category_name').value.trim();
+    var errorElement = document.getElementById('customProductCategoryError');
+    var successElement = document.getElementById('customProductCategorySuccess');
+    
+    if (!categoryName) {
+        errorElement.textContent = 'Category name is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    
+    errorElement.style.display = 'none';
+    successElement.style.display = 'none';
+    successElement.textContent = 'Creating category...';
+    successElement.style.display = 'block';
+    
+    var formData = new FormData();
+    formData.append('category_name', categoryName);
+    formData.append('category_type', 'product-category');
+    
+    fetch('../../user/ajax/custom_categories.php?action=create', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error, status = ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            successElement.textContent = 'Category created! Reloading...';
+            successElement.style.display = 'block';
+            errorElement.style.display = 'none';
+            
+            setTimeout(function() {
+                closeCustomProductCategoryModal();
+                window.location.reload();
+            }, 1000);
+        } else {
+            errorElement.textContent = data.message || 'Error creating category.';
+            errorElement.style.display = 'block';
+            successElement.style.display = 'none';
+            console.error('API Error:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        errorElement.textContent = 'Network error. Please check your connection and try again.';
+        errorElement.style.display = 'block';
+        successElement.style.display = 'none';
+    });
+}
+
+function openCustomProductNameModal() {
+    var nameField = document.getElementById('custom_product_name');
+    if(nameField) nameField.value = '';
+    
+    var errorElement = document.getElementById('customProductNameError');
+    var successElement = document.getElementById('customProductNameSuccess');
+    
+    if(errorElement) errorElement.style.display = 'none';
+    if(successElement) successElement.style.display = 'none';
+    
+    var modalElement = document.getElementById('customProductNameModal');
+    
+    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        jQuery(modalElement).modal('show');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        // Fallback: show modal manually
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        document.body.classList.add('modal-open');
+        var backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+    }
+}
+
+function closeCustomProductNameModal() {
+    var modalElement = document.getElementById('customProductNameModal');
+    
+    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        jQuery(modalElement).modal('hide');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = bootstrap.Modal.getInstance(modalElement);
+        if(modal) modal.hide();
+    } else {
+        // Fallback: hide modal manually
+        modalElement.style.display = 'none';
+        modalElement.classList.remove('show');
+        document.body.classList.remove('modal-open');
+        var backdrop = document.querySelector('.modal-backdrop');
+        if(backdrop) backdrop.remove();
+    }
+}
+
+function saveCustomProductName() {
+    var productName = document.getElementById('custom_product_name').value.trim();
+    var errorElement = document.getElementById('customProductNameError');
+    var successElement = document.getElementById('customProductNameSuccess');
+    
+    if (!productName) {
+        errorElement.textContent = 'Product name is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    
+    errorElement.style.display = 'none';
+    successElement.style.display = 'none';
+    successElement.textContent = 'Creating product name...';
+    successElement.style.display = 'block';
+    
+    var formData = new FormData();
+    formData.append('category_name', productName);
+    formData.append('category_type', 'product-name');
+    
+    fetch('../../user/ajax/custom_categories.php?action=create', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error, status = ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            successElement.textContent = 'Product name added! Adding to dropdown...';
+            successElement.style.display = 'block';
+            errorElement.style.display = 'none';
+            
+            // Add to the product name dropdown
+            var productNameSelect = document.getElementById('modal_product_name');
+            var option = document.createElement('option');
+            option.value = data.category_id;
+            option.textContent = productName;
+            productNameSelect.appendChild(option);
+            productNameSelect.value = data.category_id;
+            
+            setTimeout(function() {
+                closeCustomProductNameModal();
+            }, 500);
+        } else {
+            errorElement.textContent = data.message || 'Error creating product name.';
+            errorElement.style.display = 'block';
+            successElement.style.display = 'none';
+            console.error('API Error:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        errorElement.textContent = 'Network error. Please check your connection and try again.';
+        errorElement.style.display = 'block';
+        successElement.style.display = 'none';
+    });
+}
 </script>
 <style>
     #imageCropModal{
         z-index: 10000 !important;
     }
+
+    select.form-control {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 10px center !important;
+        background-size: 20px !important;
+        padding-right: 40px !important;
+        cursor: pointer;
+        background-color: white !important;
+        border: 1px solid #ced4da !important;
+    }
+
+    select.form-control:disabled {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+        background-color: #e9ecef !important;
+    }
+
+    #modal_product_category,
+    #modal_product_name {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 10px center !important;
+        background-size: 20px !important;
+        padding-right: 40px !important;
+        background-color: white !important;
+        border: 1px solid #ced4da !important;
+        cursor: pointer !important;
+    }
+
+    #modal_product_category:disabled,
+    #modal_product_name:disabled {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+        background-color: #e9ecef !important;
+        color: #6c757d !important;
+        cursor: not-allowed !important;
+    }
 </style>
+
+<!-- Custom Product Category Modal -->
+<div class="modal fade" id="customProductCategoryModal" tabindex="-1" role="dialog" aria-labelledby="customProductCategoryLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customProductCategoryLabel">Add Custom Product Category</h5>
+                <button type="button" class="close" onclick="closeCustomProductCategoryModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="customProductCategoryForm">
+                    <div class="form-group">
+                        <label for="custom_product_category_name">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="custom_product_category_name" placeholder="Enter category name" maxlength="255" required>
+                        <small class="form-text text-muted">This category will only be visible to you</small>
+                    </div>
+                    <div id="customProductCategoryError" class="alert alert-danger" style="display: none;"></div>
+                    <div id="customProductCategorySuccess" class="alert alert-success" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCustomProductCategoryModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCustomProductCategory()">Add Category</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Product Name Modal -->
+<div class="modal fade" id="customProductNameModal" tabindex="-1" role="dialog" aria-labelledby="customProductNameLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customProductNameLabel">Add Custom Product Name</h5>
+                <button type="button" class="close" onclick="closeCustomProductNameModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="customProductNameForm">
+                    <div class="form-group">
+                        <label for="custom_product_name">Product Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="custom_product_name" placeholder="Enter product name" maxlength="255" required>
+                        <small class="form-text text-muted">This product name will only be visible to you</small>
+                    </div>
+                    <div id="customProductNameError" class="alert alert-danger" style="display: none;"></div>
+                    <div id="customProductNameSuccess" class="alert alert-success" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCustomProductNameModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCustomProductName()">Add Product Name</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php include '../includes/footer.php'; ?>
 

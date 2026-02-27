@@ -12,7 +12,6 @@ $query = "SELECT
     c.id,
     c.category_name,
     c.category_type,
-    c.description,
     c.icon_class,
     c.display_order,
     COALESCE(p.category_name, '') as parent_name
@@ -37,13 +36,6 @@ $output = fopen('php://output', 'w');
 // Add UTF-8 BOM for Excel compatibility
 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-// Write instructions as comment rows
-fputcsv($output, ['# IMPORTANT: DO NOT CHANGE THE ID COLUMN']);
-fputcsv($output, ['# If you keep the ID, the category will be UPDATED']);
-fputcsv($output, ['# If you remove the ID row, a NEW category will be created']);
-fputcsv($output, ['# Parent Category names must match existing categories (case-sensitive)']);
-fputcsv($output, ['# Type options: category, product, service, business']);
-fputcsv($output, ['']);
 
 // Write header row
 fputcsv($output, [
@@ -51,7 +43,6 @@ fputcsv($output, [
     'Category Name',
     'Type',
     'Parent Category',
-    'Description',
     'Icon Class',
     'Display Order'
 ]);
@@ -63,7 +54,6 @@ while($row = mysqli_fetch_assoc($result)) {
         $row['category_name'],
         $row['category_type'],
         $row['parent_name'],
-        $row['description'],
         $row['icon_class'],
         $row['display_order']
     ]);

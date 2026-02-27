@@ -657,79 +657,143 @@ include '../includes/header.php';
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_position_primary">Business Category(Primary) <span class="text-danger">*</span></label>
-                                    <select name="d_position_primary" id="d_position_primary" class="form-control">
-                                        <option value="">-- Select Primary Category --</option>   
-                                        <?php
-                                        // Get all categories with their parents for secondary (grouped by parent)
-                                        $all_cats_query = mysqli_query($connect, "
-                                            SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name
-                                            FROM product_categories c
-                                            LEFT JOIN product_categories p ON c.parent_id = p.id
-                                            WHERE c.is_active = 1 AND c.category_type = 'business'
-                                            ORDER BY p.display_order, c.display_order ASC
-                                        ");
-                                        
-                                        $current_group = null;
-                                        while($cat = mysqli_fetch_assoc($all_cats_query)) {
-                                            // Add optgroup header when parent changes (but only for children)
-                                            if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
-                                                if($current_group !== null) {
-                                                    echo '</optgroup>';
-                                                }
-                                                echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
-                                                $current_group = $cat['parent_name'];
+                                    <div style="display: flex; gap: 10px;">
+                                        <select name="d_position_primary" id="d_position_primary" class="form-control" style="flex: 1;">
+                                            <option value="">-- Select Primary Category --</option>   
+                                            <?php
+                                            // Get user ID for custom categories
+                                            $user_email_escaped = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+                                            $user_query = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = LOWER(TRIM('$user_email_escaped')) LIMIT 1");
+                                            $user_id = 0;
+                                            if($user_query && mysqli_num_rows($user_query) > 0) {
+                                                $user_row = mysqli_fetch_assoc($user_query);
+                                                $user_id = intval($user_row['id']);
                                             }
                                             
-                                            // Show child categories only (those with parent_id)
-                                            if($cat['parent_id'] !== null) {
-                                                $selected = (!empty($cardRow['d_position_primary']) && $cardRow['d_position_primary'] == $cat['id']) ? 'selected' : '';
-                                                echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
+                                            // Get all system categories with their parents
+                                            $all_cats_query = mysqli_query($connect, "
+                                                SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name, 'system' as source
+                                                FROM product_categories c
+                                                LEFT JOIN product_categories p ON c.parent_id = p.id
+                                                WHERE c.is_active = 1 AND c.category_type = 'business-category'
+                                                ORDER BY p.display_order, c.display_order ASC
+                                            ");
+                                            
+                                            $current_group = null;
+                                            while($cat = mysqli_fetch_assoc($all_cats_query)) {
+                                                // Add optgroup header when parent changes (but only for children)
+                                                if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
+                                                    if($current_group !== null) {
+                                                        echo '</optgroup>';
+                                                    }
+                                                    echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
+                                                    $current_group = $cat['parent_name'];
+                                                }
+                                                
+                                                // Show child categories only (those with parent_id)
+                                                if($cat['parent_id'] !== null) {
+                                                    $selected = (!empty($cardRow['d_position_primary']) && $cardRow['d_position_primary'] == $cat['id']) ? 'selected' : '';
+                                                    echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
+                                                }
                                             }
-                                        }
-                                        if($current_group !== null) {
-                                            echo '</optgroup>';
-                                        }
-                                        ?>
-                                    </select>
+                                            if($current_group !== null) {
+                                                echo '</optgroup>';
+                                            }
+                                            
+                                            // Get user custom business categories
+                                            if($user_id > 0) {
+                                                $custom_cats_query = mysqli_query($connect, "
+                                                    SELECT id, category_name FROM user_custom_categories
+                                                    WHERE user_id = $user_id AND category_type = 'business-category' AND is_active = 1
+                                                    ORDER BY created_at DESC
+                                                ");
+                                                
+                                                if(mysqli_num_rows($custom_cats_query) > 0) {
+                                                    echo '<optgroup label="My Custom Categories">';
+                                                    while($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
+                                                        $selected = (!empty($cardRow['d_position_primary']) && $cardRow['d_position_primary'] == $custom_cat['id']) ? 'selected' : '';
+                                                        echo '<option value="' . intval($custom_cat['id']) . '" ' . $selected . '>[Custom] ' . htmlspecialchars($custom_cat['category_name']) . '</option>';
+                                                    }
+                                                    echo '</optgroup>';
+                                                }
+                                            }
+                                            ?>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category">
+                                            <i class="fa fa-plus" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                             <div class="form-group">
                                     <label for="d_position_secondary">Business Category(secondary)</label>
-                                    <select name="d_position_secondary" id="d_position_secondary" class="form-control">
-                                        <option value="">-- Select Secondary Category --</option>   
-                                        <?php
-                                        // Get all categories with their parents for secondary (grouped by parent)
-                                        $all_cats_query = mysqli_query($connect, "
-                                            SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name
-                                            FROM product_categories c
-                                            LEFT JOIN product_categories p ON c.parent_id = p.id
-                                            WHERE c.is_active = 1 AND c.category_type = 'business'
-                                            ORDER BY p.display_order, c.display_order ASC
-                                        ");
-                                        
-                                        $current_group = null;
-                                        while($cat = mysqli_fetch_assoc($all_cats_query)) {
-                                            // Add optgroup header when parent changes (but only for children)
-                                            if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
-                                                if($current_group !== null) {
-                                                    echo '</optgroup>';
-                                                }
-                                                echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
-                                                $current_group = $cat['parent_name'];
+                                    <div style="display: flex; gap: 10px;">
+                                        <select name="d_position_secondary" id="d_position_secondary" class="form-control" style="flex: 1;">
+                                            <option value="">-- Select Secondary Category --</option>   
+                                            <?php
+                                            // Get user ID for custom categories
+                                            $user_email_escaped = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+                                            $user_query = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = LOWER(TRIM('$user_email_escaped')) LIMIT 1");
+                                            $user_id = 0;
+                                            if($user_query && mysqli_num_rows($user_query) > 0) {
+                                                $user_row = mysqli_fetch_assoc($user_query);
+                                                $user_id = intval($user_row['id']);
                                             }
                                             
-                                            // Show child categories only (those with parent_id)
-                                            if($cat['parent_id'] !== null) {
-                                                $selected = (!empty($cardRow['d_position_secondary']) && $cardRow['d_position_secondary'] == $cat['id']) ? 'selected' : '';
-                                                echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
+                                            // Get all system categories with their parents
+                                            $all_cats_query = mysqli_query($connect, "
+                                                SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name, 'system' as source
+                                                FROM product_categories c
+                                                LEFT JOIN product_categories p ON c.parent_id = p.id
+                                                WHERE c.is_active = 1 AND c.category_type = 'business-category'
+                                                ORDER BY p.display_order, c.display_order ASC
+                                            ");
+                                           
+                                            $current_group = null;
+                                            while($cat = mysqli_fetch_assoc($all_cats_query)) {
+                                                // Add optgroup header when parent changes (but only for children)
+                                                if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
+                                                    if($current_group !== null) {
+                                                        echo '</optgroup>';
+                                                    }
+                                                    echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
+                                                    $current_group = $cat['parent_name'];
+                                                }
+                                                
+                                                // Show child categories only (those with parent_id)
+                                                if($cat['parent_id'] !== null) {
+                                                    $selected = (!empty($cardRow['d_position_secondary']) && $cardRow['d_position_secondary'] == $cat['id']) ? 'selected' : '';
+                                                    echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
+                                                }
                                             }
-                                        }
-                                        if($current_group !== null) {
-                                            echo '</optgroup>';
-                                        }
-                                        ?>
-                                    </select>
+                                            if($current_group !== null) {
+                                                echo '</optgroup>';
+                                            }
+                                            
+                                            // Get user custom business categories
+                                            if($user_id > 0) {
+                                                $custom_cats_query = mysqli_query($connect, "
+                                                    SELECT id, category_name FROM user_custom_categories
+                                                    WHERE user_id = $user_id AND category_type = 'business-category' AND is_active = 1
+                                                    ORDER BY created_at DESC
+                                                ");
+                                                
+                                                if(mysqli_num_rows($custom_cats_query) > 0) {
+                                                    echo '<optgroup label="My Custom Categories">';
+                                                    while($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
+                                                        $selected = (!empty($cardRow['d_position_secondary']) && $cardRow['d_position_secondary'] == $custom_cat['id']) ? 'selected' : '';
+                                                        echo '<option value="' . intval($custom_cat['id']) . '" ' . $selected . '>[Custom] ' . htmlspecialchars($custom_cat['category_name']) . '</option>';
+                                                    }
+                                                    echo '</optgroup>';
+                                                }
+                                            }
+                                            ?>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category">
+                                            <i class="fa fa-plus" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1421,7 +1485,156 @@ padding-bottom:0px;
         padding: 7px !important;
         margin-top: 22px !important;
     }
+
+    select.form-control {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 20px;
+        padding-right: 40px !important;
+        cursor: pointer;
+    }
+
+    select.form-control:disabled {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    }
 </style>
+
+<!-- Custom Business Category Modal -->
+<div class="modal fade" id="customBusinessCategoryModal" tabindex="-1" role="dialog" aria-labelledby="customBusinessCategoryLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customBusinessCategoryLabel">Add Custom Business Category</h5>
+                <button type="button" class="close" onclick="closeCustomBusinessCategoryModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="customBusinessCategoryForm">
+                    <div class="form-group">
+                        <label for="custom_business_category_name">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="custom_business_category_name" placeholder="Enter category name" maxlength="255" required>
+                        <small class="form-text text-muted">This category will only be visible to you</small>
+                    </div>
+                    <div id="customBusinessCategoryError" class="alert alert-danger" style="display: none;"></div>
+                    <div id="customBusinessCategorySuccess" class="alert alert-success" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCustomBusinessCategoryModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCustomBusinessCategory()">Add Category</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openCustomBusinessCategoryModal() {
+    var nameField = document.getElementById('custom_business_category_name');
+    if(nameField) nameField.value = '';
+    
+    var errorElement = document.getElementById('customBusinessCategoryError');
+    var successElement = document.getElementById('customBusinessCategorySuccess');
+    
+    if(errorElement) errorElement.style.display = 'none';
+    if(successElement) successElement.style.display = 'none';
+    
+    var modalElement = document.getElementById('customBusinessCategoryModal');
+    
+    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        jQuery(modalElement).modal('show');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        // Fallback: show modal manually
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        document.body.classList.add('modal-open');
+        var backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+    }
+}
+
+function closeCustomBusinessCategoryModal() {
+    var modalElement = document.getElementById('customBusinessCategoryModal');
+    
+    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        jQuery(modalElement).modal('hide');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = bootstrap.Modal.getInstance(modalElement);
+        if(modal) modal.hide();
+    } else {
+        // Fallback: hide modal manually
+        modalElement.style.display = 'none';
+        modalElement.classList.remove('show');
+        document.body.classList.remove('modal-open');
+        var backdrop = document.querySelector('.modal-backdrop');
+        if(backdrop) backdrop.remove();
+    }
+}
+
+function saveCustomBusinessCategory() {
+    var categoryName = document.getElementById('custom_business_category_name').value.trim();
+    var errorElement = document.getElementById('customBusinessCategoryError');
+    var successElement = document.getElementById('customBusinessCategorySuccess');
+    
+    if (!categoryName) {
+        errorElement.textContent = 'Category name is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    
+    errorElement.style.display = 'none';
+    successElement.style.display = 'none';
+    successElement.textContent = 'Creating category...';
+    successElement.style.display = 'block';
+    
+    var formData = new FormData();
+    formData.append('category_name', categoryName);
+    formData.append('category_type', 'business-category');
+    
+    fetch('../../user/ajax/custom_categories.php?action=create', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error, status = ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            successElement.textContent = data.message || 'Category created successfully!';
+            successElement.style.display = 'block';
+            errorElement.style.display = 'none';
+            
+            setTimeout(function() {
+                closeCustomBusinessCategoryModal();
+                window.location.reload();
+            }, 1000);
+        } else {
+            errorElement.textContent = data.message || 'Error creating category.';
+            errorElement.style.display = 'block';
+            successElement.style.display = 'none';
+            console.error('API Error:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        errorElement.textContent = 'Network error. Please check your connection and try again.';
+        errorElement.style.display = 'block';
+        successElement.style.display = 'none';
+    });
+}
+</script>
 
 <?php include '../includes/footer.php'; ?>
 

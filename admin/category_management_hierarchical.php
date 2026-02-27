@@ -12,45 +12,13 @@ if(!isset($_SESSION['admin_email']) || empty($_SESSION['admin_email'])) {
 $success_message = '';
 $error_message = '';
 
-// Create table if it doesn't exist (with parent_id support)
-$create_table_query = "CREATE TABLE IF NOT EXISTS product_categories (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    parent_id INT DEFAULT NULL,
-    category_name VARCHAR(255) NOT NULL UNIQUE,
-    category_type VARCHAR(50) DEFAULT 'product',
-    category_slug VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT,
-    icon_class VARCHAR(100),
-    display_order INT DEFAULT 0,
-    is_active TINYINT(1) DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by VARCHAR(255),
-    FOREIGN KEY (parent_id) REFERENCES product_categories(id) ON DELETE SET NULL,
-    INDEX idx_active (is_active),
-    INDEX idx_order (display_order),
-    INDEX idx_parent_id (parent_id),
-    INDEX idx_type (category_type)
-)";
-
-if(!mysqli_query($connect, $create_table_query)) {
-    // Table may already exist
+// Determine which tab to show (default: add_form)
+$active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'add_form';
+$allowed_tabs = ['add_form', 'csv_upload', 'all_categories'];
+if(!in_array($active_tab, $allowed_tabs)) {
+    $active_tab = 'add_form';
 }
 
-// Add parent_id column if it doesn't exist
-$check_column = mysqli_query($connect, "SHOW COLUMNS FROM product_categories LIKE 'parent_id'");
-if(mysqli_num_rows($check_column) == 0) {
-    mysqli_query($connect, "ALTER TABLE product_categories ADD COLUMN parent_id INT DEFAULT NULL");
-    mysqli_query($connect, "ALTER TABLE product_categories ADD FOREIGN KEY (parent_id) REFERENCES product_categories(id) ON DELETE SET NULL");
-    mysqli_query($connect, "ALTER TABLE product_categories ADD INDEX idx_parent_id (parent_id)");
-}
-
-// Add category_type column if it doesn't exist
-$check_type_column = mysqli_query($connect, "SHOW COLUMNS FROM product_categories LIKE 'category_type'");
-if(mysqli_num_rows($check_type_column) == 0) {
-    mysqli_query($connect, "ALTER TABLE product_categories ADD COLUMN category_type VARCHAR(50) DEFAULT 'product' AFTER category_name");
-    mysqli_query($connect, "ALTER TABLE product_categories ADD INDEX idx_type (category_type)");
-}
 
 // Get all categories for parent selection dropdown
 function getAllCategoriesForDropdown($connect, $exclude_id = null) {
@@ -96,7 +64,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Add new category
         if($action == 'add_category') {
             $category_name = mysqli_real_escape_string($connect, $_POST['category_name']);
-            $category_type = mysqli_real_escape_string($connect, $_POST['category_type'] ?? 'product');
+            $category_type = mysqli_real_escape_string($connect, $_POST['category_type'] ?? 'product-category');
             $parent_id = (!empty($_POST['parent_id']) && $_POST['parent_id'] != '0') ? intval($_POST['parent_id']) : null;
             $category_slug = mysqli_real_escape_string($connect, strtolower(str_replace(' ', '-', $_POST['category_name'])));
             $description = mysqli_real_escape_string($connect, $_POST['description'] ?? '');
@@ -139,7 +107,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         if($action == 'update_category') {
             $category_id = intval($_POST['category_id']);
             $category_name = mysqli_real_escape_string($connect, $_POST['category_name']);
-            $category_type = mysqli_real_escape_string($connect, $_POST['category_type'] ?? 'product');
+            $category_type = mysqli_real_escape_string($connect, $_POST['category_type'] ?? 'product-category');
             $parent_id = (!empty($_POST['parent_id']) && $_POST['parent_id'] != '0') ? intval($_POST['parent_id']) : null;
             $category_slug = mysqli_real_escape_string($connect, strtolower(str_replace(' ', '-', $_POST['category_name'])));
             $description = mysqli_real_escape_string($connect, $_POST['description'] ?? '');
@@ -431,22 +399,22 @@ $parent_categories = getAllCategoriesForDropdown($connect, $edit_category ? $edi
     
     <!-- Tabs Navigation -->
     <div style="margin-bottom: 30px;">
-        <button class="btn btn-primary" onclick="switchTab('add_form')" style="margin-right: 10px;">
+        <a href="?tab=add_form" class="btn btn-primary" style="margin-right: 10px;">
             <i class="fa fa-plus"></i> Add New Category
-        </button>
-        <button class="btn btn-info" onclick="switchTab('csv_upload')" style="margin-right: 10px;">
+        </a>
+        <a href="?tab=csv_upload" class="btn btn-info" style="margin-right: 10px;">
             <i class="fa fa-upload"></i> Bulk Import (CSV)
-        </button>
-        <button class="btn btn-secondary" onclick="switchTab('all_categories')" style="margin-right: 10px;">
+        </a>
+        <a href="?tab=all_categories" class="btn btn-secondary" style="margin-right: 10px;">
             <i class="fa fa-list"></i> All Categories (<?php echo count($categories); ?>)
-        </button>
+        </a>
         <a href="export_categories.php" class="btn btn-warning" style="margin-right: 10px;">
             <i class="fa fa-download"></i> Export Data
         </a>
     </div>
     
     <!-- Add/Edit Category Form -->
-    <div id="add_form" class="tab-content" style="display: block; background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
+    <div id="add_form" class="tab-content" style="display: <?php echo $active_tab === 'add_form' ? 'block' : 'none'; ?>; background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
         <h2><?php echo $edit_category ? 'Edit Category' : 'Add New Category'; ?></h2>
         <form method="POST" style="max-width: 600px;">
             <input type="hidden" name="action" value="<?php echo $edit_category ? 'update_category' : 'add_category'; ?>">
@@ -471,10 +439,11 @@ $parent_categories = getAllCategoriesForDropdown($connect, $edit_category ? $edi
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">Category Type *</label>
                 <select name="category_type" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="">-- Select Type --</option>
-                    <option value="product" <?php echo (!$edit_category || $edit_category['category_type'] == 'product') ? 'selected' : ''; ?>>Product</option>
-                    <option value="business" <?php echo ($edit_category && $edit_category['category_type'] == 'business') ? 'selected' : ''; ?>>Business</option>
+                    <option value="business-category" <?php echo ($edit_category && $edit_category['category_type'] == 'business-category') ? 'selected' : ''; ?>>Business Category</option>
+                    <option value="product-category" <?php echo (!$edit_category || $edit_category['category_type'] == 'product-category') ? 'selected' : ''; ?>>Product Category</option>
+                    <option value="product-name" <?php echo ($edit_category && $edit_category['category_type'] == 'product-name') ? 'selected' : ''; ?>>Product Name</option>
                 </select>
-                <small style="color: #666;">Select the type of category (default: Product)</small>
+                <small style="color: #666;">Select the type of category</small>
             </div>
             
             <div class="form-group" style="margin-bottom: 15px;">
@@ -484,7 +453,7 @@ $parent_categories = getAllCategoriesForDropdown($connect, $edit_category ? $edi
                        placeholder="e.g., Electronics, Laptops, etc.">
             </div>
             
-            <div class="form-group" style="margin-bottom: 15px;">
+            <div class="form-group" style="margin-bottom: 15px; display: none;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">Description</label>
                 <textarea name="description" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-height: 100px;" 
                           placeholder="Category description..."><?php echo $edit_category ? htmlspecialchars($edit_category['description']) : ''; ?></textarea>
@@ -518,24 +487,8 @@ $parent_categories = getAllCategoriesForDropdown($connect, $edit_category ? $edi
     </div>
     
     <!-- CSV Upload Section -->
-    <div id="csv_upload" class="tab-content" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
+    <div id="csv_upload" class="tab-content" style="display: <?php echo $active_tab === 'csv_upload' ? 'block' : 'none'; ?>; background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
         <h2>Bulk Import Categories from CSV</h2>
-        
-        <div style="margin-bottom: 20px; background: #e7f3ff; padding: 15px; border-radius: 4px; border-left: 4px solid #2196F3;">
-            <h4><i class="fa fa-lightbulb"></i> Pro Tip:</h4>
-            <p style="margin: 0;">Click the <strong>"Export Data"</strong> button above to download your existing categories as CSV. You can then modify them and re-upload with changes!</p>
-        </div>
-        
-        <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #007bff;">
-            <h4><i class="fa fa-info-circle"></i> Instructions:</h4>
-            <ol style="margin: 10px 0; padding-left: 20px;">
-                <li>Click "Download CSV Template" to get a blank template</li>
-                <li>OR click "Export Data" button above to export existing categories</li>
-                <li>Fill in your category data (including parent categories)</li>
-                <li>Upload the file using the form below</li>
-                <li>The system will validate and import all categories with their hierarchy</li>
-            </ol>
-        </div>
         
         <div style="margin-bottom: 20px;">
             <a href="download_category_template_hierarchical.php" class="btn btn-info" download style="margin-right: 10px;">
@@ -557,134 +510,254 @@ $parent_categories = getAllCategoriesForDropdown($connect, $edit_category ? $edi
                 <i class="fa fa-upload"></i> Import Categories
             </button>
         </form>
-        
-        <div style="margin-top: 30px; background: white; padding: 15px; border-radius: 4px;">
-            <h4><i class="fa fa-file-csv"></i> CSV Format (with ID for updates):</h4>
-            <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">
-Category Name,Type,Parent Category,Description,Icon Class,Display Order
-Electronics,category,,Electronic gadgets and devices,fa-laptop,1
-Laptops,product,Electronics,Laptop computers,fa-laptop,1
-Phones,product,Electronics,Mobile phones,fa-mobile,2
-1,Clothing,category,,Apparel items (UPDATED),fa-tshirt,2
-2,Men,product,Clothing,Men clothing (UPDATED),fa-male,1</pre>
-            <p style="margin-top: 10px; color: #666; font-size: 13px;">
-                <strong>How it works:</strong><br>
-                • Leave first column empty = CREATE new category<br>
-                • Add ID number in first column = UPDATE that specific category<br>
-                • Type options: category, product, service, business (default: product)<br>
-                • Parent Category names must match existing categories (case-sensitive)<br>
-                • DO NOT CHANGE the ID column value
-            </p>
-        </div>
     </div>
     
     <!-- All Categories List -->
-    <div id="all_categories" class="tab-content" style="display: none;">
-        <h2>All Categories (Hierarchical)</h2>
-        
-        <?php if(count($categories) > 0): ?>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 5px; overflow: hidden;">
-                    <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-                        <tr>
-                            <th style="padding: 15px; text-align: left; font-weight: bold;">Category Name</th>
-                            <th style="padding: 15px; text-align: left; font-weight: bold;">Type</th>
-                            <th style="padding: 15px; text-align: left; font-weight: bold;">Parent</th>
-                            <th style="padding: 15px; text-align: left; font-weight: bold;">Icon</th>
-                            <th style="padding: 15px; text-align: left; font-weight: bold;">Description</th>
-                            <th style="padding: 15px; text-align: center; font-weight: bold;">Order</th>
-                            <th style="padding: 15px; text-align: center; font-weight: bold;">Status</th>
-                            <th style="padding: 15px; text-align: center; font-weight: bold;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach($categories as $category): ?>
-                            <tr style="border-bottom: 1px solid #dee2e6;">
-                                <td style="padding: 15px;">
-                                    <span style="font-family: monospace;"><?php echo $category['indent']; ?></span>
-                                    <strong><?php echo htmlspecialchars($category['category_name']); ?></strong>
-                                    <br><small style="color: #666;">Slug: <?php echo htmlspecialchars($category['category_slug']); ?></small>
-                                </td>
-                                <td style="padding: 15px;">
-                                    <span style="background-color: #e7f3ff; padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: 500;">
-                                        <?php echo htmlspecialchars($category['category_type'] ?? 'product'); ?>
-                                    </span>
-                                </td>
-                                <td style="padding: 15px;">
-                                    <?php 
-                                    if($category['parent_id']) {
-                                        $parent_result = mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id=" . $category['parent_id']);
-                                        if($parent_result && mysqli_num_rows($parent_result) > 0) {
-                                            $parent_row = mysqli_fetch_assoc($parent_result);
-                                            echo htmlspecialchars($parent_row['category_name']);
-                                        }
-                                    } else {
-                                        echo '<span style="color: #999;">-</span>';
+    <div id="all_categories" class="tab-content" style="display: <?php echo $active_tab === 'all_categories' ? 'block' : 'none'; ?>;">
+        <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; font-size: 24px; color: #333;">Categories Hierarchy</h2>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="searchInput" placeholder="🔍 Search categories..." style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 5px; width: 250px;">
+                    <span id="resultCount" style="padding: 10px 15px; background: #f8f9fa; border-radius: 5px; font-weight: 500; color: #666;">Total: <?php echo count($categories); ?></span>
+                </div>
+            </div>
+            
+            <?php if(count($categories) > 0): ?>
+                <div style="overflow-x: auto;">
+                    <table id="categoriesTable" style="width: 100%; border-collapse: collapse;">
+                        <tbody id="categoriesBody">
+                            <?php 
+                            $root_categories = [];
+                            $child_categories = [];
+                            
+                            foreach($categories as $category) {
+                                if(!$category['parent_id']) {
+                                    $root_categories[] = $category;
+                                } else {
+                                    if(!isset($child_categories[$category['parent_id']])) {
+                                        $child_categories[$category['parent_id']] = [];
                                     }
-                                    ?>
-                                </td>
-                                <td style="padding: 15px;">
-                                    <?php if(!empty($category['icon_class'])): ?>
-                                        <i class="fa <?php echo htmlspecialchars($category['icon_class']); ?>" style="font-size: 20px;"></i>
-                                    <?php else: ?>
-                                        <span style="color: #999;">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="padding: 15px;">
-                                    <?php echo htmlspecialchars(substr($category['description'] ?? '', 0, 50)); ?>
-                                    <?php echo strlen($category['description'] ?? '') > 50 ? '...' : ''; ?>
-                                </td>
-                                <td style="padding: 15px; text-align: center;">
-                                    <?php echo $category['display_order']; ?>
-                                </td>
-                                <td style="padding: 15px; text-align: center;">
-                                    <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="action" value="toggle_status">
-                                        <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
-                                        <button type="submit" class="btn <?php echo $category['is_active'] ? 'btn-success' : 'btn-secondary'; ?>" style="padding: 5px 10px; font-size: 12px;">
-                                            <?php echo $category['is_active'] ? '<i class="fa fa-check"></i> Active' : '<i class="fa fa-times"></i> Inactive'; ?>
-                                        </button>
-                                    </form>
-                                </td>
-                                <td style="padding: 15px; text-align: center;">
-                                    <a href="category_management.php?edit_id=<?php echo $category['id']; ?>" class="btn btn-primary" style="padding: 5px 10px; font-size: 12px; margin-right: 5px;">
-                                        <i class="fa fa-edit"></i> Edit
-                                    </a>
-                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure? This cannot be undone if the category has no subcategories.');">
-                                        <input type="hidden" name="action" value="delete_category">
-                                        <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
-                                        <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;">
-                                            <i class="fa fa-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php else: ?>
-            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 4px; text-align: center;">
-                <i class="fa fa-info-circle"></i> No categories found. <a href="#" onclick="switchTab('add_form'); return false;">Add one now!</a>
-            </div>
-        <?php endif; ?>
+                                    $child_categories[$category['parent_id']][] = $category;
+                                }
+                            }
+                            
+                            foreach($root_categories as $root): 
+                            ?>
+                                <tr class="category-row parent-row" data-category="<?php echo htmlspecialchars(strtolower($root['category_name'])); ?>">
+                                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                        <div style="display: flex; align-items: center; gap: 15px;">
+                                            <button class="toggle-btn" data-parent-id="<?php echo $root['id']; ?>" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-weight: bold;">
+                                                <?php echo isset($child_categories[$root['id']]) ? '▼' : ''; ?>
+                                            </button>
+                                            <div style="flex: 1;">
+                                                <div style="color: white; font-weight: 600; font-size: 15px;">
+                                                    <i class="fa fa-folder-open" style="margin-right: 8px;"></i><?php echo htmlspecialchars($root['category_name']); ?>
+                                                </div>
+                                                <small style="color: rgba(255,255,255,0.7);"><?php echo htmlspecialchars($root['category_type']); ?></small>
+                                            </div>
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                <?php if(!empty($root['icon_class'])): ?>
+                                                    <i class="fa <?php echo htmlspecialchars($root['icon_class']); ?>" style="color: white; font-size: 18px;"></i>
+                                                <?php endif; ?>
+                                                <span style="background: rgba(255,255,255,0.2); color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px;">ID: <?php echo $root['id']; ?></span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; text-align: right;">
+                                        <form method="POST" style="display: inline; margin-right: 10px;">
+                                            <input type="hidden" name="action" value="toggle_status">
+                                            <input type="hidden" name="category_id" value="<?php echo $root['id']; ?>">
+                                            <button type="submit" class="status-btn <?php echo $root['is_active'] ? 'active' : 'inactive'; ?>" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px;">
+                                                <?php echo $root['is_active'] ? '✓ Active' : '✕ Inactive'; ?>
+                                            </button>
+                                        </form>
+                                        <a href="?tab=all_categories&edit_id=<?php echo $root['id']; ?>" class="edit-btn" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px; background: #007bff; color: white; text-decoration: none; display: inline-block; margin-right: 5px;">
+                                            ✎ Edit
+                                        </a>
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this category?');">
+                                            <input type="hidden" name="action" value="delete_category">
+                                            <input type="hidden" name="category_id" value="<?php echo $root['id']; ?>">
+                                            <button type="submit" class="delete-btn" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px; background: #dc3545; color: white;">
+                                                🗑 Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Children of this parent -->
+                                <?php if(isset($child_categories[$root['id']])): ?>
+                                    <?php foreach($child_categories[$root['id']] as $child): ?>
+                                        <tr class="category-row child-row" data-parent-id="<?php echo $root['id']; ?>" data-category="<?php echo htmlspecialchars(strtolower($child['category_name'])); ?>" style="display: table-row; background: #f8f9fa;">
+                                            <td style="padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                                                <div style="display: flex; align-items: center; gap: 15px; margin-left: 40px;">
+                                                    <span style="color: #667eea; font-size: 12px; font-weight: bold;">└─</span>
+                                                    <div style="flex: 1;">
+                                                        <div style="color: #333; font-weight: 500; font-size: 14px;">
+                                                            <i class="fa fa-tag" style="margin-right: 8px; color: #667eea;"></i><?php echo htmlspecialchars($child['category_name']); ?>
+                                                        </div>
+                                                        <small style="color: #999;"><?php echo htmlspecialchars($child['category_type']); ?></small>
+                                                    </div>
+                                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                                        <?php if(!empty($child['icon_class'])): ?>
+                                                            <i class="fa <?php echo htmlspecialchars($child['icon_class']); ?>" style="color: #667eea; font-size: 16px;"></i>
+                                                        <?php endif; ?>
+                                                        <span style="background: #e7f3ff; color: #667eea; padding: 3px 8px; border-radius: 3px; font-size: 12px;">ID: <?php echo $child['id']; ?></span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style="padding: 15px; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                                                <form method="POST" style="display: inline; margin-right: 10px;">
+                                                    <input type="hidden" name="action" value="toggle_status">
+                                                    <input type="hidden" name="category_id" value="<?php echo $child['id']; ?>">
+                                                    <button type="submit" class="status-btn <?php echo $child['is_active'] ? 'active' : 'inactive'; ?>" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px;">
+                                                        <?php echo $child['is_active'] ? '✓ Active' : '✕ Inactive'; ?>
+                                                    </button>
+                                                </form>
+                                                <a href="?tab=all_categories&edit_id=<?php echo $child['id']; ?>" class="edit-btn" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px; background: #007bff; color: white; text-decoration: none; display: inline-block; margin-right: 5px;">
+                                                    ✎ Edit
+                                                </a>
+                                                <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this category?');">
+                                                    <input type="hidden" name="action" value="delete_category">
+                                                    <input type="hidden" name="category_id" value="<?php echo $child['id']; ?>">
+                                                    <button type="submit" class="delete-btn" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px; background: #dc3545; color: white;">
+                                                        🗑 Delete
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div style="background: #e7f3ff; color: #0066cc; padding: 20px; border-radius: 5px; text-align: center; border-left: 4px solid #0066cc;">
+                    <i class="fa fa-info-circle" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                    No categories found. <a href="?tab=add_form" style="color: #0066cc; font-weight: bold;">Add one now!</a>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
 <script>
-function switchTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.style.display = 'none';
+// Toggle expand/collapse for parent categories
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const parentId = this.getAttribute('data-parent-id');
+        const childRows = document.querySelectorAll(`tr.child-row[data-parent-id="${parentId}"]`);
+        const isVisible = childRows.length > 0 && childRows[0].style.display === 'table-row';
+        
+        childRows.forEach(row => {
+            row.style.display = isVisible ? 'none' : 'table-row';
+        });
+        
+        this.textContent = isVisible ? '▶' : '▼';
+    });
+});
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('tr.category-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const categoryName = row.getAttribute('data-category');
+        const parentId = row.getAttribute('data-parent-id');
+        
+        if(categoryName && categoryName.includes(searchTerm)) {
+            row.style.display = 'table-row';
+            visibleCount++;
+            
+            // Show parent if child is visible
+            if(parentId) {
+                const parentRow = document.querySelector(`tr.parent-row[data-category*="${parentId}"]`);
+                if(parentRow) parentRow.style.display = 'table-row';
+                
+                // Expand parent if child matches search
+                const toggleBtn = document.querySelector(`.toggle-btn[data-parent-id="${parentId}"]`);
+                if(toggleBtn) toggleBtn.textContent = '▼';
+            }
+        } else if(!searchTerm) {
+            // Reset to original state when search is cleared
+            row.style.display = 'table-row';
+        } else if(row.classList.contains('parent-row')) {
+            // Hide parent if no children match
+            const parentId = row.querySelector('.toggle-btn').getAttribute('data-parent-id');
+            const childRows = document.querySelectorAll(`tr.child-row[data-parent-id="${parentId}"]`);
+            const hasVisibleChild = Array.from(childRows).some(r => r.style.display !== 'none');
+            
+            if(hasVisibleChild) {
+                row.style.display = 'table-row';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        } else {
+            row.style.display = 'none';
+        }
     });
     
-    document.getElementById(tabName).style.display = 'block';
-    window.scrollTo(0, 0);
-}
+    document.getElementById('resultCount').textContent = 'Found: ' + visibleCount;
+});
 </script>
 
 <style>
 .main3 {
     padding: 20px;
+    background: #f5f7fa;
+}
+
+.status-btn.active {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+.status-btn.inactive {
+    background-color: #6c757d !important;
+    color: white !important;
+}
+
+.status-btn:hover {
+    opacity: 0.9;
+}
+
+.edit-btn:hover {
+    background-color: #0056b3 !important;
+}
+
+.delete-btn:hover {
+    background-color: #c82333 !important;
+}
+
+.toggle-btn:hover {
+    opacity: 0.8;
+}
+
+#categoriesTable {
+    border-spacing: 0;
+    border-collapse: separate;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+#categoriesTable tr:first-child td {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+#categoriesTable tbody tr:last-child td {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.category-row:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+    transition: background-color 0.2s ease;
 }
 
 .btn {

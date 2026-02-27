@@ -1,0 +1,9 @@
+ID,Category Name,Type,Parent Category,Description,Icon Class,Display Order
+1,Retail,business-category,,Retail Business,,0
+2,BUSSINES 2,business-category,Retail,Business Type 2,,0
+3,Product test 1,product-category,BUSSINES 2,Test Product Category,,0
+4,product category 2,product-category,BUSSINES 2,Second Product Category,,0
+5,Hair,product-name,Product test 1,Hair Products,,0
+6,Hair 2,product-name,Product test 1,Hair Products 2,,0
+7,test 1,product-name,product category 2,Test Product Name 1,,0
+8,test 2,product-name,product category 2,Test Product Name 2,,0
