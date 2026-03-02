@@ -30,8 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['billing_gst_city'] = $gst_city;
     $_SESSION['billing_gst_pincode'] = $gst_pincode;
     
+    // Get the selected plan amount from JavaScript (for card payment page)
+    // If not provided, use session original_amount (for franchise registration)
+    $plan_amount = isset($_POST['plan_amount']) ? floatval($_POST['plan_amount']) : 0;
+    
     // Recalculate tax based on billing details
-    $original_amount = isset($_SESSION['original_amount']) ? $_SESSION['original_amount'] : 0;
+    $original_amount = ($plan_amount > 0) ? $plan_amount : (isset($_SESSION['original_amount']) ? $_SESSION['original_amount'] : 0);
     $discount_amount = isset($_SESSION['promo_discount']) ? $_SESSION['promo_discount'] : 0;
     $subtotal = $original_amount - $discount_amount;
     

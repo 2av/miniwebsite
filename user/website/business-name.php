@@ -279,7 +279,7 @@ include '../includes/header.php';
                                 <br>
                                 <sup>
                                     <?php if($remaining > 0): ?>
-                                        You can change your business name <?php echo $remaining; ?> more time<?php echo ($remaining > 1) ? 's' : ''; ?>.
+                                        You can change your business url <?php echo $remaining; ?> more time<?php echo ($remaining > 1) ? 's' : ''; ?>.
                                     <?php else: ?>
                                         You have reached the maximum of 2 business name changes.
                                     <?php endif; ?>
@@ -354,8 +354,9 @@ include '../includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var nameInput = document.querySelector('input[name="d_comp_name"]');
-    var form = nameInput ? nameInput.closest('form') : null;
+    var urlInput = document.querySelector('input[name="d_comp_name"]');
+    var businessNameInput = document.querySelector('input[name="d_display_name"]');
+    var form = urlInput ? urlInput.closest('form') : null;
     var saveNextBtn = form ? form.querySelector('button.btn.btn-primary.align-center') : null;
     var previewEl = form ? form.querySelector('.preview_url_text') : null;
     var previewContainer = form ? form.querySelector('.business_name_preview') : null;
@@ -364,7 +365,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var checkTimeout = null;
     var lastCheckedName = '';
     var nameExists = false;
-    var originalValue = nameInput ? nameInput.value.trim() : '';
+    var originalValue = urlInput ? urlInput.value.trim() : '';
+    var urlManuallyEdited = false;
 
     // Build URL slug from business name (same logic as PHP: space . & / [ ] )
     function nameToSlug(name) {
@@ -374,8 +376,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Update preview as user types; show preview only when typing, hide when empty or after save
     function updatePreview() {
-        if (!nameInput || !previewEl) return;
-        var name = nameInput.value.trim();
+        if (!urlInput || !previewEl) return;
+        var name = urlInput.value.trim();
         if (name === '') {
             if (previewContainer) previewContainer.classList.add('d-none');
             previewEl.textContent = '—';
@@ -389,15 +391,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Check if name exists (debounced)
     function checkNameExists() {
-        var name = nameInput.value.trim();
+        var name = urlInput.value.trim();
         if (name === '') {
             if (existsMsgEl) existsMsgEl.classList.add('d-none');
             nameExists = false;
             setSaveDisabled(false);
+            updatePreview();
             return;
         }
         if (name === lastCheckedName) {
             setSaveDisabled(nameExists);
+            updatePreview();
             return;
         }
         var xhr = new XMLHttpRequest();
@@ -415,8 +419,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     else existsMsgEl.classList.add('d-none');
                 }
                 setSaveDisabled(nameExists);
+                updatePreview();
             } catch (e) {
                 setSaveDisabled(false);
+                updatePreview();
             }
         };
         xhr.send('check_business_name=1&d_comp_name=' + encodeURIComponent(name) + (cardNumber ? '&card_number=' + encodeURIComponent(cardNumber) : ''));
@@ -443,8 +449,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Show Save when textbox is empty; hide when it has value (original behavior)
     function toggleSaveNextVisibility() {
-        if (!nameInput || !saveNextBtn) return;
-        if (nameInput.value.trim() !== '') {
+        if (!urlInput || !saveNextBtn) return;
+        if (urlInput.value.trim() !== '') {
             saveNextBtn.classList.add('d-none');
         } else {
             saveNextBtn.classList.remove('d-none');
@@ -458,12 +464,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Check if value has changed from original
     function hasValueChanged() {
-        if (!nameInput) return false;
-        return nameInput.value.trim() !== originalValue;
+        if (!urlInput) return false;
+        return urlInput.value.trim() !== originalValue;
     }
 
-    if (nameInput) {
-        nameInput.addEventListener('input', function () {
+    // Auto-fill business URL with business name if user hasn't manually edited it
+    if (businessNameInput) {
+        businessNameInput.addEventListener('input', function () {
+            if (urlInput && !urlManuallyEdited) {
+                urlInput.value = this.value;
+                updatePreview();
+                scheduleCheck();
+            }
+        });
+    }
+
+    if (urlInput) {
+        urlInput.addEventListener('input', function () {
+            // Mark as manually edited if user types something different from what auto-fill would provide
+            if (businessNameInput && this.value !== businessNameInput.value) {
+                urlManuallyEdited = true;
+            }
             var start = this.selectionStart, end = this.selectionEnd;
             var sanitized = sanitizeBusinessName(this.value);
             if (sanitized !== this.value) {
@@ -484,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function () {
             scheduleCheck();
             toggleSaveNextVisibility();
         });
-        nameInput.addEventListener('change', function () {
+        urlInput.addEventListener('change', function () {
             var sanitized = sanitizeBusinessName(this.value);
             if (sanitized !== this.value) this.value = sanitized;
             updatePreview();

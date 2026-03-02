@@ -464,13 +464,12 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                 <?php 
                 $is_team_source = isset($_GET['source']) && $_GET['source'] === 'team';
                 $show_500_plan = $is_team_source || (isset($is_referred_by_team) && $is_referred_by_team);
-                $first_plan_shown = false;
                 ?>
                 
                 <!-- Plan 1: 6 Months -->
                 <label class="plan-label" id="label_6month" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
                     <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="590"
-                           <?php echo !$first_plan_shown ? 'checked' : ''; ?>
+                           checked
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -482,12 +481,10 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                         </div>
                     </span>
                 </label>
-                <?php $first_plan_shown = true; ?>
                 
                 <!-- Plan 2: 1 Year -->
                 <label class="plan-label" id="label_1year" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
                     <input type="radio" name="plan_choice" value="plan_1year" id="plan_1year" data-amount="999"
-                           <?php echo !$first_plan_shown ? 'checked' : ''; ?>
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -499,7 +496,6 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                         </div>
                     </span>
                 </label>
-                <?php $first_plan_shown = true; ?>
                 
                 <!-- Plan 3: 2 Years (BEST VALUE) -->
                 <label class="plan-label" id="label_2year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; cursor: pointer;">
@@ -685,11 +681,11 @@ try {
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var originalAmount = <?php echo isset($original_amount) ? $original_amount : 0; ?>;
+    // Initialize with selected plan amount first (for card payment page)
+    var checkedPlan = document.querySelector('input[name="plan_choice"]:checked');
+    var originalAmount = 0;
     var currentDiscount = <?php echo isset($discount_amount) ? $discount_amount : 0; ?>;
     
-    // Initialize with selected plan amount on page load
-    var checkedPlan = document.querySelector('input[name="plan_choice"]:checked');
     if (checkedPlan) {
         var selectedPlanAmount = parseFloat(checkedPlan.getAttribute('data-amount'));
         if (selectedPlanAmount > 0) {
@@ -701,6 +697,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateTaxCalculation(selectedPlanAmount, 0);
             }, 100);
         }
+    } else {
+        // Fallback to PHP original_amount if no plan is selected
+        originalAmount = <?php echo isset($original_amount) ? $original_amount : 0; ?>;
+        currentDiscount = <?php echo isset($discount_amount) ? $discount_amount : 0; ?>;
     }
     
     // Plan selection handler
@@ -1012,6 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('gst_city', document.getElementById('gst_city').value);
             formData.append('gst_pincode', document.getElementById('gst_pincode').value);
             formData.append('plan_choice', document.querySelector('input[name="plan_choice"]:checked').value);
+            formData.append('plan_amount', originalAmount); // Send selected plan amount
             
             // Recalculate tax before saving
             var finalAmount = updateTaxCalculation(originalAmount, currentDiscount);
@@ -1084,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (orderResponse.success) {
                         var options = {
                             key: "<?php echo $keyId; ?>",
-                            amount: Math.round(finalAmount * 100),
+                            amount: Math.round(orderResponse.amount * 100), // Use payment amount from response
                             name: "KIROVA SOLUTIONS LLP",
                             description: "<?php echo (isset($_GET['id']) ? 'Mini Website Payment' : 'Franchise Registration'); ?>",
                             image: "",

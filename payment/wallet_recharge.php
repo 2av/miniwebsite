@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (orderResponse.success) {
                         var options = {
                             key: "<?php echo $keyId; ?>",
-                            amount: Math.round(finalAmount * 100),
+                            amount: Math.round(orderResponse.amount * 100), // Use payment amount from response
                             name: "KIROVA SOLUTIONS LLP",
                             description: "Wallet Recharge",
                             image: "",

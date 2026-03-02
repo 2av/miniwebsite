@@ -518,7 +518,7 @@ if ($success === true) {
                         
                         <p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>1. Complete your document Verification from your Dashboard.</strong></p>
                         
-                        <p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>2. After the documents get verified, you can access your Franchise Kit and Onboarding Material from your dashboard only.</strong></p>
+                        <p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>2. After the documents get verified, you can access your Marketing Kit and Onboarding Material from your dashboard only.</strong></p>
                         
                         <br>
                         

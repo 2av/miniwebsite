@@ -245,12 +245,12 @@ if(isset($_POST['process1'])){
 						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>Follow these simple steps to activate your franchise:</strong></p>
                 
 						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>1. Pay the One-Time Franchise Fee (Non-Refundable)</strong><br>
-						Amount: ₹5,100 + 18% GST = ₹6,018<br>
+						Amount: ₹30,000 + 18% GST = ₹35,400<br>
 						<a href="https://' . $_SERVER['HTTP_HOST'] . '/franchise_agreement.php?email=' . urlencode($user_email) . '" style="color: #007bff; text-decoration: none;">(Click to Pay)</a></p>
 						
 						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>2. After payment, complete your document Verification from your Dashboard.</strong></p>
 						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>3. After the documents get verified, you can access your Franchise Kit and Onboarding Material from your dashboard only.</strong></p>
+						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>3. After the documents get verified, you can access your Marketing Kit and Onboarding Material from your dashboard only.</strong></p>
 						
 						<br>
 						
