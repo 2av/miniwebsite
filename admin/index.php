@@ -155,6 +155,9 @@ if ($result = mysqli_query($connect, $userStatsQuery)) {
                         </a>
                         
                        
+                        <a class="nav-link" href="manage_user_deletions.php">
+                            <i class="fas fa-trash-alt me-2"></i> User Deletions
+                        </a>
                         <a class="nav-link" href="manage_referrals.php">
                             <i class="fas fa-handshake me-2"></i> Manage Referrals
                         </a>
