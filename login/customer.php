@@ -134,6 +134,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
             FROM user_details u
             WHERE u.role = 'CUSTOMER'
               AND (u.email = '$email_or_contact' OR u.phone = '$email_or_contact')
+              AND (u.isDeleted = 0 OR u.isDeleted IS NULL)
             LIMIT 1
         ";
 

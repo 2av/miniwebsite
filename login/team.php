@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($login_messages)) {
         // Authenticate against unified user_details table for TEAM role
-        $stmt = $connect->prepare('SELECT id, name, email, phone, password, password_hash, status FROM user_details WHERE email = ? AND role = "TEAM" LIMIT 1');
+        $stmt = $connect->prepare('SELECT id, name, email, phone, password, password_hash, status FROM user_details WHERE email = ? AND role = "TEAM" AND (isDeleted = 0 OR isDeleted IS NULL) LIMIT 1');
         if ($stmt) {
             $stmt->bind_param('s', $email);
             $stmt->execute();

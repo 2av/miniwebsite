@@ -15,20 +15,31 @@ if ($action === 'bulk_soft_delete' && isset($_POST['userIds'])) {
         if ($id <= 0) continue;
         
         $updateQuery = "UPDATE user_details SET isDeleted = 1 WHERE id = $id";
-        if (mysqli_query($connect, $updateQuery)) {
+        $result = mysqli_query($connect, $updateQuery);
+        
+        if ($result) {
             $deletedCount++;
         } else {
-            $errors[] = "User ID $id: " . mysqli_error($connect);
+            $dbError = mysqli_error($connect);
+            // Check if column doesn't exist
+            if (strpos($dbError, "Unknown column") !== false) {
+                $errors[] = "isDeleted column not found. Run /admin/add_isdeleted_column.php first";
+            } else {
+                $errors[] = "User ID $id: " . $dbError;
+            }
         }
     }
     
     $response = [
         'success' => $deletedCount > 0,
-        'message' => $deletedCount . " user(s) marked as deleted"
+        'message' => $deletedCount > 0 ? $deletedCount . " user(s) marked as deleted" : "No users deleted"
     ];
     
     if (!empty($errors)) {
         $response['errors'] = $errors;
+        if ($deletedCount == 0) {
+            $response['success'] = false;
+        }
     }
     
     header('Content-Type: application/json');
@@ -47,20 +58,31 @@ if ($action === 'bulk_restore' && isset($_POST['userIds'])) {
         if ($id <= 0) continue;
         
         $updateQuery = "UPDATE user_details SET isDeleted = 0 WHERE id = $id";
-        if (mysqli_query($connect, $updateQuery)) {
+        $result = mysqli_query($connect, $updateQuery);
+        
+        if ($result) {
             $restoredCount++;
         } else {
-            $errors[] = "User ID $id: " . mysqli_error($connect);
+            $dbError = mysqli_error($connect);
+            // Check if column doesn't exist
+            if (strpos($dbError, "Unknown column") !== false) {
+                $errors[] = "isDeleted column not found. Run /admin/add_isdeleted_column.php first";
+            } else {
+                $errors[] = "User ID $id: " . $dbError;
+            }
         }
     }
     
     $response = [
         'success' => $restoredCount > 0,
-        'message' => $restoredCount . " user(s) restored"
+        'message' => $restoredCount > 0 ? $restoredCount . " user(s) restored" : "No users restored"
     ];
     
     if (!empty($errors)) {
         $response['errors'] = $errors;
+        if ($restoredCount == 0) {
+            $response['success'] = false;
+        }
     }
     
     header('Content-Type: application/json');

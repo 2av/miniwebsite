@@ -125,6 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login_user'])) {
                 FROM user_details
                 WHERE role = 'FRANCHISEE'
                   AND (email = ? OR phone = ?)
+                  AND (isDeleted = 0 OR isDeleted IS NULL)
                 LIMIT 1
             ");
 
