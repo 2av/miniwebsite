@@ -82,8 +82,8 @@ $details_q = mysqli_query($connect, "SELECT
             <small class="text-muted"><?php echo htmlspecialchars($referrer_email); ?></small>
         </div>
 
-        <div class="row" style="margin-bottom:16px;">
-            <div class="col-sm-3">
+        <div class="row" style="margin-bottom:16px;" id="statsCardsRow">
+            <div class="col-sm-3 stats-card-col">
                 <div class="card">
                     <div class="card-body text-center">
                         <div class="img"><img src="../customer/../assets/img/PendingAmt.png" alt="" style="height:40px;"></div>
@@ -92,7 +92,7 @@ $details_q = mysqli_query($connect, "SELECT
                     </div>
                 </div>
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-3 stats-card-col">
                 <div class="card">
                     <div class="card-body text-center">
                         <div class="img"><img src="../customer/../assets/img/TotalEarning.png" alt="" style="height:40px;"></div>
@@ -101,7 +101,7 @@ $details_q = mysqli_query($connect, "SELECT
                     </div>
                 </div>
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-3 stats-card-col">
                 <div class="card">
                     <div class="card-body text-center">
                         <div class="img"><img src="../customer/../assets/img/ReferredUsers.png" alt="" style="height:40px;"></div>
@@ -110,7 +110,7 @@ $details_q = mysqli_query($connect, "SELECT
                     </div>
                 </div>
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-3 stats-card-col" id="referredFranchiseCard" style="<?php echo (int)$collaboration_referrals === 0 ? 'display: none;' : ''; ?>">
                 <div class="card">
                     <div class="card-body text-center">
                         <div class="img"><img src="../customer/../assets/img/ReferredUsers.png" alt="" style="height:40px;"></div>
@@ -120,6 +120,7 @@ $details_q = mysqli_query($connect, "SELECT
                 </div>
             </div>
         </div>
+       
 
         <div class="card" style="margin-bottom:16px;">
             <div class="card-body">
@@ -283,7 +284,33 @@ $details_q = mysqli_query($connect, "SELECT
     </div>
 </div>
 
+<script>
+function toggleReferredFranchise() {
+    const card = document.getElementById('referredFranchiseCard');
+    const btn = document.getElementById('toggleFranchiseBtn');
+    const allCards = document.querySelectorAll('.stats-card-col');
+    
+    if (card.style.display === 'none') {
+        card.style.display = 'block';
+        allCards.forEach(c => c.classList.remove('col-sm-4'));
+        allCards.forEach(c => c.classList.add('col-sm-3'));
+        btn.innerHTML = '<i class="fa fa-eye-slash"></i> Hide Referred Franchise';
+    } else {
+        card.style.display = 'none';
+        allCards.forEach(c => c.classList.remove('col-sm-3'));
+        allCards.forEach(c => c.classList.add('col-sm-4'));
+        btn.innerHTML = '<i class="fa fa-eye"></i> Show Referred Franchise';
+    }
+}
 
-
+// Initialize card sizing on page load
+(function() {
+    const card = document.getElementById('referredFranchiseCard');
+    const allCards = document.querySelectorAll('.stats-card-col');
+    if (card.style.display === 'none') {
+        allCards.forEach(c => c.classList.add('col-sm-4'));
+    }
+})();
+</script>
 
 

@@ -313,9 +313,13 @@ if (isset($_GET['success'])) {
 // Include main header (sets $page_title, layout, etc.)
 include __DIR__ . '/../includes/header.php';
 
+// Get filter parameters
+$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+$filter_approached_for = isset($_GET['approached_for']) ? trim($_GET['approached_for']) : '';
+
 // Get all records for this team member (with last_updated based on latest followup, if any)
 $records = [];
-$stmt = $connect->prepare('
+$query = '
     SELECT ct.*, 
            COALESCE(
                (SELECT MAX(f.followup_datetime) 
@@ -324,17 +328,74 @@ $stmt = $connect->prepare('
                ct.created_at
            ) AS last_updated
     FROM customer_tracker ct
-    WHERE ct.team_member_id = ?
-    ORDER BY ct.date_visited DESC, last_updated DESC
-');
+    WHERE ct.team_member_id = ?';
+
+$params = [$team_member_id];
+$param_types = 'i';
+
+if (!empty($filter_approached_for)) {
+    $query .= ' AND ct.approached_for = ?';
+    $params[] = $filter_approached_for;
+    $param_types .= 's';
+}
+
+if (!empty($search_query)) {
+    $query .= ' AND (ct.shop_name LIKE ? OR ct.contact_number LIKE ?)';
+    $search_term = '%' . $search_query . '%';
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $param_types .= 'ss';
+}
+
+$query .= ' ORDER BY ct.date_visited DESC, last_updated DESC';
+
+$stmt = $connect->prepare($query);
 if ($stmt) {
-    $stmt->bind_param('i', $team_member_id);
+    $stmt->bind_param($param_types, ...$params);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $records[] = $row;
     }
     $stmt->close();
+}
+
+// Get statistics for current filters
+$stats_query = 'SELECT 
+    COUNT(*) as total_records,
+    SUM(CASE WHEN final_status = "Joined" THEN 1 ELSE 0 END) as joined_count,
+    SUM(CASE WHEN final_status = "Not Interested" THEN 1 ELSE 0 END) as not_interested_count,
+    SUM(CASE WHEN final_status = "Followup required" THEN 1 ELSE 0 END) as followup_count
+FROM customer_tracker ct
+WHERE ct.team_member_id = ?';
+
+$stats_params = [$team_member_id];
+$stats_param_types = 'i';
+
+if (!empty($filter_approached_for)) {
+    $stats_query .= ' AND ct.approached_for = ?';
+    $stats_params[] = $filter_approached_for;
+    $stats_param_types .= 's';
+}
+
+if (!empty($search_query)) {
+    $stats_query .= ' AND (ct.shop_name LIKE ? OR ct.contact_number LIKE ?)';
+    $stats_search_term = '%' . $search_query . '%';
+    $stats_params[] = $stats_search_term;
+    $stats_params[] = $stats_search_term;
+    $stats_param_types .= 'ss';
+}
+
+$stats = ['total_records' => 0, 'joined_count' => 0, 'not_interested_count' => 0, 'followup_count' => 0];
+$stats_stmt = $connect->prepare($stats_query);
+if ($stats_stmt) {
+    $stats_stmt->bind_param($stats_param_types, ...$stats_params);
+    $stats_stmt->execute();
+    $stats_result = $stats_stmt->get_result();
+    if ($stats_row = $stats_result->fetch_assoc()) {
+        $stats = $stats_row;
+    }
+    $stats_stmt->close();
 }
 
 // Function to get followups for a tracker record
@@ -375,6 +436,7 @@ function getTrackerFollowups($connect, $tracker_id) {
             </nav>
         </div>
 
+
         <div class="card mb-4">
             <div class="card-body">
                 <div class="CustomerDashboard-head">
@@ -394,6 +456,71 @@ function getTrackerFollowups($connect, $tracker_id) {
                     </div>
                 </div>
 
+                <!-- Statistics Section -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card text-center" style=" box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="card-body py-3" style="padding-bottom: 30px !important;">
+                        <h3><?php echo $stats['joined_count'] ?? 0; ?></h3>
+                        <p style="color: #666; margin: 0;"><i class="fa fa-check-circle"></i> Total Joined</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center" style=" box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="card-body py-3" style="padding-bottom: 30px !important;">
+                        <h3><?php echo $stats['not_interested_count'] ?? 0; ?></h3>
+                        <p style="color: #666; margin: 0;"><i class="fa fa-times-circle"></i>  Not Interested</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center" style=" box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="card-body py-3" style="padding-bottom: 30px !important;">
+                        <h3><?php echo $stats['followup_count'] ?? 0; ?></h3>
+                        <p style="color: #666; margin: 0;"><i class="fa fa-clock"></i> Followup Required</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center" style="box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="card-body py-3" style="padding-bottom: 30px !important;">
+                        <h3><?php echo $stats['total_records'] ?? 0; ?></h3>
+                        <p style="color: #666; margin: 0;"><i class="fa fa-users"></i> Total Customers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- Search & Filter Section -->
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <form method="GET" action="" style="margin: 0;">
+                        <div class="row">
+                            <div class="col-md-5 mb-0">
+                                <label style="font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block;"><i class="fa fa-search"></i> Search by Name/Contact:</label>
+                                <input type="text" name="search" class="form-control" placeholder="Shop name or contact number" value="<?php echo htmlspecialchars($search_query); ?>">
+                            </div>
+                            <div class="col-md-4 mb-0">
+                                <label style="font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block;">Approached For:</label>
+                                <select name="approached_for" class="form-control">
+                                    <option value="">All</option>
+                                    <option value="Franchisee Sale" <?php echo $filter_approached_for === 'Franchisee Sale' ? 'selected' : ''; ?>>Franchisee Sale</option>
+                                    <option value="MiniWebsite Sale" <?php echo $filter_approached_for === 'MiniWebsite Sale' ? 'selected' : ''; ?>>MiniWebsite Sale</option>
+                                    <option value="Both" <?php echo $filter_approached_for === 'Both' ? 'selected' : ''; ?>>Both</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end mb-0">
+                                <button type="submit" class="btn btn-primary w-100" style="margin-bottom: 0;"><i class="fa fa-search"></i> Search</button>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end mb-0">
+                                <?php if (!empty($search_query) || !empty($filter_approached_for)): ?>
+                                <a href="?" class="btn btn-secondary w-100" style="margin-bottom: 0;" title="Reset filters"><i class="fa fa-redo"></i></a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
                 <div class="table-container">
                     <?php if (empty($records)): ?>
                         <div class="text-center py-5">
@@ -405,6 +532,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                         <table class="display table" style="text-align: center;">
                             <thead class="bg-secondary">
                                 <tr >
+                                    <th>SN</th>
                                     <th>Shop/Person Name</th>
                                     <th>Contact Number</th>
                                     <th>Approached For</th>
@@ -416,11 +544,26 @@ function getTrackerFollowups($connect, $tracker_id) {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($records as $record): ?>
+                                <?php $sn = 1; foreach ($records as $record): ?>
                                 <tr>
+                                    <td><strong><?php echo $sn++; ?></strong></td>
                                     <td><?php echo htmlspecialchars($record['shop_name']); ?></td>
                                     <td><?php echo htmlspecialchars($record['contact_number'] ?: '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($record['approached_for'] ?? '-'); ?></td>
+                                    <td>
+                                        <?php
+                                        $approached_class = '';
+                                        if ($record['approached_for'] === 'Franchisee Sale') {
+                                            $approached_class = 'bg-success';
+                                        } elseif ($record['approached_for'] === 'MiniWebsite Sale') {
+                                            $approached_class = 'bg-info';
+                                        } elseif ($record['approached_for'] === 'Both') {
+                                            $approached_class = 'bg-primary';
+                                        } else {
+                                            $approached_class = 'bg-secondary';
+                                        }
+                                        ?>
+                                        <span class="badge <?php echo $approached_class; ?>"><?php echo htmlspecialchars($record['approached_for'] ?? '-'); ?></span>
+                                    </td>
                                     <td><?php echo htmlspecialchars($record['address'] ?: '-'); ?></td>
                                     <td><?php echo date('d-m-Y', strtotime($record['date_visited'])); ?></td>
                                     <td>

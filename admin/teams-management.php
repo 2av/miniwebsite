@@ -230,6 +230,57 @@ if (isset($_GET['ajax'])) {
                 </tr>
               </thead><tbody>';
 
+        // Calculate Total Sales and Total MW Created for the team member
+        // Use the same logic as /user/referral/ for consistency
+        $teamTotalSales = 0;
+        $teamTotalMWCreated = 0;
+        
+        // Build the referral condition - same structure as user/referral/index.php
+        $ref_cond = "(CONVERT(ud_referred.referred_by USING utf8mb4) = CONVERT('" . mysqli_real_escape_string($connect, $email) . "' USING utf8mb4) AND ud_referred.referred_by != '' AND ud_referred.referred_by IS NOT NULL)
+            OR EXISTS (SELECT 1 FROM referral_earnings re WHERE CONVERT(re.referred_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4) AND CONVERT(re.referrer_email USING utf8mb4) = CONVERT('" . mysqli_real_escape_string($connect, $email) . "' USING utf8mb4))";
+        
+        // Total Sales: Count referred users with successful digi_card payment
+        // Payment status check is in the JOIN ON clause (not WHERE) to match user/referral logic
+        $teamSalesSql = "SELECT COUNT(DISTINCT ud_referred.email) AS total_sales 
+            FROM user_details ud_referred
+            INNER JOIN digi_card dc ON CONVERT(dc.user_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4) AND dc.d_payment_status = 'Success'
+            WHERE $ref_cond";
+        $teamSalesRes = $connect->query($teamSalesSql);
+        if ($teamSalesRes && $teamSalesRow = $teamSalesRes->fetch_assoc()) {
+            $teamTotalSales = (int)($teamSalesRow['total_sales'] ?? 0);
+        }
+        
+        // Total MW Created: Count all digi_card records for referred users
+        $teamMWSql = "SELECT COUNT(dc.id) AS total_mw 
+            FROM user_details ud_referred
+            LEFT JOIN digi_card dc ON CONVERT(dc.user_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4)
+            WHERE $ref_cond";
+        $teamMWRes = $connect->query($teamMWSql);
+        if ($teamMWRes && $teamMWRow = $teamMWRes->fetch_assoc()) {
+            $teamTotalMWCreated = (int)($teamMWRow['total_mw'] ?? 0);
+        }
+        
+        echo '<div class="mb-3">';
+        echo '<div class="row">';
+        echo '<div class="col-md-6">';
+        echo '<div class="card border-0 shadow-sm">';
+        echo '<div class="card-body text-center">';
+        echo '<h5 class="text-muted mb-2">Total Sales</h5>';
+        echo '<h3 class="text-primary fw-bold">' . $teamTotalSales . '</h3>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+        echo '<div class="col-md-6">';
+        echo '<div class="card border-0 shadow-sm">';
+        echo '<div class="card-body text-center">';
+        echo '<h5 class="text-muted mb-2">Total MW Created</h5>';
+        echo '<h3 class="text-primary fw-bold">' . $teamTotalMWCreated . '</h3>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+
         foreach ($rows as $r) {
             $type = ($r['is_collaboration'] ?? 'NO') === 'YES' ? 'Franchise' : 'Mini Website';
             $referredName = !empty($r['referred_name']) ? teams_h($r['referred_name']) : teams_h($r['referred_email']);
@@ -641,6 +692,7 @@ if (empty($tableError) && !empty($teamMembers)) {
                                 <th scope="col">Mobile</th>
                                 <th scope="col">Total MW Created</th>
                                 <th scope="col">Total Sales</th>
+                                <th scope="col">Dashboard Details</th>
                                 <th scope="col">Referral Details</th>
                                 <th scope="col">Customer Tracker</th>
                                 <th scope="col">Email</th>
@@ -680,6 +732,19 @@ if (empty($tableError) && !empty($teamMembers)) {
                                     
                                     <!-- Total Sales -->
                                     <td><?php echo (int)$stats['total_sales']; ?></td>
+                                    
+                                    <!-- Dashboard Details view -->
+                                    <td>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-info btn-open-dashboard"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#dashboardTeamsModal"
+                                                data-team-id="<?php echo $mid; ?>"
+                                                data-member-email="<?php echo htmlspecialchars($member['member_email']); ?>"
+                                                data-member-name="<?php echo htmlspecialchars($member['member_name']); ?>">
+                                            View
+                                        </button>
+                                    </td>
                                     
                                     <!-- Referral Details view -->
                                     <td>
@@ -808,6 +873,26 @@ if (empty($tableError) && !empty($teamMembers)) {
     </div>
 </div>
 
+<!-- Dashboard Details Modal (Teams) -->
+<div class="modal fade" id="dashboardTeamsModal" tabindex="-1" aria-labelledby="dashboardTeamsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dashboardTeamsModalLabel">Dashboard Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="dashboardTeamsContent" class="p-3">
+                    <div class="text-center text-muted">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <span class="ms-2">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Referral Details Modal (Teams) -->
 <div class="modal fade" id="referralTeamsModal" tabindex="-1" aria-labelledby="referralTeamsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -846,6 +931,47 @@ if (empty($tableError) && !empty($teamMembers)) {
 })();
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Dashboard Details Modal handler
+    var dashboardModal = document.getElementById('dashboardTeamsModal');
+    var dashboardContent = document.getElementById('dashboardTeamsContent');
+    if (dashboardModal && dashboardContent) {
+        dashboardModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            if (!button) return;
+            var memberEmail = button.getAttribute('data-member-email');
+            var memberName = button.getAttribute('data-member-name') || '';
+
+            var titleEl = dashboardModal.querySelector('.modal-title');
+            if (titleEl) {
+                titleEl.textContent = 'Dashboard Details - ' + memberName;
+            }
+
+            dashboardContent.innerHTML = '<div class="text-center text-muted"><div class="spinner-border spinner-border-sm" role="status"></div><span class="ms-2">Loading...</span></div>';
+
+            // Add timeout to prevent infinite loading
+            var timeoutId = setTimeout(function() {
+                dashboardContent.innerHTML = '<div class="alert alert-warning m-0">Request is taking longer than expected. Please try again.</div>';
+            }, 30000); // 30 second timeout
+
+            fetch('get_dashboard_details.php?user_email=' + encodeURIComponent(memberEmail))
+                .then(function (resp) { 
+                    clearTimeout(timeoutId);
+                    if (!resp.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return resp.text(); 
+                })
+                .then(function (html) { 
+                    dashboardContent.innerHTML = html; 
+                })
+                .catch(function (error) {
+                    clearTimeout(timeoutId);
+                    console.error('Error:', error);
+                    dashboardContent.innerHTML = '<div class="alert alert-danger m-0">Failed to load dashboard details. Please refresh the page and try again.</div>';
+                });
+        });
+    }
+
     var trackerModal = document.getElementById('trackerModal');
     var trackerContent = document.getElementById('trackerModalContent');
     if (trackerModal && trackerContent) {

@@ -353,6 +353,7 @@ if(isset($_GET['remove_deal'])) {
                         <th>Referral Source</th>
                         <th>No. of MW</th>
                         <th>Pending Amount</th>
+                        <th>Dashboard Details</th>
                         <th>Referral Details</th>
                         <th>Deal For MW</th>
                         <th>Deal For Franchise</th>
@@ -535,6 +536,10 @@ if(isset($_GET['remove_deal'])) {
                              $pending_amount = $total_referral_amount - $total_paid_amount;
                              if($pending_amount < 0){ $pending_amount = 0; }
                              echo '<td>₹'.number_format($pending_amount, 0).'</td>';
+                            
+                            // Dashboard Details popup trigger
+                            echo '<td><button type="button" class="btn btn-sm btn-outline-info" onclick="showDashboardDetails(\''.$user_email.'\')">View</button></td>';
+                            
                             // Referral Details popup trigger
                             echo '<td><button type="button" class="btn btn-sm btn-outline-primary" onclick="showReferralDetails(\''.$user_email.'\')">View</button></td>';
                             
@@ -812,6 +817,24 @@ if(isset($_GET['remove_deal'])) {
 
     <script>
         
+        // Show dashboard details for the selected user in a popup
+        function showDashboardDetails(userEmail){
+            const dashboardDetailsBody = document.getElementById('dashboardDetailsBody');
+            dashboardDetailsBody.innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner-border spinner-border-sm" role="status"></div><span style="margin-left:10px;">Loading...</span></div>';
+            
+            fetch('get_dashboard_details.php?user_email=' + encodeURIComponent(userEmail))
+                .then(resp => resp.text())
+                .then(html => {
+                    dashboardDetailsBody.innerHTML = html;
+                    document.getElementById('dashboardDetailsModal').style.display = 'block';
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    dashboardDetailsBody.innerHTML = '<div style="padding:20px;"><div class="alert alert-danger mb-0">Failed to load dashboard details. Please try again.</div></div>';
+                    document.getElementById('dashboardDetailsModal').style.display = 'block';
+                });
+        }
+        
         // Show referral details for the selected user in a popup
         function showReferralDetails(userEmail){
             fetch('get_collaboration_details.php?referrer_email=' + encodeURIComponent(userEmail))
@@ -1000,6 +1023,17 @@ if(isset($_GET['remove_deal'])) {
         });
     </script>
 
+
+    <!-- Dashboard Details Modal -->
+    <div class="modal" id="dashboardDetailsModal" style="display:none;">
+        <div class="modal-content" style="max-width:1100px;width:95%;margin:3% auto;">
+            <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;background:#17a2b8;color:#fff;padding:12px 16px;">
+                <h3 style="margin:0;font-size:18px;">Dashboard Details</h3>
+                <span class="close" onclick="document.getElementById('dashboardDetailsModal').style.display='none'" style="cursor:pointer;font-size:22px;">&times;</span>
+            </div>
+            <div class="modal-body" id="dashboardDetailsBody" style="padding:20px;max-height:75vh;overflow:auto;"></div>
+        </div>
+    </div>
 
     <!-- Referral Details Modal -->
     <div class="modal" id="refDetailsModal" style="display:none;">
