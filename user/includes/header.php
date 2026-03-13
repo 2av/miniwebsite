@@ -318,6 +318,11 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                 Products
                                 <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                             </a>
+                            <a class="nav-link collapsed <?php echo ($current_page_ws == 'special-offers.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/special-offers.php<?php echo $card_query; ?>">
+                                <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/SpecialOffers.png" class="img-fluid" alt="" srcset=""></div>
+                                Special Offers
+                                <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                            </a>
                             <a class="nav-link collapsed <?php echo ($current_page_ws == 'image-gallery.php') ? 'active' : ''; ?>" href="<?php echo $nav_base; ?>/website/image-gallery.php<?php echo $card_query; ?>">
                                 <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/ImageGallery.png" class="img-fluid" alt="" srcset=""></div>
                                 Image Gallery

@@ -207,6 +207,11 @@ if (!empty($user_email) && !empty($current_role) && isset($connect)) {
                                     Product Pricing
                                     <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                                 </a>
+                                <a class="nav-link collapsed <?php echo ($current_page == 'special-offers.php') ? 'active' : ''; ?>" href="special-offers.php<?php echo $card_query; ?>">
+                                    <div class="sb-nav-link-icon"><img src="../../../assets/images/SpecialOffers.png" class="img-fluid" alt="" srcset=""></div>
+                                    Special Offers
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                                </a>
                                 <a class="nav-link collapsed <?php echo ($current_page == 'image-gallery.php') ? 'active' : ''; ?>" href="image-gallery.php<?php echo $card_query; ?>">
                                     <div class="sb-nav-link-icon"><img src="../../../assets/images/ImageGallery.png" class="img-fluid" alt="" srcset=""></div>
                                     Image Gallery

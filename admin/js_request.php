@@ -277,6 +277,53 @@ if(isset($_POST['action']) && $_POST['action'] === 'delete_product' && isset($_P
     exit;
 }
 
+// AJAX: delete special offer from card_special_offers (special-offers.php)
+if(isset($_POST['action']) && $_POST['action'] === 'delete_offer' && isset($_POST['offer_id'])) {
+    $offer_id = intval($_POST['offer_id']);
+
+    // Ensure user is logged in
+    if(!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
+        echo '<div class="alert danger">Unauthorized. Please login and try again.</div>';
+        exit;
+    }
+
+    $user_email = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $user_email_lower = strtolower(trim($user_email));
+
+    // Get user id
+    $user_q = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = '$user_email_lower' LIMIT 1");
+    if(!$user_q || mysqli_num_rows($user_q) == 0) {
+        echo '<div class="alert danger">User account not found. Please login again.</div>';
+        exit;
+    }
+    $user_row = mysqli_fetch_array($user_q);
+    $user_id = intval($user_row['id']);
+
+    // Find and delete the offer
+    $verify_q = mysqli_query($connect, "SELECT id, offer_image FROM card_special_offers WHERE id = $offer_id AND user_id = $user_id LIMIT 1");
+    if($verify_q && mysqli_num_rows($verify_q) > 0) {
+        $offer = mysqli_fetch_array($verify_q);
+        $del_q = mysqli_query($connect, "DELETE FROM card_special_offers WHERE id = $offer_id AND user_id = $user_id LIMIT 1");
+        if($del_q) {
+            // Remove associated image file if exists and looks like a filename
+            if(!empty($offer['offer_image']) && is_string($offer['offer_image']) && strpos($offer['offer_image'], '.') !== false) {
+                $file_path = __DIR__ . '/../assets/upload/websites/special-offers/' . $offer['offer_image'];
+                if(file_exists($file_path)) {
+                    @unlink($file_path);
+                }
+            }
+            echo '<div class="alert success">success</div>';
+        } else {
+            echo '<div class="alert danger">Failed to delete offer: ' . mysqli_error($connect) . '</div>';
+        }
+        exit;
+    }
+
+    // Not found
+    echo '<div class="alert danger">Offer not found or access denied.</div>';
+    exit;
+}
+
 // AJAX: delete gallery image from card_image_gallery (image-gallery.php)
 if(isset($_POST['action']) && $_POST['action'] === 'delete_gallery_image' && isset($_POST['image_id'])) {
     $image_id = intval($_POST['image_id']);

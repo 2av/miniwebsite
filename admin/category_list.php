@@ -60,12 +60,70 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
 $query = "SELECT * FROM product_categories ORDER BY parent_id, display_order ASC";
 $result = mysqli_query($connect, $query);
 $all_categories = [];
+$category_map = [];
 
 while($row = mysqli_fetch_assoc($result)) {
     $all_categories[] = $row;
+    $category_map[$row['id']] = $row;
 }
 
 $categories = buildCategoryTree($all_categories);
+
+// Build CSV-format rows: each category gets its full path mapped to Business Heading | Business Category | Product Category | Product Name
+function getCategoryPath($cat_id, $category_map) {
+    $path = [];
+    $id = $cat_id;
+    while($id && isset($category_map[$id])) {
+        array_unshift($path, $category_map[$id]);
+        $id = $category_map[$id]['parent_id'] ? (int)$category_map[$id]['parent_id'] : null;
+    }
+    return $path;
+}
+
+function pathToCsvRow($path) {
+    $row = [
+        'business_heading' => '',
+        'business_category' => '',
+        'business_category_slug' => '',
+        'product_category' => '',
+        'product_category_slug' => '',
+        'product_name' => '',
+        'product_slug' => '',
+        'category_id' => null,
+        'category_type' => '',
+        'is_active' => 1,
+        'depth' => 0
+    ];
+    $bc_count = 0;
+    foreach($path as $i => $cat) {
+        $row['category_id'] = $cat['id'];
+        $row['category_type'] = $cat['category_type'];
+        $row['is_active'] = $cat['is_active'];
+        $row['depth'] = $i;
+        if($cat['category_type'] === 'business-category') {
+            if($bc_count === 0) {
+                $row['business_heading'] = $cat['category_name'];
+                $bc_count++;
+            } else {
+                $row['business_category'] = $cat['category_name'];
+                $row['business_category_slug'] = $cat['category_slug'];
+            }
+        } elseif($cat['category_type'] === 'product-category') {
+            $row['product_category'] = $cat['category_name'];
+            $row['product_category_slug'] = $cat['category_slug'];
+        } elseif($cat['category_type'] === 'product-name') {
+            $row['product_name'] = $cat['category_name'];
+            $row['product_slug'] = $cat['category_slug'];
+        }
+    }
+    return $row;
+}
+
+$csv_format_rows = [];
+foreach($all_categories as $cat) {
+    $path = getCategoryPath($cat['id'], $category_map);
+    $csv_format_rows[] = pathToCsvRow($path);
+}
 ?>
 
 <div class="main3">
@@ -98,121 +156,57 @@ $categories = buildCategoryTree($all_categories);
         <?php endif; ?>
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="margin: 0; font-size: 24px; color: #333;">Categories Hierarchy</h2>
+            <h2 style="margin: 0; font-size: 24px; color: #333;">Categories (CSV Format)</h2>
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="searchInput" placeholder="🔍 Search categories..." style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 5px; width: 250px;">
-                <span id="resultCount" style="padding: 10px 15px; background: #f8f9fa; border-radius: 5px; font-weight: 500; color: #666;">Total: <?php echo count($categories); ?></span>
+                <span id="resultCount" style="padding: 10px 15px; background: #f8f9fa; border-radius: 5px; font-weight: 500; color: #666;">Total: <?php echo count($csv_format_rows); ?></span>
             </div>
         </div>
         
-        <?php if(count($categories) > 0): ?>
+        <?php if(count($csv_format_rows) > 0): ?>
             <div style="overflow-x: auto;">
-                <table id="categoriesTable" style="width: 100%; border-collapse: collapse;">
+                <table id="categoriesTable" class="csv-format-table">
+                    <thead>
+                        <tr>
+                            <th>Business Heading</th>
+                            <th>Business Category</th>
+                            <th>Business Category Slug</th>
+                            <th>Product Category</th>
+                            <th>Product Category Slug</th>
+                            <th>Product Name</th>
+                            <th>Product Slug</th>
+                            <th style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
                     <tbody id="categoriesBody">
-                        <?php 
-                        // Build category tree with all levels
-                        $category_map = [];
-                        foreach($all_categories as $cat) {
-                            $category_map[$cat['id']] = $cat;
-                        }
-                        
-                        // Function to recursively render categories
-                        function renderCategoryTree($parent_id, $all_categories, $depth = 0) {
-                            $html = '';
-                            foreach($all_categories as $category) {
-                                if($category['parent_id'] == $parent_id || ($parent_id === null && $category['parent_id'] === null)) {
-                                    $has_children = false;
-                                    foreach($all_categories as $check) {
-                                        if($check['parent_id'] == $category['id']) {
-                                            $has_children = true;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    $indent = $depth * 40;
-                                    $margin_left = $indent + 15;
-                                    
-                                    // Determine colors based on depth
-                                    $background_colors = [
-                                        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',  // Root
-                                        '#f0f4ff',  // Level 1
-                                        '#f8fbff',  // Level 2+
-                                    ];
-                                    $bg_color = $background_colors[min($depth, 2)];
-                                    
-                                    $text_colors = ['white', '#333', '#555'];
-                                    $text_color = $text_colors[min($depth, 2)];
-                                    
-                                    $icon_colors = ['white', '#667eea', '#667eea'];
-                                    $icon_color = $icon_colors[min($depth, 2)];
-                                    
-                                    $html .= '<tr class="category-row ' . ($depth === 0 ? 'parent-row' : 'child-row') . '" data-category="' . htmlspecialchars(strtolower($category['category_name'])) . '" data-depth="' . $depth . '" style="display: table-row; background: ' . $bg_color . ';">';
-                                    
-                                    $html .= '<td style="padding: 15px; border-bottom: 1px solid #e0e0e0;">';
-                                    $html .= '<div style="display: flex; align-items: center; gap: 15px; margin-left: ' . $margin_left . 'px;">';
-                                    
-                                    if($has_children) {
-                                        $html .= '<button class="toggle-btn" data-category-id="' . $category['id'] . '" style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); color: #667eea; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 14px;">▼</button>';
-                                    } else {
-                                        $html .= '<span style="width: 30px;"></span>';
-                                    }
-                                    
-                                    $html .= '<div style="flex: 1;">';
-                                    $html .= '<div style="color: ' . $text_color . '; font-weight: 600; font-size: 15px;">';
-                                    
-                                    if($depth > 0) {
-                                        for($i = 0; $i < $depth; $i++) {
-                                            $html .= '&nbsp;&nbsp;';
-                                        }
-                                        $html .= '└─ ';
-                                    }
-                                    
-                                    $icon_classes = ['fa-folder-open', 'fa-tag', 'fa-circle'];
-                                    $icon_class = isset($icon_classes[$depth]) ? $icon_classes[$depth] : 'fa-circle';
-                                    
-                                    $html .= '<i class="fa ' . $icon_class . '" style="margin-right: 8px; color: ' . $icon_color . ';"></i>' . htmlspecialchars($category['category_name']);
-                                    $html .= '</div>';
-                                    $html .= '<small style="color: ' . ($text_color === 'white' ? 'rgba(255,255,255,0.7)' : '#999') . ';">' . htmlspecialchars($category['category_type']) . '</small>';
-                                    $html .= '</div>';
-                                    
-                                    $html .= '<div style="display: flex; gap: 8px; align-items: center;">';
-                                    if(!empty($category['icon_class'])) {
-                                        $html .= '<i class="fa ' . htmlspecialchars($category['icon_class']) . '" style="color: ' . $icon_color . '; font-size: 16px;"></i>';
-                                    }
-                                    $bg_badge = $depth === 0 ? 'rgba(255,255,255,0.2)' : '#e7f3ff';
-                                    $color_badge = $depth === 0 ? 'white' : '#667eea';
-                                    $html .= '<span style="background: ' . $bg_badge . '; color: ' . $color_badge . '; padding: 3px 8px; border-radius: 3px; font-size: 12px;">ID: ' . $category['id'] . '</span>';
-                                    $html .= '</div>';
-                                    $html .= '</div>';
-                                    $html .= '</td>';
-                                    
-                                    $html .= '<td style="padding: 15px; border-bottom: 1px solid #e0e0e0; text-align: right;">';
-                                    $html .= '<form method="POST" style="display: inline; margin-right: 10px;">';
-                                    $html .= '<input type="hidden" name="action" value="toggle_status">';
-                                    $html .= '<input type="hidden" name="category_id" value="' . $category['id'] . '">';
-                                    $html .= '<button type="submit" class="status-btn ' . ($category['is_active'] ? 'active' : 'inactive') . '" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px;">';
-                                    $html .= $category['is_active'] ? '✓ Active' : '✕ Inactive';
-                                    $html .= '</button>';
-                                    $html .= '</form>';
-                                    $html .= '<a href="category_add.php?edit_id=' . $category['id'] . '" class="edit-btn" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px; background: #007bff; color: white; text-decoration: none; display: inline-block; margin-right: 5px;">✎ Edit</a>';
-                                    $html .= '<form method="POST" style="display: inline;" onsubmit="return confirm(\'Delete this category?\');">';
-                                    $html .= '<input type="hidden" name="action" value="delete_category">';
-                                    $html .= '<input type="hidden" name="category_id" value="' . $category['id'] . '">';
-                                    $html .= '<button type="submit" class="delete-btn" style="padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 12px; background: #dc3545; color: white;">🗑 Delete</button>';
-                                    $html .= '</form>';
-                                    $html .= '</td>';
-                                    
-                                    $html .= '</tr>';
-                                    
-                                    // Recursively render children
-                                    $html .= renderCategoryTree($category['id'], $all_categories, $depth + 1);
-                                }
-                            }
-                            return $html;
-                        }
-                        
-                        echo renderCategoryTree(null, $all_categories);
+                        <?php foreach($csv_format_rows as $r): 
+                            $searchable = strtolower(implode(' ', [$r['business_heading'], $r['business_category'], $r['product_category'], $r['product_name']]));
+                            $row_bg = $r['depth'] === 0 ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : ($r['depth'] === 1 ? 'background: #f0f4ff;' : 'background: #f8fbff;');
+                            $text_color = $r['depth'] === 0 ? 'white' : '#333';
                         ?>
+                        <tr class="category-row" data-search="<?php echo htmlspecialchars($searchable); ?>" data-depth="<?php echo $r['depth']; ?>" style="<?php echo $row_bg; ?>">
+                            <td><?php echo htmlspecialchars($r['business_heading']); ?></td>
+                            <td><?php echo htmlspecialchars($r['business_category']); ?></td>
+                            <td><code style="font-size: 11px;"><?php echo htmlspecialchars($r['business_category_slug']); ?></code></td>
+                            <td><?php echo htmlspecialchars($r['product_category']); ?></td>
+                            <td><code style="font-size: 11px;"><?php echo htmlspecialchars($r['product_category_slug']); ?></code></td>
+                            <td><?php echo htmlspecialchars($r['product_name']); ?></td>
+                            <td><code style="font-size: 11px;"><?php echo htmlspecialchars($r['product_slug']); ?></code></td>
+                            <td style="white-space: nowrap;">
+                                <form method="POST" style="display: inline; margin-right: 5px;">
+                                    <input type="hidden" name="action" value="toggle_status">
+                                    <input type="hidden" name="category_id" value="<?php echo $r['category_id']; ?>">
+                                    <button type="submit" class="status-btn <?php echo $r['is_active'] ? 'active' : 'inactive'; ?>"><?php echo $r['is_active'] ? '✓ Active' : '✕ Inactive'; ?></button>
+                                </form>
+                                <a href="category_add.php?edit_id=<?php echo $r['category_id']; ?>" class="edit-btn">✎ Edit</a>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this category?');">
+                                    <input type="hidden" name="action" value="delete_category">
+                                    <input type="hidden" name="category_id" value="<?php echo $r['category_id']; ?>">
+                                    <button type="submit" class="delete-btn">🗑 Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -226,151 +220,24 @@ $categories = buildCategoryTree($all_categories);
 </div>
 
 <script>
-// Build a map of parent-child relationships
-const buildHierarchyMap = () => {
-    const map = {};
-    const rows = document.querySelectorAll('tr.category-row');
-    
-    rows.forEach(row => {
-        const depth = parseInt(row.getAttribute('data-depth'));
-        const index = Array.from(rows).indexOf(row);
-        
-        map[index] = {
-            depth: depth,
-            children: []
-        };
-    });
-    
-    // Find children for each row
-    rows.forEach((row, index) => {
-        const currentDepth = parseInt(row.getAttribute('data-depth'));
-        let nextIndex = index + 1;
-        
-        while(nextIndex < rows.length) {
-            const nextRow = rows[nextIndex];
-            const nextDepth = parseInt(nextRow.getAttribute('data-depth'));
-            
-            if(nextDepth <= currentDepth) break;
-            
-            if(nextDepth === currentDepth + 1) {
-                map[index].children.push(nextIndex);
-            }
-            
-            nextIndex++;
-        }
-    });
-    
-    return map;
-};
-
-const hierarchyMap = buildHierarchyMap();
-
-// Toggle expand/collapse for categories
-document.querySelectorAll('.toggle-btn').forEach((btn, index) => {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const rows = document.querySelectorAll('tr.category-row');
-        
-        // Find the index of the parent row
-        let parentIndex = -1;
-        rows.forEach((row, i) => {
-            const toggleBtnInRow = row.querySelector('.toggle-btn');
-            if(toggleBtnInRow === btn) {
-                parentIndex = i;
-            }
-        });
-        
-        if(parentIndex === -1) return;
-        
-        const childIndices = getDescendants(parentIndex, rows);
-        const firstChildRow = rows[childIndices[0]];
-        const isVisible = firstChildRow && firstChildRow.style.display === 'table-row';
-        
-        childIndices.forEach(childIndex => {
-            rows[childIndex].style.display = isVisible ? 'none' : 'table-row';
-        });
-        
-        this.textContent = isVisible ? '▶' : '▼';
-    });
-});
-
-// Get all descendants (not just direct children)
-const getDescendants = (parentIndex, rows) => {
-    const parentRow = rows[parentIndex];
-    const parentDepth = parseInt(parentRow.getAttribute('data-depth'));
-    const descendants = [];
-    
-    for(let i = parentIndex + 1; i < rows.length; i++) {
-        const row = rows[i];
-        const depth = parseInt(row.getAttribute('data-depth'));
-        
-        if(depth <= parentDepth) break;
-        
-        descendants.push(i);
-    }
-    
-    return descendants;
-};
-
 // Search functionality
 document.getElementById('searchInput').addEventListener('keyup', function() {
     const searchTerm = this.value.toLowerCase();
     const rows = document.querySelectorAll('tr.category-row');
-    let visibleCount = 0;
     
     if(!searchTerm) {
-        // Reset to default view
-        rows.forEach(row => {
-            row.style.display = 'table-row';
-        });
-        visibleCount = rows.length;
+        rows.forEach(row => row.style.display = '');
+        document.getElementById('resultCount').textContent = 'Total: ' + rows.length;
     } else {
-        // Find matching categories and show them with ancestors
-        rows.forEach((row, index) => {
-            const categoryName = row.getAttribute('data-category');
-            
-            if(categoryName && categoryName.includes(searchTerm)) {
-                row.style.display = 'table-row';
-                visibleCount++;
-                
-                // Show all ancestors
-                let currentDepth = parseInt(row.getAttribute('data-depth'));
-                for(let i = index - 1; i >= 0; i--) {
-                    const potentialParent = rows[i];
-                    const parentDepth = parseInt(potentialParent.getAttribute('data-depth'));
-                    
-                    if(parentDepth < currentDepth) {
-                        potentialParent.style.display = 'table-row';
-                        currentDepth = parentDepth;
-                    }
-                    
-                    if(currentDepth === 0) break;
-                }
-                
-                // Expand parent toggle buttons
-                const parentDepth = parseInt(row.getAttribute('data-depth'));
-                if(parentDepth > 0) {
-                    for(let i = index - 1; i >= 0; i--) {
-                        const potentialParent = rows[i];
-                        const parentDepth = parseInt(potentialParent.getAttribute('data-depth'));
-                        
-                        if(parentDepth < parseInt(row.getAttribute('data-depth'))) {
-                            const toggleBtn = potentialParent.querySelector('.toggle-btn');
-                            if(toggleBtn) toggleBtn.textContent = '▼';
-                            break;
-                        }
-                    }
-                }
-            } else {
-                row.style.display = 'none';
-            }
+        let visibleCount = 0;
+        rows.forEach(row => {
+            const text = row.getAttribute('data-search') || '';
+            const show = text.includes(searchTerm);
+            row.style.display = show ? '' : 'none';
+            if(show) visibleCount++;
         });
-        
-        // Count visible rows
-        visibleCount = Array.from(rows).filter(r => r.style.display === 'table-row').length;
+        document.getElementById('resultCount').textContent = visibleCount > 0 ? 'Found: ' + visibleCount : 'No results found';
     }
-    
-    document.getElementById('resultCount').textContent = visibleCount > 0 ? 'Found: ' + visibleCount : 'No results found';
 });
 </script>
 
@@ -405,17 +272,49 @@ document.getElementById('searchInput').addEventListener('keyup', function() {
     background-color: #c82333 !important;
 }
 
-#categoriesTable {
+.csv-format-table {
     border-spacing: 0;
-    border-collapse: separate;
+    border-collapse: collapse;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.category-row:hover {
-    background-color: rgba(102, 126, 234, 0.05);
+.csv-format-table th,
+.csv-format-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: left;
+}
+
+.csv-format-table th {
+    background: #333;
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.csv-format-table .category-row:hover {
+    background-color: rgba(102, 126, 234, 0.08) !important;
     transition: background-color 0.2s ease;
+}
+
+.csv-format-table .status-btn,
+.csv-format-table .edit-btn,
+.csv-format-table .delete-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 4px;
+}
+
+.csv-format-table .edit-btn {
+    background: #007bff;
+    color: white;
 }
 
 .btn {

@@ -486,6 +486,7 @@ if(isset($_POST['process2'])){
         ensureColumnExists($connect, 'digi_card', 'd_state', "VARCHAR(200) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_pincode', "VARCHAR(50) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_country', "VARCHAR(200) DEFAULT ''");
+        ensureColumnExists($connect, 'digi_card', 'd_business_hours', "TEXT NULL");
 
         // Sanitize new fields (fall back to empty string when not provided) - now storing as ID
         $d_position_primary = isset($_POST['d_position_primary']) && !empty($_POST['d_position_primary']) ? intval($_POST['d_position_primary']) : '';
@@ -495,6 +496,19 @@ if(isset($_POST['process2'])){
         $d_pincode = isset($_POST['d_pincode']) ? mysqli_real_escape_string($connect, $_POST['d_pincode']) : '';
         $d_country = isset($_POST['d_country']) ? mysqli_real_escape_string($connect, $_POST['d_country']) : '';
         $d_gst_number = isset($_POST['d_gst_number']) ? mysqli_real_escape_string($connect, $_POST['d_gst_number']) : '';
+
+        // Business hours: array of {days, hours}, stored as JSON
+        $business_hours_arr = [];
+        if (!empty($_POST['bh_days']) && is_array($_POST['bh_days']) && !empty($_POST['bh_hours']) && is_array($_POST['bh_hours'])) {
+            foreach ($_POST['bh_days'] as $i => $days) {
+                $days_clean = trim($days);
+                $hours_clean = isset($_POST['bh_hours'][$i]) ? trim($_POST['bh_hours'][$i]) : '';
+                if ($days_clean !== '' || $hours_clean !== '') {
+                    $business_hours_arr[] = ['days' => $days_clean, 'hours' => $hours_clean];
+                }
+            }
+        }
+        $d_business_hours = mysqli_real_escape_string($connect, json_encode($business_hours_arr));
 
         $update = mysqli_query($connect, 'UPDATE digi_card SET 
         d_f_name="'.mysqli_real_escape_string($connect, $_POST['d_f_name']).'",
@@ -516,7 +530,8 @@ if(isset($_POST['process2'])){
         d_website="'.mysqli_real_escape_string($connect, $_POST['d_website']).'",
         d_location="'.mysqli_real_escape_string($connect, $_POST['d_location']).'",
         d_comp_est_date="'.mysqli_real_escape_string($connect, $d_comp_est_date).'",
-        d_about_us="'.$d_about_us.'"
+        d_about_us="'.$d_about_us.'",
+        d_business_hours="'.$d_business_hours.'"
         WHERE id="'.$_SESSION['card_id_inprocess'].'"');
         
         if($update){
@@ -911,6 +926,48 @@ include '../includes/header.php';
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Business Hierarchical Format - Business Hours -->
+                        <div class="row mt-4">
+                            <div class="col-sm-12">
+                                <label class="heading heading2">Business Hours</label>
+                                <p class="text-muted small mb-3">Add your business hours. Example: Monday - Thursday with 10:00 AM - 10:00 PM, or Sunday with Closed.</p>
+                                <div id="business-hours-container">
+                                    <?php
+                                    $bh_rows = [];
+                                    if (!empty($cardRow['d_business_hours'])) {
+                                        $bh_decoded = json_decode($cardRow['d_business_hours'], true);
+                                        if (is_array($bh_decoded)) $bh_rows = $bh_decoded;
+                                    }
+                                    if (empty($bh_rows)) {
+                                        $bh_rows = [
+                                            ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+                                            ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+                                            ['days' => 'Sunday', 'hours' => 'Closed'],
+                                        ];
+                                    }
+                                    foreach ($bh_rows as $bh): ?>
+                                    <div class="row business-hours-row mb-3 align-items-end">
+                                        <div class="col-sm-5">
+                                            <label class="d-none">Days</label>
+                                            <input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="<?php echo htmlspecialchars($bh['days'] ?? ''); ?>">
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <label class="d-none">Hours</label>
+                                            <input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="<?php echo htmlspecialchars($bh['hours'] ?? ''); ?>">
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-bh-row" title="Remove"><i class="fa fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-business-hours-row">
+                                    <i class="fa fa-plus"></i> Add Row
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="Product-ServicesBtn" style="margin-top: 20px;">
                             <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                                 <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
@@ -986,6 +1043,29 @@ include '../includes/header.php';
     }
     window.clickFocusLogo = function() { if (window.jQuery) window.jQuery('#clickMeImage').click(); };
     window.clickFocusHero = function() { if (window.jQuery) window.jQuery('#clickMeImageHero').click(); };
+})();
+</script>
+
+<script>
+(function() {
+    function addBusinessHoursRow(days, hours) {
+        days = days || '';
+        hours = hours || '';
+        var row = document.createElement('div');
+        row.className = 'row business-hours-row mb-3 align-items-end';
+        row.innerHTML = '<div class="col-sm-5"><label class="d-none">Days</label><input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="' + (days ? (days.replace(/"/g, '&quot;')) : '') + '"></div>' +
+            '<div class="col-sm-5"><label class="d-none">Hours</label><input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="' + (hours ? (hours.replace(/"/g, '&quot;')) : '') + '"></div>' +
+            '<div class="col-sm-2"><button type="button" class="btn btn-outline-danger btn-sm remove-bh-row" title="Remove"><i class="fa fa-trash"></i></button></div>';
+        document.getElementById('business-hours-container').appendChild(row);
+        row.querySelector('.remove-bh-row').addEventListener('click', function() { row.remove(); });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var addBtn = document.getElementById('add-business-hours-row');
+        if (addBtn) addBtn.addEventListener('click', function() { addBusinessHoursRow(); });
+        document.querySelectorAll('.remove-bh-row').forEach(function(btn) {
+            btn.addEventListener('click', function() { btn.closest('.business-hours-row').remove(); });
+        });
+    });
 })();
 </script>
 

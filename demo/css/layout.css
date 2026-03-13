@@ -1,0 +1,54 @@
+/* ==========================================================================
+   layout.css (CHANGABLE)
+   Purpose: Section spacing, grid system, responsive breakpoints
+   ========================================================================== */
+html {
+    scroll-behavior: smooth;
+}
+[id^="mw-"] {
+    scroll-margin-top: 70px;
+}
+
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+}
+
+/* Section Spacing */
+.mw-section-padding { padding: 24px; }
+@media (min-width: 768px) { .mw-section-padding { padding: 32px; } }
+@media (min-width: 1024px) { .mw-section-padding { padding: 40px; } }
+
+/* Grid Systems */
+.mw-grid-services { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (min-width: 768px) { .mw-grid-services { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; } }
+@media (min-width: 1024px) { .mw-grid-services { grid-template-columns: repeat(4, 1fr); } }
+
+.mw-grid-offers { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1.5rem; }
+@media (min-width: 768px) { .mw-grid-offers { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .mw-grid-offers { grid-template-columns: repeat(3, 1fr); } }
+
+.mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (min-width: 768px) { .mw-grid-products { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .mw-grid-products { grid-template-columns: repeat(4, 1fr); } }
+
+.mw-grid-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+@media (min-width: 768px) { .mw-grid-gallery { grid-template-columns: repeat(4, 1fr); gap: 1rem; } }
+@media (min-width: 1024px) { .mw-grid-gallery { grid-template-columns: repeat(5, 1fr); } }
+
+/* Video Slider Layout */
+.mw-slider-horizontal { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; padding-bottom: 1rem; }
+.mw-slider-item { scroll-snap-align: center; flex-shrink: 0; }
+
+/* Blinkit Layout System */
+.mw-blinkit-container { display: flex; height: 600px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--mw-border-radius); overflow: hidden; }
+.mw-blinkit-sidebar { width: 80px; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; background-color: var(--mw-background-color); }
+@media (min-width: 768px) { .mw-blinkit-sidebar { width: 110px; } }
+.mw-blinkit-main { flex: 1; overflow-y: auto; padding: 1rem; background-color: rgba(31, 31, 37, 0.3); }
+
+/* Hide Scrollbar Utility */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

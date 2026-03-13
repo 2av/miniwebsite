@@ -747,7 +747,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <span>Back</span>
                         </a>
                         <button class="btn btn-primary align-center save_btn" onclick="saveProducts()"><img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> <span>Save</span></button>
-                        <a href="image-gallery.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                        <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
                         </a>

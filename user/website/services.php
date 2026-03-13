@@ -717,9 +717,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <table class="display table">
                         <thead class="bg-secondary">
                             <tr>
+                                <th>Service Image</th>
                                 <th>Service Name</th>
                                 <th>Service Description</th>
-                                <th>Image Details</th>
                                 <th>Manage</th>
                             </tr>
                         </thead>
@@ -735,17 +735,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $product_image = $product['product_image'];
                             ?>
                                 <tr data-product-id="<?php echo $product_id; ?>" data-card-id="<?php echo $card_id; ?>">
-                                    <td valign="middle"><?php echo !empty($product_name) ? $product_name : 'No Name'; ?></td>
-                                    <td valign="middle">
-                                        <?php if(!empty($product_description)): ?>
-                                            <span class="text-truncate" title="<?php echo $product_description; ?>">
-                                                <?php echo strlen($product_description) > 50 ? substr($product_description, 0, 50) . '...' : $product_description; ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="text-muted">No Description</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td valign="middle">
+                                <td valign="middle">
                                         <?php if(!empty($product_image)): ?>
                                             <?php
                                             // Check if product_image is just a filename or contains path separators
@@ -765,6 +755,17 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
                                     </td>
+                                <td valign="middle"><?php echo !empty($product_name) ? $product_name : 'No Name'; ?></td>
+                                    <td valign="middle">
+                                        <?php if(!empty($product_description)): ?>
+                                            <span class="text-truncate" title="<?php echo $product_description; ?>">
+                                                <?php echo strlen($product_description) > 50 ? substr($product_description, 0, 50) . '...' : $product_description; ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted">No Description</span>
+                                        <?php endif; ?>
+                                    </td>
+                                   
                                     <td valign="middle">
                                         <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>', '<?php echo $product_description; ?>')">
                                             <img src="../../assets/images/edit1.png" alt="">
