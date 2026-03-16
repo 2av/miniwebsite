@@ -738,7 +738,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                                 $image_src = 'data:image/*;base64,' . base64_encode($product_image);
                                             }
                                             ?>
-                                            <img src="<?php echo htmlspecialchars($image_src); ?>" class="img-fluid" width="60px" alt="">
+                                            <img src="<?php echo htmlspecialchars($image_src); ?>" class="img-fluid" width="30px" alt="">
                                         <?php else: ?>
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
@@ -755,12 +755,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     </td>
                                    
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>', '<?php echo $product_description; ?>')">
-                                            <img src="../../assets/images/edit1.png" alt="">
-                                        </a>
-                                        <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $product_id; ?>)">
-                                            <img src="../../assets/images/delet.png" alt="">
-                                        </a>
+                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>', '<?php echo $product_description; ?>')" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                        <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $product_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                     </td>
                                 </tr>
                             <?php 

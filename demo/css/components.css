@@ -19,6 +19,8 @@
 
 .mw-btn-add { border: 1px solid var(--mw-primary-color); color: var(--mw-primary-color); text-transform: uppercase; font-weight: 600; padding: 0.25rem 1rem; border-radius: 6px; font-size: 0.75rem; background: transparent; transition: all 0.2s; }
 .mw-btn-add:hover { background: var(--mw-primary-color); color: var(--mw-background-color); }
+.mw-btn-add-overlay { background: var(--mw-primary-color) !important; color: #111 !important; }
+.mw-btn-add-overlay:hover { background: var(--mw-secondary-color) !important; color: #111 !important; }
 
 /* Forms */
 .mw-input { width: 100%; background-color: var(--mw-background-color); border: 1px solid rgba(255,255,255,0.1); color: var(--mw-heading-color); border-radius: var(--mw-border-radius); padding: 0.75rem 1rem; outline: none; transition: border 0.3s; }

@@ -121,6 +121,7 @@ include '../includes/header.php';
         <div class="card mb-4">
             <div class="card-body">
             <label class="heading2">Video Links:</label>
+            <p class="description">you can upload upto 20 videos</p>
                 <form action="" method="POST" enctype="multipart/form-data" id="card_form">
                    
          

@@ -408,11 +408,17 @@ if(isset($_POST['offer'])){
                         continue;
                     }
                     
+                    // Use NULL for empty optional date/time fields (MySQL rejects empty string for DATE/TIME)
+                    $start_date_sql = ($offer_start_date !== '') ? "'" . mysqli_real_escape_string($connect, $offer_start_date) . "'" : "NULL";
+                    $end_date_sql = ($offer_end_date !== '') ? "'" . mysqli_real_escape_string($connect, $offer_end_date) . "'" : "NULL";
+                    $start_time_sql = ($offer_start_time !== '') ? "'" . mysqli_real_escape_string($connect, $offer_start_time) . "'" : "NULL";
+                    $end_time_sql = ($offer_end_time !== '') ? "'" . mysqli_real_escape_string($connect, $offer_end_time) . "'" : "NULL";
+                    
                     if($offer_image !== null) {
                         $offer_image_escaped = mysqli_real_escape_string($connect, $offer_image);
-                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', offer_image='$offer_image_escaped', badge='$offer_badge', discount_percentage=$offer_discount, start_date='$offer_start_date', end_date='$offer_end_date', start_time='$offer_start_time', end_time='$offer_end_time', status='$offer_status' WHERE id=$offer_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', offer_image='$offer_image_escaped', badge='$offer_badge', discount_percentage=$offer_discount, start_date=$start_date_sql, end_date=$end_date_sql, start_time=$start_time_sql, end_time=$end_time_sql, status='$offer_status' WHERE id=$offer_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
-                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', badge='$offer_badge', discount_percentage=$offer_discount, start_date='$offer_start_date', end_date='$offer_end_date', start_time='$offer_start_time', end_time='$offer_end_time', status='$offer_status' WHERE id=$offer_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', badge='$offer_badge', discount_percentage=$offer_discount, start_date=$start_date_sql, end_date=$end_date_sql, start_time=$start_time_sql, end_time=$end_time_sql, status='$offer_status' WHERE id=$offer_id AND card_id='$card_id' AND user_id=$user_id";
                     }
                     $update_result = mysqli_query($connect, $update_query);
                     if(!$update_result) {
@@ -427,11 +433,17 @@ if(isset($_POST['offer'])){
                     $card_id_escaped = mysqli_real_escape_string($connect, $card_id);
                     $offer_title_escaped = mysqli_real_escape_string($connect, $offer_title);
                     
+                    // Use NULL for empty optional date/time fields (MySQL rejects empty string for DATE/TIME)
+                    $start_date_sql = ($offer_start_date !== '') ? "'" . mysqli_real_escape_string($connect, $offer_start_date) . "'" : "NULL";
+                    $end_date_sql = ($offer_end_date !== '') ? "'" . mysqli_real_escape_string($connect, $offer_end_date) . "'" : "NULL";
+                    $start_time_sql = ($offer_start_time !== '') ? "'" . mysqli_real_escape_string($connect, $offer_start_time) . "'" : "NULL";
+                    $end_time_sql = ($offer_end_time !== '') ? "'" . mysqli_real_escape_string($connect, $offer_end_time) . "'" : "NULL";
+                    
                     if($offer_image !== null) {
                         $offer_image_escaped = mysqli_real_escape_string($connect, $offer_image);
-                        $insert_query = "INSERT INTO card_special_offers (card_id, user_id, offer_title, offer_description, offer_image, badge, discount_percentage, start_date, end_date, start_time, end_time, status, display_order) VALUES ('$card_id_escaped', $user_id, '$offer_title_escaped', '$offer_description', '$offer_image_escaped', '$offer_badge', $offer_discount, '$offer_start_date', '$offer_end_date', '$offer_start_time', '$offer_end_time', '$offer_status', $display_order)";
+                        $insert_query = "INSERT INTO card_special_offers (card_id, user_id, offer_title, offer_description, offer_image, badge, discount_percentage, start_date, end_date, start_time, end_time, status, display_order) VALUES ('$card_id_escaped', $user_id, '$offer_title_escaped', '$offer_description', '$offer_image_escaped', '$offer_badge', $offer_discount, $start_date_sql, $end_date_sql, $start_time_sql, $end_time_sql, '$offer_status', $display_order)";
                     } else {
-                        $insert_query = "INSERT INTO card_special_offers (card_id, user_id, offer_title, offer_description, badge, discount_percentage, start_date, end_date, start_time, end_time, status, display_order) VALUES ('$card_id_escaped', $user_id, '$offer_title_escaped', '$offer_description', '$offer_badge', $offer_discount, '$offer_start_date', '$offer_end_date', '$offer_start_time', '$offer_end_time', '$offer_status', $display_order)";
+                        $insert_query = "INSERT INTO card_special_offers (card_id, user_id, offer_title, offer_description, badge, discount_percentage, start_date, end_date, start_time, end_time, status, display_order) VALUES ('$card_id_escaped', $user_id, '$offer_title_escaped', '$offer_description', '$offer_badge', $offer_discount, $start_date_sql, $end_date_sql, $start_time_sql, $end_time_sql, '$offer_status', $display_order)";
                     }
                     
                     $insert_result = mysqli_query($connect, $insert_query);
@@ -570,7 +582,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                                 $image_src = 'data:image/*;base64,' . base64_encode($offer['offer_image']);
                                             }
                                             ?>
-                                            <img src="<?php echo htmlspecialchars($image_src); ?>" class="img-fluid" width="80px" alt="">
+                                            <img src="<?php echo htmlspecialchars($image_src); ?>" class="img-fluid" width="30px" alt="">
                                         <?php else: ?>
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
@@ -622,8 +634,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                         ?>
                                     </td>
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editOffer(<?php echo $offer_id; ?>, '<?php echo htmlspecialchars($offer_title, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($offer_badge, ENT_QUOTES); ?>', '<?php echo $offer_discount; ?>', '<?php echo htmlspecialchars($offer_description, ENT_QUOTES); ?>', '<?php echo $start_date; ?>', '<?php echo $end_date; ?>', '<?php echo $start_time; ?>', '<?php echo $end_time; ?>', '<?php echo $offer_status; ?>')"><img src="../../assets/images/edit1.png" alt=""></a>
-                                        <a class="delet" href="javascript:void(0);" onclick="removeOffer(<?php echo $offer_id; ?>)"><img src="../../assets/images/delet.png" alt=""></a>
+                                        <a class="edit" href="javascript:void(0);" onclick="editOffer(<?php echo $offer_id; ?>, '<?php echo htmlspecialchars($offer_title, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($offer_badge, ENT_QUOTES); ?>', '<?php echo $offer_discount; ?>', '<?php echo htmlspecialchars($offer_description, ENT_QUOTES); ?>', '<?php echo $start_date; ?>', '<?php echo $end_date; ?>', '<?php echo $start_time; ?>', '<?php echo $end_time; ?>', '<?php echo $offer_status; ?>')" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                        <a class="delet" href="javascript:void(0);" onclick="removeOffer(<?php echo $offer_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                     </td>
                                 </tr>
                             <?php 

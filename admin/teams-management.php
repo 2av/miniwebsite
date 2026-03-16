@@ -159,7 +159,7 @@ if (isset($_GET['ajax'])) {
         $sql = "
             SELECT DISTINCT
                 COALESCE(re.referred_email, ud_referred.email) AS referred_email,
-                COALESCE(re.amount, 0) AS amount,
+              
                 COALESCE(re.is_collaboration, 'NO') AS is_collaboration,
                 COALESCE(re.referral_date, ud_referred.created_at) AS referral_date,
                 COALESCE(re.status, 'Pending') AS referral_status,
@@ -223,7 +223,7 @@ if (isset($_GET['ajax'])) {
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Type</th>
-                    <th>Amount</th>
+                   
                     <th>MW Payment Status</th>
                     <th>Paid On</th>
                     <th>Referral Date</th>
@@ -311,7 +311,7 @@ if (isset($_GET['ajax'])) {
             echo '<td>' . teams_h($r['referred_email']) . '</td>';
             echo '<td>' . $referredPhone . '</td>';
             echo '<td>' . teams_h($type) . '</td>';
-            echo '<td>' . $amount . '</td>';
+            
             echo '<td>' . $statusBadge . '</td>';
             echo '<td>' . teams_h($paidOn) . '</td>';
             echo '<td>' . teams_h($referralDate) . '</td>';

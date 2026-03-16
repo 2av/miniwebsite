@@ -682,7 +682,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                                 $image_src = 'data:image/*;base64,' . base64_encode($prod['product_image']);
                                             }
                                             ?>
-                                            <img src="<?php echo htmlspecialchars($image_src); ?>" class="img-fluid" width="100px" alt="">
+                                            <img src="<?php echo htmlspecialchars($image_src); ?>" class="img-fluid" width="30px" alt="">
                                         <?php else: ?>
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
@@ -705,9 +705,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                         <?php endif; ?>
                                     </td>
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $prod_id; ?>, '<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>', '<?php echo intval($prod_category_id); ?>', '<?php echo $prod_mrp; ?>', '<?php echo $prod_price; ?>', '<?php echo htmlspecialchars($prod_description, ENT_QUOTES); ?>')"><img src="../../assets/images/edit1.png" alt=""></a>
-                                        <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $prod_id; ?>)"><img src="../../assets/images/delet.png" alt=""></a>
-                                            
+                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $prod_id; ?>, '<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>', '<?php echo intval($prod_category_id); ?>', '<?php echo $prod_mrp; ?>', '<?php echo $prod_price; ?>', '<?php echo htmlspecialchars($prod_description, ENT_QUOTES); ?>')" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                        <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $prod_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                     </td>
                                 </tr>
                             <?php 

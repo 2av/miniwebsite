@@ -3,6 +3,35 @@
  * Demo template - Data binding from database (digi_card) or fallback demo data
  * Access: demo/n.php?n=card_id_slug  (loads from DB) or demo/n.php (uses demo data)
  */
+
+/**
+ * Parse video URL (YouTube, Shorts, Instagram, Facebook, etc.) and return title, thumb, platform.
+ */
+function parseVideoUrl($url, $default_thumb = '') {
+    $url = trim($url);
+    if (empty($url)) return ['title' => 'Video', 'thumb' => $default_thumb, 'platform' => 'other'];
+    $title = 'Video';
+    $thumb = $default_thumb;
+    $platform = 'other';
+    // YouTube: watch?v=, youtu.be/, youtube.com/shorts/
+    if (preg_match('#(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})#', $url, $m)) {
+        $vid = $m[1];
+        $thumb = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
+        $platform = 'youtube';
+        $title = 'YouTube Video';
+    } elseif (preg_match('#instagram\.com/(?:reel|p)/([a-zA-Z0-9_-]+)#', $url, $m)) {
+        $platform = 'instagram';
+        $title = 'Instagram Video';
+    } elseif (preg_match('#(?:facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/#', $url)) {
+        $platform = 'facebook';
+        $title = 'Facebook Video';
+    } elseif (preg_match('#tiktok\.com/#', $url)) {
+        $platform = 'tiktok';
+        $title = 'TikTok Video';
+    }
+    return ['title' => $title, 'thumb' => $thumb, 'platform' => $platform];
+}
+
 $card_id_slug = isset($_GET['n']) ? trim($_GET['n']) : (isset($_GET['card_number']) ? trim($_GET['card_number']) : '');
 $row = null;
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
@@ -76,7 +105,7 @@ if ($row) {
 
     // Services from card_products_services (products & services)
     $services = [];
-    $svc_query = mysqli_query($connect, "SELECT product_name, product_image FROM card_products_services WHERE card_id='$card_db_id' ORDER BY display_order ASC LIMIT 10");
+    $svc_query = mysqli_query($connect, "SELECT product_name, product_description, product_image FROM card_products_services WHERE card_id='$card_db_id' ORDER BY display_order ASC LIMIT 10");
     if ($svc_query) {
         while ($s = mysqli_fetch_assoc($svc_query)) {
             if (!empty($s['product_name'])) {
@@ -88,15 +117,19 @@ if ($row) {
                 } else {
                     $img = 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop';
                 }
-                $services[] = ['name' => htmlspecialchars($s['product_name']), 'image' => $img];
+                $services[] = [
+                    'name' => htmlspecialchars($s['product_name']),
+                    'desc' => !empty($s['product_description']) ? htmlspecialchars($s['product_description']) : '',
+                    'image' => $img,
+                ];
             }
         }
     }
     if (empty($services)) {
         $services = [
-            ['name' => 'Private Dining', 'image' => 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop'],
-            ['name' => 'Event Catering', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=200&fit=crop'],
-            ['name' => 'Masterclasses', 'image' => 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=300&h=200&fit=crop'],
+            ['name' => 'Private Dining', 'desc' => 'Exclusive dining experiences tailored to your preferences.', 'image' => 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop'],
+            ['name' => 'Event Catering', 'desc' => 'Full-service catering for weddings, corporate events & more.', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=200&fit=crop'],
+            ['name' => 'Masterclasses', 'desc' => 'Hands-on cooking classes for all skill levels.', 'image' => 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=300&h=200&fit=crop'],
         ];
     }
 
@@ -160,10 +193,14 @@ if ($row) {
                         $img = 'data:image/*;base64,' . base64_encode($p['product_image']);
                     }
                 }
+                $mrp = floatval($p['mrp'] ?? 0);
+                $price = floatval($p['selling_price'] ?? 0);
+                if ($mrp <= 0) $mrp = $price;
                 $products_by_cat[$cat][] = [
                     'name' => htmlspecialchars($p['product_name']),
                     'image' => $img,
-                    'price' => floatval($p['selling_price'] ?? 0),
+                    'mrp' => $mrp,
+                    'price' => $price,
                     'desc' => htmlspecialchars($p['product_description'] ?? ''),
                 ];
             }
@@ -199,6 +236,21 @@ if ($row) {
     }
     if (empty($gallery)) {
         $gallery = ['https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop'];
+    }
+
+    // Videos from d_youtube1..d_youtube20 (YouTube, Shorts, Instagram, Facebook, etc.)
+    $videos = [];
+    $default_thumb = 'https://images.unsplash.com/photo-1556910110-a5a63dfd393c?w=600&h=400&fit=crop';
+    for ($i = 1; $i <= 20; $i++) {
+        $url = trim($row['d_youtube' . $i] ?? '');
+        if (empty($url)) continue;
+        $parsed = parseVideoUrl($url, $default_thumb);
+        $videos[] = [
+            'url' => $url,
+            'title' => $parsed['title'],
+            'thumb' => $parsed['thumb'],
+            'platform' => $parsed['platform'],
+        ];
     }
 
     // Business Hours from d_business_hours (JSON)
@@ -239,16 +291,16 @@ if ($row) {
     ];
 
     $services = [
-        ['name' => 'Private Dining', 'image' => 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop'],
-        ['name' => 'Event Catering', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=200&fit=crop'],
-        ['name' => 'Masterclasses', 'image' => 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=300&h=200&fit=crop'],
-        ['name' => 'Menu Consulting', 'image' => 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=300&h=200&fit=crop'],
-        ['name' => 'Wine Pairing', 'image' => 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=300&h=200&fit=crop'],
-        ['name' => 'Food Styling', 'image' => 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=300&h=200&fit=crop'],
-        ['name' => 'Corporate Lunch', 'image' => 'https://images.unsplash.com/photo-1507048331197-7d4ac70811cf?w=300&h=200&fit=crop'],
-        ['name' => 'Kitchen Staffing', 'image' => 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=300&h=200&fit=crop'],
-        ['name' => 'Diet Plans', 'image' => 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=300&h=200&fit=crop'],
-        ['name' => 'Equipment Rental', 'image' => 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300&h=200&fit=crop'],
+        ['name' => 'Private Dining', 'desc' => 'Exclusive dining experiences tailored to your preferences.', 'image' => 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop'],
+        ['name' => 'Event Catering', 'desc' => 'Full-service catering for weddings, corporate events & more.', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=200&fit=crop'],
+        ['name' => 'Masterclasses', 'desc' => 'Hands-on cooking classes for all skill levels.', 'image' => 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=300&h=200&fit=crop'],
+        ['name' => 'Menu Consulting', 'desc' => 'Expert guidance to design and optimize your menu.', 'image' => 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=300&h=200&fit=crop'],
+        ['name' => 'Wine Pairing', 'desc' => 'Curated wine selections to complement your dishes.', 'image' => 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=300&h=200&fit=crop'],
+        ['name' => 'Food Styling', 'desc' => 'Professional styling for photos and presentations.', 'image' => 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=300&h=200&fit=crop'],
+        ['name' => 'Corporate Lunch', 'desc' => 'Catered lunches for meetings and office events.', 'image' => 'https://images.unsplash.com/photo-1507048331197-7d4ac70811cf?w=300&h=200&fit=crop'],
+        ['name' => 'Kitchen Staffing', 'desc' => 'Skilled chefs and kitchen support for your events.', 'image' => 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=300&h=200&fit=crop'],
+        ['name' => 'Diet Plans', 'desc' => 'Custom meal plans for health and dietary needs.', 'image' => 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=300&h=200&fit=crop'],
+        ['name' => 'Equipment Rental', 'desc' => 'Professional kitchen equipment for your catering needs.', 'image' => 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300&h=200&fit=crop'],
     ];
 
     $offers = [
@@ -259,38 +311,59 @@ if ($row) {
         ['title' => 'Wine Tasting', 'desc' => 'Introductory price for groups.', 'image' => 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=300&fit=crop', 'badge' => 'NEW'],
     ];
 
-    $products_by_cat = [
-        'mains' => [
-            ['name' => 'BBQ Pork Ribs', 'image' => 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&h=300&fit=crop', 'price' => 799, 'desc' => '500g'],
-            ['name' => 'Red Sauce Pasta', 'image' => 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300&h=300&fit=crop', 'price' => 320, 'desc' => '1 Portion'],
-            ['name' => 'Truffle Burger', 'image' => 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&h=300&fit=crop', 'price' => 499, 'desc' => '1 Pc'],
-            ['name' => 'Schezwan Noodles', 'image' => 'https://images.unsplash.com/photo-1612929633738-8fe01f72813c?w=300&h=300&fit=crop', 'price' => 280, 'desc' => '300g'],
-            ['name' => 'Steak Frites', 'image' => 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300&h=300&fit=crop', 'price' => 1200, 'desc' => '350g'],
-        ],
-        'starters' => [
-            ['name' => 'Garlic Bread', 'image' => 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300&h=300&fit=crop', 'price' => 150, 'desc' => '4 Pcs'],
-            ['name' => 'Bruschetta', 'image' => 'https://images.unsplash.com/photo-1541014741259-de529411b96a?w=300&h=300&fit=crop', 'price' => 220, 'desc' => '6 Pcs'],
-            ['name' => 'Cheese Balls', 'image' => 'https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?w=300&h=300&fit=crop', 'price' => 180, 'desc' => '8 Pcs'],
-            ['name' => 'Chicken Wings', 'image' => 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=300&h=300&fit=crop', 'price' => 299, 'desc' => '6 Pcs'],
-            ['name' => 'Spring Rolls', 'image' => 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=300&h=300&fit=crop', 'price' => 160, 'desc' => '4 Pcs'],
-        ],
-        'desserts' => [
-            ['name' => 'Cheesecake', 'image' => 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=300&h=300&fit=crop', 'price' => 250, 'desc' => '1 Slice'],
-            ['name' => 'Chocolate Cake', 'image' => 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300&h=300&fit=crop', 'price' => 200, 'desc' => '1 Slice'],
-            ['name' => 'Tiramisu', 'image' => 'https://images.unsplash.com/photo-1563805042-7684c8a9e9cb?w=300&h=300&fit=crop', 'price' => 280, 'desc' => '1 Portion'],
-            ['name' => 'Ice Cream', 'image' => 'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=300&h=300&fit=crop', 'price' => 120, 'desc' => '2 Scoops'],
-            ['name' => 'Apple Pie', 'image' => 'https://images.unsplash.com/photo-1514844308465-4dcfbc3e9f4d?w=300&h=300&fit=crop', 'price' => 220, 'desc' => '1 Slice'],
-        ],
-        'drinks' => [
-            ['name' => 'Mojito', 'image' => 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=300&h=300&fit=crop', 'price' => 180, 'desc' => '300ml'],
-            ['name' => 'Cold Coffee', 'image' => 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=300&h=300&fit=crop', 'price' => 150, 'desc' => '300ml'],
-            ['name' => 'Cappuccino', 'image' => 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=300&h=300&fit=crop', 'price' => 120, 'desc' => '200ml'],
-            ['name' => 'Coke Can', 'image' => 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=300&h=300&fit=crop', 'price' => 60, 'desc' => '330ml'],
-            ['name' => 'Fresh Lime', 'image' => 'https://images.unsplash.com/photo-1546171753-97d7676e4602?w=300&h=300&fit=crop', 'price' => 80, 'desc' => '300ml'],
-        ],
-    ];
+    // Products from card_product_pricing (dynamic - no hardcoding)
+    $products_by_cat = [];
+    $cat_display_names = [];
+    $db_config = dirname(__DIR__) . '/app/config/database.php';
+    if (file_exists($db_config)) {
+        require_once $db_config;
+        $demo_card_query = mysqli_query($connect, "SELECT pp.card_id FROM card_product_pricing pp INNER JOIN digi_card dc ON dc.id = pp.card_id ORDER BY pp.card_id ASC LIMIT 1");
+        if ($demo_card_query && $dc = mysqli_fetch_assoc($demo_card_query)) {
+            $card_db_id = intval($dc['card_id']);
+            $prod_query = mysqli_query($connect, "
+                SELECT pp.*,
+                    COALESCE(pc.category_name, ucc.category_name,
+                        CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
+                    ) as category_name
+                FROM card_product_pricing pp
+                LEFT JOIN product_categories pc ON pp.product_category = pc.id
+                LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.is_active = 1
+                WHERE pp.card_id='$card_db_id'
+                ORDER BY pp.product_category, pp.display_order ASC
+            ");
+            if ($prod_query) {
+                while ($p = mysqli_fetch_assoc($prod_query)) {
+                    if (!empty($p['product_name'])) {
+                        $cat = !empty($p['category_name']) ? strtolower(preg_replace('/[^a-z0-9]+/i', '_', trim($p['category_name']))) : 'mains';
+                        if (!isset($products_by_cat[$cat])) {
+                            $products_by_cat[$cat] = [];
+                            $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
+                        }
+                        $img = 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&h=300&fit=crop';
+                        if (!empty($p['product_image'])) {
+                            if (is_string($p['product_image']) && strlen($p['product_image']) < 255 && strpos($p['product_image'], '.') !== false && strpos($p['product_image'], '/') === false && strpos($p['product_image'], '\\') === false) {
+                                $img = '../assets/upload/websites/product-pricing/' . htmlspecialchars($p['product_image']);
+                            } elseif (!is_string($p['product_image']) || strlen($p['product_image']) > 100) {
+                                $img = 'data:image/*;base64,' . base64_encode($p['product_image']);
+                            }
+                        }
+                        $mrp = floatval($p['mrp'] ?? 0);
+                        $price = floatval($p['selling_price'] ?? 0);
+                        if ($mrp <= 0) $mrp = $price;
+                        $products_by_cat[$cat][] = [
+                            'name' => htmlspecialchars($p['product_name']),
+                            'image' => $img,
+                            'mrp' => $mrp,
+                            'price' => $price,
+                            'desc' => htmlspecialchars($p['product_description'] ?? ''),
+                        ];
+                    }
+                }
+            }
+        }
+    }
 
-    $business_hours = [
+    $business_hours = [0
         ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
         ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
         ['days' => 'Sunday', 'hours' => 'Closed'],
@@ -308,24 +381,27 @@ if ($row) {
         'https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400&h=400&fit=crop',
         'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=400&fit=crop',
     ];
+    $videos = []; // Demo fallback: no videos when no card loaded
 }
-
-$videos = [ // Static for now (youtube links can be from d_youtube1..20 in future)
-    ['title' => 'Perfect Steaks Guide', 'thumb' => 'https://images.unsplash.com/photo-1556910110-a5a63dfd393c?w=600&h=400&fit=crop'],
-    ['title' => 'Plating Masterclass', 'thumb' => 'https://images.unsplash.com/photo-1478144592103-25e218a04891?w=600&h=400&fit=crop'],
-    ['title' => 'Behind the Scenes', 'thumb' => 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=600&h=400&fit=crop'],
-    ['title' => 'How to chop like a pro', 'thumb' => 'https://images.unsplash.com/photo-1507048331197-7d4ac70811cf?w=600&h=400&fit=crop'],
-    ['title' => 'Wine Pairing 101', 'thumb' => 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=400&fit=crop'],
-    ['title' => 'My Kitchen Tour', 'thumb' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop'],
-];
-$cat_order = ['mains', 'starters', 'desserts', 'drinks'];
+$cat_order = !empty($products_by_cat) ? array_keys($products_by_cat) : ['mains', 'starters', 'desserts', 'drinks'];
 $cat_labels = ['mains' => 'Mains', 'starters' => 'Starters', 'desserts' => 'Desserts', 'drinks' => 'Drinks'];
+if (!empty($cat_display_names) && is_array($cat_display_names)) {
+    foreach ($cat_display_names as $ck => $label) { $cat_labels[$ck] = $label; }
+}
 $cat_icons = [
     'mains' => 'https://cdn-icons-png.flaticon.com/512/3480/3480823.png',
     'starters' => 'https://cdn-icons-png.flaticon.com/512/2515/2515183.png',
     'desserts' => 'https://cdn-icons-png.flaticon.com/512/3233/3233015.png',
     'drinks' => 'https://cdn-icons-png.flaticon.com/512/3050/3050116.png',
 ];
+$products_flat = [];
+if (!empty($products_by_cat)) {
+    foreach ($cat_order as $ck) {
+        if (isset($products_by_cat[$ck])) {
+            foreach ($products_by_cat[$ck] as $p) { $products_flat[] = $p; }
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -387,7 +463,7 @@ $cat_icons = [
                 <img src="<?php echo htmlspecialchars($hero_logo); ?>" alt="Logo" class="w-full h-full object-cover">
             </div>
             <h1 class="text-3xl md:text-4xl font-bold mb-1"><?php echo $hero_name; ?></h1>
-            <p class="text-primary font-medium tracking-wide text-sm md:text-base mb-6"><?php echo $hero_title; ?></p>
+           
 
             <div class="flex gap-4 w-full max-w-sm justify-center">
                 <a href="tel:+<?php echo $phone; ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
@@ -463,18 +539,45 @@ $cat_icons = [
         </div>
     </section>
 
-    <!-- 6. Services Section -->
-    <section id="mw-services" class="mw-services mw-section-padding">
+    <!-- 6. Services Section (same layout as Special Offers) -->
+    <section id="mw-services" class="mw-services mw-section-padding bg-cardbg/30">
         <h2 class="mw-section-title">Our Services</h2>
         <div class="mw-grid-services">
-            <?php foreach ($services as $svc): ?>
-            <div class="mw-card p-4 text-center hover:border-primary/50 transition">
-                <img src="<?php echo htmlspecialchars($svc['image']); ?>" class="w-full h-24 object-cover rounded-lg mb-3" alt="<?php echo htmlspecialchars($svc['name']); ?>">
-                <h3 class="text-heading font-semibold text-sm mb-1"><?php echo $svc['name']; ?></h3>
+            <?php foreach ($services as $idx => $svc): ?>
+            <div class="mw-card mw-offer-card mw-service-card bg-cardbg rounded-theme cursor-pointer overflow-hidden relative" data-svc-index="<?php echo $idx; ?>" role="button" tabindex="0">
+                <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>" class="w-full h-40 object-cover">
+                <div class="p-5">
+                    <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $svc['name']; ?></h3>
+                    <p class="text-sm text-textmain line-clamp-3 mb-4"><?php echo !empty($svc['desc']) ? $svc['desc'] : 'Contact us for details.'; ?></p>
+                    <span class="block w-full py-2.5 rounded-theme font-semibold transition text-center bg-primary/20 text-primary">View Details</span>
+                </div>
             </div>
             <?php endforeach; ?>
         </div>
     </section>
+
+    <!-- Services Full-Screen Lightbox -->
+    <div id="mw-services-lightbox" class="mw-services-lightbox" aria-hidden="true">
+        <button type="button" class="mw-lightbox-close" aria-label="Close"><i class="fas fa-times"></i></button>
+        <div class="mw-lightbox-swipe">
+            <?php foreach ($services as $idx => $svc): ?>
+            <div class="mw-lightbox-slide" data-svc-index="<?php echo $idx; ?>">
+                <div class="mw-lightbox-image-wrap">
+                    <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>">
+                </div>
+                <div class="mw-lightbox-content">
+                    <h3 class="mw-lightbox-title"><?php echo $svc['name']; ?></h3>
+                    <p class="mw-lightbox-desc"><?php echo !empty($svc['desc']) ? nl2br($svc['desc']) : 'Contact us for details.'; ?></p>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="mw-lightbox-nav">
+            <button type="button" class="mw-lightbox-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+            <span class="mw-lightbox-counter"><span id="mw-lightbox-current">1</span> / <?php echo count($services); ?></span>
+            <button type="button" class="mw-lightbox-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
 
 
     <!-- 7. Special Offers Section -->
@@ -498,7 +601,7 @@ $cat_icons = [
     <!-- 8. Products Section (Blinkit Style) -->
     <?php if (!empty($products_by_cat)): ?>
     <section id="mw-products" class="mw-products mw-section-padding">
-        <h2 class="mw-section-title">Order Menu</h2>
+        <h2 class="mw-section-title">Shop Online</h2>
         
         <div class="mw-blinkit-container">
             <!-- Sidebar Categories -->
@@ -515,14 +618,26 @@ $cat_icons = [
             <div class="mw-blinkit-main">
                 <?php foreach ($cat_order as $idx => $cat_key): if (!isset($products_by_cat[$cat_key]) || empty($products_by_cat[$cat_key])) continue; ?>
                 <div class="product-category-grid mw-grid-products <?php echo $idx === 0 ? 'active' : 'hidden'; ?>" id="grid-<?php echo htmlspecialchars($cat_key); ?>">
-                    <?php foreach ($products_by_cat[$cat_key] as $prod): ?>
-                    <div class="mw-card mw-product-card bg-white text-gray-800">
-                        <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full aspect-square object-cover rounded-md mb-2" alt="<?php echo htmlspecialchars($prod['name']); ?>">
-                        <h3 class="font-semibold text-sm leading-tight mb-1"><?php echo htmlspecialchars($prod['name']); ?></h3>
-                        <p class="text-xs text-gray-500 mb-2"><?php echo htmlspecialchars($prod['desc']); ?></p>
-                        <div class="mt-auto flex justify-between items-center">
-                            <span class="font-bold text-sm">₹<?php echo number_format($prod['price']); ?></span>
-                            <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I want to order: <?php echo urlencode($prod['name']); ?>" target="_blank" class="mw-btn-add">ADD</a>
+                    <?php foreach ($products_by_cat[$cat_key] as $pidx => $prod):
+                        $global_idx = 0;
+                        foreach ($cat_order as $ok) {
+                            if ($ok === $cat_key) { $global_idx += $pidx; break; }
+                            $global_idx += isset($products_by_cat[$ok]) ? count($products_by_cat[$ok]) : 0;
+                        } ?>
+                    <div class="mw-card mw-product-card mw-product-card-clickable bg-white text-gray-800 cursor-pointer" data-product-index="<?php echo $global_idx; ?>">
+                        <div class="relative">
+                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full aspect-square object-cover rounded-t-md" alt="<?php echo htmlspecialchars($prod['name']); ?>">
+                            <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I want to order: <?php echo urlencode($prod['name']); ?>" target="_blank" class="mw-btn-add mw-btn-add-overlay absolute bottom-2 right-2 z-10" onclick="event.stopPropagation()">ADD</a>
+                        </div>
+                        <div class="p-2">
+                            <h3 class="font-semibold text-sm leading-tight mb-1"><?php echo htmlspecialchars($prod['name']); ?></h3>
+                            <p class="text-xs text-gray-500 mb-2 line-clamp-2"><?php echo htmlspecialchars($prod['desc']); ?></p>
+                            <div class="flex items-center gap-2 justify-between">
+                                <?php if (isset($prod['mrp']) && $prod['mrp'] > $prod['price']): ?>
+                                <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
+                                <?php endif; ?>
+                                <span class="font-bold text-sm">₹<?php echo number_format($prod['price']); ?></span>
+                            </div>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -532,21 +647,60 @@ $cat_icons = [
             </div>
         </div>
     </section>
-    <?php endif; ?>
 
-    <!-- 9. Video Section -->
-    <section class="mw-video-gallery mw-section-padding bg-cardbg/20">
-        <h2 class="mw-section-title">Cooking Vlogs</h2>
-        <div class="mw-slider-horizontal hide-scrollbar">
-            <?php foreach ($videos as $v): ?>
-            <div class="mw-slider-item mw-card w-[80vw] md:w-[300px] h-[45vw] md:h-[180px] relative group cursor-pointer overflow-hidden">
-                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>">
-                <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="fas fa-play ml-1"></i></div></div>
-                <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
+    <!-- Product Detail Lightbox (full view with swipe) -->
+    <?php if (!empty($products_flat)): ?>
+    <div id="mw-product-lightbox" class="mw-product-lightbox" aria-hidden="true">
+        <button type="button" class="mw-lightbox-close" aria-label="Close"><i class="fas fa-times"></i></button>
+        <div class="mw-product-lightbox-swipe">
+            <?php foreach ($products_flat as $p): ?>
+            <div class="mw-product-lightbox-slide">
+                <div class="mw-product-lightbox-image"><img src="<?php echo htmlspecialchars($p['image']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>"></div>
+                <div class="mw-product-lightbox-body">
+                    <h3 class="mw-product-lightbox-title"><?php echo $p['name']; ?></h3>
+                    <p class="mw-product-lightbox-desc"><?php echo nl2br($p['desc']); ?></p>
+                    <div class="mw-product-lightbox-prices">
+                        <?php if (isset($p['mrp']) && $p['mrp'] > $p['price']): ?>
+                        <span class="text-gray-400 line-through">₹<?php echo number_format($p['mrp']); ?></span>
+                        <?php endif; ?>
+                        <span class="font-bold text-lg">₹<?php echo number_format($p['price']); ?></span>
+                    </div>
+                    <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I want to order: <?php echo urlencode($p['name']); ?>" target="_blank" class="mw-btn-add mw-btn-add-overlay inline-block mt-4">ADD</a>
+                </div>
             </div>
             <?php endforeach; ?>
         </div>
+        <div class="mw-lightbox-nav">
+            <button type="button" class="mw-product-lightbox-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+            <span class="mw-lightbox-counter"><span id="mw-product-lightbox-current">1</span> / <?php echo count($products_flat); ?></span>
+            <button type="button" class="mw-product-lightbox-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+    <?php endif; ?>
+    <?php endif; ?>
+
+    <!-- 9. Video Section (vertical grid, 6 visible + Load more) -->
+    <?php if (!empty($videos)): ?>
+    <section class="mw-video-gallery mw-section-padding bg-cardbg/20">
+        <h2 class="mw-section-title">Videos</h2>
+        <div class="mw-grid-videos">
+            <?php foreach ($videos as $idx => $v): ?>
+            <a href="<?php echo htmlspecialchars($v['url']); ?>" target="_blank" rel="noopener" class="mw-video-item mw-card aspect-video relative group cursor-pointer overflow-hidden block <?php echo $idx >= 6 ? 'mw-video-hidden' : ''; ?>">
+                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>">
+                <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="fas fa-play ml-1"></i></div></div>
+                <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+        <?php if (count($videos) > 6): ?>
+        <div class="mt-6 text-center">
+            <button type="button" id="mw-videos-load-more" class="w-full max-w-xs mx-auto py-3 px-6 rounded-theme font-semibold transition bg-primary/20 text-primary hover:bg-primary hover:text-bgbase border border-primary/50">
+                Load more (<?php echo count($videos) - 6; ?> more)
+            </button>
+        </div>
+        <?php endif; ?>
     </section>
+    <?php endif; ?>
 
     <!-- 10. Image Gallery -->
     <section id="mw-gallery" class="mw-image-gallery mw-section-padding">
@@ -636,7 +790,6 @@ $cat_icons = [
 
     <!-- 13. Footer -->
     <footer class="mw-footer mw-section-padding text-center border-t border-white/5 mt-8">
-        <div class="font-heading text-3xl text-heading mb-4">Create Your Brand</div>
         <p class="text-xs text-textmain mb-2">&copy; <?php echo date('Y'); ?> <?php echo $hero_name; ?>. All rights reserved.</p>
         <p class="text-[10px] uppercase tracking-widest text-textmain/50">Powered by <span class="text-primary">MiniWebsite.in</span></p>
     </footer>
