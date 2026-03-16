@@ -30,16 +30,19 @@
     var currentFile = null;
 
     function updatePreview() {
-        if (!cropperInstance) return;
+        if (!cropperInstance || !currentOptions) return;
+        var cw = (currentOptions.cropWidth != null) ? currentOptions.cropWidth : 512;
+        var ch = (currentOptions.cropHeight != null) ? currentOptions.cropHeight : 512;
         var canvas = cropperInstance.getCroppedCanvas({
-            width: 512,
-            height: 512,
+            width: cw,
+            height: ch,
             imageSmoothingEnabled: true,
             imageSmoothingQuality: 'high'
         });
         if (canvas) {
             var box = document.getElementById('cropPreviewBox');
             var dim = document.getElementById('cropCroppedDimensions');
+            var titleEl = document.getElementById('cropPreviewTitle');
             if (box) {
                 box.innerHTML = '';
                 var img = document.createElement('img');
@@ -48,7 +51,8 @@
                 img.style.objectFit = 'contain';
                 box.appendChild(img);
             }
-            if (dim) dim.textContent = '512 × 512 px';
+            if (dim) dim.textContent = cw + ' × ' + ch + ' px';
+            if (titleEl) titleEl.textContent = 'Preview (' + cw + '×' + ch + ')';
         }
     }
 
@@ -71,6 +75,8 @@
                 $modal.modal('hide');
                 return;
             }
+            var opts = $modal.data('capturedCropOptions') || currentOptions;
+            if (opts) currentOptions = opts;
             var img = document.getElementById('imageToCrop');
             if (!img || !img.src) return;
             if (cropperInstance) {
@@ -79,8 +85,9 @@
             }
             setTimeout(function() {
                 try {
+                    var aspectRatio = (opts && opts.aspectRatio != null) ? opts.aspectRatio : 1;
                     cropperInstance = new Cropper(img, {
-                        aspectRatio: 1,
+                        aspectRatio: aspectRatio,
                         viewMode: 1,
                         dragMode: 'move',
                         autoCropArea: 0.8,
@@ -187,9 +194,11 @@
 
         $('#cropAndSaveBtn').off('click').on('click', function() {
             if (!cropperInstance || !currentOptions) return;
+            var cropW = (currentOptions.cropWidth != null) ? currentOptions.cropWidth : 512;
+            var cropH = (currentOptions.cropHeight != null) ? currentOptions.cropHeight : 512;
             var canvas = cropperInstance.getCroppedCanvas({
-                width: 512,
-                height: 512,
+                width: cropW,
+                height: cropH,
                 imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high'
             });
@@ -199,7 +208,11 @@
             }
 
             if (currentOptions.method === 'base64') {
-                var dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                // Use PNG to preserve transparency for logos; JPEG for photos/hero images
+                var outputFormat = (currentOptions.outputFormat || 'jpeg').toLowerCase();
+                var mime = outputFormat === 'png' ? 'image/png' : 'image/jpeg';
+                var quality = outputFormat === 'png' ? undefined : 0.95;
+                var dataUrl = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
                 var base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
                 if (currentOptions.hiddenField) $(currentOptions.hiddenField).val(base64);
                 if (currentOptions.previewSelector) $(currentOptions.previewSelector).attr('src', dataUrl).show();
@@ -277,9 +290,12 @@
 
             bindModalHandlers();
 
+            var optsForThisOpen = $.extend({}, currentOptions);
             var reader = new FileReader();
-            reader.onload = function(e) {
-                $('#imageToCrop').attr('src', e.target.result);
+            reader.onload = (function(capturedOpts) {
+                return function(e) {
+                    $('#imageCropModal').data('capturedCropOptions', capturedOpts);
+                    $('#imageToCrop').attr('src', e.target.result);
                 
                     // Calculate dynamic z-index based on currently open modals
                     function applyDynamicZIndex() {
@@ -320,7 +336,8 @@
                 });
                 
                 cropModal.modal('show');
-            };
+                };
+            })(optsForThisOpen);
             reader.readAsDataURL(file);
         }
     };

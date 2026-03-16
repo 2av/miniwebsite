@@ -34,7 +34,7 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             throw new Exception('File validation library not found');
         }
         
-        if(!function_exists('processImageUploadWithAutoCrop')) {
+        if(!function_exists('processHeroImageUpload') && !function_exists('processImageUploadWithAutoCrop')) {
             throw new Exception('Image processing function not available');
         }
         
@@ -42,16 +42,12 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             throw new Exception('File upload error: ' . $_FILES['product_image']['error']);
         }
         
-        $result = processImageUploadWithAutoCrop(
-            $_FILES['product_image'], 
-            600,      // Target size: 600x600
-            250000,   // Target file size: 250KB
-            200000,   // Min file size: 200KB
-            300000,   // Max file size: 300KB
-            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-            'jpeg',
-            null
-        );
+        // Special offer images: 2:1 ratio (width twice height)
+        if(function_exists('processHeroImageUpload')) {
+            $result = processHeroImageUpload($_FILES['product_image'], 1200, 600);
+        } else {
+            $result = processImageUploadWithAutoCrop($_FILES['product_image'], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
+        }
         
         if($result['status']) {
             $base64Image = base64_encode($result['data']);
@@ -59,7 +55,7 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             echo json_encode([
                 'success' => true,
                 'image_data' => $base64Image,
-                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 600, 'height' => 600],
+                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 1200, 'height' => 600],
                 'file_size' => isset($result['file_size']) ? $result['file_size'] : 0,
                 'message' => 'Image processed successfully'
             ]);
@@ -261,23 +257,20 @@ if(isset($_POST['offer'])){
                     $binary_data = base64_decode($_POST["processed_offer_image_data$slot_found"]);
                     $offer_image = saveOfferImageToFilesystem($binary_data, $offerUploadDirAbs, $card_id, $offer_title);
                 } elseif(!empty($_FILES["offer_img$slot_found"]['tmp_name'])) {
-                    if(function_exists('processImageUploadWithAutoCrop')) {
-                        try {
-                            $result = processImageUploadWithAutoCrop(
-                                $_FILES["offer_img$slot_found"], 
-                                600, 250000, 200000, 300000,
-                                ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-                                'jpeg', null
-                            );
-                            if($result['status']) {
-                                $offer_image = saveOfferImageToFilesystem($result['data'], $offerUploadDirAbs, $card_id, $offer_title);
-                                if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
-                                    @unlink($result['file_path']);
-                                }
-                            }
-                        } catch(Exception $e) {
-                            $error_message .= '<div class="alert alert-danger">Error processing image: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                    if(function_exists('processHeroImageUpload')) {
+                        $result = processHeroImageUpload($_FILES["offer_img$slot_found"], 1200, 600);
+                    } elseif(function_exists('processImageUploadWithAutoCrop')) {
+                        $result = processImageUploadWithAutoCrop($_FILES["offer_img$slot_found"], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
+                    } else {
+                        $result = ['status' => false];
+                    }
+                    if($result['status']) {
+                        $offer_image = saveOfferImageToFilesystem($result['data'], $offerUploadDirAbs, $card_id, $offer_title);
+                        if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                            @unlink($result['file_path']);
                         }
+                    } else {
+                        $error_message .= isset($result['message']) ? $result['message'] : '<div class="alert alert-danger">Error processing image.</div>';
                     }
                 }
                 
@@ -361,35 +354,27 @@ if(isset($_POST['offer'])){
                     $binary_data = base64_decode($_POST["processed_offer_image_data$x"]);
                     $offer_image = saveOfferImageToFilesystem($binary_data, $offerUploadDirAbs, $card_id, $offer_title);
                 } elseif(!empty($_FILES["offer_img$x"]['tmp_name'])) {
-                    if(function_exists('processImageUploadWithAutoCrop')) {
-                        try {
-                            $result = processImageUploadWithAutoCrop(
-                                $_FILES["offer_img$x"], 
-                                600,      
-                                250000,   
-                                200000,   
-                                300000,   
-                                ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-                                'jpeg',
-                                null
-                            );
-                            
-                            if($result['status']) {
-                                $offer_image = saveOfferImageToFilesystem($result['data'], $offerUploadDirAbs, $card_id, $offer_title);
-                                if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
-                                    @unlink($result['file_path']);
-                                }
-                            } else {
-                                $error_message .= isset($result['message']) ? $result['message'] : '<div class="alert alert-danger">Error processing image for offer '.$x.'.</div>';
+                    if(function_exists('processHeroImageUpload')) {
+                        $result = processHeroImageUpload($_FILES["offer_img$x"], 1200, 600);
+                        if($result['status']) {
+                            $offer_image = saveOfferImageToFilesystem($result['data'], $offerUploadDirAbs, $card_id, $offer_title);
+                        } else {
+                            $error_message .= isset($result['message']) ? $result['message'] : '<div class="alert alert-danger">Error processing image for offer '.$x.'.</div>';
+                        }
+                    } elseif(function_exists('processImageUploadWithAutoCrop')) {
+                        $result = processImageUploadWithAutoCrop($_FILES["offer_img$x"], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
+                        if($result['status']) {
+                            $offer_image = saveOfferImageToFilesystem($result['data'], $offerUploadDirAbs, $card_id, $offer_title);
+                            if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                                @unlink($result['file_path']);
                             }
-                        } catch(Exception $e) {
-                            $error_message .= '<div class="alert alert-danger">Error processing image for offer '.$x.': ' . htmlspecialchars($e->getMessage()) . '</div>';
+                        } else {
+                            $error_message .= isset($result['message']) ? $result['message'] : '<div class="alert alert-danger">Error processing image for offer '.$x.'.</div>';
                         }
                     } else {
                         $filename = $_FILES["offer_img$x"]['name'];
                         $imageFileType = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
                         $file_allow = array('png', 'jpeg', 'jpg', 'gif', 'webp');
-                        
                         if(in_array($imageFileType, $file_allow)) {
                             if($_FILES["offer_img$x"]['size'] <= 250000) {
                                 $source = $_FILES["offer_img$x"]['tmp_name'];
@@ -1004,7 +989,10 @@ function handleOfferImageUpload(input) {
             
             ImageCropUpload.open(file, {
                 method: 'base64',
-                title: 'Adjust & Crop Offer Banner',
+                title: 'Adjust & Crop Offer Banner (2:1 ratio)',
+                aspectRatio: 2,
+                cropWidth: 1200,
+                cropHeight: 600,
                 onSuccess: function(base64Data) {
                     if (window.offerImageCropCallback) window.offerImageCropCallback(base64Data);
                 },

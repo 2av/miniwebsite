@@ -682,6 +682,67 @@ function processImageUploadWithAutoResize($file, $maxSize = 250000, $maxWidth = 
 }
 
 /**
+ * Process hero image upload with 1200x600 aspect crop (2:1 ratio)
+ * Used for hero/banner images when direct file upload (no client-side crop)
+ */
+function processHeroImageUpload($file, $targetWidth = 1200, $targetHeight = 600, $allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']) {
+    $result = ['status' => false, 'message' => '', 'data' => null, 'file_path' => null];
+    if (empty($file['tmp_name']) || $file['error'] != UPLOAD_ERR_OK) {
+        $result['message'] = 'No file uploaded or upload error.';
+        return $result;
+    }
+    $fileType = mime_content_type($file['tmp_name']);
+    if (!in_array($fileType, $allowedTypes)) {
+        $result['message'] = 'Invalid file type. Only PNG, JPG, JPEG, GIF, WEBP allowed.';
+        return $result;
+    }
+    if (!extension_loaded('gd')) {
+        $result['message'] = 'GD library not available.';
+        return $result;
+    }
+    try {
+        $imgInfo = getimagesize($file['tmp_name']);
+        if ($imgInfo === false) { $result['message'] = 'Invalid image.'; return $result; }
+        $origW = $imgInfo[0]; $origH = $imgInfo[1]; $mime = $imgInfo['mime'];
+        $sourceImage = null;
+        switch ($mime) {
+            case 'image/jpeg': $sourceImage = imagecreatefromjpeg($file['tmp_name']); break;
+            case 'image/png': $sourceImage = imagecreatefrompng($file['tmp_name']); break;
+            case 'image/gif': $sourceImage = imagecreatefromgif($file['tmp_name']); break;
+            case 'image/webp': $sourceImage = function_exists('imagecreatefromwebp') ? imagecreatefromwebp($file['tmp_name']) : null; break;
+            default: $result['message'] = 'Unsupported image type.'; return $result;
+        }
+        if (!$sourceImage) { $result['message'] = 'Failed to load image.'; return $result; }
+        $targetAspect = $targetWidth / $targetHeight;
+        $srcAspect = $origW / $origH;
+        if ($srcAspect > $targetAspect) {
+            $cropH = $origH;
+            $cropW = (int)($origH * $targetAspect);
+            $cropX = (int)(($origW - $cropW) / 2);
+            $cropY = 0;
+        } else {
+            $cropW = $origW;
+            $cropH = (int)($origW / $targetAspect);
+            $cropX = 0;
+            $cropY = (int)(($origH - $cropH) / 2);
+        }
+        $targetImage = imagecreatetruecolor($targetWidth, $targetHeight);
+        imagecopyresampled($targetImage, $sourceImage, 0, 0, $cropX, $cropY, $targetWidth, $targetHeight, $cropW, $cropH);
+        imagedestroy($sourceImage);
+        $tempFile = tempnam(sys_get_temp_dir(), 'hero_') . '.jpg';
+        imagejpeg($targetImage, $tempFile, 85);
+        imagedestroy($targetImage);
+        $imageData = file_get_contents($tempFile);
+        @unlink($tempFile);
+        $result['status'] = true;
+        $result['data'] = $imageData;
+    } catch (Exception $e) {
+        $result['message'] = $e->getMessage();
+    }
+    return $result;
+}
+
+/**
  * Process image upload with automatic 1:1 crop, resize, and compression
  * Automatically crops image to 1:1 ratio (center crop), resizes to target dimensions,
  * and compresses to meet target file size requirements

@@ -14,7 +14,12 @@ if (!empty($card_id_slug)) {
     if (file_exists($db_config)) {
         require_once $db_config;
         $card_id_esc = mysqli_real_escape_string($connect, $card_id_slug);
-        $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE card_id='$card_id_esc'");
+        // Support both: slug (card_id) and numeric id (from card_number in URL)
+        if (ctype_digit($card_id_slug)) {
+            $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE id='$card_id_esc'");
+        } else {
+            $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE card_id='$card_id_esc'");
+        }
         if ($query && mysqli_num_rows($query) > 0) {
             $row = mysqli_fetch_assoc($query);
         }
@@ -27,8 +32,14 @@ if ($row) {
     $hero_name = !empty($row['d_comp_name']) ? htmlspecialchars($row['d_comp_name']) : trim((isset($row['d_f_name']) ? $row['d_f_name'] : '') . ' ' . (isset($row['d_l_name']) ? $row['d_l_name'] : ''));
     if (empty($hero_name)) $hero_name = 'Your Name';
     $hero_title = !empty($row['d_position']) ? htmlspecialchars($row['d_position']) : 'Executive Chef';
-    $hero_cover = !empty($row['d_logo']) ? 'data:image/*;base64,' . base64_encode($row['d_logo']) : 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&q=80';
-    $hero_logo = $hero_cover; // Use same or separate cover/logo in digi_card
+    // Hero cover: use d_hero_image_location first, fallback to unsplash
+    $hero_cover = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&q=80';
+    if (!empty($row['d_hero_image_location'])) {
+        $hero_path = trim($row['d_hero_image_location']);
+        if (strpos($hero_path, '/') === false) $hero_path = 'assets/upload/websites/company_details/' . $hero_path;
+        $hero_cover = '../' . preg_replace('#^\.\./+#', '', $hero_path);
+    }
+    $hero_logo = $hero_cover; // placeholder; logo uses d_logo below
     if (!empty($row['d_logo_location'])) {
         $logo_path = trim($row['d_logo_location']);
         if (strpos($logo_path, '/') === false) $logo_path = 'assets/upload/websites/company_details/' . $logo_path;
@@ -42,17 +53,25 @@ if ($row) {
     $whatsapp = !empty($row['d_whatsapp']) ? preg_replace('/[^0-9+]/', '', $row['d_whatsapp']) : $phone;
     $about = !empty($row['d_about_us']) ? htmlspecialchars($row['d_about_us']) : 'Passionately crafting exceptional culinary experiences.';
     $email = !empty($row['d_email']) ? htmlspecialchars($row['d_email']) : 'contact@example.com';
-    $location = !empty($row['d_address']) ? htmlspecialchars($row['d_address']) : 'Berlin, Germany';
+    // Location: Area, City, State only
+    $locParts = array_filter([
+        !empty($row['d_address2']) ? trim($row['d_address2']) : null,
+        !empty($row['d_city']) ? trim($row['d_city']) : null,
+        !empty($row['d_state']) ? trim($row['d_state']) : null,
+    ]);
+    $location = !empty($locParts) ? htmlspecialchars(implode(', ', $locParts)) : 'Berlin, Germany';
     $website = !empty($row['d_website']) ? htmlspecialchars($row['d_website']) : '';
+    $google_direction = !empty($row['d_location']) ? htmlspecialchars($row['d_location']) : '';
     $share_url = $base_url . '/' . htmlspecialchars($row['card_id'] ?? $card_id_slug);
 
-    // Social links from digi_card
+    // Social links from digi_card (6 icons: Facebook, Instagram, LinkedIn, YouTube, X/Twitter, Pinterest)
     $social_links = [
         ['icon' => 'facebook-f', 'url' => $row['d_fb'] ?? '#'],
         ['icon' => 'instagram', 'url' => $row['d_instagram'] ?? '#'],
         ['icon' => 'linkedin-in', 'url' => $row['d_linkedin'] ?? '#'],
         ['icon' => 'youtube', 'url' => $row['d_youtube'] ?? '#'],
-        ['icon' => 'twitter', 'url' => $row['d_twitter'] ?? '#'],
+        ['icon' => 'x-twitter', 'url' => $row['d_twitter'] ?? '#'],
+        ['icon' => 'pinterest', 'url' => $row['d_pinterest'] ?? '#'],
     ];
 
     // Services from card_products_services (products & services)
@@ -107,16 +126,39 @@ if ($row) {
     }
 
     // Products from card_product_pricing (grouped by category for Blinkit UI)
+    // category_name: from product_categories OR user_custom_categories
+    // Fallback: when both NULL but product_category has id, use "Category N" so products don't all lump into "mains"
     $products_by_cat = [];
-    $prod_query = mysqli_query($connect, "SELECT pp.*, pc.category_name FROM card_product_pricing pp LEFT JOIN product_categories pc ON pp.product_category = pc.id WHERE pp.card_id='$card_db_id' ORDER BY pp.product_category, pp.display_order ASC");
+    $cat_display_names = [];
+    $prod_query = mysqli_query($connect, "
+        SELECT pp.*,
+            COALESCE(
+                pc.category_name,
+                ucc.category_name,
+                CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0
+                    THEN CONCAT('Category ', pp.product_category) ELSE NULL END
+            ) as category_name
+        FROM card_product_pricing pp
+        LEFT JOIN product_categories pc ON pp.product_category = pc.id
+        LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.is_active = 1
+        WHERE pp.card_id='$card_db_id'
+        ORDER BY pp.product_category, pp.display_order ASC
+    ");
     if ($prod_query) {
         while ($p = mysqli_fetch_assoc($prod_query)) {
             if (!empty($p['product_name'])) {
                 $cat = !empty($p['category_name']) ? strtolower(preg_replace('/[^a-z0-9]+/i', '_', trim($p['category_name']))) : 'mains';
-                if (!isset($products_by_cat[$cat])) $products_by_cat[$cat] = [];
+                if (!isset($products_by_cat[$cat])) {
+                    $products_by_cat[$cat] = [];
+                    $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
+                }
                 $img = 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&h=300&fit=crop';
-                if (!empty($p['product_image']) && strpos($p['product_image'], '.') !== false && strpos($p['product_image'], '/') === false) {
-                    $img = '../assets/upload/websites/product-pricing/' . htmlspecialchars($p['product_image']);
+                if (!empty($p['product_image'])) {
+                    if (is_string($p['product_image']) && strlen($p['product_image']) < 255 && strpos($p['product_image'], '.') !== false && strpos($p['product_image'], '/') === false && strpos($p['product_image'], '\\') === false) {
+                        $img = '../assets/upload/websites/product-pricing/' . htmlspecialchars($p['product_image']);
+                    } elseif (!is_string($p['product_image']) || strlen($p['product_image']) > 100) {
+                        $img = 'data:image/*;base64,' . base64_encode($p['product_image']);
+                    }
                 }
                 $products_by_cat[$cat][] = [
                     'name' => htmlspecialchars($p['product_name']),
@@ -127,7 +169,7 @@ if ($row) {
             }
         }
     }
-    // Build cat_order and labels from DB categories
+    // Build cat_order and labels from DB categories (no "All" tab - only real categories)
     $cat_order = array_keys($products_by_cat);
     $cat_labels = [];
     $cat_icons = [
@@ -137,7 +179,7 @@ if ($row) {
         'drinks' => 'https://cdn-icons-png.flaticon.com/512/3050/3050116.png',
     ];
     foreach ($cat_order as $ck) {
-        $cat_labels[$ck] = ucfirst(str_replace('_', ' ', $ck));
+        $cat_labels[$ck] = isset($cat_display_names[$ck]) ? $cat_display_names[$ck] : ucfirst(str_replace('_', ' ', $ck));
         if (!isset($cat_icons[$ck])) $cat_icons[$ck] = $cat_icons['mains'];
     }
 
@@ -184,6 +226,7 @@ if ($row) {
     $email = 'olivia@gourmet.com';
     $location = 'Berlin, Germany';
     $website = 'www.oliviaculinary.com';
+    $google_direction = '';
     $share_url = $base_url . '/demo/n.php';
 
     $social_links = [
@@ -191,7 +234,8 @@ if ($row) {
         ['icon' => 'instagram', 'url' => '#'],
         ['icon' => 'linkedin-in', 'url' => '#'],
         ['icon' => 'youtube', 'url' => '#'],
-        ['icon' => 'twitter', 'url' => '#'],
+        ['icon' => 'x-twitter', 'url' => '#'],
+        ['icon' => 'pinterest', 'url' => '#'],
     ];
 
     $services = [
@@ -296,7 +340,7 @@ $cat_icons = [
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -389,11 +433,11 @@ $cat_icons = [
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Location</h3>
                 <p class="text-heading font-medium text-sm"><?php echo $location; ?></p>
             </div>
-            <?php if (!empty($website)): ?>
+            <?php if (!empty($google_direction)): ?>
             <div class="mw-card p-4 flex flex-col gap-2">
-                <i class="fas fa-globe text-primary text-xl"></i>
-                <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Website</h3>
-                <p class="text-heading font-medium text-sm truncate"><?php echo $website; ?></p>
+                <i class="fas fa-directions text-primary text-xl"></i>
+                <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Google Direction</h3>
+                <a href="<?php echo htmlspecialchars((strpos($google_direction, 'http') === 0 ? $google_direction : 'https://' . $google_direction)); ?>" target="_blank" rel="noopener" class="text-heading font-medium text-sm truncate hover:underline">Get Directions</a>
             </div>
             <?php endif; ?>
         </div>
@@ -514,20 +558,30 @@ $cat_icons = [
         </div>
     </section>
 
-    <!-- 11. Payment QR Section -->
+    <!-- 11. Payment QR Section - Show all uploaded QR codes -->
+    <?php
+    $payment_qrs = [];
+    if ($row) {
+        if (!empty($row['d_qr_paytm'])) $payment_qrs[] = ['label' => 'Paytm', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_paytm'])];
+        if (!empty($row['d_qr_google_pay'])) $payment_qrs[] = ['label' => 'Google Pay', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_google_pay'])];
+        if (!empty($row['d_qr_phone_pay'])) $payment_qrs[] = ['label' => 'PhonePe', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_phone_pay'])];
+    }
+    if (empty($payment_qrs)) {
+        $payment_qrs = [['label' => 'Scan & Pay', 'img' => 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UPI://pay?pa=chef@upi&pn=Olivia']];
+    }
+    ?>
     <section id="mw-pay" class="mw-payment-qr mw-section-padding">
         <h2 class="mw-section-title">QR Code</h2>
-        <div class="max-w-xs mx-auto text-center">
-            <div class="mw-card p-6">
-                <h3 class="text-heading font-medium mb-4 uppercase tracking-widest text-sm">Scan & Pay</h3>
-                <div class="bg-white p-2 rounded-lg aspect-square w-48 mx-auto mb-6">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UPI://pay?pa=chef@upi&pn=Olivia" alt="Payment QR" class="w-full h-full">
+        <div class="max-w-2xl mx-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 <?php echo count($payment_qrs) >= 3 ? 'md:grid-cols-3' : ''; ?> gap-6">
+                <?php foreach ($payment_qrs as $qr): ?>
+                <div class="mw-card p-6 text-center">
+                    <h3 class="text-heading font-medium mb-4 uppercase tracking-widest text-sm"><?php echo htmlspecialchars($qr['label']); ?></h3>
+                    <div class="bg-white p-2 rounded-lg aspect-square w-40 mx-auto">
+                        <img src="<?php echo htmlspecialchars($qr['img']); ?>" alt="<?php echo htmlspecialchars($qr['label']); ?> QR" class="w-full h-full object-contain">
+                    </div>
                 </div>
-                <div class="flex justify-center gap-4 text-2xl text-textmain">
-                    <i class="fab fa-google-pay hover:text-primary transition cursor-pointer"></i>
-                    <i class="fab fa-amazon-pay hover:text-primary transition cursor-pointer"></i>
-                    <i class="fas fa-rupee-sign hover:text-primary transition cursor-pointer"></i>
-                </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </section>
@@ -563,11 +617,9 @@ $cat_icons = [
                         !empty($row['d_address']) ? $row['d_address'] : null,
                         !empty($row['d_address2']) ? $row['d_address2'] : null,
                         !empty($row['d_city']) ? $row['d_city'] : null,
-                        !empty($row['d_state']) ? $row['d_state'] : null,
-                        !empty($row['d_pincode']) ? $row['d_pincode'] : null,
-                        !empty($row['d_country']) ? $row['d_country'] : null,
+                        !empty($row['d_state']) ? $row['d_state'] : null
                     ]);
-                    $biz_addr = implode(', ', $addr_parts) ?: $location;
+                    $biz_addr = implode(' ', $addr_parts) ?: $location;
                 }
                 ?>
                 <p><span class="text-heading"><?php echo $biz_name; ?></span></p>

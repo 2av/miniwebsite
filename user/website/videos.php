@@ -24,8 +24,16 @@ if(mysqli_num_rows($query) == 0){
     echo '<script>alert("Card id does not match with your email account"); window.location.href="business-name.php";</script>';
     exit;
 } else {
-    // Use a dedicated variable to avoid collisions with included files (e.g. header.php)
-    $cardRow = mysqli_fetch_array($query);
+    // Use associative array so $cardRow['d_youtube1'] etc. work correctly
+    $cardRow = mysqli_fetch_assoc($query);
+}
+
+// Helper to add missing columns
+function ensureColumnExists($connect, $table, $column, $definition){
+    $res = @mysqli_query($connect, "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+    if(!$res || mysqli_num_rows($res) == 0){
+        @mysqli_query($connect, "ALTER TABLE `{$table}` ADD `{$column}` {$definition}");
+    }
 }
 
 // Handle form submission
@@ -33,11 +41,16 @@ if(isset($_POST['process3'])){
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'"');
     if(mysqli_num_rows($query) == 1){
 
-        // Build update parts dynamically for 20  fields
+        // Ensure d_youtube1..d_youtube20 columns exist
+        for($i = 1; $i <= 20; $i++){
+            ensureColumnExists($connect, 'digi_card', 'd_youtube' . $i, "VARCHAR(150) DEFAULT ''");
+        }
+
+        // Build update parts dynamically for 20 video link fields (d_youtube1..d_youtube20)
         $updates = array();
         for($i = 1; $i <= 20; $i++){
-            $field = 'd_' . $i;
-            $value = isset($_POST[$field]) ? mysqli_real_escape_string($connect, $_POST[$field]) : '';
+            $field = 'd_youtube' . $i;
+            $value = isset($_POST[$field]) ? mysqli_real_escape_string($connect, trim($_POST[$field])) : '';
             $updates[] = $field . '="' . $value . '"';
         }
         $update_sql = 'UPDATE digi_card SET ' . implode(', ', $updates) . ' WHERE id="' . $_SESSION['card_id_inprocess'] . '"';
@@ -46,12 +59,12 @@ if(isset($_POST['process3'])){
 
         if($update){
             $_SESSION['save_success'] = "Video Links Updated Successfully!";
-            // Re-fetch updated record so fields show latest saved values
+            // Re-fetch updated record so form shows saved values (before redirect)
             $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
             if($query && mysqli_num_rows($query) > 0){
-                $cardRow = mysqli_fetch_array($query);
+                $cardRow = mysqli_fetch_assoc($query);
             }
-            // Redirect if possible (prevents form resubmission on refresh)
+            // Redirect to prevent form resubmission - page will load with saved data
             if (!headers_sent()) {
                 header('Location: videos.php?card_number='.$_SESSION['card_id_inprocess']);
                 exit;
@@ -115,9 +128,9 @@ include '../includes/header.php';
                     <?php
                     // Generate 20  link inputs
                     for ($i = 1; $i <= 20; $i++) {
-                        $field = 'd_' . $i;
+                        $field = 'd_youtube' . $i;
                         $labelNum = str_pad($i, 2, '0', STR_PAD_LEFT);
-                        $value = isset($cardRow[$field]) ? htmlspecialchars($cardRow[$field]) : '';
+                        $value = isset($cardRow[$field]) && $cardRow[$field] !== null ? htmlspecialchars($cardRow[$field]) : '';
                     ?>
                     <div class="form-group">
                         <label for="<?php echo $field; ?>"> Video Link <?php echo $labelNum; ?> </label>

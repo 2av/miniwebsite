@@ -354,11 +354,20 @@ if(isset($_POST['process4'])){
             }
         }
         
+        // Ensure UPI columns support 100 chars (upgrade from VARCHAR(20) if needed)
+        @mysqli_query($connect, "ALTER TABLE digi_card MODIFY d_paytm VARCHAR(100) DEFAULT ''");
+        @mysqli_query($connect, "ALTER TABLE digi_card MODIFY d_google_pay VARCHAR(100) DEFAULT ''");
+        @mysqli_query($connect, "ALTER TABLE digi_card MODIFY d_phone_pay VARCHAR(100) DEFAULT ''");
+
+        $d_paytm = substr(mysqli_real_escape_string($connect, $_POST['d_paytm'] ?? ''), 0, 100);
+        $d_google_pay = substr(mysqli_real_escape_string($connect, $_POST['d_google_pay'] ?? ''), 0, 100);
+        $d_phone_pay = substr(mysqli_real_escape_string($connect, $_POST['d_phone_pay'] ?? ''), 0, 100);
+
         // Update payment details
         $update = mysqli_query($connect, 'UPDATE digi_card SET 
-        d_paytm="'.mysqli_real_escape_string($connect, $_POST['d_paytm']).'",
-        d_google_pay="'.mysqli_real_escape_string($connect, $_POST['d_google_pay']).'",
-        d_phone_pay="'.mysqli_real_escape_string($connect, $_POST['d_phone_pay']).'",
+        d_paytm="'.$d_paytm.'",
+        d_google_pay="'.$d_google_pay.'",
+        d_phone_pay="'.$d_phone_pay.'",
         d_account_no="'.mysqli_real_escape_string($connect, $_POST['d_account_no']).'",
         d_ifsc="'.mysqli_real_escape_string($connect, $_POST['d_ifsc']).'",
         d_ac_name="'.mysqli_real_escape_string($connect, $_POST['d_ac_name']).'",
@@ -463,7 +472,7 @@ include '../includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label for="d_google_pay" class="title">UPI Number (Gpay) (Optional)</label>
-                                <input type="text" name="d_google_pay" id="d_google_pay" maxlength="20" class="form-control" placeholder="Enter Gpay Number" value="<?php echo !empty($cardRow['d_google_pay']) ? htmlspecialchars($cardRow['d_google_pay']) : ''; ?>">
+                                <input type="text" name="d_google_pay" id="d_google_pay" maxlength="100" class="form-control" placeholder="Enter Gpay Number" value="<?php echo !empty($cardRow['d_google_pay']) ? htmlspecialchars($cardRow['d_google_pay']) : ''; ?>">
                             </div>
                         </div>
 
@@ -490,7 +499,7 @@ include '../includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label for="d_paytm" class="title">UPI Number (Paytm) (Optional)</label>
-                                <input type="text" name="d_paytm" id="d_paytm" maxlength="20" class="form-control" placeholder="Enter Paytm Number" value="<?php echo !empty($cardRow['d_paytm']) ? htmlspecialchars($cardRow['d_paytm']) : ''; ?>">
+                                <input type="text" name="d_paytm" id="d_paytm" maxlength="100" class="form-control" placeholder="Enter Paytm Number" value="<?php echo !empty($cardRow['d_paytm']) ? htmlspecialchars($cardRow['d_paytm']) : ''; ?>">
                             </div>
                         </div>
 
@@ -517,7 +526,7 @@ include '../includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label for="d_phone_pay" class="title">UPI Number (PhonePe) (Optional)</label>
-                                <input type="text" name="d_phone_pay" id="d_phone_pay" maxlength="20" class="form-control" placeholder="Enter PhonePe Number" value="<?php echo !empty($cardRow['d_phone_pay']) ? htmlspecialchars($cardRow['d_phone_pay']) : ''; ?>">
+                                <input type="text" name="d_phone_pay" id="d_phone_pay" maxlength="100" class="form-control" placeholder="Enter PhonePe Number" value="<?php echo !empty($cardRow['d_phone_pay']) ? htmlspecialchars($cardRow['d_phone_pay']) : ''; ?>">
                             </div>
                         </div>
                     </div>

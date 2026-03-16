@@ -327,14 +327,13 @@ if(isset($_POST['product'])){
                     $product_price = floatval(preg_replace('/[^0-9.]/', '', $_POST["pro_price$slot_found"]));
                 }
                 
-                // Get product description if provided
+                // Get product description if provided (max 60 words)
                 $product_description = '';
                 if(isset($_POST["pro_desc$slot_found"])) {
-                    $product_description = mysqli_real_escape_string($connect, trim($_POST["pro_desc$slot_found"]));
-                    // Enforce max character limit (500 characters)
-                    if(strlen($product_description) > 500) {
-                        $product_description = substr($product_description, 0, 500);
-                    }
+                    $product_description = trim($_POST["pro_desc$slot_found"]);
+                    $words = preg_split('/\s+/', $product_description, 61);
+                    $product_description = implode(' ', array_slice($words, 0, 60));
+                    $product_description = mysqli_real_escape_string($connect, $product_description);
                 }
                 
                 // Process image upload if provided
@@ -410,14 +409,13 @@ if(isset($_POST['product'])){
                     $product_category = intval($_POST["pro_category$x"]);
                 }
                 
-                // Get product description if provided
+                // Get product description if provided (max 60 words)
                 $product_description = '';
                 if(isset($_POST["pro_desc$x"])) {
-                    $product_description = mysqli_real_escape_string($connect, trim($_POST["pro_desc$x"]));
-                    // Enforce max character limit (500 characters)
-                    if(strlen($product_description) > 500) {
-                        $product_description = substr($product_description, 0, 500);
-                    }
+                    $product_description = trim($_POST["pro_desc$x"]);
+                    $words = preg_split('/\s+/', $product_description, 61);
+                    $product_description = implode(' ', array_slice($words, 0, 60));
+                    $product_description = mysqli_real_escape_string($connect, $product_description);
                 }
                 
                 // Check if this is an update (product_id might be in hidden field)
@@ -639,10 +637,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <table class="display table">
                         <thead class="bg-secondary">
                             <tr>
+                                <th>Image Details</th>
                                 <th>Product Category</th>
                                 <th>Product Name</th>
                                 <th>Product Description</th>
-                                <th>Image Details</th>
                                 <th>MRP</th>
                                 <th>Selling Price</th>
                                 <th>Manage</th>
@@ -672,10 +670,6 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $prod_price = !empty($prod['selling_price']) && $prod['selling_price'] > 0 ? floatval($prod['selling_price']) : 0;
                             ?>
                                 <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>">
-                                    
-                                    <td valign="middle"><?php echo $prod_category ? $prod_category : '<span class="text-muted">-</span>'; ?></td>
-                                    <td valign="middle"><?php echo $prod_name; ?></td>
-                                    <td valign="middle"><?php echo !empty($prod_description) ? $prod_description : '<span class="text-muted">-</span>'; ?></td>
                                     <td valign="middle">
                                         <?php if(!empty($prod['product_image'])): ?>
                                             <?php
@@ -693,6 +687,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
                                     </td>
+                                    <td valign="middle"><?php echo $prod_category ? $prod_category : '<span class="text-muted">-</span>'; ?></td>
+                                    <td valign="middle"><?php echo $prod_name; ?></td>
+                                    <td valign="middle"><?php echo !empty($prod_description) ? $prod_description : '<span class="text-muted">-</span>'; ?></td>
                                     <td valign="middle">
                                         <?php if($prod_mrp > 0): ?>
                                             <i class="fa fa-inr" aria-hidden="true"></i> <?php echo number_format($prod_mrp, 2); ?>
@@ -718,7 +715,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             else:
                             ?>
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td>
+                                    <td colspan="7" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -771,7 +768,19 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <form id="modalProductForm">
                     <input type="hidden" id="modal_product_id" value="">
                     <input type="hidden" id="modal_product_number" value="">
-                   
+                    <div class="form-group">
+                        <label>Image Details</label>
+                        <div class="product-image-preview-modal" style="text-align: center; margin-bottom: 15px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+                            <img id="modal_product_image_preview" 
+                                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
+                                 alt="Product Image" 
+                                 onclick="document.getElementById('modal_product_image').click()" 
+                                 style="max-width: 200px; width: auto; max-height: 200px; height: auto; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px; object-fit: contain;">
+                        </div>
+                        <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
+                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
+                    </div>
                     <div class="form-group">
                         <label for="modal_product_category">Product Category</label>
                         <div style="display: flex; gap: 10px;">
@@ -865,23 +874,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     </div>
                     <div class="form-group">
                         <label for="modal_product_description">Product Description</label>
-                        <textarea class="form-control" id="modal_product_description" maxlength="500" placeholder="Enter product description (max 500 characters)" rows="4"></textarea>
+                        <textarea class="form-control" id="modal_product_description" placeholder="Enter product description (max 60 words)" rows="4"></textarea>
                         <small class="form-text text-muted">
-                            <strong id="char_counter_display">0/500</strong> characters
+                            <strong id="char_counter_display">0/60</strong> words
                         </small>
-                    </div>
-                    <div class="form-group">
-                        <label>Product Image</label>
-                        <div class="product-image-preview-modal" style="text-align: center; margin-bottom: 15px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
-                            <img id="modal_product_image_preview" 
-                                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
-                                 alt="Product Image" 
-                                 onclick="document.getElementById('modal_product_image').click()" 
-                                 style="max-width: 200px; width: auto; max-height: 200px; height: auto; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px; object-fit: contain;">
-                        </div>
-                        <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
-                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
                     </div>
                 </form>
             </div>
@@ -897,14 +893,16 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 var currentProductId = null;
 var processedProductImageData = null;
 
-// Update character count display
+// Update word count display (max 60 words)
 function updateCharCount() {
     var textarea = document.getElementById('modal_product_description');
     var counter = document.getElementById('char_counter_display');
     
     if(textarea && counter) {
-        var length = textarea.value.length;
-        counter.textContent = length + '/500';
+        var words = textarea.value.trim().split(/\s+/).filter(Boolean);
+        var count = words.length;
+        counter.textContent = count + '/60';
+        counter.style.color = count > 60 ? '#dc3545' : '';
     }
 }
 
@@ -1021,59 +1019,56 @@ function openProductModal() {
     currentProductId = null;
     processedProductImageData = null;
     
-    // Reset form fields using vanilla JavaScript
-    var fields = [
-        'modal_product_id',
-        'modal_product_number',
-        'modal_product_name',
-        'modal_product_category',
-        'modal_product_mrp',
-        'modal_product_price',
-        'modal_product_description',
-        'modal_product_image'
-    ];
-    
-    fields.forEach(function(fieldId) {
-        var field = document.getElementById(fieldId);
-        if(field) {
-            field.value = '';
+    try {
+        // Reset form fields (skip file input - clearing can throw in some browsers)
+        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_name', 'modal_product_category', 'modal_product_mrp', 'modal_product_price', 'modal_product_description'];
+        fieldIds.forEach(function(fieldId) {
+            var field = document.getElementById(fieldId);
+            if(field) field.value = '';
+        });
+        var fileInput = document.getElementById('modal_product_image');
+        if(fileInput) {
+            try { fileInput.value = ''; } catch(e) { /* file inputs may throw on reset */ }
         }
-    });
-    
-    // Reset image preview
-    var imgPreview = document.getElementById('modal_product_image_preview');
-    if(imgPreview) {
-        imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
-    }
-    
-    // Update modal title and button text
-    var modalLabel = document.getElementById('productModalLabel');
-    if(modalLabel) {
-        modalLabel.textContent = 'Add Product';
-    }
-    
-    var submitBtn = document.querySelector('.modal-footer button:last-child');
-    if(submitBtn) {
-        submitBtn.textContent = 'Add Product';
-    }
-    
-    updateCharCount();
-    
-    // Show modal
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery('#productModal').modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('productModal');
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
-    } else {
-        document.getElementById('productModal').style.display = 'block';
-        document.getElementById('productModal').classList.add('show');
-        document.body.classList.add('modal-open');
-        var backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop fade show';
-        backdrop.id = 'modalBackdrop';
-        document.body.appendChild(backdrop);
+
+        // Reset image preview
+        var imgPreview = document.getElementById('modal_product_image_preview');
+        if(imgPreview) {
+            imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+        }
+
+        // Update modal title and button text
+        var modalLabel = document.getElementById('productModalLabel');
+        if(modalLabel) modalLabel.textContent = 'Add Product';
+
+        var submitBtn = document.querySelector('#productModal .modal-footer button:last-child');
+        if(submitBtn) submitBtn.textContent = 'Add Product';
+
+        if(typeof updateCharCount === 'function') updateCharCount();
+
+        // Show modal
+        var productModalEl = document.getElementById('productModal');
+        if(!productModalEl) {
+            console.error('Product modal element not found');
+            return;
+        }
+        if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+            jQuery('#productModal').modal('show');
+        } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = new bootstrap.Modal(productModalEl);
+            modal.show();
+        } else {
+            productModalEl.style.display = 'block';
+            productModalEl.classList.add('show');
+            document.body.classList.add('modal-open');
+            var backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'modalBackdrop';
+            document.body.appendChild(backdrop);
+        }
+    } catch(e) {
+        console.error('Error opening product modal:', e);
+        alert('Could not open the form. Please refresh the page and try again.');
     }
 }
 
@@ -1192,7 +1187,10 @@ function handleProductImageUpload(input) {
             };
             ImageCropUpload.open(file, {
                 method: 'base64',
-                title: 'Adjust & Crop Product Image',
+                title: 'Adjust & Crop Product Image (1:1 square)',
+                aspectRatio: 1,
+                cropWidth: 600,
+                cropHeight: 600,
                 onSuccess: function(base64Data) {
                     if (window.productImageCropCallback) window.productImageCropCallback(base64Data);
                 },
@@ -1251,8 +1249,12 @@ function addProductToForm() {
     if(price) formData.append('pro_price' + tempSlot, price);
     
     var modalProductDescField = document.getElementById('modal_product_description');
-    var description = modalProductDescField ? modalProductDescField.value : '';
-    if(description) formData.append('pro_desc' + tempSlot, description);
+    var description = modalProductDescField ? modalProductDescField.value.trim() : '';
+    if(description) {
+        var words = description.split(/\s+/).filter(Boolean);
+        if(words.length > 60) description = words.slice(0, 60).join(' ');
+        formData.append('pro_desc' + tempSlot, description);
+    }
     
     if(isEdit) {
         formData.append('product_id' + tempSlot, productId);
@@ -1354,7 +1356,7 @@ function removeData(productId) {
                 var hasProducts = tableBody ? tableBody.querySelector('tr[data-product-id]') : null;
                 
                 if(tableBody && !hasProducts) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td></tr>';
                 }
                 
                 if(statusEl) {

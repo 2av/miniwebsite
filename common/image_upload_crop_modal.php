@@ -63,13 +63,13 @@ if (!defined('IMAGE_CROP_MODAL_INCLUDED')) {
                         </div>
                         <div class="col-md-4">
                             <div class="border rounded p-3 bg-light">
-                                <h6 class="mb-2">Preview (512&times;512)</h6>
+                                <h6 class="mb-2" id="cropPreviewTitle">Preview</h6>
                                 <div id="cropPreviewBox" class="crop-preview-box"></div>
-                                <p class="small text-muted mt-2 mb-0"><strong>Dimensions:</strong> <span id="cropCroppedDimensions">512 &times; 512 px</span></p>
+                                <p class="small text-muted mt-2 mb-0"><strong>Dimensions:</strong> <span id="cropCroppedDimensions">—</span></p>
                             </div>
                         </div>
                     </div>
-                    <p class="text-muted small text-center mt-2 mb-0"><i class="fa fa-info-circle"></i> Drag to adjust. Image will be saved as 512&times;512.</p>
+                    <p class="text-muted small text-center mt-2 mb-0" id="cropInfoText"><i class="fa fa-info-circle"></i> Drag to adjust. Crop dimensions set per image type.</p>
                 </div>
             </div>
             <div class="modal-footer">

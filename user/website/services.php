@@ -35,7 +35,7 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             throw new Exception('File validation library not found');
         }
         
-        if(!function_exists('processImageUploadWithAutoCrop')) {
+        if(!function_exists('processHeroImageUpload') && !function_exists('processImageUploadWithAutoCrop')) {
             throw new Exception('Image processing function not available');
         }
         
@@ -44,16 +44,12 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             throw new Exception('File upload error: ' . $_FILES['product_image']['error']);
         }
         
-        $result = processImageUploadWithAutoCrop(
-            $_FILES['product_image'], 
-            600,      // Target size: 600x600
-            250000,   // Target file size: 250KB
-            200000,   // Min file size: 200KB
-            300000,   // Max file size: 300KB
-            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-            'jpeg',
-            null
-        );
+        // Service images: 2:1 ratio (width twice height)
+        if(function_exists('processHeroImageUpload')) {
+            $result = processHeroImageUpload($_FILES['product_image'], 1200, 600);
+        } else {
+            $result = processImageUploadWithAutoCrop($_FILES['product_image'], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
+        }
         
         if($result['status']) {
             // Return processed image as base64 for immediate preview
@@ -62,7 +58,7 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             echo json_encode([
                 'success' => true,
                 'image_data' => $base64Image,
-                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 600, 'height' => 600],
+                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 1200, 'height' => 600],
                 'file_size' => isset($result['file_size']) ? $result['file_size'] : 0,
                 'message' => 'Image processed successfully'
             ]);
@@ -337,13 +333,12 @@ if(isset($_POST['process4'])){
             $products_processed = true;
             $product_name = mysqli_real_escape_string($connect, trim($_POST["d_pro_name$x"]));
             
-            // Get product description if provided
+            // Get product description if provided (max 60 words)
             if(isset($_POST["d_pro_desc$x"])) {
-                $product_description = mysqli_real_escape_string($connect, trim($_POST["d_pro_desc$x"]));
-                // Enforce max character limit (500 characters)
-                if(strlen($product_description) > 500) {
-                    $product_description = substr($product_description, 0, 500);
-                }
+                $product_description = trim($_POST["d_pro_desc$x"]);
+                $words = preg_split('/\s+/', $product_description, 61);
+                $product_description = implode(' ', array_slice($words, 0, 60));
+                $product_description = mysqli_real_escape_string($connect, $product_description);
             }
             
             // Check if this is an update (product_id might be in hidden field)
@@ -373,20 +368,15 @@ if(isset($_POST['process4'])){
                 $product_image = saveProductImageToFilesystem($binary_data, $productServicesUploadDirAbs, $card_id, $product_name);
                 error_log("  Saved to filesystem, filename: " . ($product_image ? $product_image : "NULL"));
             } elseif(!empty($_FILES["d_pro_img$x"]['tmp_name'])){
-                // Use the new automatic crop and resize function
-                if(function_exists('processImageUploadWithAutoCrop')) {
-                    $result = processImageUploadWithAutoCrop(
-                        $_FILES["d_pro_img$x"], 
-                        600,      // Target size: 600x600
-                        250000,   // Target file size: 250KB
-                        200000,   // Min file size: 200KB
-                        300000,   // Max file size: 300KB
-                        ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-                        'jpeg',
-                        null
-                    );
-                    
-                    if($result['status']) {
+                // Service images: 2:1 ratio (width twice height)
+                if(function_exists('processHeroImageUpload')) {
+                    $result = processHeroImageUpload($_FILES["d_pro_img$x"], 1200, 600);
+                } elseif(function_exists('processImageUploadWithAutoCrop')) {
+                    $result = processImageUploadWithAutoCrop($_FILES["d_pro_img$x"], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
+                } else {
+                    $result = ['status' => false, 'message' => 'Image processing not available.'];
+                }
+                if($result['status']) {
                         // Save binary image data to filesystem and get the path
                         $product_image = saveProductImageToFilesystem($result['data'], $productServicesUploadDirAbs, $card_id, $product_name);
                         // Clean up temp file
@@ -555,7 +545,7 @@ if(isset($_POST['process4'])){
                 
                 if(!$insert_success) {
                     $upload_success = false;
-                    $db_error = $insert_error;
+                    $db_error = isset($insert_error) ? $insert_error : 'Unknown database error';
                     
                     // Check for foreign key constraint error
                     if(strpos($db_error, 'foreign key constraint') !== false || strpos($db_error, 'FOREIGN KEY') !== false) {
@@ -574,8 +564,6 @@ if(isset($_POST['process4'])){
                 }
             }
         }
-    }
-    
     } catch(Exception $e) {
         $upload_success = false;
         $error_message = $e->getMessage();
@@ -824,17 +812,6 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <form id="modalProductForm">
                     <input type="hidden" id="modal_product_number" value="">
                     <div class="form-group">
-                        <label for="modal_product_name">Service Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_product_name" maxlength="200" placeholder="Enter Service Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="modal_product_description">Service Description</label>
-                        <textarea class="form-control" id="modal_product_description" maxlength="500" placeholder="Enter service description (max 500 characters)" rows="4"></textarea>
-                        <small class="form-text text-muted">
-                            <strong id="char_counter_display">0/500</strong> characters
-                        </small>
-                    </div>
-                    <div class="form-group">
                         <label>Service Image</label>
                         <div class="product-image-preview-modal" style="text-align: center; margin-bottom: 15px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
                             <img id="modal_product_image_preview" 
@@ -846,6 +823,17 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
                         <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="modal_product_name">Service Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modal_product_name" maxlength="200" placeholder="Enter Service Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modal_product_description">Service Description</label>
+                        <textarea class="form-control" id="modal_product_description" placeholder="Enter service description (max 60 words)" rows="4"></textarea>
+                        <small class="form-text text-muted">
+                            <strong id="char_counter_display">0/60</strong> words
+                        </small>
                     </div>
                 </form>
             </div>
@@ -861,14 +849,16 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 var currentProductId = null;
 var productImageFiles = {};
 
-// Update character count display
+// Update word count display (max 60 words)
 function updateCharCount() {
     var textarea = document.getElementById('modal_product_description');
     var counter = document.getElementById('char_counter_display');
     
     if(textarea && counter) {
-        var length = textarea.value.length;
-        counter.textContent = length + '/500';
+        var words = textarea.value.trim().split(/\s+/).filter(Boolean);
+        var count = words.length;
+        counter.textContent = count + '/60';
+        counter.style.color = count > 60 ? '#dc3545' : '';
     }
 }
 
@@ -1020,7 +1010,10 @@ function handleProductImageUpload(input) {
                 hiddenField: null,  // We'll handle the base64 data in onSuccess
                 previewSelector: null,  // Don't auto-update preview
                 spanSelector: null,
-                title: 'Adjust & Crop Product Image',
+                title: 'Adjust & Crop Service Image (2:1 ratio)',
+                aspectRatio: 2,
+                cropWidth: 1200,
+                cropHeight: 600,
                 onSuccess: function(base64Data) {
                     // Call our custom callback
                     if (window.productImageCropCallback) {
@@ -1048,7 +1041,11 @@ function addProductToForm() {
         return;
     }
     
-    var productDescription = $('#modal_product_description').val();
+    var productDescription = $('#modal_product_description').val().trim();
+    var words = productDescription ? productDescription.split(/\s+/).filter(Boolean) : [];
+    if(words.length > 60) {
+        productDescription = words.slice(0, 60).join(' ');
+    }
     var productId = $('#modal_product_number').val();
     var isEdit = (productId && productId !== '');
     

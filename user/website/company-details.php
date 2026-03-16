@@ -288,15 +288,16 @@ if(isset($_POST['process2'])){
         // Process logo upload if file is selected
         // Check if we have processed image data from AJAX (base64)
         if(!empty($_POST['processed_logo_data'])){
-            // Use the processed image data from AJAX
+            // Use the processed image data from crop (PNG for transparency, or JPEG)
             $logoData = base64_decode($_POST['processed_logo_data']);
             $logo = addslashes($logoData);
+            $ext = (substr($logoData, 0, 8) === "\x89PNG\r\n\x1a\n") ? 'png' : 'jpg';
             
             // Update database with processed image
             $updateLogo = mysqli_query($connect, 'UPDATE digi_card SET d_logo="'.$logo.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
             
-            // Also save to file system
-            $fileNameOnly = date('ymdsih') . '_logo.jpg';
+            // Also save to file system (preserve PNG for transparent logos)
+            $fileNameOnly = date('ymdsih') . '_logo.' . $ext;
             $filePathAbs = $companyDetailsUploadDirAbs . $fileNameOnly;
             if(empty($error_message) && file_put_contents($filePathAbs, $logoData) !== false) {
                 // Save ONLY the filename in DB
@@ -413,32 +414,25 @@ if(isset($_POST['process2'])){
                 $update = mysqli_query($connect, 'UPDATE digi_card SET d_hero_image_location="'.$heroFileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
             }
         } elseif(!empty($_FILES['d_hero_image']['tmp_name'])){
-            // Use the new automatic crop and resize function
-            if(function_exists('processImageUploadWithAutoCrop')) {
-                // Process image: auto crop, resize to 1200x400, compress
+            // Process hero image: 1200x600 aspect crop
+            if(function_exists('processHeroImageUpload')) {
+                $result = processHeroImageUpload($_FILES['d_hero_image'], 1200, 600);
+            } elseif(function_exists('processImageUploadWithAutoCrop')) {
                 $result = processImageUploadWithAutoCrop(
-                    $_FILES['d_hero_image'], 
-                    1200,     // Target size: 1200x400
-                    500000,   // Target file size: 500KB
-                    300000,   // Min file size: 300KB
-                    600000,   // Max file size: 600KB
-                    ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], // Allowed types
-                    'jpeg',   // Output format
-                    null      // No specific destination, use temp file
+                    $_FILES['d_hero_image'], 600, 500000, 300000, 600000,
+                    ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null
                 );
-                
-                if($result['status']) {
-                    // Image processed successfully - save to file system only
-                    $safeOriginal = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($_FILES['d_hero_image']['name']));
-                    $heroFileNameOnly = date('ymdsih') . '_' . $safeOriginal;
-                    $heroFilePathAbs = $companyDetailsUploadDirAbs . $heroFileNameOnly;
-                    if(empty($error_message) && file_put_contents($heroFilePathAbs, $result['data']) !== false) {
-                        // Save ONLY the filename in DB (no binary data)
-                        $update = mysqli_query($connect, 'UPDATE digi_card SET d_hero_image_location="'.$heroFileNameOnly.'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
-                    }
-                } else {
-                    $error_message = '<div class="alert alert-danger">Error processing hero image: ' . (isset($result['message']) ? $result['message'] : 'Unknown error') . '</div>';
+            } else {
+                $result = ['status' => false, 'message' => 'Image processing not available.'];
+            }
+            if($result['status']) {
+                $heroFileNameOnly = date('ymdsih') . '_hero.jpg';
+                $heroFilePathAbs = $companyDetailsUploadDirAbs . $heroFileNameOnly;
+                if(empty($error_message) && file_put_contents($heroFilePathAbs, $result['data']) !== false) {
+                    $update = mysqli_query($connect, 'UPDATE digi_card SET d_hero_image_location="'.mysqli_real_escape_string($connect, $heroFileNameOnly).'" WHERE id="'.$_SESSION['card_id_inprocess'].'"');
                 }
+            } else {
+                $error_message = '<div class="alert alert-danger">Error processing hero image: ' . (isset($result['message']) ? htmlspecialchars($result['message']) : 'Unknown error') . '</div>';
             }
         }
         
@@ -487,6 +481,7 @@ if(isset($_POST['process2'])){
         ensureColumnExists($connect, 'digi_card', 'd_pincode', "VARCHAR(50) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_country', "VARCHAR(200) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_business_hours', "TEXT NULL");
+        ensureColumnExists($connect, 'digi_card', 'd_hero_image_location', "VARCHAR(500) DEFAULT ''");
 
         // Sanitize new fields (fall back to empty string when not provided) - now storing as ID
         $d_position_primary = isset($_POST['d_position_primary']) && !empty($_POST['d_position_primary']) ? intval($_POST['d_position_primary']) : '';
@@ -638,9 +633,9 @@ include '../includes/header.php';
                                 <img id="showPreviewHero" style="display:none;">
                             <?php endif; ?>
                         </div>
-                        <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
+                        <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp | Size: 1200×600px</div>
                         
-                        <p class="addlogo">Add Hero Image</p>
+                        <p class="addlogo">Add Hero Image (1200×600)</p>
                         <div class="file-upload">
                             <div id="fileContainerHero">
                                 <span id="fileNameHero">No File Chosen</span>
@@ -1013,6 +1008,10 @@ include '../includes/header.php';
                     previewSelector: '#showPreviewLogo',
                     spanSelector: '#logoPreview span',
                     title: 'Adjust & Crop Logo',
+                    outputFormat: 'png',
+                    aspectRatio: 1,
+                    cropWidth: 600,
+                    cropHeight: 600,
                     onSuccess: function() {},
                     onError: function(msg) { alert(msg); }
                 });
@@ -1029,7 +1028,11 @@ include '../includes/header.php';
                     hiddenField: '#processed_hero_image_data',
                     previewSelector: '#showPreviewHero',
                     spanSelector: '#heroImagePreview span',
-                    title: 'Adjust & Crop Hero Image',
+                    title: 'Adjust & Crop Hero Image (1200×600)',
+                    outputFormat: 'jpeg',
+                    aspectRatio: 2,
+                    cropWidth: 1200,
+                    cropHeight: 600,
                     onSuccess: function() {},
                     onError: function(msg) { alert(msg); }
                 });
@@ -1363,6 +1366,18 @@ font-size: 24px !important;
         align-items: center;
         justify-content: center;
     }
+    /* Hero image: 2:1 ratio (width twice height) */
+    #heroImagePreview.logo-placeholder{
+        width: 240px;
+        height: 120px;
+    }
+    #heroImagePreview #showPreviewHero,
+    #heroImagePreview img{
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+    }
     #showPreviewLogo{
         max-width: 100%;
         max-height: 100%;
@@ -1471,6 +1486,10 @@ padding-bottom:0px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+#heroImagePreview.logo-placeholder {
+    width: 160px;
+    height: 80px;
 }
 #logoPreview span {
     font-weight: 500;
