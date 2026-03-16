@@ -363,7 +363,7 @@ if ($row) {
         }
     }
 
-    $business_hours = [0
+    $business_hours = [
         ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
         ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
         ['days' => 'Sunday', 'hours' => 'Closed'],
@@ -627,7 +627,7 @@ if (!empty($products_by_cat)) {
                     <div class="mw-card mw-product-card mw-product-card-clickable bg-white text-gray-800 cursor-pointer" data-product-index="<?php echo $global_idx; ?>">
                         <div class="relative">
                             <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full aspect-square object-cover rounded-t-md" alt="<?php echo htmlspecialchars($prod['name']); ?>">
-                            <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I want to order: <?php echo urlencode($prod['name']); ?>" target="_blank" class="mw-btn-add mw-btn-add-overlay absolute bottom-2 right-2 z-10" onclick="event.stopPropagation()">ADD</a>
+                            <button type="button" class="mw-btn-add mw-btn-add-overlay mw-add-to-cart absolute bottom-2 right-2 z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()">ADD</button>
                         </div>
                         <div class="p-2">
                             <h3 class="font-semibold text-sm leading-tight mb-1"><?php echo htmlspecialchars($prod['name']); ?></h3>
@@ -653,7 +653,7 @@ if (!empty($products_by_cat)) {
     <div id="mw-product-lightbox" class="mw-product-lightbox" aria-hidden="true">
         <button type="button" class="mw-lightbox-close" aria-label="Close"><i class="fas fa-times"></i></button>
         <div class="mw-product-lightbox-swipe">
-            <?php foreach ($products_flat as $p): ?>
+            <?php foreach ($products_flat as $pidx => $p): ?>
             <div class="mw-product-lightbox-slide">
                 <div class="mw-product-lightbox-image"><img src="<?php echo htmlspecialchars($p['image']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>"></div>
                 <div class="mw-product-lightbox-body">
@@ -665,7 +665,7 @@ if (!empty($products_by_cat)) {
                         <?php endif; ?>
                         <span class="font-bold text-lg">₹<?php echo number_format($p['price']); ?></span>
                     </div>
-                    <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I want to order: <?php echo urlencode($p['name']); ?>" target="_blank" class="mw-btn-add mw-btn-add-overlay inline-block mt-4">ADD</a>
+                    <button type="button" class="mw-btn-add mw-btn-add-overlay mw-add-to-cart inline-block mt-4" data-product-index="<?php echo $pidx; ?>">ADD</button>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -796,6 +796,19 @@ if (!empty($products_by_cat)) {
 
 </div>
 
+<!-- Shop Cart Bar (visible when products added) -->
+<?php if (!empty($products_flat)): ?>
+<div id="mw-shop-cart-bar" class="mw-shop-cart-bar hidden fixed left-0 right-0 bottom-[60px] z-[45] bg-cardbg/98 backdrop-blur border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] px-4 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+        <span id="mw-cart-count" class="bg-primary text-bgbase font-bold text-sm w-7 h-7 rounded-full flex items-center justify-center">0</span>
+        <span id="mw-cart-label" class="text-heading font-medium text-sm">items in cart</span>
+    </div>
+    <button type="button" id="mw-cart-share-wa" class="w-12 h-12 bg-[#25D366] text-white rounded-full flex items-center justify-center text-2xl hover:bg-[#20bd5a] transition shadow-lg" aria-label="Share on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </button>
+</div>
+<?php endif; ?>
+
 <!-- 14. Sticky Bottom Navigation -->
 <nav class="mw-sticky-nav">
     <a href="#mw-hero" class="mw-nav-item active" data-section="mw-hero"><i class="fas fa-home mw-nav-icon"></i><span>Home</span></a>
@@ -806,15 +819,16 @@ if (!empty($products_by_cat)) {
     <a href="#mw-pay" class="mw-nav-item hidden sm:flex" data-section="mw-pay"><i class="fas fa-qrcode mw-nav-icon"></i><span>Pay</span></a>
 </nav>
 
-<!-- 15. Floating WhatsApp Button -->
-<a href="https://wa.me/<?php echo $whatsapp; ?>" target="_blank" class="fixed bottom-[80px] right-4 md:right-8 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center text-3xl shadow-[0_4px_15px_rgba(37,211,102,0.4)] z-50 hover:scale-110 transition-transform">
+<!-- 15. Floating WhatsApp Button (hidden when cart bar is visible) -->
+<a id="mw-floating-wa-btn" href="https://wa.me/<?php echo $whatsapp; ?>" target="_blank" class="fixed bottom-[80px] right-4 md:right-8 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center text-3xl shadow-[0_4px_15px_rgba(37,211,102,0.4)] z-50 hover:scale-110 transition-transform">
     <i class="fab fa-whatsapp"></i>
 </a>
 
-<!-- Config for JS (API key, WhatsApp number) -->
+<!-- Config for JS (API key, WhatsApp number, products for cart) -->
 <script>
     window.MW_AI_API_KEY = "<?php echo htmlspecialchars(defined('GEMINI_API_KEY') ? GEMINI_API_KEY : ''); ?>";
     window.MW_WHATSAPP_NUMBER = "<?php echo htmlspecialchars($whatsapp); ?>";
+    window.MW_PRODUCTS = <?php echo json_encode($products_flat ?? []); ?>;
 </script>
 <script src="js/app.js"></script>
 

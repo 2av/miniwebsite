@@ -234,6 +234,84 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: true });
     updateActiveNav(); // Initial state
 
+    // --- Shop Cart: Add multiple products, then Share on WhatsApp ---
+    const products = window.MW_PRODUCTS || [];
+    const whatsappNum = (window.MW_WHATSAPP_NUMBER || '').replace(/[^0-9]/g, '');
+    const cartBar = document.getElementById('mw-shop-cart-bar');
+    const cartCountEl = document.getElementById('mw-cart-count');
+    const cartShareBtn = document.getElementById('mw-cart-share-wa');
+    const floatingWaBtn = document.getElementById('mw-floating-wa-btn');
+
+    const cart = []; // { index, name, price, qty }
+
+    function isInCart(idx) {
+        return cart.some(c => c.index === idx);
+    }
+
+    function updateCartUI() {
+        const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+        if (cartCountEl) cartCountEl.textContent = totalQty;
+        if (cartBar) {
+            if (totalQty > 0) {
+                cartBar.classList.remove('hidden');
+                if (floatingWaBtn) floatingWaBtn.classList.add('hidden');
+            } else {
+                cartBar.classList.add('hidden');
+                if (floatingWaBtn) floatingWaBtn.classList.remove('hidden');
+            }
+        }
+        // Update ADD/REMOVE button text
+        document.querySelectorAll('.mw-add-to-cart').forEach(btn => {
+            const idx = btn.getAttribute('data-product-index');
+            btn.textContent = idx != null && isInCart(parseInt(idx, 10)) ? 'REMOVE' : 'ADD';
+        });
+    }
+
+    function addToCart(productIndex) {
+        const idx = parseInt(productIndex, 10);
+        if (isNaN(idx) || !products[idx]) return;
+        const p = products[idx];
+        const existing = cart.find(c => c.index === idx);
+        if (existing) existing.qty += 1;
+        else cart.push({ index: idx, name: p.name, price: p.price, qty: 1 });
+        updateCartUI();
+    }
+
+    function removeFromCart(productIndex) {
+        const idx = parseInt(productIndex, 10);
+        const i = cart.findIndex(c => c.index === idx);
+        if (i >= 0) {
+            cart.splice(i, 1);
+            updateCartUI();
+        }
+    }
+
+    document.querySelectorAll('.mw-add-to-cart').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const idx = btn.getAttribute('data-product-index');
+            if (idx == null) return;
+            const n = parseInt(idx, 10);
+            if (isInCart(n)) removeFromCart(idx);
+            else addToCart(idx);
+        });
+    });
+
+    if (cartShareBtn && whatsappNum) {
+        cartShareBtn.addEventListener('click', () => {
+            if (cart.length === 0) return;
+            let msg = 'Hi! I want to order:\n\n';
+            let total = 0;
+            cart.forEach(item => {
+                msg += `• ${item.name} x ${item.qty} = ₹${(item.price * item.qty).toLocaleString()}\n`;
+                total += item.price * item.qty;
+            });
+            msg += `\nTotal: ₹${total.toLocaleString()}`;
+            window.open(`https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`, '_blank');
+        });
+    }
+
     // --- Blinkit Product UI Tab Switching Logic ---
     const categoryItems = document.querySelectorAll('.mw-cat-item');
     const productGrids = document.querySelectorAll('.product-category-grid');
