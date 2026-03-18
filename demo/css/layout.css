@@ -22,14 +22,22 @@ html {
 @media (min-width: 768px) { .mw-section-padding { padding: 32px; } }
 @media (min-width: 1024px) { .mw-section-padding { padding: 40px; } }
 
-/* Grid Systems - Services same as Offers: 1 col mobile, 2 tablet, 3 desktop */
+/* Grid Systems - Services: 1 col mobile, 3 cols desktop. Image 4:3 ratio */
 .mw-grid-services { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1.5rem; }
-@media (min-width: 768px) { .mw-grid-services { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .mw-grid-services { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 768px) { .mw-grid-services { grid-template-columns: repeat(3, 1fr); } }
+.mw-service-card .mw-service-image-wrap { aspect-ratio: 4/3; overflow: hidden; }
+.mw-service-card .mw-service-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.mw-service-card .mw-service-image-wrap:hover img { transform: scale(1.1); }
+.mw-service-card { cursor: pointer; }
+@media (max-width: 767px) { .mw-service-card { cursor: default; } }
 
 .mw-grid-offers { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1.5rem; }
 @media (min-width: 768px) { .mw-grid-offers { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { .mw-grid-offers { grid-template-columns: repeat(3, 1fr); } }
+.mw-offer-card .mw-offer-image-wrap { aspect-ratio: 4/3; overflow: hidden; }
+.mw-offer-card .mw-offer-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.mw-offer-card .mw-offer-image-wrap:hover img { transform: scale(1.1); }
+.mw-offer-badge { transform: scale(1.2); transform-origin: left top; }
 
 .mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 @media (min-width: 768px) { .mw-grid-products { grid-template-columns: repeat(3, 1fr); } }
@@ -40,9 +48,31 @@ html {
 @media (min-width: 768px) { .mw-grid-gallery { grid-template-columns: repeat(3, 1fr); gap: 1rem; } }
 
 /* Videos: Vertical grid with Load more */
-.mw-grid-videos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.mw-grid-videos { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1rem; }
 @media (min-width: 768px) { .mw-grid-videos { grid-template-columns: repeat(3, 1fr); } }
 .mw-video-item.mw-video-hidden { display: none !important; }
+
+/* Video Modal (play within page) */
+.mw-video-modal {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.95); display: none;
+    align-items: center; justify-content: center; padding: 1rem;
+}
+.mw-video-modal.open { display: flex; }
+.mw-video-modal-close {
+    position: absolute; top: 16px; right: 16px; z-index: 110;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: rgba(255,255,255,0.15); color: #fff; border: none;
+    font-size: 1.25rem; cursor: pointer; transition: background 0.2s;
+}
+.mw-video-modal-close:hover { background: rgba(255,255,255,0.25); }
+.mw-video-modal-content {
+    width: 100%; max-width: 900px; aspect-ratio: 16/9;
+    background: #000; border-radius: 8px; overflow: hidden;
+}
+.mw-video-modal-content iframe {
+    width: 100%; height: 100%; border: none;
+}
 
 /* Blinkit Layout System */
 .mw-blinkit-container { display: flex; height: 600px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--mw-border-radius); overflow: hidden; }
@@ -54,83 +84,19 @@ html {
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Services Full-Screen Lightbox */
-.mw-services-lightbox {
-    position: fixed; inset: 0; z-index: 100;
-    background: rgba(0,0,0,0.95); display: none;
-    flex-direction: column; overflow: hidden;
+/* Services: Desktop inline expanded box (within product box) */
+.mw-service-expanded-box { display: none; }
+@media (min-width: 768px) {
+    .mw-services.mw-services-expanded-active .mw-grid-services { display: none; }
+    .mw-services.mw-services-expanded-active .mw-service-expanded-box { display: block; }
 }
-.mw-services-lightbox.open { display: flex; }
-.mw-lightbox-close {
-    position: absolute; top: 16px; right: 16px; z-index: 110;
-    width: 48px; height: 48px; border-radius: 50%;
-    background: rgba(255,255,255,0.15); color: #fff; border: none;
-    font-size: 1.25rem; cursor: pointer; transition: background 0.2s;
-}
-.mw-lightbox-close:hover { background: rgba(255,255,255,0.25); }
-.mw-lightbox-swipe {
-    flex: 1; display: flex; overflow-x: auto; overflow-y: hidden;
-    scroll-snap-type: x mandatory; scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-}
-.mw-lightbox-swipe {
-    -ms-overflow-style: none; scrollbar-width: none;
-}
-.mw-lightbox-swipe::-webkit-scrollbar { display: none; }
-.mw-lightbox-slide {
-    flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always;
-    display: flex; flex-direction: column; overflow-y: auto;
-}
-.mw-lightbox-image-wrap {
-    flex-shrink: 0; width: 100%; min-height: 45vh; max-height: 50vh;
-}
-.mw-lightbox-image-wrap img {
-    width: 100%; height: 100%; object-fit: contain;
-}
-.mw-lightbox-content {
-    padding: 24px; flex: 1;
-}
-.mw-lightbox-title { font-size: 1.5rem; font-weight: 600; color: #fff; margin-bottom: 12px; }
-.mw-lightbox-desc { font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.85); }
-.mw-lightbox-nav {
-    display: flex; align-items: center; justify-content: center; gap: 24px;
-    padding: 16px; background: rgba(0,0,0,0.5); flex-shrink: 0;
-}
-.mw-lightbox-prev, .mw-lightbox-next {
-    width: 48px; height: 48px; border-radius: 50%;
-    background: rgba(255,255,255,0.15); color: #fff; border: none;
-    font-size: 1rem; cursor: pointer; transition: background 0.2s;
-}
-.mw-lightbox-prev:hover, .mw-lightbox-next:hover { background: rgba(255,255,255,0.25); }
-.mw-lightbox-counter { color: rgba(255,255,255,0.8); font-size: 14px; }
 
-/* Product Detail Lightbox */
-.mw-product-lightbox {
-    position: fixed; inset: 0; z-index: 100;
-    background: #fff; display: none;
-    flex-direction: column; overflow: hidden;
-}
-.mw-product-lightbox.open { display: flex; }
-.mw-product-lightbox .mw-lightbox-close { color: #333; background: rgba(0,0,0,0.08); }
-.mw-product-lightbox .mw-lightbox-close:hover { background: rgba(0,0,0,0.15); }
-.mw-product-lightbox-swipe {
-    flex: 1; display: flex; overflow-x: auto; overflow-y: hidden;
-    scroll-snap-type: x mandatory; scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-}
-.mw-product-lightbox-swipe { -ms-overflow-style: none; scrollbar-width: none; }
-.mw-product-lightbox-swipe::-webkit-scrollbar { display: none; }
-.mw-product-lightbox-slide {
-    flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always;
-    display: flex; flex-direction: column; overflow-y: auto;
-}
-.mw-product-lightbox-image { flex-shrink: 0; width: 100%; min-height: 40vh; max-height: 45vh; background: #111; }
-.mw-product-lightbox-image img { width: 100%; height: 100%; object-fit: contain; }
-.mw-product-lightbox-body { padding: 24px; flex: 1; color: #333; }
-.mw-product-lightbox-title { font-size: 1.5rem; font-weight: 600; color: #111; margin-bottom: 12px; }
-.mw-product-lightbox-desc { font-size: 14px; line-height: 1.6; color: #666; margin-bottom: 12px; }
-.mw-product-lightbox-prices { display: flex; align-items: center; gap: 12px; }
-.mw-product-lightbox .mw-lightbox-nav { background: rgba(0,0,0,0.05); }
-.mw-product-lightbox .mw-lightbox-prev, .mw-product-lightbox .mw-lightbox-next { background: rgba(0,0,0,0.08); color: #333; }
-.mw-product-lightbox .mw-lightbox-prev:hover, .mw-product-lightbox .mw-lightbox-next:hover { background: rgba(0,0,0,0.15); }
-.mw-product-lightbox .mw-lightbox-counter { color: #666; }
+/* Product cards: 4:3 image, white card design */
+.mw-product-card .mw-product-image-wrap { aspect-ratio: 4/3; overflow: hidden; }
+.mw-product-card .mw-product-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.mw-product-card .mw-product-image-wrap:hover img { transform: scale(1.1); }
+
+/* Products: Inline expanded box (mobile + desktop, like Services) */
+.mw-product-expanded-box { display: none; }
+.mw-products.mw-products-expanded-active .mw-blinkit-container { display: none; }
+.mw-products.mw-products-expanded-active .mw-product-expanded-box { display: block; }

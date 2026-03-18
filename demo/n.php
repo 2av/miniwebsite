@@ -5,31 +5,57 @@
  */
 
 /**
- * Parse video URL (YouTube, Shorts, Instagram, Facebook, etc.) and return title, thumb, platform.
+ * Default thumbnails for platforms that don't provide native thumbs (unique per index to avoid duplicates)
  */
-function parseVideoUrl($url, $default_thumb = '') {
+function getDefaultThumbForIndex($index) {
+    $thumbs = [
+        'https://images.unsplash.com/photo-1556910110-a5a63dfd393c?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&h=400&fit=crop',
+    ];
+    return $thumbs[$index % count($thumbs)];
+}
+
+/**
+ * Parse video URL (YouTube, Shorts, Instagram, Facebook, etc.) and return title, thumb, platform, embed_url.
+ */
+function parseVideoUrl($url, $default_thumb = '', $index = 0) {
     $url = trim($url);
-    if (empty($url)) return ['title' => 'Video', 'thumb' => $default_thumb, 'platform' => 'other'];
+    if (empty($url)) return ['title' => 'Video', 'thumb' => $default_thumb ?: getDefaultThumbForIndex($index), 'platform' => 'other', 'embed_url' => ''];
     $title = 'Video';
-    $thumb = $default_thumb;
+    $thumb = $default_thumb ?: getDefaultThumbForIndex($index);
     $platform = 'other';
+    $embed_url = '';
     // YouTube: watch?v=, youtu.be/, youtube.com/shorts/
     if (preg_match('#(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})#', $url, $m)) {
         $vid = $m[1];
         $thumb = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
+        $embed_url = "https://www.youtube.com/embed/{$vid}?autoplay=1";
         $platform = 'youtube';
         $title = 'YouTube Video';
     } elseif (preg_match('#instagram\.com/(?:reel|p)/([a-zA-Z0-9_-]+)#', $url, $m)) {
         $platform = 'instagram';
         $title = 'Instagram Video';
+        $thumb = getDefaultThumbForIndex($index);
+        $embed_url = (strpos($url, '/reel/') !== false ? 'https://www.instagram.com/reel/' : 'https://www.instagram.com/p/') . $m[1] . '/embed/';
     } elseif (preg_match('#(?:facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/#', $url)) {
         $platform = 'facebook';
         $title = 'Facebook Video';
-    } elseif (preg_match('#tiktok\.com/#', $url)) {
+        $thumb = getDefaultThumbForIndex($index);
+        $embed_url = $url;
+    } elseif (preg_match('#tiktok\.com/(?:@[^/]+/video/|v/)(\d+)#', $url, $m)) {
         $platform = 'tiktok';
         $title = 'TikTok Video';
+        $thumb = getDefaultThumbForIndex($index);
+        $embed_url = 'https://www.tiktok.com/embed/v2/' . $m[1];
+    } else {
+        $thumb = getDefaultThumbForIndex($index);
+        $embed_url = $url;
     }
-    return ['title' => $title, 'thumb' => $thumb, 'platform' => $platform];
+    return ['title' => $title, 'thumb' => $thumb, 'platform' => $platform, 'embed_url' => $embed_url];
 }
 
 $card_id_slug = isset($_GET['n']) ? trim($_GET['n']) : (isset($_GET['card_number']) ? trim($_GET['card_number']) : '');
@@ -93,15 +119,16 @@ if ($row) {
     $google_direction = !empty($row['d_location']) ? htmlspecialchars($row['d_location']) : '';
     $share_url = $base_url . '/' . htmlspecialchars($row['card_id'] ?? $card_id_slug);
 
-    // Social links from digi_card (6 icons: Facebook, Instagram, LinkedIn, YouTube, X/Twitter, Pinterest)
+    // Social share links (share profile URL to each platform)
+    // Note: Instagram & YouTube have no web share URLs - only link when profile/channel URL exists
     $social_links = [
-        ['icon' => 'facebook-f', 'url' => $row['d_fb'] ?? '#'],
-        ['icon' => 'instagram', 'url' => $row['d_instagram'] ?? '#'],
-        ['icon' => 'linkedin-in', 'url' => $row['d_linkedin'] ?? '#'],
-        ['icon' => 'youtube', 'url' => $row['d_youtube'] ?? '#'],
-        ['icon' => 'x-twitter', 'url' => $row['d_twitter'] ?? '#'],
-        ['icon' => 'pinterest', 'url' => $row['d_pinterest'] ?? '#'],
+        ['icon' => 'facebook-f', 'url' => 'https://www.facebook.com/sharer/sharer.php?u=' . urlencode($share_url)],
     ];
+    if (!empty(trim($row['d_instagram'] ?? ''))) $social_links[] = ['icon' => 'instagram', 'url' => trim($row['d_instagram'])];
+    $social_links[] = ['icon' => 'linkedin-in', 'url' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . urlencode($share_url)];
+    if (!empty(trim($row['d_youtube'] ?? ''))) $social_links[] = ['icon' => 'youtube', 'url' => trim($row['d_youtube'])];
+    $social_links[] = ['icon' => 'x-twitter', 'url' => 'https://twitter.com/intent/tweet?url=' . urlencode($share_url) . '&text=' . urlencode($hero_name)];
+    $social_links[] = ['icon' => 'pinterest', 'url' => 'https://pinterest.com/pin/create/button/?url=' . urlencode($share_url) . '&description=' . urlencode($hero_name)];
 
     // Services from card_products_services (products & services)
     $services = [];
@@ -241,16 +268,19 @@ if ($row) {
     // Videos from d_youtube1..d_youtube20 (YouTube, Shorts, Instagram, Facebook, etc.)
     $videos = [];
     $default_thumb = 'https://images.unsplash.com/photo-1556910110-a5a63dfd393c?w=600&h=400&fit=crop';
+    $vid_idx = 0;
     for ($i = 1; $i <= 20; $i++) {
         $url = trim($row['d_youtube' . $i] ?? '');
         if (empty($url)) continue;
-        $parsed = parseVideoUrl($url, $default_thumb);
+        $parsed = parseVideoUrl($url, $default_thumb, $vid_idx);
         $videos[] = [
             'url' => $url,
             'title' => $parsed['title'],
             'thumb' => $parsed['thumb'],
             'platform' => $parsed['platform'],
+            'embed_url' => $parsed['embed_url'] ?? $url,
         ];
+        $vid_idx++;
     }
 
     // Business Hours from d_business_hours (JSON)
@@ -281,35 +311,17 @@ if ($row) {
     $google_direction = '';
     $share_url = $base_url . '/demo/n.php';
 
+    // Demo: Instagram & YouTube have no web share URLs - only show share-capable platforms
     $social_links = [
-        ['icon' => 'facebook-f', 'url' => '#'],
-        ['icon' => 'instagram', 'url' => '#'],
-        ['icon' => 'linkedin-in', 'url' => '#'],
-        ['icon' => 'youtube', 'url' => '#'],
-        ['icon' => 'x-twitter', 'url' => '#'],
-        ['icon' => 'pinterest', 'url' => '#'],
+        ['icon' => 'facebook-f', 'url' => 'https://www.facebook.com/sharer/sharer.php?u=' . urlencode($share_url)],
+        ['icon' => 'linkedin-in', 'url' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . urlencode($share_url)],
+        ['icon' => 'x-twitter', 'url' => 'https://twitter.com/intent/tweet?url=' . urlencode($share_url) . '&text=' . urlencode($hero_name)],
+        ['icon' => 'pinterest', 'url' => 'https://pinterest.com/pin/create/button/?url=' . urlencode($share_url) . '&description=' . urlencode($hero_name)],
     ];
 
-    $services = [
-        ['name' => 'Private Dining', 'desc' => 'Exclusive dining experiences tailored to your preferences.', 'image' => 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop'],
-        ['name' => 'Event Catering', 'desc' => 'Full-service catering for weddings, corporate events & more.', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=200&fit=crop'],
-        ['name' => 'Masterclasses', 'desc' => 'Hands-on cooking classes for all skill levels.', 'image' => 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=300&h=200&fit=crop'],
-        ['name' => 'Menu Consulting', 'desc' => 'Expert guidance to design and optimize your menu.', 'image' => 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=300&h=200&fit=crop'],
-        ['name' => 'Wine Pairing', 'desc' => 'Curated wine selections to complement your dishes.', 'image' => 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=300&h=200&fit=crop'],
-        ['name' => 'Food Styling', 'desc' => 'Professional styling for photos and presentations.', 'image' => 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=300&h=200&fit=crop'],
-        ['name' => 'Corporate Lunch', 'desc' => 'Catered lunches for meetings and office events.', 'image' => 'https://images.unsplash.com/photo-1507048331197-7d4ac70811cf?w=300&h=200&fit=crop'],
-        ['name' => 'Kitchen Staffing', 'desc' => 'Skilled chefs and kitchen support for your events.', 'image' => 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=300&h=200&fit=crop'],
-        ['name' => 'Diet Plans', 'desc' => 'Custom meal plans for health and dietary needs.', 'image' => 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=300&h=200&fit=crop'],
-        ['name' => 'Equipment Rental', 'desc' => 'Professional kitchen equipment for your catering needs.', 'image' => 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300&h=200&fit=crop'],
-    ];
+    $services =[];
 
-    $offers = [
-        ['title' => 'Romantic Dinner', 'desc' => '5-course meal setup for couples.', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=300&fit=crop', 'badge' => '25% OFF'],
-        ['title' => 'BBQ Party', 'desc' => 'Book 10+ people, free grill setup.', 'image' => 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=300&fit=crop', 'badge' => 'FREE GRILL'],
-        ['title' => 'Meat Lover Combo', 'desc' => 'Ribs & Wings Platter combo.', 'image' => 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=300&fit=crop', 'badge' => 'COMBO'],
-        ['title' => 'Pasta Night', 'desc' => 'Discount on all Italian catering.', 'image' => 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&h=300&fit=crop', 'badge' => '15% OFF'],
-        ['title' => 'Wine Tasting', 'desc' => 'Introductory price for groups.', 'image' => 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=300&fit=crop', 'badge' => 'NEW'],
-    ];
+    $offers = [];
 
     // Products from card_product_pricing (dynamic - no hardcoding)
     $products_by_cat = [];
@@ -408,7 +420,7 @@ if (!empty($products_by_cat)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($hero_name); ?> - <?php echo htmlspecialchars($hero_title); ?></title>
+    <title><?php echo htmlspecialchars($hero_name); ?></title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -469,7 +481,7 @@ if (!empty($products_by_cat)) {
                 <a href="tel:+<?php echo $phone; ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
                     <i class="fas fa-phone-alt"></i> Call Now
                 </a>
-                <a href="https://wa.me/<?php echo $whatsapp; ?>" class="flex-1 bg-primary text-bgbase py-3 px-4 rounded-theme hover:bg-secondary transition-colors flex items-center justify-center gap-2 font-medium">
+                <a href="https://wa.me/<?php echo $whatsapp; ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
                     <i class="fab fa-whatsapp"></i> WhatsApp
                 </a>
             </div>
@@ -494,24 +506,32 @@ if (!empty($products_by_cat)) {
     <section class="mw-action-grid mw-section-padding">
         <h2 class="mw-section-title">Contact</h2>
         <div class="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
-            <div class="mw-card p-4 flex flex-col gap-2">
-                <i class="fas fa-envelope text-primary text-xl"></i>
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-envelope text-xl"></i>
+                </span>
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Email Address</h3>
                 <p class="text-heading font-medium text-sm truncate"><?php echo $email; ?></p>
             </div>
-            <div class="mw-card p-4 flex flex-col gap-2">
-                <i class="fas fa-phone-alt text-primary text-xl"></i>
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-phone-alt text-xl"></i>
+                </span>
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Phone Number</h3>
                 <p class="text-heading font-medium text-sm">+<?php echo $phone; ?></p>
             </div>
-            <div class="mw-card p-4 flex flex-col gap-2">
-                <i class="fas fa-map-marker-alt text-primary text-xl"></i>
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-map-marker-alt text-xl"></i>
+                </span>
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Location</h3>
                 <p class="text-heading font-medium text-sm"><?php echo $location; ?></p>
             </div>
             <?php if (!empty($google_direction)): ?>
-            <div class="mw-card p-4 flex flex-col gap-2">
-                <i class="fas fa-directions text-primary text-xl"></i>
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-directions text-xl"></i>
+                </span>
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Google Direction</h3>
                 <a href="<?php echo htmlspecialchars((strpos($google_direction, 'http') === 0 ? $google_direction : 'https://' . $google_direction)); ?>" target="_blank" rel="noopener" class="text-heading font-medium text-sm truncate hover:underline">Get Directions</a>
             </div>
@@ -527,57 +547,64 @@ if (!empty($products_by_cat)) {
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode($share_url); ?>" alt="QR Code" class="w-full h-full">
             </div>
             <div class="space-y-4">
-                <input type="tel" placeholder="Enter WhatsApp Number" class="mw-input">
-                <button class="w-full bg-primary text-bgbase font-bold py-3 rounded-theme hover:bg-secondary transition flex items-center justify-center gap-2">
+                <input type="tel" id="mw-share-wa-input" placeholder="Enter WhatsApp Number" class="mw-input" maxlength="15">
+                <button type="button" id="mw-share-wa-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium w-full cursor-pointer">
                     <i class="fab fa-whatsapp"></i> Share on WhatsApp
                 </button>
                 <div class="flex gap-4">
-                    <button class="flex-1 bg-transparent border border-primary text-primary font-medium py-2 rounded-theme hover:bg-primary/10 transition">Save Contact</button>
-                    <button class="flex-1 bg-transparent border border-primary text-primary font-medium py-2 rounded-theme hover:bg-primary/10 transition">Share Link</button>
+                    <button type="button" id="mw-save-contact-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
+                        <i class="fas fa-address-card"></i> Save Contact
+                    </button>
+                    <button type="button" id="mw-share-link-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
+                        <i class="fas fa-link"></i> Share Link
+                    </button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 6. Services Section (same layout as Special Offers) -->
+    <!-- 6. Services Section -->
     <section id="mw-services" class="mw-services mw-section-padding bg-cardbg/30">
         <h2 class="mw-section-title">Our Services</h2>
-        <div class="mw-grid-services">
-            <?php foreach ($services as $idx => $svc): ?>
-            <div class="mw-card mw-offer-card mw-service-card bg-cardbg rounded-theme cursor-pointer overflow-hidden relative" data-svc-index="<?php echo $idx; ?>" role="button" tabindex="0">
-                <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>" class="w-full h-40 object-cover">
-                <div class="p-5">
-                    <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $svc['name']; ?></h3>
-                    <p class="text-sm text-textmain line-clamp-3 mb-4"><?php echo !empty($svc['desc']) ? $svc['desc'] : 'Contact us for details.'; ?></p>
-                    <span class="block w-full py-2.5 rounded-theme font-semibold transition text-center bg-primary/20 text-primary">View Details</span>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-    </section>
 
-    <!-- Services Full-Screen Lightbox -->
-    <div id="mw-services-lightbox" class="mw-services-lightbox" aria-hidden="true">
-        <button type="button" class="mw-lightbox-close" aria-label="Close"><i class="fas fa-times"></i></button>
-        <div class="mw-lightbox-swipe">
+        <!-- Services Grid (visible by default) -->
+        <div id="mw-services-grid" class="mw-grid-services">
             <?php foreach ($services as $idx => $svc): ?>
-            <div class="mw-lightbox-slide" data-svc-index="<?php echo $idx; ?>">
-                <div class="mw-lightbox-image-wrap">
+            <div class="mw-card mw-offer-card mw-service-card bg-cardbg rounded-theme overflow-hidden relative" data-svc-index="<?php echo $idx; ?>" role="button" tabindex="0">
+                <div class="mw-service-image-wrap">
                     <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>">
                 </div>
-                <div class="mw-lightbox-content">
-                    <h3 class="mw-lightbox-title"><?php echo $svc['name']; ?></h3>
-                    <p class="mw-lightbox-desc"><?php echo !empty($svc['desc']) ? nl2br($svc['desc']) : 'Contact us for details.'; ?></p>
+                <div class="p-5">
+                    <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $svc['name']; ?></h3>
+                    <p class="mw-service-desc-preview text-sm text-textmain line-clamp-3"><?php echo !empty($svc['desc']) ? htmlspecialchars($svc['desc']) : 'Contact us for details.'; ?></p>
+                    <div class="mw-service-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($svc['desc']) ? nl2br(htmlspecialchars($svc['desc'])) : 'Contact us for details.'; ?></div>
+                    <button type="button" class="mw-service-read-more text-primary text-sm font-medium mt-2 md:hidden hover:underline">Read more</button>
                 </div>
             </div>
             <?php endforeach; ?>
         </div>
-        <div class="mw-lightbox-nav">
-            <button type="button" class="mw-lightbox-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
-            <span class="mw-lightbox-counter"><span id="mw-lightbox-current">1</span> / <?php echo count($services); ?></span>
-            <button type="button" class="mw-lightbox-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+
+        <!-- Desktop: Inline Expanded View (within product box, with prev/next arrows) -->
+        <div id="mw-service-expanded-box" class="mw-service-expanded-box" aria-hidden="true">
+            <div class="mw-card mw-offer-card relative overflow-hidden">
+                <button type="button" class="mw-service-expanded-close absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-cardbg/90 hover:bg-cardbg text-heading flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div class="relative">
+                    <div class="mw-service-expanded-image-wrap aspect-[4/3] overflow-hidden relative bg-gray-900 flex items-center justify-center">
+                        <img id="mw-service-expanded-img" src="" alt="" class="w-full h-full object-contain">
+                        <button type="button" class="mw-service-expanded-prev absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+                        <button type="button" class="mw-service-expanded-next absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="p-5 md:p-6">
+                        <h3 id="mw-service-expanded-title" class="text-heading font-semibold text-xl mb-3"></h3>
+                        <p id="mw-service-expanded-desc" class="text-sm text-textmain leading-relaxed whitespace-pre-line"></p>
+                    </div>
+                </div>
+                <div class="flex justify-center gap-2 py-3 text-sm text-textmain border-t border-white/10">
+                    <span id="mw-service-expanded-counter">1</span> / <?php echo count($services); ?>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 
 
     <!-- 7. Special Offers Section -->
@@ -585,13 +612,17 @@ if (!empty($products_by_cat)) {
         <h2 class="mw-section-title">Special Offers</h2>
         <div class="mw-grid-offers">
             <?php foreach ($offers as $off): ?>
-            <div class="mw-card mw-offer-card bg-cardbg rounded-theme">
-                <div class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold z-10" style="background: var(--mw-offer-badge-bg); color: var(--mw-offer-badge-color);"><?php echo htmlspecialchars($off['badge']); ?></div>
-                <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-40 object-cover">
+            <div class="mw-card mw-offer-card bg-cardbg rounded-theme relative overflow-hidden">
+                <div class="mw-offer-badge absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold z-10" style="background: var(--mw-offer-badge-bg); color: var(--mw-offer-badge-color);"><?php echo htmlspecialchars($off['badge']); ?></div>
+                <div class="mw-offer-image-wrap aspect-[4/3] overflow-hidden">
+                    <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-full object-cover">
+                </div>
                 <div class="p-5">
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $off['title']; ?></h3>
-                    <p class="text-sm text-textmain mb-4"><?php echo $off['desc']; ?></p>
-                    <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I'm interested in: <?php echo urlencode($off['title']); ?>" target="_blank" class="block w-full py-2.5 rounded-theme font-semibold transition text-center" style="background: var(--mw-offer-cta-bg); color: #111;">Get Offer</a>
+                    <p class="mw-offer-desc-preview text-sm text-textmain line-clamp-1"><?php echo !empty($off['desc']) ? htmlspecialchars($off['desc']) : 'Contact us for details.'; ?></p>
+                    <div class="mw-offer-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($off['desc']) ? nl2br(htmlspecialchars($off['desc'])) : 'Contact us for details.'; ?></div>
+                    <button type="button" class="mw-offer-read-more text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
+                    <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I'm interested in: <?php echo urlencode($off['title']); ?>" target="_blank" class="block w-full py-2.5 rounded-theme font-semibold transition text-center mt-4" style="background: var(--mw-offer-cta-bg); color: #111;">Get Offer</a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -603,7 +634,7 @@ if (!empty($products_by_cat)) {
     <section id="mw-products" class="mw-products mw-section-padding">
         <h2 class="mw-section-title">Shop Online</h2>
         
-        <div class="mw-blinkit-container">
+        <div id="mw-products-blinkit" class="mw-blinkit-container">
             <!-- Sidebar Categories -->
             <div class="mw-blinkit-sidebar" id="categorySidebar">
                 <?php foreach ($cat_order as $idx => $cat_key): if (!isset($products_by_cat[$cat_key]) || empty($products_by_cat[$cat_key])) continue; ?>
@@ -624,19 +655,23 @@ if (!empty($products_by_cat)) {
                             if ($ok === $cat_key) { $global_idx += $pidx; break; }
                             $global_idx += isset($products_by_cat[$ok]) ? count($products_by_cat[$ok]) : 0;
                         } ?>
-                    <div class="mw-card mw-product-card mw-product-card-clickable bg-white text-gray-800 cursor-pointer" data-product-index="<?php echo $global_idx; ?>">
-                        <div class="relative">
-                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full aspect-square object-cover rounded-t-md" alt="<?php echo htmlspecialchars($prod['name']); ?>">
-                            <button type="button" class="mw-btn-add mw-btn-add-overlay mw-add-to-cart absolute bottom-2 right-2 z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()">ADD</button>
+                    <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-2" data-product-index="<?php echo $global_idx; ?>">
+                        <div class="mw-product-image-wrap mw-product-click-area aspect-[4/3] overflow-hidden relative rounded-t-xl cursor-pointer" data-product-index="<?php echo $global_idx; ?>" role="button" tabindex="0">
+                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover" alt="<?php echo htmlspecialchars($prod['name']); ?>">
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute bottom-2 right-2 z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()">ADD</button>
                         </div>
-                        <div class="p-2">
-                            <h3 class="font-semibold text-sm leading-tight mb-1"><?php echo htmlspecialchars($prod['name']); ?></h3>
-                            <p class="text-xs text-gray-500 mb-2 line-clamp-2"><?php echo htmlspecialchars($prod['desc']); ?></p>
-                            <div class="flex items-center gap-2 justify-between">
+                        <div class="p-3">
+                            <h3 class="font-semibold text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
+                            <p class="mw-product-desc-preview text-xs text-gray-500 line-clamp-1"><?php echo !empty($prod['desc']) ? htmlspecialchars($prod['desc']) : 'Contact us for details.'; ?></p>
+                            <div class="mw-product-desc-full hidden text-xs text-gray-500 mt-2 leading-relaxed"><?php echo !empty($prod['desc']) ? nl2br(htmlspecialchars($prod['desc'])) : 'Contact us for details.'; ?></div>
+                            <button type="button" class="mw-product-read-more text-primary text-xs font-medium mt-1 hover:underline">Read more</button>
+                            <div class="flex items-center gap-2 justify-between mt-2">
                                 <?php if (isset($prod['mrp']) && $prod['mrp'] > $prod['price']): ?>
                                 <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
+                                <?php else: ?>
+                                <span></span>
                                 <?php endif; ?>
-                                <span class="font-bold text-sm">₹<?php echo number_format($prod['price']); ?></span>
+                                <span class="font-bold text-sm text-gray-900">₹<?php echo number_format($prod['price']); ?></span>
                             </div>
                         </div>
                     </div>
@@ -646,60 +681,65 @@ if (!empty($products_by_cat)) {
 
             </div>
         </div>
-    </section>
 
-    <!-- Product Detail Lightbox (full view with swipe) -->
-    <?php if (!empty($products_flat)): ?>
-    <div id="mw-product-lightbox" class="mw-product-lightbox" aria-hidden="true">
-        <button type="button" class="mw-lightbox-close" aria-label="Close"><i class="fas fa-times"></i></button>
-        <div class="mw-product-lightbox-swipe">
-            <?php foreach ($products_flat as $pidx => $p): ?>
-            <div class="mw-product-lightbox-slide">
-                <div class="mw-product-lightbox-image"><img src="<?php echo htmlspecialchars($p['image']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>"></div>
-                <div class="mw-product-lightbox-body">
-                    <h3 class="mw-product-lightbox-title"><?php echo $p['name']; ?></h3>
-                    <p class="mw-product-lightbox-desc"><?php echo nl2br($p['desc']); ?></p>
-                    <div class="mw-product-lightbox-prices">
-                        <?php if (isset($p['mrp']) && $p['mrp'] > $p['price']): ?>
-                        <span class="text-gray-400 line-through">₹<?php echo number_format($p['mrp']); ?></span>
-                        <?php endif; ?>
-                        <span class="font-bold text-lg">₹<?php echo number_format($p['price']); ?></span>
+        <!-- Desktop: Inline Expanded View (within section, like Services) -->
+        <div id="mw-product-expanded-box" class="mw-product-expanded-box" aria-hidden="true">
+            <div class="mw-card mw-offer-card relative overflow-hidden bg-white text-gray-800">
+                <button type="button" class="mw-product-expanded-close absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div class="relative">
+                    <div class="mw-product-expanded-image-wrap aspect-[4/3] overflow-hidden relative bg-gray-100 flex items-center justify-center">
+                        <img id="mw-product-expanded-img" src="" alt="" class="w-full h-full object-contain">
+                        <button type="button" class="mw-product-expanded-prev absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+                        <button type="button" class="mw-product-expanded-next absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
                     </div>
-                    <button type="button" class="mw-btn-add mw-btn-add-overlay mw-add-to-cart inline-block mt-4" data-product-index="<?php echo $pidx; ?>">ADD</button>
+                    <div class="p-5 md:p-6">
+                        <h3 id="mw-product-expanded-title" class="text-gray-900 font-semibold text-xl mb-3"></h3>
+                        <p id="mw-product-expanded-desc" class="text-sm text-gray-500 leading-relaxed whitespace-pre-line mb-4"></p>
+                        <div class="flex items-center gap-3 mb-4">
+                            <span id="mw-product-expanded-mrp" class="text-sm text-gray-400 line-through font-bold hidden"></span>
+                            <span id="mw-product-expanded-price" class="font-bold text-lg text-gray-900"></span>
+                        </div>
+                        <button type="button" class="mw-btn-add-shop mw-add-to-cart py-2.5 px-6 rounded-theme" id="mw-product-expanded-add">ADD</button>
+                    </div>
+                </div>
+                <div class="flex justify-center gap-2 py-3 text-sm text-gray-500 border-t border-gray-200">
+                    <span id="mw-product-expanded-counter">1</span> / <?php echo count($products_flat); ?>
                 </div>
             </div>
-            <?php endforeach; ?>
         </div>
-        <div class="mw-lightbox-nav">
-            <button type="button" class="mw-product-lightbox-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
-            <span class="mw-lightbox-counter"><span id="mw-product-lightbox-current">1</span> / <?php echo count($products_flat); ?></span>
-            <button type="button" class="mw-product-lightbox-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
-        </div>
-    </div>
-    <?php endif; ?>
+    </section>
+
     <?php endif; ?>
 
-    <!-- 9. Video Section (vertical grid, 6 visible + Load more) -->
+    <!-- 9. Video Section (1 col mobile, 3 cols desktop, 6 visible + Load more) -->
     <?php if (!empty($videos)): ?>
     <section class="mw-video-gallery mw-section-padding bg-cardbg/20">
         <h2 class="mw-section-title">Videos</h2>
         <div class="mw-grid-videos">
             <?php foreach ($videos as $idx => $v): ?>
-            <a href="<?php echo htmlspecialchars($v['url']); ?>" target="_blank" rel="noopener" class="mw-video-item mw-card aspect-video relative group cursor-pointer overflow-hidden block <?php echo $idx >= 6 ? 'mw-video-hidden' : ''; ?>">
+            <div class="mw-video-item mw-card aspect-video relative group cursor-pointer overflow-hidden block <?php echo $idx >= 6 ? 'mw-video-hidden' : ''; ?>" data-video-url="<?php echo htmlspecialchars($v['embed_url'] ?? $v['url']); ?>" data-video-fallback="<?php echo htmlspecialchars($v['url']); ?>" role="button" tabindex="0">
                 <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>">
                 <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="fas fa-play ml-1"></i></div></div>
                 <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
-            </a>
+            </div>
             <?php endforeach; ?>
         </div>
         <?php if (count($videos) > 6): ?>
-        <div class="mt-6 text-center">
+        <div id="mw-videos-load-more-wrap" class="mt-6 text-center">
             <button type="button" id="mw-videos-load-more" class="w-full max-w-xs mx-auto py-3 px-6 rounded-theme font-semibold transition bg-primary/20 text-primary hover:bg-primary hover:text-bgbase border border-primary/50">
                 Load more (<?php echo count($videos) - 6; ?> more)
             </button>
         </div>
         <?php endif; ?>
     </section>
+
+    <!-- Video Modal (play within Miniwebsite) -->
+    <div id="mw-video-modal" class="mw-video-modal" aria-hidden="true">
+        <button type="button" class="mw-video-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+        <div class="mw-video-modal-content">
+            <iframe id="mw-video-modal-iframe" src="" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    </div>
     <?php endif; ?>
 
     <!-- 10. Image Gallery -->
@@ -824,11 +864,15 @@ if (!empty($products_by_cat)) {
     <i class="fab fa-whatsapp"></i>
 </a>
 
-<!-- Config for JS (API key, WhatsApp number, products for cart) -->
+<!-- Config for JS (API key, WhatsApp number, products for cart, share profile) -->
 <script>
     window.MW_AI_API_KEY = "<?php echo htmlspecialchars(defined('GEMINI_API_KEY') ? GEMINI_API_KEY : ''); ?>";
     window.MW_WHATSAPP_NUMBER = "<?php echo htmlspecialchars($whatsapp); ?>";
     window.MW_PRODUCTS = <?php echo json_encode($products_flat ?? []); ?>;
+    window.MW_SHARE_URL = <?php echo json_encode($share_url ?? ''); ?>;
+    window.MW_HERO_NAME = <?php echo json_encode($hero_name ?? ''); ?>;
+    window.MW_PHONE = <?php echo json_encode($phone ?? ''); ?>;
+    window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
 </script>
 <script src="js/app.js"></script>
 

@@ -22,6 +22,27 @@
 .mw-btn-add-overlay { background: var(--mw-primary-color) !important; color: #111 !important; }
 .mw-btn-add-overlay:hover { background: var(--mw-secondary-color) !important; color: #111 !important; }
 
+/* Shop Online ADD button - filled background, hover transition */
+.mw-btn-add-shop {
+    background: var(--mw-primary-color);
+    border: 1px solid var(--mw-primary-color);
+    color: #111;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0.25rem 1rem;
+    border-radius: var(--mw-border-radius);
+    font-size: 0.75rem;
+    transition: all 0.3s;
+}
+.mw-btn-add-shop:hover {
+    background: var(--mw-secondary-color);
+    border-color: var(--mw-secondary-color);
+    color: #111;
+}
+.mw-btn-add-shop:active {
+    transform: scale(0.98);
+}
+
 /* Forms */
 .mw-input { width: 100%; background-color: var(--mw-background-color); border: 1px solid rgba(255,255,255,0.1); color: var(--mw-heading-color); border-radius: var(--mw-border-radius); padding: 0.75rem 1rem; outline: none; transition: border 0.3s; }
 .mw-input:focus { border-color: var(--mw-primary-color); }

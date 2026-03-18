@@ -327,21 +327,21 @@ if(isset($_POST['product'])){
                     $product_price = floatval(preg_replace('/[^0-9.]/', '', $_POST["pro_price$slot_found"]));
                 }
                 
-                // Get product description if provided (max 60 words)
+                // Get product description if provided (max 400 characters)
                 $product_description = '';
                 if(isset($_POST["pro_desc$slot_found"])) {
                     $product_description = trim($_POST["pro_desc$slot_found"]);
-                    $words = preg_split('/\s+/', $product_description, 61);
-                    $product_description = implode(' ', array_slice($words, 0, 60));
+                    $product_description = mb_substr($product_description, 0, 400);
                     $product_description = mysqli_real_escape_string($connect, $product_description);
                 }
                 
-                // Process image upload if provided
+                // Process image only when valid file attached (image optional - skip if none)
                 if(!empty($_POST["processed_product_image_data$slot_found"])){
                     $binary_data = base64_decode($_POST["processed_product_image_data$slot_found"]);
-                    // Save to filesystem and get the filename
-                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
-                } elseif(!empty($_FILES["pro_img$slot_found"]['tmp_name'])) {
+                    if(!empty($binary_data) && strlen($binary_data) > 0) {
+                        $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
+                    }
+                } elseif(isset($_FILES["pro_img$slot_found"]) && !empty($_FILES["pro_img$slot_found"]['tmp_name']) && $_FILES["pro_img$slot_found"]['error'] === UPLOAD_ERR_OK) {
                     if(function_exists('processImageUploadWithAutoCrop')) {
                         try {
                             $result = processImageUploadWithAutoCrop(
@@ -357,7 +357,7 @@ if(isset($_POST['product'])){
                                 }
                             }
                         } catch(Exception $e) {
-                            $error_message .= '<div class="alert alert-danger">Error processing image: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                            // Image optional: continue without image, do not block save
                         }
                     }
                 }
@@ -409,12 +409,11 @@ if(isset($_POST['product'])){
                     $product_category = intval($_POST["pro_category$x"]);
                 }
                 
-                // Get product description if provided (max 60 words)
+                // Get product description if provided (max 400 characters)
                 $product_description = '';
                 if(isset($_POST["pro_desc$x"])) {
                     $product_description = trim($_POST["pro_desc$x"]);
-                    $words = preg_split('/\s+/', $product_description, 61);
-                    $product_description = implode(' ', array_slice($words, 0, 60));
+                    $product_description = mb_substr($product_description, 0, 400);
                     $product_description = mysqli_real_escape_string($connect, $product_description);
                 }
                 
@@ -427,62 +426,45 @@ if(isset($_POST['product'])){
                     }
                 }
                 
-                // Process image upload if provided
-                // Check if we have processed image data from AJAX (base64)
+                // Process image only when valid file attached (image optional - skip if none)
                 if(!empty($_POST["processed_product_image_data$x"])){
                     $binary_data = base64_decode($_POST["processed_product_image_data$x"]);
-                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
-                } elseif(!empty($_FILES["pro_img$x"]['tmp_name'])) {
-                    // Use the new automatic crop and resize function
+                    if(!empty($binary_data) && strlen($binary_data) > 0) {
+                        $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
+                    }
+                } elseif(isset($_FILES["pro_img$x"]) && !empty($_FILES["pro_img$x"]['tmp_name']) && $_FILES["pro_img$x"]['error'] === UPLOAD_ERR_OK) {
                     if(function_exists('processImageUploadWithAutoCrop')) {
                         try {
                             $result = processImageUploadWithAutoCrop(
                                 $_FILES["pro_img$x"], 
-                                600,      // Target size: 600x600
-                                250000,   // Target file size: 250KB
-                                200000,   // Min file size: 200KB
-                                300000,   // Max file size: 300KB
+                                600, 250000, 200000, 300000,
                                 ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-                                'jpeg',
-                                null
+                                'jpeg', null
                             );
-                            
                             if($result['status']) {
                                 $product_image = saveProductPricingImageToFilesystem($result['data'], $productPricingUploadDirAbs, $card_id, $product_name);
-                                // Clean up temp file
                                 if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
                                     @unlink($result['file_path']);
                                 }
-                            } else {
-                                $error_message .= isset($result['message']) ? $result['message'] : '<div class="alert alert-danger">Error processing image for product '.$x.'.</div>';
                             }
                         } catch(Exception $e) {
-                            $error_message .= '<div class="alert alert-danger">Error processing image for product '.$x.': ' . htmlspecialchars($e->getMessage()) . '</div>';
+                            // Image optional: continue without image, do not block save
                         }
                     } else {
-                        // Fallback compression
                         $filename = $_FILES["pro_img$x"]['name'];
                         $imageFileType = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
                         $file_allow = array('png', 'jpeg', 'jpg', 'gif', 'webp');
-                        
-                        if(in_array($imageFileType, $file_allow)) {
-                            if($_FILES["pro_img$x"]['size'] <= 250000) {
-                                $source = $_FILES["pro_img$x"]['tmp_name'];
-                                if(function_exists('imagecreatefromjpeg') && function_exists('imagejpeg')) {
-                                    $destination = $_FILES["pro_img$x"]['tmp_name'];
-                                    $quality = 65;
-                                    $compressimage = compressImage($source, $destination, $quality);
-                                    $binary_data = file_get_contents($compressimage);
-                                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
-                                } else {
-                                    $binary_data = file_get_contents($source);
-                                    $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
-                                }
+                        if(in_array($imageFileType, $file_allow) && $_FILES["pro_img$x"]['size'] <= 250000) {
+                            $source = $_FILES["pro_img$x"]['tmp_name'];
+                            if(function_exists('imagecreatefromjpeg') && function_exists('imagejpeg')) {
+                                $destination = $_FILES["pro_img$x"]['tmp_name'];
+                                $compressimage = compressImage($source, $destination, 65);
+                                $binary_data = file_get_contents($compressimage);
+                                $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
                             } else {
-                                $error_message .= '<div class="alert alert-danger">File size for Product Image '.$x.' exceeds 250KB limit.</div>';
+                                $binary_data = file_get_contents($source);
+                                $product_image = saveProductPricingImageToFilesystem($binary_data, $productPricingUploadDirAbs, $card_id, $product_name);
                             }
-                        } else {
-                            $error_message .= '<div class="alert alert-danger">Only PNG, JPG, JPEG, GIF, WEBP files allowed for Product Image '.$x.'</div>';
                         }
                     }
                 }
@@ -783,7 +765,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <div class="form-group">
                         <label for="modal_product_category">Product Category</label>
                         <div style="display: flex; gap: 10px;">
-                            <select name="modal_product_category" id="modal_product_category" class="form-control" style="flex: 1;">
+                            <select name="modal_product_category" id="modal_product_category" class="form-control" style="flex: 1;" onchange="loadProductNames(this.value)">
                                 <option value="">Select Product Category</option>
                                 <?php
                                 // Fetch child categories based on d_position_primary from digi_card
@@ -873,9 +855,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     </div>
                     <div class="form-group">
                         <label for="modal_product_description">Product Description</label>
-                        <textarea class="form-control" id="modal_product_description" placeholder="Enter product description (max 60 words)" rows="4"></textarea>
+                        <textarea class="form-control" id="modal_product_description" maxlength="400" placeholder="Enter product description (max 400 characters)" rows="4" oninput="updateCharCount()" onpaste="updateCharCount()" onkeyup="updateCharCount()"></textarea>
                         <small class="form-text text-muted">
-                            <strong id="char_counter_display">0/60</strong> words
+                            <strong id="char_counter_display">0/400</strong> characters
                         </small>
                     </div>
                 </form>
@@ -892,45 +874,31 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 var currentProductId = null;
 var processedProductImageData = null;
 
-// Update word count display (max 60 words)
+// Update character count display (max 400 characters) - updates live while typing
 function updateCharCount() {
     var textarea = document.getElementById('modal_product_description');
     var counter = document.getElementById('char_counter_display');
     
     if(textarea && counter) {
-        var words = textarea.value.trim().split(/\s+/).filter(Boolean);
-        var count = words.length;
-        counter.textContent = count + '/60';
-        counter.style.color = count > 60 ? '#dc3545' : '';
+        var count = textarea.value.length;
+        counter.textContent = count + '/400';
+        counter.style.color = count > 400 ? '#dc3545' : '';
     }
 }
 
-// Add native event listeners for character count
-document.addEventListener('DOMContentLoaded', function() {
-    var textarea = document.getElementById('modal_product_description');
-    if(textarea) {
-        textarea.addEventListener('input', updateCharCount);
-        textarea.addEventListener('keyup', updateCharCount);
-        textarea.addEventListener('change', updateCharCount);
-    }
+// Bind character count - inline oninput/onpaste/onkeyup for reliable live updates
+$(document).ready(function() {
+    $('#modal_product_description').on('input paste keyup', updateCharCount);
 });
 
-// Load product names when category is selected
-document.addEventListener('DOMContentLoaded', function() {
-    var categorySelect = document.getElementById('modal_product_category');
-    if(categorySelect) {
-        categorySelect.addEventListener('change', function() {
-            loadProductNames(this.value);
-        });
-    }
-});
+// Product names load via inline onchange on category select (loadProductNames)
 
-function loadProductNames(categoryId) {
+function loadProductNames(categoryId, selectProductName) {
     var productSelect = document.getElementById('modal_product_name');
     
     if(!categoryId) {
-        // Clear product names if no category selected
-        productSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
+        // Clear product names when no category selected
+        productSelect.innerHTML = '<option value="">Select category first</option>';
         productSelect.disabled = true;
         return;
     }
@@ -938,6 +906,23 @@ function loadProductNames(categoryId) {
     // Disable the select and show loading state
     productSelect.disabled = true;
     productSelect.innerHTML = '<option value="">Loading products...</option>';
+    
+    function selectSavedProduct() {
+        if(!selectProductName || !productSelect) return;
+        var nameToMatch = String(selectProductName).trim();
+        if(!nameToMatch) return;
+        var txt = document.createElement('textarea');
+        txt.innerHTML = nameToMatch;
+        nameToMatch = txt.value.trim();
+        for(var i = 0; i < productSelect.options.length; i++) {
+            var opt = productSelect.options[i];
+            var optText = (opt.textContent || opt.text || '').replace('[Custom] ', '').trim();
+            if(optText === nameToMatch || (opt.textContent || '').trim() === nameToMatch) {
+                productSelect.value = opt.value;
+                break;
+            }
+        }
+    }
     
     // Fetch product names via AJAX
     fetch('?action=get_product_names&category_id=' + encodeURIComponent(categoryId), {
@@ -988,19 +973,20 @@ function loadProductNames(categoryId) {
             } else {
                 var option = document.createElement('option');
                 option.disabled = true;
-                option.textContent = 'No products available for this category';
+                option.textContent = 'No products available';
                 productSelect.appendChild(option);
                 productSelect.disabled = true;
             }
+            selectSavedProduct();
         })
         .catch(error => {
             console.error('Error loading custom products:', error);
-            // Still enable if we have system products
             if(data.success && data.products.length > 0) {
                 productSelect.disabled = false;
             } else {
                 productSelect.disabled = true;
             }
+            selectSavedProduct();
         });
     })
     .catch(error => {
@@ -1008,7 +994,7 @@ function loadProductNames(categoryId) {
         productSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
         var option = document.createElement('option');
         option.disabled = true;
-        option.textContent = 'Error loading products';
+        option.textContent = 'No products available';
         productSelect.appendChild(option);
         productSelect.disabled = true;
     });
@@ -1020,11 +1006,16 @@ function openProductModal() {
     
     try {
         // Reset form fields (skip file input - clearing can throw in some browsers)
-        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_name', 'modal_product_category', 'modal_product_mrp', 'modal_product_price', 'modal_product_description'];
+        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_category', 'modal_product_mrp', 'modal_product_price', 'modal_product_description'];
         fieldIds.forEach(function(fieldId) {
             var field = document.getElementById(fieldId);
             if(field) field.value = '';
         });
+        var productNameSelect = document.getElementById('modal_product_name');
+        if(productNameSelect) {
+            productNameSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
+            productNameSelect.disabled = true;
+        }
         var fileInput = document.getElementById('modal_product_image');
         if(fileInput) {
             try { fileInput.value = ''; } catch(e) { /* file inputs may throw on reset */ }
@@ -1096,19 +1087,13 @@ function editProduct(productId, productName, productCategoryId, mrp, price, prod
         modalProductNameField.disabled = true;
     }
     
-    // Set category and load product names
+    // Set category and load product names with saved selection
     if(modalProductCategoryField) {
         modalProductCategoryField.value = productCategoryId || '';
     }
     
     if(productCategoryId) {
-        loadProductNames(productCategoryId);
-        // Set the product name after options have loaded (300ms to be safe)
-        setTimeout(function() {
-            if(modalProductNameField) {
-                modalProductNameField.value = productName || '';
-            }
-        }, 300);
+        loadProductNames(productCategoryId, productName);
     }
     
     // Get and set product image preview
@@ -1250,8 +1235,7 @@ function addProductToForm() {
     var modalProductDescField = document.getElementById('modal_product_description');
     var description = modalProductDescField ? modalProductDescField.value.trim() : '';
     if(description) {
-        var words = description.split(/\s+/).filter(Boolean);
-        if(words.length > 60) description = words.slice(0, 60).join(' ');
+        if(description.length > 400) description = description.substring(0, 400);
         formData.append('pro_desc' + tempSlot, description);
     }
     

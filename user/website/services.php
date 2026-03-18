@@ -159,6 +159,9 @@ if($user_id == 0) {
 
 // Get products data from card_products_services (new dynamic table)
 $card_id = mysqli_real_escape_string($connect, $_SESSION['card_id_inprocess']);
+// Clean up any blank entries (created before validation fix) for this card
+mysqli_query($connect, "DELETE FROM card_products_services WHERE card_id='$card_id' AND user_id=$user_id AND TRIM(COALESCE(product_name,'')) = ''");
+
 $products_query = mysqli_query($connect, "SELECT * FROM card_products_services WHERE card_id='$card_id' AND user_id=$user_id ORDER BY display_order ASC, id ASC");
 $products = [];
 while($prod_row = mysqli_fetch_array($products_query)) {
@@ -328,16 +331,16 @@ if(isset($_POST['process4'])){
         $product_description = '';
         $product_id = null;
         
-        // Check if product name was submitted
-        if(isset($_POST["d_pro_name$x"]) && !empty(trim($_POST["d_pro_name$x"]))) {
+        // Check if product name was submitted (mandatory - reject empty, whitespace-only, or invisible chars)
+        $product_name_raw = isset($_POST["d_pro_name$x"]) ? trim($_POST["d_pro_name$x"]) : '';
+        if($product_name_raw !== '' && preg_match('/\S/', $product_name_raw)) {
             $products_processed = true;
-            $product_name = mysqli_real_escape_string($connect, trim($_POST["d_pro_name$x"]));
+            $product_name = mysqli_real_escape_string($connect, $product_name_raw);
             
-            // Get product description if provided (max 60 words)
+            // Get product description if provided (max 400 characters)
             if(isset($_POST["d_pro_desc$x"])) {
                 $product_description = trim($_POST["d_pro_desc$x"]);
-                $words = preg_split('/\s+/', $product_description, 61);
-                $product_description = implode(' ', array_slice($words, 0, 60));
+                $product_description = mb_substr($product_description, 0, 400);
                 $product_description = mysqli_real_escape_string($connect, $product_description);
             }
             
@@ -359,67 +362,43 @@ if(isset($_POST['process4'])){
             error_log("  processed_product_image_data$x exists: " . (isset($_POST["processed_product_image_data$x"]) ? "YES (len=" . strlen($_POST["processed_product_image_data$x"]) . ")" : "NO"));
             error_log("  d_pro_img$x exists: " . (isset($_FILES["d_pro_img$x"]) ? "YES" : "NO"));
             
-            // Check if we have processed image data from AJAX (base64)
+            // Process image only when a valid file is attached (image is optional - skip if none)
+            $has_valid_image = false;
             if(!empty($_POST["processed_product_image_data$x"])){
-                // Use the processed image data from AJAX
                 $binary_data = base64_decode($_POST["processed_product_image_data$x"]);
-                error_log("  Decoded base64 data size: " . strlen($binary_data) . " bytes");
-                // Save to filesystem and get the path
-                $product_image = saveProductImageToFilesystem($binary_data, $productServicesUploadDirAbs, $card_id, $product_name);
-                error_log("  Saved to filesystem, filename: " . ($product_image ? $product_image : "NULL"));
-            } elseif(!empty($_FILES["d_pro_img$x"]['tmp_name'])){
-                // Service images: 2:1 ratio (width twice height)
+                if(!empty($binary_data) && strlen($binary_data) > 0) {
+                    $product_image = saveProductImageToFilesystem($binary_data, $productServicesUploadDirAbs, $card_id, $product_name);
+                    $has_valid_image = ($product_image !== null);
+                }
+            } elseif(isset($_FILES["d_pro_img$x"]) && !empty($_FILES["d_pro_img$x"]['tmp_name']) && $_FILES["d_pro_img$x"]['error'] === UPLOAD_ERR_OK){
+                // Only process when file was successfully uploaded (avoids "No file uploaded" error)
+                $result = null;
                 if(function_exists('processHeroImageUpload')) {
                     $result = processHeroImageUpload($_FILES["d_pro_img$x"], 1200, 600);
                 } elseif(function_exists('processImageUploadWithAutoCrop')) {
                     $result = processImageUploadWithAutoCrop($_FILES["d_pro_img$x"], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
-                } else {
-                    $result = ['status' => false, 'message' => 'Image processing not available.'];
-                }
-                if($result['status']) {
-                        // Save binary image data to filesystem and get the path
-                        $product_image = saveProductImageToFilesystem($result['data'], $productServicesUploadDirAbs, $card_id, $product_name);
-                        // Clean up temp file
-                        if($result['file_path'] && file_exists($result['file_path'])) {
-                            @unlink($result['file_path']);
-                        }
-                    } else {
-                        $error_message .= $result['message'];
-                        $upload_success = false;
-                    }
                 } elseif(function_exists('processImageUploadWithCompression')) {
-                    // Fallback to compression function
                     $result = processImageUploadWithCompression($_FILES["d_pro_img$x"], 65, 250000, ['png', 'jpeg', 'jpg']);
-                    if($result['status']) {
-                        // Save binary image data to filesystem and get the path
-                        $product_image = saveProductImageToFilesystem($result['data'], $productServicesUploadDirAbs, $card_id, $product_name);
-                    } else {
-                        $error_message .= $result['message'];
-                        $upload_success = false;
+                }
+                if($result && $result['status']) {
+                    $product_image = saveProductImageToFilesystem($result['data'], $productServicesUploadDirAbs, $card_id, $product_name);
+                    $has_valid_image = ($product_image !== null);
+                    if(isset($result['file_path']) && $result['file_path'] && file_exists($result['file_path'])) {
+                        @unlink($result['file_path']);
                     }
-                } else {
-                    // Final fallback
-                    $filename = $_FILES["d_pro_img$x"]['name'];
-                    $imageFileType = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-                    $file_allow = array('png', 'jpeg', 'jpg');
-                    
-                    if(in_array($imageFileType, $file_allow)) {
-                        if($_FILES["d_pro_img$x"]['size'] <= 250000) {
-                            $source = $_FILES["d_pro_img$x"]['tmp_name'];
-                            $destination = $_FILES["d_pro_img$x"]['tmp_name'];
-                            $quality = 65;
-                            $compressimage = compressImage($source, $destination, $quality);
-                            $binary = file_get_contents($compressimage);
-                            // Save binary image data to filesystem and get the path
-                            $product_image = saveProductImageToFilesystem($binary, $productServicesUploadDirAbs, $card_id, $product_name);
-                        } else {
-                            $error_message .= '<div class="alert alert-danger">File size for Product Image '.$x.' exceeds 250KB limit.</div>';
-                            $upload_success = false;
-                        }
-                    } else {
-                        $error_message .= '<div class="alert alert-danger">Only PNG, JPG, JPEG files allowed for Product Image '.$x.'</div>';
-                        $upload_success = false;
-                    }
+                }
+                // Image optional: if processing failed, continue without image (do not block save)
+            } elseif(isset($_FILES["d_pro_img$x"]) && !empty($_FILES["d_pro_img$x"]['tmp_name']) && $_FILES["d_pro_img$x"]['error'] === UPLOAD_ERR_OK) {
+                $filename = $_FILES["d_pro_img$x"]['name'];
+                $imageFileType = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                $file_allow = array('png', 'jpeg', 'jpg');
+                if(in_array($imageFileType, $file_allow) && $_FILES["d_pro_img$x"]['size'] <= 250000) {
+                    $source = $_FILES["d_pro_img$x"]['tmp_name'];
+                    $destination = $_FILES["d_pro_img$x"]['tmp_name'];
+                    $compressimage = compressImage($source, $destination, 65);
+                    $binary = file_get_contents($compressimage);
+                    $product_image = saveProductImageToFilesystem($binary, $productServicesUploadDirAbs, $card_id, $product_name);
+                    $has_valid_image = ($product_image !== null);
                 }
             }
             
@@ -562,6 +541,7 @@ if(isset($_POST['process4'])){
                         $error_message .= 'Failed to insert product. Error: ' . $db_error . '. ';
                     }
                 }
+            }
             }
         }
     } catch(Exception $e) {
@@ -755,7 +735,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     </td>
                                    
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>', '<?php echo $product_description; ?>')" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>', <?php echo htmlspecialchars(json_encode(isset($product_description) ? $product_description : ''), ENT_QUOTES); ?>)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
                                         <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $product_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                     </td>
                                 </tr>
@@ -826,9 +806,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     </div>
                     <div class="form-group">
                         <label for="modal_product_description">Service Description</label>
-                        <textarea class="form-control" id="modal_product_description" placeholder="Enter service description (max 60 words)" rows="4"></textarea>
+                        <textarea class="form-control" id="modal_product_description" maxlength="400" placeholder="Enter service description (max 400 characters)" rows="4" oninput="updateCharCount()" onpaste="updateCharCount()" onkeyup="updateCharCount()"></textarea>
                         <small class="form-text text-muted">
-                            <strong id="char_counter_display">0/60</strong> words
+                            <strong id="char_counter_display">0/400</strong> characters
                         </small>
                     </div>
                 </form>
@@ -845,32 +825,22 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 var currentProductId = null;
 var productImageFiles = {};
 
-// Update word count display (max 60 words)
+// Update character count display (max 400 characters) - updates live while typing
 function updateCharCount() {
     var textarea = document.getElementById('modal_product_description');
     var counter = document.getElementById('char_counter_display');
     
     if(textarea && counter) {
-        var words = textarea.value.trim().split(/\s+/).filter(Boolean);
-        var count = words.length;
-        counter.textContent = count + '/60';
-        counter.style.color = count > 60 ? '#dc3545' : '';
+        var count = textarea.value.length;
+        counter.textContent = count + '/400';
+        counter.style.color = count > 400 ? '#dc3545' : '';
     }
 }
 
-// Bind character count to textarea input using both jQuery and native event listeners
-$(document).on('input keyup change', '#modal_product_description', function() {
-    updateCharCount();
-});
-
-// Also add native event listener for extra reliability
-document.addEventListener('DOMContentLoaded', function() {
-    var textarea = document.getElementById('modal_product_description');
-    if(textarea) {
-        textarea.addEventListener('input', updateCharCount);
-        textarea.addEventListener('keyup', updateCharCount);
-        textarea.addEventListener('change', updateCharCount);
-    }
+// Bind character count - inline oninput/onpaste/onkeyup on textarea for reliable live updates
+// Also bind via jQuery when DOM ready (fallback)
+$(document).ready(function() {
+    $('#modal_product_description').on('input paste keyup', updateCharCount);
 });
 
 // Open product modal
@@ -1029,18 +999,23 @@ function handleProductImageUpload(input) {
     }
 }
 
-// Add product to form and save immediately
+// Add product to form and save immediately (with double-submit prevention)
+var addProductSubmitting = false;
 function addProductToForm() {
+    if(addProductSubmitting) {
+        return; // Prevent double-click / multiple submissions
+    }
     var productName = $('#modal_product_name').val();
-    if(!productName) {
-        alert('Please enter service name.');
+    if(!productName || !String(productName).trim() || !/\S/.test(String(productName).trim())) {
+        alert('Please enter service name. (Service name is mandatory)');
         return;
     }
+    productName = String(productName).trim();
+    addProductSubmitting = true;
     
     var productDescription = $('#modal_product_description').val().trim();
-    var words = productDescription ? productDescription.split(/\s+/).filter(Boolean) : [];
-    if(words.length > 60) {
-        productDescription = words.slice(0, 60).join(' ');
+    if(productDescription.length > 400) {
+        productDescription = productDescription.substring(0, 400);
     }
     var productId = $('#modal_product_number').val();
     var isEdit = (productId && productId !== '');
@@ -1100,10 +1075,12 @@ function addProductToForm() {
                         window.location.reload();
                     }, 1000);
                 } else {
+                    addProductSubmitting = false;
                     $('#status_remove_img').html('<div class="alert alert-danger">' + (response.message || 'Error saving service.') + '</div>');
                 }
             },
             error: function(xhr, status, error) {
+                addProductSubmitting = false;
                 console.log('AJAX Error:', {status: status, error: error, response: xhr.responseText, statusCode: xhr.status});
                 
                 // Try to parse as JSON first

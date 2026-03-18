@@ -2,185 +2,275 @@
  * Demo App JS - Blinkit Tabs, Sticky Nav, Services Lightbox, AI Menu Planner
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Services Full-Screen Lightbox ---
-    const lightbox = document.getElementById('mw-services-lightbox');
-    const lightboxSwipe = lightbox?.querySelector('.mw-lightbox-swipe');
-    const lightboxClose = lightbox?.querySelector('.mw-lightbox-close');
-    const lightboxPrev = lightbox?.querySelector('.mw-lightbox-prev');
-    const lightboxNext = lightbox?.querySelector('.mw-lightbox-next');
-    const lightboxCurrent = document.getElementById('mw-lightbox-current');
+    // --- Services: Desktop inline expanded box (within product box, with prev/next) ---
     const serviceCards = document.querySelectorAll('.mw-service-card');
-    const slides = lightbox?.querySelectorAll('.mw-lightbox-slide') || [];
-    const totalSlides = slides.length;
+    const servicesSection = document.getElementById('mw-services');
+    const expandedBox = document.getElementById('mw-service-expanded-box');
+    const expandedImg = document.getElementById('mw-service-expanded-img');
+    const expandedTitle = document.getElementById('mw-service-expanded-title');
+    const expandedDesc = document.getElementById('mw-service-expanded-desc');
+    const expandedCounter = document.getElementById('mw-service-expanded-counter');
+    const totalServices = serviceCards.length;
 
-    function openLightbox(index) {
-        if (!lightbox || index < 0 || index >= totalSlides) return;
-        lightbox.classList.add('open');
-        lightbox.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        scrollToSlide(index);
-        updateCounter(index);
+    const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+
+    let currentServiceIndex = 0;
+
+    function updateExpandedContent(index) {
+        if (index < 0 || index >= totalServices) return;
+        const card = serviceCards[index];
+        if (!card) return;
+        currentServiceIndex = index;
+        const imgEl = card.querySelector('.mw-service-image-wrap img');
+        const nameEl = card.querySelector('h3');
+        const descEl = card.querySelector('.mw-service-desc-full');
+        if (expandedImg) expandedImg.src = imgEl?.src || imgEl?.getAttribute('src') || '';
+        if (expandedImg) expandedImg.alt = nameEl?.textContent || '';
+        if (expandedTitle) expandedTitle.textContent = nameEl?.textContent || '';
+        if (expandedDesc) expandedDesc.innerHTML = descEl?.innerHTML || descEl?.textContent || 'Contact us for details.';
+        if (expandedCounter) expandedCounter.textContent = index + 1;
     }
 
-    function closeLightbox() {
-        if (!lightbox) return;
-        lightbox.classList.remove('open');
-        lightbox.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
+    function openExpandedBox(index) {
+        if (index < 0 || index >= totalServices || !servicesSection || !expandedBox) return;
+        updateExpandedContent(index);
+        servicesSection.classList.add('mw-services-expanded-active');
+        expandedBox.setAttribute('aria-hidden', 'false');
+        expandedBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function scrollToSlide(index) {
-        if (!lightboxSwipe || !slides[index]) return;
-        const slideWidth = lightboxSwipe.offsetWidth;
-        lightboxSwipe.scrollLeft = index * slideWidth;
+    function closeExpandedBox() {
+        if (!servicesSection || !expandedBox) return;
+        servicesSection.classList.remove('mw-services-expanded-active');
+        expandedBox.setAttribute('aria-hidden', 'true');
     }
 
-    function updateCounter(index) {
-        if (lightboxCurrent) lightboxCurrent.textContent = index + 1;
-    }
-
-    function getCurrentSlideIndex() {
-        if (!lightboxSwipe) return 0;
-        const scrollLeft = lightboxSwipe.scrollLeft;
-        const slideWidth = lightboxSwipe.offsetWidth;
-        return Math.round(scrollLeft / slideWidth);
-    }
-
-    if (serviceCards.length && lightbox) {
+    if (serviceCards.length && expandedBox) {
         serviceCards.forEach(card => {
             card.addEventListener('click', (e) => {
+                if (e.target.closest('.mw-service-read-more')) return;
+                if (isMobile()) return;
                 const idx = parseInt(card.getAttribute('data-svc-index'), 10);
-                if (!isNaN(idx)) openLightbox(idx);
+                if (!isNaN(idx)) openExpandedBox(idx);
             });
             card.addEventListener('keydown', (e) => {
+                if (e.target.closest('.mw-service-read-more')) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
+                    if (isMobile()) return;
                     const idx = parseInt(card.getAttribute('data-svc-index'), 10);
-                    if (!isNaN(idx)) openLightbox(idx);
+                    if (!isNaN(idx)) openExpandedBox(idx);
                 }
             });
         });
     }
 
-    if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
-
-    if (lightboxPrev) lightboxPrev.addEventListener('click', () => {
-        const idx = Math.max(0, getCurrentSlideIndex() - 1);
-        scrollToSlide(idx);
-        updateCounter(idx);
+    document.querySelectorAll('.mw-service-read-more').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const card = btn.closest('.mw-service-card');
+            if (!card) return;
+            const preview = card.querySelector('.mw-service-desc-preview');
+            const full = card.querySelector('.mw-service-desc-full');
+            const isExpanded = full && !full.classList.contains('hidden');
+            if (isExpanded) {
+                full.classList.add('hidden');
+                preview?.classList.remove('hidden');
+                btn.textContent = 'Read more';
+            } else {
+                preview?.classList.add('hidden');
+                full?.classList.remove('hidden');
+                btn.textContent = 'Read less';
+            }
+        });
     });
 
-    if (lightboxNext) lightboxNext.addEventListener('click', () => {
-        const idx = Math.min(totalSlides - 1, getCurrentSlideIndex() + 1);
-        scrollToSlide(idx);
-        updateCounter(idx);
+    document.querySelectorAll('.mw-offer-read-more').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const card = btn.closest('.mw-offer-card');
+            if (!card) return;
+            const preview = card.querySelector('.mw-offer-desc-preview');
+            const full = card.querySelector('.mw-offer-desc-full');
+            const isExpanded = full && !full.classList.contains('hidden');
+            if (isExpanded) {
+                full.classList.add('hidden');
+                preview?.classList.remove('hidden');
+                btn.textContent = 'Read more';
+            } else {
+                preview?.classList.add('hidden');
+                full?.classList.remove('hidden');
+                btn.textContent = 'Read less';
+            }
+        });
     });
 
-    if (lightboxSwipe) {
-        lightboxSwipe.addEventListener('scroll', () => {
-            if (lightbox?.classList.contains('open')) updateCounter(getCurrentSlideIndex());
-        });
-    }
+    const expandedClose = document.querySelector('.mw-service-expanded-close');
+    const expandedPrev = document.querySelector('.mw-service-expanded-prev');
+    const expandedNext = document.querySelector('.mw-service-expanded-next');
 
-    // Double-tap to close
-    if (lightbox) {
-        let lastTap = 0;
-        lightbox.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTap < 300) { closeLightbox(); lastTap = 0; return; }
-            lastTap = now;
-        });
-        lightbox.addEventListener('dblclick', closeLightbox);
-    }
+    if (expandedClose) expandedClose.addEventListener('click', (e) => { e.stopPropagation(); closeExpandedBox(); });
+    if (expandedPrev) expandedPrev.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = Math.max(0, currentServiceIndex - 1);
+        updateExpandedContent(idx);
+    });
+    if (expandedNext) expandedNext.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = Math.min(totalServices - 1, currentServiceIndex + 1);
+        updateExpandedContent(idx);
+    });
 
-    // Close on Escape
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && lightbox?.classList.contains('open')) closeLightbox();
+        if (e.key === 'Escape' && servicesSection?.classList.contains('mw-services-expanded-active')) closeExpandedBox();
     });
 
-    // --- Product Detail Lightbox ---
-    const productLightbox = document.getElementById('mw-product-lightbox');
-    const productLightboxSwipe = productLightbox?.querySelector('.mw-product-lightbox-swipe');
-    const productLightboxClose = productLightbox?.querySelector('.mw-lightbox-close');
-    const productLightboxPrev = productLightbox?.querySelector('.mw-product-lightbox-prev');
-    const productLightboxNext = productLightbox?.querySelector('.mw-product-lightbox-next');
-    const productLightboxCurrent = document.getElementById('mw-product-lightbox-current');
-    const productCards = document.querySelectorAll('.mw-product-card-clickable');
-    const productSlides = productLightbox?.querySelectorAll('.mw-product-lightbox-slide') || [];
-    const totalProductSlides = productSlides.length;
+    document.querySelectorAll('.mw-product-read-more').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const card = btn.closest('.mw-product-card');
+            if (!card) return;
+            const preview = card.querySelector('.mw-product-desc-preview');
+            const full = card.querySelector('.mw-product-desc-full');
+            const isExpanded = full && !full.classList.contains('hidden');
+            if (isExpanded) {
+                full.classList.add('hidden');
+                preview?.classList.remove('hidden');
+                btn.textContent = 'Read more';
+            } else {
+                preview?.classList.add('hidden');
+                full?.classList.remove('hidden');
+                btn.textContent = 'Read less';
+            }
+        });
+    });
 
-    function openProductLightbox(index) {
-        if (!productLightbox || !productLightboxSwipe || index < 0 || index >= totalProductSlides) return;
-        productLightbox.classList.add('open');
-        productLightbox.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        productLightboxSwipe.scrollLeft = index * productLightboxSwipe.offsetWidth;
-        if (productLightboxCurrent) productLightboxCurrent.textContent = index + 1;
+    // --- Products: Desktop inline expanded box (like Services, on image click) ---
+    const productsSection = document.getElementById('mw-products');
+    const productExpandedBox = document.getElementById('mw-product-expanded-box');
+    const productExpandedImg = document.getElementById('mw-product-expanded-img');
+    const productExpandedTitle = document.getElementById('mw-product-expanded-title');
+    const productExpandedDesc = document.getElementById('mw-product-expanded-desc');
+    const productExpandedMrp = document.getElementById('mw-product-expanded-mrp');
+    const productExpandedPrice = document.getElementById('mw-product-expanded-price');
+    const productExpandedCounter = document.getElementById('mw-product-expanded-counter');
+    const productExpandedAdd = document.getElementById('mw-product-expanded-add');
+    const productsData = window.MW_PRODUCTS || [];
+    const totalProducts = productsData.length;
+
+    let currentProductIndex = 0;
+
+    function updateProductExpandedContent(index) {
+        if (index < 0 || index >= totalProducts || !productsData[index]) return;
+        const p = productsData[index];
+        currentProductIndex = index;
+        if (productExpandedImg) productExpandedImg.src = p.image || '';
+        if (productExpandedImg) productExpandedImg.alt = p.name || '';
+        if (productExpandedTitle) productExpandedTitle.textContent = p.name || '';
+        if (productExpandedDesc) productExpandedDesc.textContent = p.desc || 'Contact us for details.';
+        if (productExpandedMrp) {
+            if (p.mrp && p.mrp > p.price) {
+                productExpandedMrp.textContent = '₹' + (p.mrp || 0).toLocaleString();
+                productExpandedMrp.classList.remove('hidden');
+            } else {
+                productExpandedMrp.classList.add('hidden');
+            }
+        }
+        if (productExpandedPrice) productExpandedPrice.textContent = '₹' + (p.price || 0).toLocaleString();
+        if (productExpandedCounter) productExpandedCounter.textContent = index + 1;
+        if (productExpandedAdd) productExpandedAdd.setAttribute('data-product-index', String(index));
     }
 
-    function closeProductLightbox() {
-        if (!productLightbox) return;
-        productLightbox.classList.remove('open');
-        productLightbox.setAttribute('aria-hidden', 'true');
+    function openProductExpandedBox(index) {
+        if (index < 0 || index >= totalProducts || !productsSection || !productExpandedBox) return;
+        updateProductExpandedContent(index);
+        productsSection.classList.add('mw-products-expanded-active');
+        productExpandedBox.setAttribute('aria-hidden', 'false');
+        productExpandedBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeProductExpandedBox() {
+        if (!productsSection || !productExpandedBox) return;
+        productsSection.classList.remove('mw-products-expanded-active');
+        productExpandedBox.setAttribute('aria-hidden', 'true');
+    }
+
+    document.querySelectorAll('.mw-product-click-area').forEach(area => {
+        area.addEventListener('click', (e) => {
+            if (e.target.closest('.mw-add-to-cart')) return;
+            const idx = parseInt(area.getAttribute('data-product-index'), 10);
+            if (!isNaN(idx)) openProductExpandedBox(idx);
+        });
+        area.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const idx = parseInt(area.getAttribute('data-product-index'), 10);
+                if (!isNaN(idx)) openProductExpandedBox(idx);
+            }
+        });
+    });
+
+    const productExpandedClose = document.querySelector('.mw-product-expanded-close');
+    const productExpandedPrev = document.querySelector('.mw-product-expanded-prev');
+    const productExpandedNext = document.querySelector('.mw-product-expanded-next');
+
+    if (productExpandedClose) productExpandedClose.addEventListener('click', (e) => { e.stopPropagation(); closeProductExpandedBox(); });
+    if (productExpandedPrev) productExpandedPrev.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = Math.max(0, currentProductIndex - 1);
+        updateProductExpandedContent(idx);
+    });
+    if (productExpandedNext) productExpandedNext.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = Math.min(totalProducts - 1, currentProductIndex + 1);
+        updateProductExpandedContent(idx);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && productsSection?.classList.contains('mw-products-expanded-active')) closeProductExpandedBox();
+    });
+
+    // --- Videos: Load More + Modal (play within Miniwebsite) ---
+    const loadMoreBtn = document.getElementById('mw-videos-load-more');
+    const loadMoreWrap = document.getElementById('mw-videos-load-more-wrap');
+    if (loadMoreBtn && loadMoreWrap) {
+        loadMoreBtn.addEventListener('click', () => {
+            document.querySelectorAll('.mw-video-item.mw-video-hidden').forEach(el => el.classList.remove('mw-video-hidden'));
+            loadMoreWrap.style.display = 'none';
+        });
+    }
+
+    const videoModal = document.getElementById('mw-video-modal');
+    const videoModalIframe = document.getElementById('mw-video-modal-iframe');
+    const videoModalClose = document.querySelector('.mw-video-modal-close');
+    document.querySelectorAll('.mw-video-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            const embedUrl = item.getAttribute('data-video-url') || item.getAttribute('data-video-fallback');
+            if (!embedUrl || !videoModal || !videoModalIframe) return;
+            videoModalIframe.src = embedUrl;
+            videoModal.classList.add('open');
+            videoModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        });
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                item.click();
+            }
+        });
+    });
+
+    function closeVideoModal() {
+        if (!videoModal || !videoModalIframe) return;
+        videoModal.classList.remove('open');
+        videoModal.setAttribute('aria-hidden', 'true');
+        videoModalIframe.src = '';
         document.body.style.overflow = '';
     }
-
-    function getProductSlideIndex() {
-        if (!productLightboxSwipe) return 0;
-        return Math.round(productLightboxSwipe.scrollLeft / productLightboxSwipe.offsetWidth);
-    }
-
-    if (productCards.length && productLightbox) {
-        productCards.forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (e.target.closest('a')) return;
-                const idx = parseInt(card.getAttribute('data-product-index'), 10);
-                if (!isNaN(idx)) openProductLightbox(idx);
-            });
-        });
-    }
-
-    if (productLightboxClose) productLightboxClose.addEventListener('click', closeProductLightbox);
-    if (productLightboxPrev && productLightboxSwipe) productLightboxPrev.addEventListener('click', () => {
-        const idx = Math.max(0, getProductSlideIndex() - 1);
-        productLightboxSwipe.scrollLeft = idx * productLightboxSwipe.offsetWidth;
-        if (productLightboxCurrent) productLightboxCurrent.textContent = idx + 1;
-    });
-    if (productLightboxNext && productLightboxSwipe) productLightboxNext.addEventListener('click', () => {
-        const idx = Math.min(totalProductSlides - 1, getProductSlideIndex() + 1);
-        productLightboxSwipe.scrollLeft = idx * productLightboxSwipe.offsetWidth;
-        if (productLightboxCurrent) productLightboxCurrent.textContent = idx + 1;
-    });
-
-    if (productLightboxSwipe && productLightboxCurrent) {
-        productLightboxSwipe.addEventListener('scroll', () => {
-            if (productLightbox?.classList.contains('open')) productLightboxCurrent.textContent = getProductSlideIndex() + 1;
-        });
-    }
-
+    if (videoModalClose) videoModalClose.addEventListener('click', closeVideoModal);
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && productLightbox?.classList.contains('open')) closeProductLightbox();
+        if (e.key === 'Escape' && videoModal?.classList.contains('open')) closeVideoModal();
     });
-
-    if (productLightbox) {
-        let lastTap = 0;
-        productLightbox.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTap < 300) { closeProductLightbox(); lastTap = 0; return; }
-            lastTap = now;
-        });
-        productLightbox.addEventListener('dblclick', closeProductLightbox);
-    }
-
-    // --- Videos Load More ---
-    const loadMoreBtn = document.getElementById('mw-videos-load-more');
-    const videoHiddenItems = document.querySelectorAll('.mw-video-item.mw-video-hidden');
-    if (loadMoreBtn && videoHiddenItems.length) {
-        loadMoreBtn.addEventListener('click', () => {
-            videoHiddenItems.forEach(el => el.classList.remove('mw-video-hidden'));
-            loadMoreBtn.parentElement.style.display = 'none';
-        });
-    }
 
     // --- Sticky Nav: Smooth scroll + active state ---
     const navItems = document.querySelectorAll('.mw-sticky-nav .mw-nav-item');
@@ -310,6 +400,80 @@ document.addEventListener('DOMContentLoaded', () => {
             msg += `\nTotal: ₹${total.toLocaleString()}`;
             window.open(`https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`, '_blank');
         });
+    }
+
+    // --- Share Profile Section ---
+    const shareUrl = window.MW_SHARE_URL || '';
+    const heroName = window.MW_HERO_NAME || '';
+    const phone = window.MW_PHONE || '';
+    const email = window.MW_EMAIL || '';
+    const shareWaInput = document.getElementById('mw-share-wa-input');
+    const shareWaBtn = document.getElementById('mw-share-wa-btn');
+    const saveContactBtn = document.getElementById('mw-save-contact-btn');
+    const shareLinkBtn = document.getElementById('mw-share-link-btn');
+
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-heading text-bgbase px-4 py-2 rounded-theme text-sm font-medium shadow-lg z-[60] transition-opacity duration-300';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2000);
+    }
+
+    if (shareWaBtn && shareUrl) {
+        shareWaBtn.addEventListener('click', () => {
+            const num = (shareWaInput?.value || '').replace(/[^0-9]/g, '');
+            const text = encodeURIComponent(`Check out ${heroName}'s profile: ${shareUrl}`);
+            if (num) {
+                window.open(`https://wa.me/${num}?text=${text}`, '_blank');
+            } else {
+                window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+            }
+        });
+    }
+
+    if (saveContactBtn && heroName) {
+        saveContactBtn.addEventListener('click', () => {
+            const vcard = [
+                'BEGIN:VCARD',
+                'VERSION:3.0',
+                `FN:${heroName.replace(/[,;\\]/g, '')}`,
+                `TEL;TYPE=CELL:${phone ? '+' + phone : ''}`,
+                email ? `EMAIL:${email}` : '',
+                `URL:${shareUrl}`,
+                `NOTE:Profile - ${shareUrl}`,
+                'END:VCARD'
+            ].filter(Boolean).join('\n');
+            const blob = new Blob([vcard], { type: 'text/vcard' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = (heroName.replace(/\s+/g, '_') + '.vcf').replace(/[^a-zA-Z0-9_.-]/g, '');
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('Contact saved!');
+        });
+    }
+
+    if (shareLinkBtn && shareUrl) {
+        shareLinkBtn.addEventListener('click', () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: heroName + ' - Profile',
+                    text: 'Check out this profile',
+                    url: shareUrl
+                }).then(() => showToast('Shared!')).catch(() => copyAndToast());
+            } else {
+                copyAndToast();
+            }
+        });
+    }
+
+    function copyAndToast() {
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(shareUrl).then(() => showToast('Link copied!')).catch(() => showToast(shareUrl));
+        } else {
+            showToast(shareUrl);
+        }
     }
 
     // --- Blinkit Product UI Tab Switching Logic ---
