@@ -44,9 +44,9 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             throw new Exception('File upload error: ' . $_FILES['product_image']['error']);
         }
         
-        // Service images: 2:1 ratio (width twice height)
+        // Service images: 4:3 ratio (width to height)
         if(function_exists('processHeroImageUpload')) {
-            $result = processHeroImageUpload($_FILES['product_image'], 1200, 600);
+            $result = processHeroImageUpload($_FILES['product_image'], 1200, 900);
         } else {
             $result = processImageUploadWithAutoCrop($_FILES['product_image'], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
         }
@@ -58,7 +58,7 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             echo json_encode([
                 'success' => true,
                 'image_data' => $base64Image,
-                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 1200, 'height' => 600],
+                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 1200, 'height' => 900],
                 'file_size' => isset($result['file_size']) ? $result['file_size'] : 0,
                 'message' => 'Image processed successfully'
             ]);
@@ -374,7 +374,7 @@ if(isset($_POST['process4'])){
                 // Only process when file was successfully uploaded (avoids "No file uploaded" error)
                 $result = null;
                 if(function_exists('processHeroImageUpload')) {
-                    $result = processHeroImageUpload($_FILES["d_pro_img$x"], 1200, 600);
+                    $result = processHeroImageUpload($_FILES["d_pro_img$x"], 1200, 900);
                 } elseif(function_exists('processImageUploadWithAutoCrop')) {
                     $result = processImageUploadWithAutoCrop($_FILES["d_pro_img$x"], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
                 } elseif(function_exists('processImageUploadWithCompression')) {
@@ -579,7 +579,7 @@ if(isset($_POST['process4'])){
             }
             
             // Output JSON
-            $response = ['success' => true, 'message' => 'Product saved successfully'];
+            $response = ['success' => true, 'message' => 'Services saved successfully'];
             echo json_encode($response, JSON_UNESCAPED_UNICODE);
             
             // Flush and exit
@@ -592,7 +592,7 @@ if(isset($_POST['process4'])){
             while(ob_get_level() > 0) {
                 ob_end_clean();
             }
-            $_SESSION['save_success'] = "Products and Services Updated Successfully!";
+            $_SESSION['save_success'] = "Services Updated Successfully!";
             // Re-fetch products to ensure latest data is shown
             $card_id_refresh = mysqli_real_escape_string($connect, $_SESSION['card_id_inprocess']);
             $products_refresh_query = mysqli_query($connect, "SELECT * FROM card_products_services WHERE card_id='$card_id_refresh' AND user_id=$user_id ORDER BY display_order ASC, id ASC");
@@ -702,7 +702,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $product_description = isset($product['product_description']) ? htmlspecialchars($product['product_description']) : '';
                                     $product_image = $product['product_image'];
                             ?>
-                                <tr data-product-id="<?php echo $product_id; ?>" data-card-id="<?php echo $card_id; ?>">
+                                <tr data-product-id="<?php echo $product_id; ?>" data-card-id="<?php echo $card_id; ?>" data-product-name="<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>" data-product-desc="<?php echo htmlspecialchars(isset($product_description) ? $product_description : '', ENT_QUOTES); ?>">
                                 <td valign="middle">
                                         <?php if(!empty($product_image)): ?>
                                             <?php
@@ -735,7 +735,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     </td>
                                    
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $product_id; ?>, '<?php echo htmlspecialchars($product_name, ENT_QUOTES); ?>', '<?php echo !empty($product_image) ? (is_string($product_image) && (strpos($product_image, '/') !== false || strpos($product_image, '\\') !== false) ? 'filepath:' . htmlspecialchars($product_image, ENT_QUOTES) : (is_string($product_image) && strlen($product_image) > 0 && strpos($product_image, '.') !== false ? 'filename:' . htmlspecialchars($product_image, ENT_QUOTES) : base64_encode($product_image))) : ''; ?>', <?php echo htmlspecialchars(json_encode(isset($product_description) ? $product_description : ''), ENT_QUOTES); ?>)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                        <a class="edit" href="javascript:void(0);" onclick="editProductFromRow(this)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
                                         <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $product_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                     </td>
                                 </tr>
@@ -789,12 +789,11 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <input type="hidden" id="modal_product_number" value="">
                     <div class="form-group">
                         <label>Service Image</label>
-                        <div class="product-image-preview-modal" style="text-align: center; margin-bottom: 15px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+                        <div class="product-image-preview-modal" style="max-width: 280px; margin: 0 auto 15px; aspect-ratio: 4/3; overflow: hidden; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #f5f5f5;" onclick="document.getElementById('modal_product_image').click()">
                             <img id="modal_product_image_preview" 
-                                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
+                                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
                                  alt="Product Image" 
-                                 onclick="document.getElementById('modal_product_image').click()" 
-                                 style="max-width: 200px; width: auto; max-height: 200px; height: auto; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px; object-fit: contain;">
+                                 style="width: 100%; height: 100%; object-fit: cover; display: block;">
                         </div>
                         <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
@@ -845,13 +844,19 @@ $(document).ready(function() {
 
 // Open product modal
 function openProductModal() {
+    var serviceCount = $('tr[data-product-id]').length;
+    if(serviceCount >= MAX_SERVICES) {
+        alert('You can add up to ' + MAX_SERVICES + ' services only. Please delete one before adding a new service.');
+        return;
+    }
     currentProductId = null;
     processedProductImageData = null; // Reset processed image data
     $('#modal_product_number').val('');
     $('#modal_product_name').val('');
     $('#modal_product_description').val('');
     $('#modal_product_image').val('');
-    $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+    $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
     $('#productModalLabel').text('Add Service');
     $('.modal-footer button:last').text('Add Service');
     updateCharCount();
@@ -878,6 +883,27 @@ function openProductModal() {
     }
 }
 
+// Edit product from row (reads data attributes + img src to avoid HTML attribute size limits)
+function editProductFromRow(editLink) {
+    var row = $(editLink).closest('tr');
+    var productId = row.data('product-id');
+    var productName = row.data('product-name') || '';
+    var productDescription = row.data('product-desc') || '';
+    var productImageData = '';
+    var img = row.find('td:first img');
+    if (img.length && img.attr('src')) {
+        var src = img.attr('src');
+        if (src.indexOf('data:image') === 0 && src.indexOf('base64,') !== -1) {
+            productImageData = src.split('base64,')[1] || '';
+        } else if (src.indexOf('product-and-services/') !== -1) {
+            productImageData = 'filename:' + src.split('product-and-services/')[1];
+        } else if (src.indexOf('../../') === 0) {
+            productImageData = 'filepath:' + src.replace('../../', '');
+        }
+    }
+    editProduct(productId, productName, productImageData, productDescription);
+}
+
 // Edit product
 function editProduct(productId, productName, productImageData, productDescription) {
     currentProductId = productId;
@@ -902,7 +928,8 @@ function editProduct(productId, productName, productImageData, productDescriptio
             $('#modal_product_image_preview').attr('src', 'data:image/*;base64,' + productImageData);
         }
     } else {
-        $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+        $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
     }
     
     $('#productModalLabel').text('Edit Service');
@@ -959,16 +986,14 @@ function handleProductImageUpload(input) {
                 // Update preview image with the cropped image
                 $('#modal_product_image_preview').attr('src', previewDataUri);
                 
-                // Add visual feedback with green border
+                // Add visual feedback with green border (4:3 ratio display)
                 $('#modal_product_image_preview').css({
-                    'border': '2px solid #28a745',
-                    'border-radius': '8px',
-                    'max-width': '200px',
-                    'width': 'auto',
-                    'max-height': '200px',
-                    'height': 'auto',
-                    'padding': '10px'
+                    'width': '100%',
+                    'height': '100%',
+                    'object-fit': 'cover',
+                    'display': 'block'
                 });
+                $('#modal_product_image_preview').closest('.product-image-preview-modal').css('border', '2px solid #28a745');
             };
             
             ImageCropUpload.open(file, {
@@ -976,10 +1001,10 @@ function handleProductImageUpload(input) {
                 hiddenField: null,  // We'll handle the base64 data in onSuccess
                 previewSelector: null,  // Don't auto-update preview
                 spanSelector: null,
-                title: 'Adjust & Crop Service Image (2:1 ratio)',
-                aspectRatio: 2,
+                title: 'Adjust & Crop Service Image (4:3 ratio)',
+                aspectRatio: 4/3,
                 cropWidth: 1200,
-                cropHeight: 600,
+                cropHeight: 900,
                 onSuccess: function(base64Data) {
                     // Call our custom callback
                     if (window.productImageCropCallback) {
@@ -1001,6 +1026,7 @@ function handleProductImageUpload(input) {
 
 // Add product to form and save immediately (with double-submit prevention)
 var addProductSubmitting = false;
+var MAX_SERVICES = 10;
 function addProductToForm() {
     if(addProductSubmitting) {
         return; // Prevent double-click / multiple submissions
@@ -1011,14 +1037,22 @@ function addProductToForm() {
         return;
     }
     productName = String(productName).trim();
+    var productId = $('#modal_product_number').val();
+    var isEdit = (productId && productId !== '');
+    // Limit to 10 services when adding new (not when editing)
+    if(!isEdit) {
+        var serviceCount = $('tr[data-product-id]').length;
+        if(serviceCount >= MAX_SERVICES) {
+            alert('You can add up to ' + MAX_SERVICES + ' services only. Please delete one before adding a new service.');
+            return;
+        }
+    }
     addProductSubmitting = true;
     
     var productDescription = $('#modal_product_description').val().trim();
     if(productDescription.length > 400) {
         productDescription = productDescription.substring(0, 400);
     }
-    var productId = $('#modal_product_number').val();
-    var isEdit = (productId && productId !== '');
     
     // Create FormData for AJAX submission
     var formData = new FormData();
@@ -1215,7 +1249,8 @@ if(typeof jQuery !== 'undefined') {
             $('#modal_product_number').val('');
             $('#modal_product_name').val('');
             $('#modal_product_image').val('');
-            $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+            $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
+    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
             $('#productModalLabel').text('Add Service');
             $('.modal-footer button:last').text('Add Service');
         }

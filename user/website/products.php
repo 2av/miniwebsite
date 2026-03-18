@@ -651,7 +651,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $prod_mrp = !empty($prod['mrp']) && $prod['mrp'] > 0 ? floatval($prod['mrp']) : 0;
                                     $prod_price = !empty($prod['selling_price']) && $prod['selling_price'] > 0 ? floatval($prod['selling_price']) : 0;
                             ?>
-                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>">
+                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>" data-product-name="<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>" data-product-category="<?php echo intval($prod_category_id); ?>" data-product-mrp="<?php echo $prod_mrp; ?>" data-product-price="<?php echo $prod_price; ?>" data-product-desc="<?php echo htmlspecialchars($prod_description ?? '', ENT_QUOTES); ?>">
                                     <td valign="middle">
                                         <?php if(!empty($prod['product_image'])): ?>
                                             <?php
@@ -687,7 +687,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                         <?php endif; ?>
                                     </td>
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editProduct(<?php echo $prod_id; ?>, '<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>', '<?php echo intval($prod_category_id); ?>', '<?php echo $prod_mrp; ?>', '<?php echo $prod_price; ?>', '<?php echo htmlspecialchars($prod_description, ENT_QUOTES); ?>')" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                        <a class="edit" href="javascript:void(0);" onclick="editProductFromRow(this)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
                                         <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $prod_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                     </td>
                                 </tr>
@@ -736,7 +736,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </main>
 
 <!-- Product Modal -->
-<div class="modal fade" id="productModal" tabindex="-1" role="dialog" aria-labelledby="productModalLabel" aria-hidden="true">
+<div class="modal fade" id="productModal" tabindex="-1" role="dialog" aria-labelledby="productModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -864,7 +864,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addProductToForm()">Add Product</button>
+                <button type="button" class="btn btn-primary" id="productModalSubmitBtn" onclick="addProductToForm()">Add Product</button>
             </div>
         </div>
     </div>
@@ -1031,7 +1031,7 @@ function openProductModal() {
         var modalLabel = document.getElementById('productModalLabel');
         if(modalLabel) modalLabel.textContent = 'Add Product';
 
-        var submitBtn = document.querySelector('#productModal .modal-footer button:last-child');
+        var submitBtn = document.getElementById('productModalSubmitBtn');
         if(submitBtn) submitBtn.textContent = 'Add Product';
 
         if(typeof updateCharCount === 'function') updateCharCount();
@@ -1060,6 +1060,19 @@ function openProductModal() {
         console.error('Error opening product modal:', e);
         alert('Could not open the form. Please refresh the page and try again.');
     }
+}
+
+function editProductFromRow(editLink) {
+    var row = editLink.closest ? editLink.closest('tr') : editLink.parentElement;
+    while (row && row.tagName !== 'TR') row = row.parentElement;
+    if (!row) return;
+    var productId = row.getAttribute('data-product-id') || row.dataset.productId;
+    var productName = row.getAttribute('data-product-name') || row.dataset.productName || '';
+    var productCategoryId = row.getAttribute('data-product-category') || row.dataset.productCategory || '';
+    var mrp = row.getAttribute('data-product-mrp') || row.dataset.productMrp || '';
+    var price = row.getAttribute('data-product-price') || row.dataset.productPrice || '';
+    var productDescription = row.getAttribute('data-product-desc') || row.dataset.productDesc || '';
+    editProduct(productId, productName, productCategoryId, mrp, price, productDescription);
 }
 
 function editProduct(productId, productName, productCategoryId, mrp, price, productDescription) {
@@ -1109,13 +1122,13 @@ function editProduct(productId, productName, productCategoryId, mrp, price, prod
         }
     }
     
-    // Update modal title and button text
+    // Update modal title and button text - use specific ID to avoid wrong modal
     var modalLabel = document.getElementById('productModalLabel');
     if(modalLabel) {
         modalLabel.textContent = 'Edit Product/Service';
     }
     
-    var submitBtn = document.querySelector('.modal-footer button:last-child');
+    var submitBtn = document.getElementById('productModalSubmitBtn');
     if(submitBtn) {
         submitBtn.textContent = 'Update Product';
     }
@@ -1381,11 +1394,6 @@ function closeProductModal() {
     
     processedProductImageData = null;
 }
-
-document.addEventListener('click', function(event) {
-    var modal = document.getElementById('productModal');
-    if(event.target === modal) closeProductModal();
-});
 
 // ============= Custom Category Functions =============
 

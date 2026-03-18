@@ -11630,12 +11630,61 @@ body {
 .Product-Services .btn  { color:#030303; font-size:32px; font-weight:600;}
 .Product-ServicesTable { margin:100px auto;}
 .Product-ServicesTable .table td,.Product-ServicesTable .table th { vertical-align: middle; text-align: center; border-bottom:solid 2px #eff3f7 !important;}
-.Product-ServicesTable .edit ,.Product-ServicesTable .delet { padding:10px;}
+.Product-ServicesTable .edit ,.Product-ServicesTable .delet { padding:10px; display:inline-block; cursor:pointer;}
+.Product-ServicesTable .edit { margin-right:12px;}
 .Product-ServicesTable .btn-secondary { background-color:#666666; color:#fff;}
 .Product-ServicesTable .fa-inverse { color:#666 !important; }
-.Product-ServicesBtn { display: flex; justify-content: space-between; align-items: center;}
+.Product-ServicesBtn { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: 0 40px;
+    margin-top: 30px;
+}
 .Product-ServicesBtn .btn-primary { color:#030303; font-size:32px; font-weight:600; }
 .Product-ServicesBtn .btn-secondary { font-size:20px; font-weight:600;}
+.Product-ServicesBtn button,
+.Product-ServicesBtn a {
+    display: flex !important;
+    color: #fff !important;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+.Product-ServicesBtn button .angle,
+.Product-ServicesBtn a .angle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff !important;
+    color: #000;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.Product-ServicesBtn button span:not(.angle),
+.Product-ServicesBtn a span:not(.angle) {
+    font-weight: 500;
+    font-size: 16px;
+}
+.Product-ServicesBtn .align-center {
+    padding: 4px 10px;
+}
+.Product-ServicesBtn .align-center img {
+    width: 23px;
+}
+.Product-ServicesBtn .align-center span {
+    color: #000;
+}
+.Product-ServicesBtn .btn {
+    line-height: 24px !important;
+}
+.Product-ServicesBtn button {
+    padding: 7px !important;
+    margin-top: 22px !important;
+}
 
 
 

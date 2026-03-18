@@ -42,9 +42,9 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             throw new Exception('File upload error: ' . $_FILES['product_image']['error']);
         }
         
-        // Special offer images: 2:1 ratio (width twice height)
+        // Special offer images: 4:3 ratio (width to height)
         if(function_exists('processHeroImageUpload')) {
-            $result = processHeroImageUpload($_FILES['product_image'], 1200, 600);
+            $result = processHeroImageUpload($_FILES['product_image'], 1200, 900);
         } else {
             $result = processImageUploadWithAutoCrop($_FILES['product_image'], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
         }
@@ -55,7 +55,7 @@ if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image'
             echo json_encode([
                 'success' => true,
                 'image_data' => $base64Image,
-                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 1200, 'height' => 600],
+                'dimensions' => isset($result['dimensions']) ? $result['dimensions'] : ['width' => 1200, 'height' => 900],
                 'file_size' => isset($result['file_size']) ? $result['file_size'] : 0,
                 'message' => 'Image processed successfully'
             ]);
@@ -258,7 +258,7 @@ if(isset($_POST['offer'])){
                     $offer_image = saveOfferImageToFilesystem($binary_data, $offerUploadDirAbs, $card_id, $offer_title);
                 } elseif(!empty($_FILES["offer_img$slot_found"]['tmp_name'])) {
                     if(function_exists('processHeroImageUpload')) {
-                        $result = processHeroImageUpload($_FILES["offer_img$slot_found"], 1200, 600);
+                        $result = processHeroImageUpload($_FILES["offer_img$slot_found"], 1200, 900);
                     } elseif(function_exists('processImageUploadWithAutoCrop')) {
                         $result = processImageUploadWithAutoCrop($_FILES["offer_img$slot_found"], 600, 250000, 200000, 300000, ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'], 'jpeg', null);
                     } else {
@@ -355,7 +355,7 @@ if(isset($_POST['offer'])){
                     $offer_image = saveOfferImageToFilesystem($binary_data, $offerUploadDirAbs, $card_id, $offer_title);
                 } elseif(!empty($_FILES["offer_img$x"]['tmp_name'])) {
                     if(function_exists('processHeroImageUpload')) {
-                        $result = processHeroImageUpload($_FILES["offer_img$x"], 1200, 600);
+                        $result = processHeroImageUpload($_FILES["offer_img$x"], 1200, 900);
                         if($result['status']) {
                             $offer_image = saveOfferImageToFilesystem($result['data'], $offerUploadDirAbs, $card_id, $offer_title);
                         } else {
@@ -572,7 +572,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $end_time = !empty($offer['end_time']) ? $offer['end_time'] : '-';
                                     $offer_status = !empty($offer['status']) ? htmlspecialchars($offer['status']) : 'Active';
                             ?>
-                                <tr data-offer-id="<?php echo $offer_id; ?>" data-card-id="<?php echo $card_id;?>">
+                                <tr data-offer-id="<?php echo $offer_id; ?>" data-card-id="<?php echo $card_id;?>" data-offer-title="<?php echo htmlspecialchars($offer_title, ENT_QUOTES); ?>" data-offer-badge="<?php echo htmlspecialchars($offer_badge !== '-' ? $offer_badge : '', ENT_QUOTES); ?>" data-offer-discount="<?php echo $offer_discount; ?>" data-offer-desc="<?php echo htmlspecialchars($offer_description ?? '', ENT_QUOTES); ?>" data-offer-start-date="<?php echo $start_date !== '-' ? htmlspecialchars($start_date, ENT_QUOTES) : ''; ?>" data-offer-end-date="<?php echo $end_date !== '-' ? htmlspecialchars($end_date, ENT_QUOTES) : ''; ?>" data-offer-start-time="<?php echo $start_time !== '-' ? htmlspecialchars($start_time, ENT_QUOTES) : ''; ?>" data-offer-end-time="<?php echo $end_time !== '-' ? htmlspecialchars($end_time, ENT_QUOTES) : ''; ?>" data-offer-status="<?php echo htmlspecialchars($offer_status, ENT_QUOTES); ?>">
                                     <td valign="middle">
                                         <?php if(!empty($offer['offer_image'])): ?>
                                             <?php
@@ -634,8 +634,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                         ?>
                                     </td>
                                     <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editOffer(<?php echo $offer_id; ?>, '<?php echo htmlspecialchars($offer_title, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($offer_badge, ENT_QUOTES); ?>', '<?php echo $offer_discount; ?>', '<?php echo htmlspecialchars($offer_description, ENT_QUOTES); ?>', '<?php echo $start_date; ?>', '<?php echo $end_date; ?>', '<?php echo $start_time; ?>', '<?php echo $end_time; ?>', '<?php echo $offer_status; ?>')" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
-                                        <a class="delet" href="javascript:void(0);" onclick="removeOffer(<?php echo $offer_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
+                                        <a class="edit" href="javascript:void(0);" onclick="event.stopPropagation(); event.preventDefault(); editOfferFromRow(this); return false;" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                        <a class="delet" href="javascript:void(0);" onclick="event.stopPropagation(); event.preventDefault(); removeOffer(<?php echo $offer_id; ?>); return false;" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                     </td>
                                 </tr>
                             <?php 
@@ -669,7 +669,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                    
                 </div>
                 <div class="Product-ServicesBtn">
-                        <a href="product-pricing.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
+                        <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
@@ -685,7 +685,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </main>
 
 <!-- Offer Modal -->
-<div class="modal fade" id="offerModal" tabindex="-1" role="dialog" aria-labelledby="offerModalLabel" aria-hidden="true">
+<div class="modal fade" id="offerModal" tabindex="-1" role="dialog" aria-labelledby="offerModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -697,7 +697,22 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
             <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
                 <form id="modalOfferForm">
                     <input type="hidden" id="modal_offer_id" value="">
-                   
+                    <input type="hidden" id="modal_offer_discount" value="0">
+
+                    <!-- Image first -->
+                    <div class="form-group">
+                        <label>Offer Image (Banner) <span class="text-muted">(Optional)</span></label>
+                        <div class="offer-image-preview-modal" style="max-width: 280px; margin: 0 auto 15px; aspect-ratio: 4/3; overflow: hidden; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #f5f5f5;" onclick="document.getElementById('modal_offer_image').click()">
+                            <img id="modal_offer_image_preview" 
+                                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
+                                 alt="Offer Image" 
+                                 style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                        </div>
+                        <input type="file" id="modal_offer_image" onchange="handleOfferImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_offer_image').click()">Choose Image</button>
+                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
+                    </div>
+
                     <div class="form-group">
                         <label for="modal_offer_title">Offer Title <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="modal_offer_title" placeholder="e.g., Flat 25% OFF" maxlength="255" required>
@@ -706,16 +721,6 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <div class="form-group">
                         <label for="modal_offer_badge">Badge <span class="text-muted">(Optional)</span></label>
                         <input type="text" class="form-control" id="modal_offer_badge" placeholder="e.g., Hot Deal, Limited Time" maxlength="100">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="modal_offer_discount">Discount Percentage <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="modal_offer_discount" placeholder="Enter discount %" min="0" max="100" required>
-                            <div class="input-group-append">
-                                <span class="input-group-text">%</span>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="form-group">
@@ -763,25 +768,11 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <option value="Inactive">Inactive</option>
                         </select>
                     </div>
-
-                    <div class="form-group">
-                        <label>Offer Image (Banner) <span class="text-muted">(Optional)</span></label>
-                        <div class="offer-image-preview-modal" style="text-align: center; margin-bottom: 15px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
-                            <img id="modal_offer_image_preview" 
-                                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
-                                 alt="Offer Image" 
-                                 onclick="document.getElementById('modal_offer_image').click()" 
-                                 style="max-width: 200px; width: auto; max-height: 200px; height: auto; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px; object-fit: contain;">
-                        </div>
-                        <input type="file" id="modal_offer_image" onchange="handleOfferImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_offer_image').click()">Choose Image</button>
-                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeOfferModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addOfferToForm()">Add Offer</button>
+                <button type="button" class="btn btn-primary" id="offerModalSubmitBtn" onclick="addOfferToForm()">Add Offer</button>
             </div>
         </div>
     </div>
@@ -858,25 +849,27 @@ function openOfferModal() {
         if(field) {
             if(fieldId === 'modal_offer_status') {
                 field.value = 'Active';
+            } else if(fieldId === 'modal_offer_discount') {
+                field.value = '0';
             } else {
                 field.value = '';
             }
         }
     });
     
+    var submitBtn = document.getElementById('offerModalSubmitBtn');
+    if(submitBtn) submitBtn.textContent = 'Add Offer';
+    
     var imgPreview = document.getElementById('modal_offer_image_preview');
     if(imgPreview) {
-        imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+        imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
     }
+    var wrapper = document.querySelector('.offer-image-preview-modal');
+    if(wrapper) wrapper.style.border = '2px dashed #ddd';
     
     var modalLabel = document.getElementById('offerModalLabel');
     if(modalLabel) {
         modalLabel.textContent = 'Add Special Offer';
-    }
-    
-    var submitBtn = document.querySelector('#offerModal .modal-footer button:last-child');
-    if(submitBtn) {
-        submitBtn.textContent = 'Add Offer';
     }
     
     updateCharCount();
@@ -892,6 +885,23 @@ function openOfferModal() {
         document.getElementById('offerModal').classList.add('show');
         document.body.classList.add('modal-open');
     }
+}
+
+function editOfferFromRow(editLink) {
+    var row = editLink.closest ? editLink.closest('tr') : editLink.parentElement;
+    while (row && row.tagName !== 'TR') row = row.parentElement;
+    if (!row) return;
+    var offerId = row.getAttribute('data-offer-id') || row.dataset.offerId;
+    var offerTitle = row.getAttribute('data-offer-title') || row.dataset.offerTitle || '';
+    var offerBadge = row.getAttribute('data-offer-badge') || row.dataset.offerBadge || '';
+    var offerDiscount = row.getAttribute('data-offer-discount') || row.dataset.offerDiscount || '0';
+    var offerDescription = row.getAttribute('data-offer-desc') || row.dataset.offerDesc || '';
+    var startDate = row.getAttribute('data-offer-start-date') || row.dataset.offerStartDate || '';
+    var endDate = row.getAttribute('data-offer-end-date') || row.dataset.offerEndDate || '';
+    var startTime = row.getAttribute('data-offer-start-time') || row.dataset.offerStartTime || '';
+    var endTime = row.getAttribute('data-offer-end-time') || row.dataset.offerEndTime || '';
+    var offerStatus = row.getAttribute('data-offer-status') || row.dataset.offerStatus || 'Active';
+    editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescription, startDate, endDate, startTime, endTime, offerStatus);
 }
 
 function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescription, startDate, endDate, startTime, endTime, offerStatus) {
@@ -928,7 +938,7 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
         if(img && img.src) {
             imgPreview.src = img.src;
         } else {
-            imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+            imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
         }
     }
     
@@ -937,7 +947,7 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
         modalLabel.textContent = 'Edit Special Offer';
     }
     
-    var submitBtn = document.querySelector('#offerModal .modal-footer button:last-child');
+    var submitBtn = document.getElementById('offerModalSubmitBtn');
     if(submitBtn) {
         submitBtn.textContent = 'Update Offer';
     }
@@ -984,13 +994,12 @@ function handleOfferImageUpload(input) {
                 var imgPreview = document.getElementById('modal_offer_image_preview');
                 if(imgPreview) {
                     imgPreview.src = previewDataUri;
-                    imgPreview.style.border = '2px solid #28a745';
-                    imgPreview.style.borderRadius = '8px';
-                    imgPreview.style.maxWidth = '200px';
-                    imgPreview.style.width = 'auto';
-                    imgPreview.style.maxHeight = '200px';
-                    imgPreview.style.height = 'auto';
-                    imgPreview.style.padding = '10px';
+                    imgPreview.style.width = '100%';
+                    imgPreview.style.height = '100%';
+                    imgPreview.style.objectFit = 'cover';
+                    imgPreview.style.display = 'block';
+                    var wrapper = imgPreview.closest('.offer-image-preview-modal');
+                    if(wrapper) wrapper.style.border = '2px solid #28a745';
                 }
                 // Ensure modal remains open after crop
                 var modalElement = document.getElementById('offerModal');
@@ -1001,10 +1010,10 @@ function handleOfferImageUpload(input) {
             
             ImageCropUpload.open(file, {
                 method: 'base64',
-                title: 'Adjust & Crop Offer Banner (2:1 ratio)',
-                aspectRatio: 2,
+                title: 'Adjust & Crop Offer Banner (4:3 ratio)',
+                aspectRatio: 4/3,
                 cropWidth: 1200,
-                cropHeight: 600,
+                cropHeight: 900,
                 onSuccess: function(base64Data) {
                     if (window.offerImageCropCallback) window.offerImageCropCallback(base64Data);
                 },
@@ -1271,10 +1280,6 @@ function closeOfferModal() {
     processedOfferImageData = null;
 }
 
-document.addEventListener('click', function(event) {
-    var modal = document.getElementById('offerModal');
-    if(event.target === modal) closeOfferModal();
-});
 </script>
 
 <?php include '../includes/footer.php'; ?>

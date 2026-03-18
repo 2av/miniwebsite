@@ -414,7 +414,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     <thead class="bg-secondary">
                                         <tr>
                                             <th>Image Details</th>
-                                            <th>Manage</th>
+                                            <th class="text-right">Manage</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -442,8 +442,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
                                     </td>
-                                            <td valign="middle">
-                                        <a class="edit" href="javascript:void(0);" onclick="editImage(<?php echo $img_id; ?>)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
+                                            <td valign="middle" class="text-right">
+                                        <a class="edit" href="javascript:void(0);" onclick="editImageFromRow(this)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
                                         <a class="delet" href="javascript:void(0);" onclick="removeData('<?php echo $card_id; ?>', <?php echo $img_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
                                             </td>
                                         </tr>
@@ -488,7 +488,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </main>
  
 <!-- Image Modal -->
-<div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+<div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -518,7 +518,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeImageModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addImageToForm()">Add Image</button>
+                <button type="button" class="btn btn-primary" id="imageModalSubmitBtn" onclick="addImageToForm()">Add Image</button>
             </div>
         </div>
     </div>
@@ -548,7 +548,8 @@ function openImageModal() {
     $('#modal_image').val('');
     $('#modal_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
     $('#imageModalLabel').text('Add Gallery Image');
-    $('.modal-footer button:last').text('Add Image');
+    var submitBtn = document.getElementById('imageModalSubmitBtn');
+    if(submitBtn) submitBtn.textContent = 'Add Image';
     
     // Try to open modal using different methods
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
@@ -567,6 +568,14 @@ function openImageModal() {
         backdrop.id = 'modalBackdrop';
         document.body.appendChild(backdrop);
     }
+}
+
+function editImageFromRow(editLink) {
+    var row = editLink.closest ? editLink.closest('tr') : editLink.parentElement;
+    while (row && row.tagName !== 'TR') row = row.parentElement;
+    if (!row) return;
+    var imageId = row.getAttribute('data-image-id') || row.dataset.imageId;
+    if (imageId) editImage(imageId);
 }
 
 // Edit image (imageNum is now image_id)
@@ -629,7 +638,8 @@ function editImage(imageId) {
         }
         
         $('#imageModalLabel').text('Edit Gallery Image');
-        $('.modal-footer button:last').text('Update Image');
+        var submitBtn = document.getElementById('imageModalSubmitBtn');
+        if(submitBtn) submitBtn.textContent = 'Update Image';
     }, 200); // Increased timeout to ensure modal is fully rendered
 }
 
@@ -717,6 +727,7 @@ function handleGalleryImageUpload(input) {
 
 // Add image to form and save immediately
 function addImageToForm() {
+    var imageId = $('#modal_image_id').val();
     var imageNum = $('#modal_image_number').val();
     if(!imageNum) {
         imageNum = findNextAvailableSlot();
@@ -724,16 +735,14 @@ function addImageToForm() {
     }
     
     // Handle image file - use processed image data if available
+    var isEdit = !!imageId;
     if(!processedGalleryImageData) {
         var imageFile = document.getElementById('modal_image').files[0];
         if(!imageFile) {
-            alert('Please select an image.');
+            alert(isEdit ? 'Please select a new image to replace the existing one.' : 'Please select an image.');
             return;
         }
     }
-    
-    // Get image_id if editing
-    var imageId = $('#modal_image_id').val();
     
     // Create FormData for AJAX submission
     var formData = new FormData();
@@ -821,12 +830,12 @@ function addImageToForm() {
                         if(updatedRow.length > 0) {
                             updatedRow.attr('data-image-id', response.image_id);
                             // Update edit and delete onclick to use the new image_id
-                            updatedRow.find('.edit').attr('onclick', 'editImage(' + response.image_id + ')');
+                            updatedRow.find('.edit').attr('onclick', 'editImageFromRow(this)');
                             updatedRow.find('.delet').attr('onclick', 'removeData(' + cardId + ', ' + response.image_id + ')');
                         }
                     }
                     
-                    $('#status_remove_img').html('<div class="alert alert-success">' + (response.message || 'Image uploaded successfully!') + '</div>');
+                    $('#status_remove_img').html('<div class="alert alert-success">' + (response.message || (imageId ? 'Image updated successfully!' : 'Image uploaded successfully!')) + '</div>');
                     setTimeout(function() {
                         $('#status_remove_img').html('');
                     }, 2000);
@@ -919,7 +928,7 @@ function updateImageTable(imageNum, imagePreview, imageId) {
         existingRow.find('td:first').html(imagePreview);
         // Update edit onclick with image_id
         var editImageId = imageId || imageNum;
-        existingRow.find('.edit').attr('onclick', 'editImage(' + editImageId + ')');
+        existingRow.find('.edit').attr('onclick', 'editImageFromRow(this)');
         // Update delete onclick with image_id
         existingRow.find('.delet').attr('onclick', 'removeData(' + cardId + ', ' + editImageId + ')');
     } else {
@@ -927,8 +936,8 @@ function updateImageTable(imageNum, imagePreview, imageId) {
         var rowImageId = imageId || '';
         var newRow = '<tr data-image-id="' + rowImageId + '" data-image-num="' + imageNum + '" data-card-id="' + cardId + '">' +
             '<td valign="middle">' + imagePreview + '</td>' +
-            '<td valign="middle">' +
-            '<a class="edit" href="javascript:void(0);" onclick="editImage(' + (imageId || imageNum) + ')">' +
+            '<td valign="middle" class="text-right">' +
+            '<a class="edit" href="javascript:void(0);" onclick="editImageFromRow(this)">' +
             '<img src="../../assets/images/edit1.png" alt=""></a> ' +
             '<a class="delet" href="javascript:void(0);" onclick="removeData(' + cardId + ', ' + (imageId || imageNum) + ')">' +
             '<img src="../../assets/images/delet.png" alt=""></a>' +

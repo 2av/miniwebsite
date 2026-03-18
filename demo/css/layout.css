@@ -22,30 +22,49 @@ html {
 @media (min-width: 768px) { .mw-section-padding { padding: 32px; } }
 @media (min-width: 1024px) { .mw-section-padding { padding: 40px; } }
 
-/* Grid Systems - Services: 1 col mobile, 3 cols desktop. Image 4:3 ratio */
-.mw-grid-services { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1.5rem; }
-@media (min-width: 768px) { .mw-grid-services { grid-template-columns: repeat(3, 1fr); } }
+/* Grid Systems - Services: horizontal scroll on mobile, 3 cols desktop. Image 4:3 ratio */
+.mw-grid-services { display: flex; flex-wrap: nowrap; gap: 1.5rem; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+.mw-grid-services::-webkit-scrollbar { height: 6px; }
+.mw-grid-services::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+.mw-grid-services .mw-service-card { flex: 0 0 85%; min-width: 85%; scroll-snap-align: start; }
+@media (min-width: 768px) {
+    .mw-grid-services { display: grid; grid-template-columns: repeat(3, 1fr); flex-wrap: wrap; overflow-x: visible; overflow-y: visible; scroll-snap-type: none; padding-bottom: 0; }
+    .mw-grid-services .mw-service-card { flex: none; min-width: 0; }
+}
 .mw-service-card .mw-service-image-wrap { aspect-ratio: 4/3; overflow: hidden; }
 .mw-service-card .mw-service-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .mw-service-card .mw-service-image-wrap:hover img { transform: scale(1.1); }
 .mw-service-card { cursor: pointer; }
 @media (max-width: 767px) { .mw-service-card { cursor: default; } }
 
-.mw-grid-offers { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1.5rem; }
-@media (min-width: 768px) { .mw-grid-offers { grid-template-columns: repeat(2, 1fr); } }
+/* Special Offers: horizontal scroll on mobile */
+.mw-grid-offers { display: flex; flex-wrap: nowrap; gap: 1.5rem; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+.mw-grid-offers .mw-offer-card { flex: 0 0 85%; min-width: 85%; scroll-snap-align: start; }
+@media (min-width: 768px) {
+    .mw-grid-offers { display: grid; grid-template-columns: repeat(2, 1fr); flex-wrap: wrap; overflow-x: visible; overflow-y: visible; scroll-snap-type: none; padding-bottom: 0; }
+    .mw-grid-offers .mw-offer-card { flex: none; min-width: 0; }
+}
 @media (min-width: 1024px) { .mw-grid-offers { grid-template-columns: repeat(3, 1fr); } }
 .mw-offer-card .mw-offer-image-wrap { aspect-ratio: 4/3; overflow: hidden; }
 .mw-offer-card .mw-offer-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .mw-offer-card .mw-offer-image-wrap:hover img { transform: scale(1.1); }
 .mw-offer-badge { transform: scale(1.2); transform-origin: left top; }
 
-.mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-@media (min-width: 768px) { .mw-grid-products { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1024px) { .mw-grid-products { grid-template-columns: repeat(3, 1fr); } }
+/* Products: horizontal scroll on mobile within each category */
+.mw-grid-products { display: flex; flex-wrap: nowrap; gap: 1rem; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+.mw-grid-products .mw-product-card { flex: 0 0 85%; min-width: 85%; scroll-snap-align: start; }
+@media (min-width: 768px) {
+    .mw-grid-products { display: grid; grid-template-columns: repeat(3, 1fr); flex-wrap: wrap; overflow-x: visible; overflow-y: visible; scroll-snap-type: none; padding-bottom: 0; }
+    .mw-grid-products .mw-product-card { flex: none; min-width: 0; }
+}
 
-/* Gallery: 2 cols mobile, 3 cols tablet+ */
-.mw-grid-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
-@media (min-width: 768px) { .mw-grid-gallery { grid-template-columns: repeat(3, 1fr); gap: 1rem; } }
+/* Gallery: horizontal scroll on mobile */
+.mw-grid-gallery { display: flex; flex-wrap: nowrap; gap: 0.5rem; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+.mw-grid-gallery > div { flex: 0 0 45%; min-width: 45%; scroll-snap-align: start; }
+@media (min-width: 768px) {
+    .mw-grid-gallery { display: grid; grid-template-columns: repeat(3, 1fr); flex-wrap: wrap; overflow-x: visible; overflow-y: visible; scroll-snap-type: none; padding-bottom: 0; }
+    .mw-grid-gallery > div { flex: none; min-width: 0; }
+}
 
 /* Videos: Vertical grid with Load more */
 .mw-grid-videos { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1rem; }

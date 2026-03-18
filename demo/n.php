@@ -756,12 +756,12 @@ if (!empty($products_by_cat)) {
     <?php
     $payment_qrs = [];
     if ($row) {
-        if (!empty($row['d_qr_paytm'])) $payment_qrs[] = ['label' => 'Paytm', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_paytm'])];
-        if (!empty($row['d_qr_google_pay'])) $payment_qrs[] = ['label' => 'Google Pay', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_google_pay'])];
-        if (!empty($row['d_qr_phone_pay'])) $payment_qrs[] = ['label' => 'PhonePe', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_phone_pay'])];
+        if (!empty($row['d_qr_paytm'])) $payment_qrs[] = ['label' => 'Paytm', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_paytm']), 'upi' => trim($row['d_paytm'] ?? '')];
+        if (!empty($row['d_qr_google_pay'])) $payment_qrs[] = ['label' => 'Google Pay', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_google_pay']), 'upi' => trim($row['d_google_pay'] ?? '')];
+        if (!empty($row['d_qr_phone_pay'])) $payment_qrs[] = ['label' => 'PhonePe', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_phone_pay']), 'upi' => trim($row['d_phone_pay'] ?? '')];
     }
     if (empty($payment_qrs)) {
-        $payment_qrs = [['label' => 'Scan & Pay', 'img' => 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UPI://pay?pa=chef@upi&pn=Olivia']];
+        $payment_qrs = [['label' => 'Scan & Pay', 'img' => 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UPI://pay?pa=chef@upi&pn=Olivia', 'upi' => 'chef@upi']];
     }
     ?>
     <section id="mw-pay" class="mw-payment-qr mw-section-padding">
@@ -774,6 +774,9 @@ if (!empty($products_by_cat)) {
                     <div class="bg-white p-2 rounded-lg aspect-square w-40 mx-auto">
                         <img src="<?php echo htmlspecialchars($qr['img']); ?>" alt="<?php echo htmlspecialchars($qr['label']); ?> QR" class="w-full h-full object-contain">
                     </div>
+                    <?php if (!empty($qr['upi'])): ?>
+                    <p class="text-heading font-medium text-sm mt-3 break-all"><?php echo htmlspecialchars($qr['upi']); ?></p>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
