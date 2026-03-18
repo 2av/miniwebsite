@@ -132,7 +132,7 @@ if ($row) {
 
     // Services from card_products_services (products & services)
     $services = [];
-    $svc_query = mysqli_query($connect, "SELECT product_name, product_description, product_image FROM card_products_services WHERE card_id='$card_db_id' ORDER BY display_order ASC LIMIT 10");
+    $svc_query = mysqli_query($connect, "SELECT product_name, product_description, product_image FROM card_products_services WHERE card_id='$card_db_id' ORDER BY display_order ASC");
     if ($svc_query) {
         while ($s = mysqli_fetch_assoc($svc_query)) {
             if (!empty($s['product_name'])) {
@@ -162,7 +162,7 @@ if ($row) {
 
     // Special offers from card_special_offers
     $offers = [];
-    $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge FROM card_special_offers WHERE card_id='$card_db_id' AND status='Active' ORDER BY display_order ASC LIMIT 5");
+    $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge FROM card_special_offers WHERE card_id='$card_db_id' AND status='Active' ORDER BY display_order ASC");
     if ($off_query) {
         while ($o = mysqli_fetch_assoc($off_query)) {
             if (!empty($o['offer_title'])) {
@@ -249,7 +249,7 @@ if ($row) {
 
     // Gallery from card_image_gallery
     $gallery = [];
-    $gal_query = mysqli_query($connect, "SELECT gallery_image FROM card_image_gallery WHERE card_id='$card_db_id' ORDER BY display_order ASC LIMIT 10");
+    $gal_query = mysqli_query($connect, "SELECT gallery_image FROM card_image_gallery WHERE card_id='$card_db_id' ORDER BY display_order ASC");
     if ($gal_query) {
         while ($g = mysqli_fetch_assoc($gal_query)) {
             if (!empty($g['gallery_image'])) {
@@ -329,7 +329,7 @@ if ($row) {
     $db_config = dirname(__DIR__) . '/app/config/database.php';
     if (file_exists($db_config)) {
         require_once $db_config;
-        $demo_card_query = mysqli_query($connect, "SELECT pp.card_id FROM card_product_pricing pp INNER JOIN digi_card dc ON dc.id = pp.card_id ORDER BY pp.card_id ASC LIMIT 1");
+        $demo_card_query = mysqli_query($connect, "SELECT pp.card_id FROM card_product_pricing pp INNER JOIN digi_card dc ON dc.id = pp.card_id ORDER BY pp.card_id ASC");
         if ($demo_card_query && $dc = mysqli_fetch_assoc($demo_card_query)) {
             $card_db_id = intval($dc['card_id']);
             $prod_query = mysqli_query($connect, "
@@ -578,7 +578,7 @@ if (!empty($products_by_cat)) {
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $svc['name']; ?></h3>
                     <p class="mw-service-desc-preview text-sm text-textmain line-clamp-3"><?php echo !empty($svc['desc']) ? htmlspecialchars($svc['desc']) : 'Contact us for details.'; ?></p>
                     <div class="mw-service-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($svc['desc']) ? nl2br(htmlspecialchars($svc['desc'])) : 'Contact us for details.'; ?></div>
-                    <button type="button" class="mw-service-read-more text-primary text-sm font-medium mt-2 md:hidden hover:underline">Read more</button>
+                    <button type="button" class="mw-service-read-more text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -771,8 +771,8 @@ if (!empty($products_by_cat)) {
                 <?php foreach ($payment_qrs as $qr): ?>
                 <div class="mw-card p-6 text-center">
                     <h3 class="text-heading font-medium mb-4 uppercase tracking-widest text-sm"><?php echo htmlspecialchars($qr['label']); ?></h3>
-                    <div class="bg-white p-2 rounded-lg aspect-square w-40 mx-auto">
-                        <img src="<?php echo htmlspecialchars($qr['img']); ?>" alt="<?php echo htmlspecialchars($qr['label']); ?> QR" class="w-full h-full object-contain">
+                    <div class="bg-white p-2 rounded-lg aspect-square w-40 mx-auto overflow-hidden group cursor-pointer">
+                        <img src="<?php echo htmlspecialchars($qr['img']); ?>" alt="<?php echo htmlspecialchars($qr['label']); ?> QR" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105">
                     </div>
                     <?php if (!empty($qr['upi'])): ?>
                     <p class="text-heading font-medium text-sm mt-3 break-all"><?php echo htmlspecialchars($qr['upi']); ?></p>

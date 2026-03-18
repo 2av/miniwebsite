@@ -241,8 +241,9 @@ if(isset($_POST['offer'])){
             if($slot_found) {
                 $offer_title = mysqli_real_escape_string($connect, trim($_POST["offer_title$slot_found"]));
                 
-                if(isset($_POST["offer_discount$slot_found"]) && !empty(trim($_POST["offer_discount$slot_found"]))) {
-                    $offer_discount = intval(preg_replace('/[^0-9]/', '', $_POST["offer_discount$slot_found"]));
+                $discount_val = isset($_POST["offer_discount$slot_found"]) ? trim($_POST["offer_discount$slot_found"]) : '';
+                if($discount_val !== '') {
+                    $offer_discount = intval(preg_replace('/[^0-9]/', '', $discount_val));
                 }
                 
                 $offer_description = '';
@@ -251,6 +252,33 @@ if(isset($_POST['offer'])){
                     if(strlen($offer_description) > 500) {
                         $offer_description = substr($offer_description, 0, 500);
                     }
+                }
+                
+                $offer_badge = '';
+                $badge_val = isset($_POST["offer_badge$slot_found"]) ? trim($_POST["offer_badge$slot_found"]) : '';
+                if($badge_val !== '') {
+                    $offer_badge = mysqli_real_escape_string($connect, $badge_val);
+                }
+                
+                $offer_start_date = '';
+                if(isset($_POST["offer_start_date$slot_found"]) && !empty($_POST["offer_start_date$slot_found"])) {
+                    $offer_start_date = mysqli_real_escape_string($connect, $_POST["offer_start_date$slot_found"]);
+                }
+                $offer_end_date = '';
+                if(isset($_POST["offer_end_date$slot_found"]) && !empty($_POST["offer_end_date$slot_found"])) {
+                    $offer_end_date = mysqli_real_escape_string($connect, $_POST["offer_end_date$slot_found"]);
+                }
+                $offer_start_time = '';
+                if(isset($_POST["offer_start_time$slot_found"]) && !empty($_POST["offer_start_time$slot_found"])) {
+                    $offer_start_time = mysqli_real_escape_string($connect, $_POST["offer_start_time$slot_found"]);
+                }
+                $offer_end_time = '';
+                if(isset($_POST["offer_end_time$slot_found"]) && !empty($_POST["offer_end_time$slot_found"])) {
+                    $offer_end_time = mysqli_real_escape_string($connect, $_POST["offer_end_time$slot_found"]);
+                }
+                $offer_status = 'Active';
+                if(isset($_POST["offer_status$slot_found"]) && !empty($_POST["offer_status$slot_found"])) {
+                    $offer_status = mysqli_real_escape_string($connect, $_POST["offer_status$slot_found"]);
                 }
                 
                 if(!empty($_POST["processed_offer_image_data$slot_found"])){
@@ -276,11 +304,17 @@ if(isset($_POST['offer'])){
                 
                 $verify_query = mysqli_query($connect, "SELECT id FROM card_special_offers WHERE id=$direct_offer_id AND card_id='$card_id' AND user_id=$user_id");
                 if(mysqli_num_rows($verify_query) > 0) {
+                    $start_date_sql = ($offer_start_date !== '') ? "'" . mysqli_real_escape_string($connect, $offer_start_date) . "'" : "NULL";
+                    $end_date_sql = ($offer_end_date !== '') ? "'" . mysqli_real_escape_string($connect, $offer_end_date) . "'" : "NULL";
+                    $start_time_sql = ($offer_start_time !== '') ? "'" . mysqli_real_escape_string($connect, $offer_start_time) . "'" : "NULL";
+                    $end_time_sql = ($offer_end_time !== '') ? "'" . mysqli_real_escape_string($connect, $offer_end_time) . "'" : "NULL";
+                    $offer_badge_escaped = mysqli_real_escape_string($connect, $offer_badge);
+                    $offer_status_escaped = mysqli_real_escape_string($connect, $offer_status);
                     if($offer_image !== null) {
                         $offer_image_escaped = mysqli_real_escape_string($connect, $offer_image);
-                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', offer_image='$offer_image_escaped', discount_percentage=$offer_discount WHERE id=$direct_offer_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', offer_image='$offer_image_escaped', badge='$offer_badge_escaped', discount_percentage=$offer_discount, start_date=$start_date_sql, end_date=$end_date_sql, start_time=$start_time_sql, end_time=$end_time_sql, status='$offer_status_escaped' WHERE id=$direct_offer_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
-                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', discount_percentage=$offer_discount WHERE id=$direct_offer_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_special_offers SET offer_title='$offer_title', offer_description='$offer_description', badge='$offer_badge_escaped', discount_percentage=$offer_discount, start_date=$start_date_sql, end_date=$end_date_sql, start_time=$start_time_sql, end_time=$end_time_sql, status='$offer_status_escaped' WHERE id=$direct_offer_id AND card_id='$card_id' AND user_id=$user_id";
                     }
                     $update_result = mysqli_query($connect, $update_query);
                     if(!$update_result) {
