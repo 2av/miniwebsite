@@ -11,7 +11,7 @@ require('header.php');
                     <div class="banner-content">
                         <h3>Enjoy Unlimited</h3>
                         <h1 class="heading Referral_Reward_text">Referral Rewards !</h1>
-                        <a href="panel/login/login.php" class="btn btn-primary" style="    width: max-content;text-decoration: none; color: #0a0a0b;">Start Referring </a>
+                        <a href="login/customer.php" class="btn btn-primary" style="    width: max-content;text-decoration: none; color: #0a0a0b;">Start Referring </a>
                     </div>
                     <div class="banner-img">
                         <div class="icon-facebook">

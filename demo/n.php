@@ -5,28 +5,14 @@
  */
 
 /**
- * Default thumbnails for platforms that don't provide native thumbs (unique per index to avoid duplicates)
- */
-function getDefaultThumbForIndex($index) {
-    $thumbs = [
-        'https://images.unsplash.com/photo-1556910110-a5a63dfd393c?w=600&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&h=400&fit=crop',
-    ];
-    return $thumbs[$index % count($thumbs)];
-}
-
-/**
  * Parse video URL (YouTube, Shorts, Instagram, Facebook, etc.) and return title, thumb, platform, embed_url.
  */
 function parseVideoUrl($url, $default_thumb = '', $index = 0) {
     $url = trim($url);
-    if (empty($url)) return ['title' => 'Video', 'thumb' => $default_thumb ?: getDefaultThumbForIndex($index), 'platform' => 'other', 'embed_url' => ''];
+    $fallback = $default_thumb ?: '../assets/img/default.jpg';
+    if (empty($url)) return ['title' => 'Video', 'thumb' => $fallback, 'platform' => 'other', 'embed_url' => ''];
     $title = 'Video';
-    $thumb = $default_thumb ?: getDefaultThumbForIndex($index);
+    $thumb = $fallback;
     $platform = 'other';
     $embed_url = '';
     // YouTube: watch?v=, youtu.be/, youtube.com/shorts/
@@ -39,20 +25,20 @@ function parseVideoUrl($url, $default_thumb = '', $index = 0) {
     } elseif (preg_match('#instagram\.com/(?:reel|p)/([a-zA-Z0-9_-]+)#', $url, $m)) {
         $platform = 'instagram';
         $title = 'Instagram Video';
-        $thumb = getDefaultThumbForIndex($index);
+        $thumb = $fallback;
         $embed_url = (strpos($url, '/reel/') !== false ? 'https://www.instagram.com/reel/' : 'https://www.instagram.com/p/') . $m[1] . '/embed/';
     } elseif (preg_match('#(?:facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/#', $url)) {
         $platform = 'facebook';
         $title = 'Facebook Video';
-        $thumb = getDefaultThumbForIndex($index);
+        $thumb = $fallback;
         $embed_url = $url;
     } elseif (preg_match('#tiktok\.com/(?:@[^/]+/video/|v/)(\d+)#', $url, $m)) {
         $platform = 'tiktok';
         $title = 'TikTok Video';
-        $thumb = getDefaultThumbForIndex($index);
+        $thumb = $fallback;
         $embed_url = 'https://www.tiktok.com/embed/v2/' . $m[1];
     } else {
-        $thumb = getDefaultThumbForIndex($index);
+        $thumb = $fallback;
         $embed_url = $url;
     }
     return ['title' => $title, 'thumb' => $thumb, 'platform' => $platform, 'embed_url' => $embed_url];
@@ -62,6 +48,8 @@ $card_id_slug = isset($_GET['n']) ? trim($_GET['n']) : (isset($_GET['card_number
 $row = null;
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
 $assets_base = dirname(__DIR__) . '/assets';
+// Default image when src is unavailable or broken (use whichever file exists)
+$default_image = (file_exists(dirname(__DIR__) . '/assets/img/default.jpg') ? '../assets/img/default.jpg' : '../assets/img/deafult.jpg');
 
 // Try to load from database when card_id provided
 if (!empty($card_id_slug)) {
@@ -87,8 +75,8 @@ if ($row) {
     $hero_name = !empty($row['d_comp_name']) ? htmlspecialchars($row['d_comp_name']) : trim((isset($row['d_f_name']) ? $row['d_f_name'] : '') . ' ' . (isset($row['d_l_name']) ? $row['d_l_name'] : ''));
     if (empty($hero_name)) $hero_name = 'Your Name';
     $hero_title = !empty($row['d_position']) ? htmlspecialchars($row['d_position']) : 'Executive Chef';
-    // Hero cover: use d_hero_image_location first, fallback to unsplash
-    $hero_cover = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&q=80';
+    // Hero cover: use d_hero_image_location first, fallback to default image
+    $hero_cover = $default_image;
     if (!empty($row['d_hero_image_location'])) {
         $hero_path = trim($row['d_hero_image_location']);
         if (strpos($hero_path, '/') === false) $hero_path = 'assets/upload/websites/company_details/' . $hero_path;
@@ -102,7 +90,7 @@ if ($row) {
     } elseif (!empty($row['d_logo'])) {
         $hero_logo = 'data:image/*;base64,' . base64_encode($row['d_logo']);
     } else {
-        $hero_logo = 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300&q=80';
+        $hero_logo = $default_image;
     }
     $phone = !empty($row['d_contact']) ? preg_replace('/[^0-9+]/', '', $row['d_contact']) : '1234567890';
     $whatsapp = !empty($row['d_whatsapp']) ? preg_replace('/[^0-9+]/', '', $row['d_whatsapp']) : $phone;
@@ -142,7 +130,7 @@ if ($row) {
                 } elseif (!empty($s['product_image'])) {
                     $img = 'data:image/*;base64,' . base64_encode($s['product_image']);
                 } else {
-                    $img = 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop';
+                    $img = $default_image;
                 }
                 $services[] = [
                     'name' => htmlspecialchars($s['product_name']),
@@ -154,9 +142,9 @@ if ($row) {
     }
     if (empty($services)) {
         $services = [
-            ['name' => 'Private Dining', 'desc' => 'Exclusive dining experiences tailored to your preferences.', 'image' => 'https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop'],
-            ['name' => 'Event Catering', 'desc' => 'Full-service catering for weddings, corporate events & more.', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=200&fit=crop'],
-            ['name' => 'Masterclasses', 'desc' => 'Hands-on cooking classes for all skill levels.', 'image' => 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=300&h=200&fit=crop'],
+            ['name' => 'Private Dining', 'desc' => 'Exclusive dining experiences tailored to your preferences.', 'image' => $default_image],
+            ['name' => 'Event Catering', 'desc' => 'Full-service catering for weddings, corporate events & more.', 'image' => $default_image],
+            ['name' => 'Masterclasses', 'desc' => 'Hands-on cooking classes for all skill levels.', 'image' => $default_image],
         ];
     }
 
@@ -166,7 +154,7 @@ if ($row) {
     if ($off_query) {
         while ($o = mysqli_fetch_assoc($off_query)) {
             if (!empty($o['offer_title'])) {
-                $img = 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=300&fit=crop';
+                $img = $default_image;
                 if (!empty($o['offer_image']) && strpos($o['offer_image'], '.') !== false) {
                     $img = '../assets/upload/websites/special-offers/' . htmlspecialchars($o['offer_image']);
                 }
@@ -181,26 +169,30 @@ if ($row) {
     }
     if (empty($offers)) {
         $offers = [
-            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=300&fit=crop', 'badge' => 'OFFER'],
+            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER'],
         ];
     }
 
     // Products from card_product_pricing (grouped by category for Blinkit UI)
-    // category_name: from product_categories OR user_custom_categories
-    // Fallback: when both NULL but product_category has id, use "Category N" so products don't all lump into "mains"
+    // category_name: from product_categories OR user_custom_categories (use category_source to avoid ID collision)
+    $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE 'category_source'");
+    if(!$col_check || mysqli_num_rows($col_check) == 0) {
+        @mysqli_query($connect, "ALTER TABLE card_product_pricing ADD category_source VARCHAR(10) DEFAULT 'system' AFTER product_category");
+    }
     $products_by_cat = [];
     $cat_display_names = [];
     $prod_query = mysqli_query($connect, "
         SELECT pp.*,
-            COALESCE(
-                pc.category_name,
-                ucc.category_name,
-                CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0
-                    THEN CONCAT('Category ', pp.product_category) ELSE NULL END
-            ) as category_name
+            CASE
+                WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name
+                WHEN (pp.category_source = 'system' OR pp.category_source IS NULL OR pp.category_source = '') AND pc.category_name IS NOT NULL THEN pc.category_name
+                ELSE COALESCE(ucc.category_name, pc.category_name,
+                    CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
+                )
+            END as category_name
         FROM card_product_pricing pp
         LEFT JOIN product_categories pc ON pp.product_category = pc.id
-        LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.is_active = 1
+        LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.user_id = pp.user_id AND ucc.is_active = 1
         WHERE pp.card_id='$card_db_id'
         ORDER BY pp.product_category, pp.display_order ASC
     ");
@@ -212,7 +204,7 @@ if ($row) {
                     $products_by_cat[$cat] = [];
                     $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
                 }
-                $img = 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&h=300&fit=crop';
+                $img = $default_image;
                 if (!empty($p['product_image'])) {
                     if (is_string($p['product_image']) && strlen($p['product_image']) < 255 && strpos($p['product_image'], '.') !== false && strpos($p['product_image'], '/') === false && strpos($p['product_image'], '\\') === false) {
                         $img = '../assets/upload/websites/product-pricing/' . htmlspecialchars($p['product_image']);
@@ -262,12 +254,12 @@ if ($row) {
         }
     }
     if (empty($gallery)) {
-        $gallery = ['https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop'];
+        $gallery = [$default_image];
     }
 
     // Videos from d_youtube1..d_youtube20 (YouTube, Shorts, Instagram, Facebook, etc.)
     $videos = [];
-    $default_thumb = 'https://images.unsplash.com/photo-1556910110-a5a63dfd393c?w=600&h=400&fit=crop';
+    $default_thumb = $default_image;
     $vid_idx = 0;
     for ($i = 1; $i <= 20; $i++) {
         $url = trim($row['d_youtube' . $i] ?? '');
@@ -300,8 +292,8 @@ if ($row) {
     // Demo fallback data
     $hero_name = 'Olivia Murray';
     $hero_title = 'Executive Chef';
-    $hero_cover = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
-    $hero_logo = 'https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80';
+    $hero_cover = $default_image;
+    $hero_logo = $default_image;
     $phone = '1234567890';
     $whatsapp = '1234567890';
     $about = 'Passionately crafting exceptional culinary experiences. With over 15 years in fine dining, I specialize in blending classic techniques with modern flavor profiles to deliver an unforgettable taste journey right to your table or private event.';
@@ -332,14 +324,22 @@ if ($row) {
         $demo_card_query = mysqli_query($connect, "SELECT pp.card_id FROM card_product_pricing pp INNER JOIN digi_card dc ON dc.id = pp.card_id ORDER BY pp.card_id ASC");
         if ($demo_card_query && $dc = mysqli_fetch_assoc($demo_card_query)) {
             $card_db_id = intval($dc['card_id']);
+            $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE 'category_source'");
+            if(!$col_check || mysqli_num_rows($col_check) == 0) {
+                @mysqli_query($connect, "ALTER TABLE card_product_pricing ADD category_source VARCHAR(10) DEFAULT 'system' AFTER product_category");
+            }
             $prod_query = mysqli_query($connect, "
                 SELECT pp.*,
-                    COALESCE(pc.category_name, ucc.category_name,
-                        CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
-                    ) as category_name
+                    CASE
+                        WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name
+                        WHEN (pp.category_source = 'system' OR pp.category_source IS NULL OR pp.category_source = '') AND pc.category_name IS NOT NULL THEN pc.category_name
+                        ELSE COALESCE(ucc.category_name, pc.category_name,
+                            CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
+                        )
+                    END as category_name
                 FROM card_product_pricing pp
                 LEFT JOIN product_categories pc ON pp.product_category = pc.id
-                LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.is_active = 1
+                LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.user_id = pp.user_id AND ucc.is_active = 1
                 WHERE pp.card_id='$card_db_id'
                 ORDER BY pp.product_category, pp.display_order ASC
             ");
@@ -351,7 +351,7 @@ if ($row) {
                             $products_by_cat[$cat] = [];
                             $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
                         }
-                        $img = 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&h=300&fit=crop';
+                        $img = $default_image;
                         if (!empty($p['product_image'])) {
                             if (is_string($p['product_image']) && strlen($p['product_image']) < 255 && strpos($p['product_image'], '.') !== false && strpos($p['product_image'], '/') === false && strpos($p['product_image'], '\\') === false) {
                                 $img = '../assets/upload/websites/product-pricing/' . htmlspecialchars($p['product_image']);
@@ -381,18 +381,7 @@ if ($row) {
         ['days' => 'Sunday', 'hours' => 'Closed'],
     ];
 
-    $gallery = [
-        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1493770348161-369560ae357d?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1484723091791-c0e7e8c809e3?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=400&fit=crop',
-    ];
+    $gallery = [$default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image];
     $videos = []; // Demo fallback: no videos when no card loaded
 }
 $cat_order = !empty($products_by_cat) ? array_keys($products_by_cat) : ['mains', 'starters', 'desserts', 'drinks'];
@@ -425,7 +414,7 @@ if (!empty($products_by_cat)) {
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
 
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -466,13 +455,13 @@ if (!empty($products_by_cat)) {
     <!-- 1. Hero Section -->
     <section id="mw-hero" class="mw-hero relative">
         <div class="h-64 md:h-80 w-full overflow-hidden relative">
-            <img src="<?php echo htmlspecialchars($hero_cover); ?>" alt="Cover" class="w-full h-full object-cover opacity-60">
+            <img src="<?php echo htmlspecialchars($hero_cover); ?>" alt="Cover" class="w-full h-full object-cover opacity-60" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
             <div class="absolute inset-0 bg-gradient-to-t from-bgbase to-transparent"></div>
         </div>
 
         <div class="mw-section-padding relative -mt-24 text-center z-10 flex flex-col items-center">
             <div class="w-32 h-32 rounded-full border-4 border-bgbase shadow-card overflow-hidden mb-4">
-                <img src="<?php echo htmlspecialchars($hero_logo); ?>" alt="Logo" class="w-full h-full object-cover">
+                <img src="<?php echo htmlspecialchars($hero_logo); ?>" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
             </div>
             <h1 class="text-3xl md:text-4xl font-bold mb-1"><?php echo $hero_name; ?></h1>
            
@@ -540,28 +529,162 @@ if (!empty($products_by_cat)) {
     </section>
 
     <!-- 5. QR Share Section -->
+    <?php
+    $qr_image_url = 'https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=' . urlencode($share_url ?? '');
+    $qr_business_name = isset($row) && $row && !empty($row['d_comp_name']) ? htmlspecialchars($row['d_comp_name']) : '';
+    $qr_person_name = isset($row) && $row ? trim(htmlspecialchars(($row['d_f_name'] ?? '') . ' ' . ($row['d_l_name'] ?? ''))) : ($hero_name ?? '');
+    $qr_card_id = isset($row) && $row ? ($row['card_id'] ?? 'card') : 'card';
+    ?>
     <section class="mw-qr-share mw-section-padding bg-cardbg/50">
         <h2 class="mw-section-title">Share Profile</h2>
         <div class="max-w-md mx-auto mw-card p-6 text-center">
             <div class="bg-white p-2 w-40 h-40 mx-auto rounded-lg mb-6">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode($share_url); ?>" alt="QR Code" class="w-full h-full">
+                <img id="mw-qr-code-img" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode($share_url ?? ''); ?>" alt="QR Code" class="w-full h-full" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
             </div>
+            <canvas id="mw-qr-canvas" style="display: none;"></canvas>
             <div class="space-y-4">
                 <input type="tel" id="mw-share-wa-input" placeholder="Enter WhatsApp Number" class="mw-input" maxlength="15">
-                <button type="button" id="mw-share-wa-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium w-full cursor-pointer">
-                    <i class="fab fa-whatsapp"></i> Share on WhatsApp
-                </button>
+                <div class="flex gap-3 items-center">
+                    <button type="button" id="mw-share-wa-btn" style="background: var(--mw-offer-cta-bg); color: #111;" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
+                        <i class="fab fa-whatsapp"></i> Share on WhatsApp
+                    </button>
+                    <button type="button" id="mw-download-qr-btn" class="flex-shrink-0 w-10 h-10 rounded-theme flex items-center justify-center cursor-pointer" style="background: var(--mw-offer-cta-bg); color: #111;" title="Download QR">
+                        <img src="../assets/img/download.png" alt="Download" class="w-5 h-5 object-contain">
+                    </button>
+                </div>
+               
                 <div class="flex gap-4">
                     <button type="button" id="mw-save-contact-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
-                        <i class="fas fa-address-card"></i> Save Contact
+                     Save Contact
                     </button>
                     <button type="button" id="mw-share-link-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
-                        <i class="fas fa-link"></i> Share Link
+                        Share Link
                     </button>
                 </div>
             </div>
         </div>
     </section>
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('mw-qr-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const backgroundImageUrl = '../assets/images/Miniwebsite_QR.png';
+        const qrImageUrl = <?php echo json_encode($qr_image_url); ?>;
+        const businessName = <?php echo json_encode($qr_business_name); ?>;
+        const personName = <?php echo json_encode($qr_person_name); ?>;
+        const websiteUrl = 'www.miniwebsite.in';
+        const downloadFilename = 'QR_Code_<?php echo htmlspecialchars($qr_card_id); ?>.png';
+
+        let imagesLoaded = 0;
+        const totalImages = 2;
+        let bgImage, qrImage;
+        let canvasReady = false;
+
+        function drawCanvas() {
+            if (imagesLoaded < totalImages) return;
+            canvas.width = bgImage.width;
+            canvas.height = bgImage.height;
+            ctx.drawImage(bgImage, 0, 0);
+            const padding = 18;
+            const qrSize = Math.min(canvas.width * 0.555, canvas.height * 0.555);
+            const qrX = (canvas.width - qrSize) / 2 + 8;
+            const qrY = (canvas.height - qrSize) / 2 - 70;
+            ctx.fillStyle = '#FFFFFF';
+            const borderRadius = 12;
+            const bgX = qrX - padding;
+            const bgY = qrY - padding;
+            const bgWidth = qrSize + (padding * 2);
+            const bgHeight = qrSize + (padding * 2);
+            ctx.beginPath();
+            ctx.moveTo(bgX + borderRadius, bgY);
+            ctx.lineTo(bgX + bgWidth - borderRadius, bgY);
+            ctx.quadraticCurveTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + borderRadius);
+            ctx.lineTo(bgX + bgWidth, bgY + bgHeight - borderRadius);
+            ctx.quadraticCurveTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - borderRadius, bgY + bgHeight);
+            ctx.lineTo(bgX + borderRadius, bgY + bgHeight);
+            ctx.quadraticCurveTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - borderRadius);
+            ctx.lineTo(bgX, bgY + borderRadius);
+            ctx.quadraticCurveTo(bgX, bgY, bgX + borderRadius, bgY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+            if (businessName) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold ' + Math.floor(canvas.width * 0.08) + 'px "Roboto Condensed"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(businessName.toUpperCase(), canvas.width / 2, canvas.height * 0.12);
+            }
+            if (personName) {
+                ctx.fillStyle = '#202023';
+                ctx.font = 'bold ' + Math.floor(canvas.width * 0.04) + 'px "Roboto Condensed"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(personName.toUpperCase(), canvas.width / 2, qrY + qrSize + 60);
+            }
+            ctx.fillStyle = '#202023';
+            ctx.font = 'bold ' + Math.floor(canvas.width * 0.070) + 'px "Roboto Condensed"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const scanTextY = personName ? qrY + qrSize + 180 : qrY + qrSize + 160;
+            ctx.fillText('SCAN TO VIEW AND SAVE!', canvas.width / 2, scanTextY);
+            ctx.fillStyle = '#202023';
+            ctx.font = Math.floor(canvas.width * 0.03) + 'px "Roboto Condensed"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Access our Miniwebsite & Contact Info', canvas.width / 2, scanTextY + 120);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = Math.floor(canvas.width * 0.04) + 'px "Roboto Condensed"';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(websiteUrl, canvas.width - (canvas.width * 0.05), canvas.height - (canvas.height * 0.015));
+            canvasReady = true;
+        }
+
+        function initCanvas() {
+            bgImage = new Image();
+            bgImage.crossOrigin = 'anonymous';
+            qrImage = new Image();
+            qrImage.crossOrigin = 'anonymous';
+            bgImage.onload = function() { imagesLoaded++; drawCanvas(); };
+            qrImage.onload = function() { imagesLoaded++; drawCanvas(); };
+            bgImage.onerror = function() { console.error('Failed to load QR background'); };
+            qrImage.onerror = function() { console.error('Failed to load QR image'); };
+            bgImage.src = backgroundImageUrl;
+            qrImage.src = qrImageUrl;
+        }
+
+        if (document.fonts && document.fonts.load) {
+            document.fonts.load('bold 16px "Roboto Condensed"').then(initCanvas).catch(initCanvas);
+        } else {
+            setTimeout(initCanvas, 500);
+        }
+
+        function mwQrToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-heading text-bgbase px-4 py-2 rounded-theme text-sm font-medium shadow-lg z-[60] transition-opacity duration-300';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 2000);
+        }
+        const btn = document.getElementById('mw-download-qr-btn');
+        if (btn) {
+            btn.addEventListener('click', function() {
+                if (!canvasReady) {
+                    mwQrToast('Please wait, QR code is still being prepared...');
+                    return;
+                }
+                const link = document.createElement('a');
+                link.download = downloadFilename;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                mwQrToast('QR downloaded!');
+            });
+        }
+    })();
+    </script>
 
     <!-- 6. Services Section -->
     <section id="mw-services" class="mw-services mw-section-padding bg-cardbg/30">
@@ -572,7 +695,7 @@ if (!empty($products_by_cat)) {
             <?php foreach ($services as $idx => $svc): ?>
             <div class="mw-card mw-offer-card mw-service-card bg-cardbg rounded-theme overflow-hidden relative" data-svc-index="<?php echo $idx; ?>" role="button" tabindex="0">
                 <div class="mw-service-image-wrap">
-                    <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>">
+                    <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                 </div>
                 <div class="p-5">
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $svc['name']; ?></h3>
@@ -590,7 +713,7 @@ if (!empty($products_by_cat)) {
                 <button type="button" class="mw-service-expanded-close absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-cardbg/90 hover:bg-cardbg text-heading flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
                 <div class="relative">
                     <div class="mw-service-expanded-image-wrap aspect-[4/3] overflow-hidden relative bg-gray-900 flex items-center justify-center">
-                        <img id="mw-service-expanded-img" src="" alt="" class="w-full h-full object-contain">
+                        <img id="mw-service-expanded-img" src="" alt="" class="w-full h-full object-contain" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                         <button type="button" class="mw-service-expanded-prev absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
                         <button type="button" class="mw-service-expanded-next absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
                     </div>
@@ -615,14 +738,17 @@ if (!empty($products_by_cat)) {
             <div class="mw-card mw-offer-card bg-cardbg rounded-theme relative overflow-hidden">
                 <div class="mw-offer-badge absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold z-10" style="background: var(--mw-offer-badge-bg); color: var(--mw-offer-badge-color);"><?php echo htmlspecialchars($off['badge']); ?></div>
                 <div class="mw-offer-image-wrap aspect-[4/3] overflow-hidden">
-                    <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-full object-cover">
+                    <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                 </div>
                 <div class="p-5">
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $off['title']; ?></h3>
                     <p class="mw-offer-desc-preview text-sm text-textmain line-clamp-1"><?php echo !empty($off['desc']) ? htmlspecialchars($off['desc']) : 'Contact us for details.'; ?></p>
                     <div class="mw-offer-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($off['desc']) ? nl2br(htmlspecialchars($off['desc'])) : 'Contact us for details.'; ?></div>
                     <button type="button" class="mw-offer-read-more text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
-                    <a href="https://wa.me/<?php echo $whatsapp; ?>?text=Hi! I'm interested in: <?php echo urlencode($off['title']); ?>" target="_blank" class="block w-full py-2.5 rounded-theme font-semibold transition text-center mt-4" style="background: var(--mw-offer-cta-bg); color: #111;">Get Offer</a>
+                    <?php
+                        $offer_wa_msg = "Hi 😊\nI am interested in the offer mentioned in your MiniWebsite \"" . $off['title'] . "\".\nPlease share the price & availability of this";
+                        ?>
+                    <a href="https://wa.me/<?php echo $whatsapp; ?>?text=<?php echo urlencode($offer_wa_msg); ?>" target="_blank" class="block w-full py-2.5 rounded-theme font-semibold transition text-center mt-4" style="background: var(--mw-offer-cta-bg); color: #111;">Get This Offer</a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -639,7 +765,7 @@ if (!empty($products_by_cat)) {
             <div class="mw-blinkit-sidebar" id="categorySidebar">
                 <?php foreach ($cat_order as $idx => $cat_key): if (!isset($products_by_cat[$cat_key]) || empty($products_by_cat[$cat_key])) continue; ?>
                 <div class="mw-cat-item <?php echo $idx === 0 ? 'active' : ''; ?>" data-cat="<?php echo htmlspecialchars($cat_key); ?>">
-                    <div class="mw-cat-img-box"><img src="<?php echo htmlspecialchars($cat_icons[$cat_key] ?? $cat_icons['mains']); ?>" class="w-full h-full object-contain" alt=""></div>
+                    <div class="mw-cat-img-box"><img src="<?php echo htmlspecialchars($cat_icons[$cat_key] ?? $cat_icons['mains']); ?>" class="w-full h-full object-contain" alt="" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'"></div>
                     <span class="text-[10px] md:text-xs font-medium text-heading"><?php echo htmlspecialchars($cat_labels[$cat_key] ?? ucfirst($cat_key)); ?></span>
                 </div>
                 <?php endforeach; ?>
@@ -656,8 +782,8 @@ if (!empty($products_by_cat)) {
                             $global_idx += isset($products_by_cat[$ok]) ? count($products_by_cat[$ok]) : 0;
                         } ?>
                     <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-2" data-product-index="<?php echo $global_idx; ?>">
-                        <div class="mw-product-image-wrap mw-product-click-area aspect-[4/3] overflow-hidden relative rounded-t-xl cursor-pointer" data-product-index="<?php echo $global_idx; ?>" role="button" tabindex="0">
-                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover" alt="<?php echo htmlspecialchars($prod['name']); ?>">
+                        <div class="mw-product-image-wrap mw-product-click-area aspect-[4/3]  relative rounded-t-xl cursor-pointer" data-product-index="<?php echo $global_idx; ?>" role="button" tabindex="0">
+                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover" alt="<?php echo htmlspecialchars($prod['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                             <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute bottom-2 right-2 z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()">ADD</button>
                         </div>
                         <div class="p-3">
@@ -688,7 +814,7 @@ if (!empty($products_by_cat)) {
                 <button type="button" class="mw-product-expanded-close absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
                 <div class="relative">
                     <div class="mw-product-expanded-image-wrap aspect-[4/3] overflow-hidden relative bg-gray-100 flex items-center justify-center">
-                        <img id="mw-product-expanded-img" src="" alt="" class="w-full h-full object-contain">
+                        <img id="mw-product-expanded-img" src="" alt="" class="w-full h-full object-contain" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                         <button type="button" class="mw-product-expanded-prev absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
                         <button type="button" class="mw-product-expanded-next absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
                     </div>
@@ -718,7 +844,7 @@ if (!empty($products_by_cat)) {
         <div class="mw-grid-videos">
             <?php foreach ($videos as $idx => $v): ?>
             <div class="mw-video-item mw-card aspect-video relative group cursor-pointer overflow-hidden block <?php echo $idx >= 6 ? 'mw-video-hidden' : ''; ?>" data-video-url="<?php echo htmlspecialchars($v['embed_url'] ?? $v['url']); ?>" data-video-fallback="<?php echo htmlspecialchars($v['url']); ?>" role="button" tabindex="0">
-                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>">
+                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                 <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="fas fa-play ml-1"></i></div></div>
                 <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
             </div>
@@ -747,7 +873,7 @@ if (!empty($products_by_cat)) {
         <h2 class="mw-section-title">Gallery</h2>
         <div class="mw-grid-gallery">
             <?php foreach ($gallery as $g_img): ?>
-            <div class="aspect-square rounded-lg overflow-hidden border border-white/5"><img src="<?php echo htmlspecialchars($g_img); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300" alt="Gallery"></div>
+            <div class="aspect-square rounded-lg overflow-hidden border border-white/5"><img src="<?php echo htmlspecialchars($g_img); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300" alt="Gallery" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'"></div>
             <?php endforeach; ?>
         </div>
     </section>
@@ -772,7 +898,7 @@ if (!empty($products_by_cat)) {
                 <div class="mw-card p-6 text-center">
                     <h3 class="text-heading font-medium mb-4 uppercase tracking-widest text-sm"><?php echo htmlspecialchars($qr['label']); ?></h3>
                     <div class="bg-white p-2 rounded-lg aspect-square w-40 mx-auto overflow-hidden group cursor-pointer">
-                        <img src="<?php echo htmlspecialchars($qr['img']); ?>" alt="<?php echo htmlspecialchars($qr['label']); ?> QR" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105">
+                        <img src="<?php echo htmlspecialchars($qr['img']); ?>" alt="<?php echo htmlspecialchars($qr['label']); ?> QR" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                     </div>
                     <?php if (!empty($qr['upi'])): ?>
                     <p class="text-heading font-medium text-sm mt-3 break-all"><?php echo htmlspecialchars($qr['upi']); ?></p>
@@ -874,10 +1000,11 @@ if (!empty($products_by_cat)) {
     window.MW_PRODUCTS = <?php echo json_encode($products_flat ?? []); ?>;
     window.MW_SHARE_URL = <?php echo json_encode($share_url ?? ''); ?>;
     window.MW_HERO_NAME = <?php echo json_encode($hero_name ?? ''); ?>;
+    window.MW_LOCATION = <?php echo json_encode($location ?? ''); ?>;
     window.MW_PHONE = <?php echo json_encode($phone ?? ''); ?>;
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
 </script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=2"></script>
 
 </body>
 </html>

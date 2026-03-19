@@ -170,6 +170,11 @@ if(isset($_SESSION['card_id_inprocess']) && !empty($_SESSION['card_id_inprocess'
         
         // Get products from new table (card_product_pricing)
         $card_id = mysqli_real_escape_string($connect, $_SESSION['card_id_inprocess']);
+        // Ensure category_source column exists (to distinguish system vs custom category - avoids ID collision)
+        $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE 'category_source'");
+        if(!$col_check || mysqli_num_rows($col_check) == 0) {
+            @mysqli_query($connect, "ALTER TABLE card_product_pricing ADD category_source VARCHAR(10) DEFAULT 'system' AFTER product_category");
+        }
         if($user_id > 0) {
             $products_query = mysqli_query($connect, "SELECT * FROM card_product_pricing WHERE card_id='$card_id' AND user_id=$user_id ORDER BY display_order ASC, id ASC");
             while($prod_row = mysqli_fetch_array($products_query)) {
@@ -314,9 +319,19 @@ if(isset($_POST['product'])){
             
             if($slot_found) {
                 $product_name = mysqli_real_escape_string($connect, trim($_POST["pro_name$slot_found"]));
-                $product_category = '';
-                if(isset($_POST["pro_category$slot_found"]) && !empty(trim($_POST["pro_category$slot_found"]))) {
-                    $product_category = intval($_POST["product_category$slot_found"]);
+                $product_category = null;
+                $category_source = 'system';
+                if(isset($_POST["pro_category$slot_found"]) && trim($_POST["pro_category$slot_found"]) !== '') {
+                    $cat_val = trim($_POST["pro_category$slot_found"]);
+                    if(preg_match('/^c_(\d+)$/', $cat_val, $m)) {
+                        $product_category = intval($m[1]);
+                        $category_source = 'custom';
+                    } elseif(preg_match('/^s_(\d+)$/', $cat_val, $m)) {
+                        $product_category = intval($m[1]);
+                        $category_source = 'system';
+                    } else {
+                        $product_category = intval($cat_val);
+                    }
                 }
                 
                 // Get MRP and price
@@ -365,13 +380,14 @@ if(isset($_POST['product'])){
                 // Update existing product
                 $verify_query = mysqli_query($connect, "SELECT id FROM card_product_pricing WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id");
                 if(mysqli_num_rows($verify_query) > 0) {
+                    $cat_source_esc = mysqli_real_escape_string($connect, $category_source);
                     if($product_image !== null) {
                         $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
-                        $product_category_value = (!empty($product_category)) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
-                        $product_category_value = (!empty($product_category)) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, product_description='$product_description', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
                     }
                     $update_result = mysqli_query($connect, $update_query);
                     if(!$update_result) {
@@ -403,10 +419,20 @@ if(isset($_POST['product'])){
                     $product_price = floatval(preg_replace('/[^0-9.]/', '', $_POST["pro_price$x"]));
                 }
                 
-                // Category for this slot (now storing as ID)
-                $product_category = '';
-                if(isset($_POST["pro_category$x"]) && !empty(trim($_POST["pro_category$x"]))) {
-                    $product_category = intval($_POST["pro_category$x"]);
+                // Category for this slot (parse s_/c_ prefix: s_5=system id 5, c_123=custom id 123)
+                $product_category = null;
+                $category_source = 'system';
+                if(isset($_POST["pro_category$x"]) && trim($_POST["pro_category$x"]) !== '') {
+                    $cat_val = trim($_POST["pro_category$x"]);
+                    if(preg_match('/^c_(\d+)$/', $cat_val, $m)) {
+                        $product_category = intval($m[1]);
+                        $category_source = 'custom';
+                    } elseif(preg_match('/^s_(\d+)$/', $cat_val, $m)) {
+                        $product_category = intval($m[1]);
+                        $category_source = 'system';
+                    } else {
+                        $product_category = intval($cat_val);
+                    }
                 }
                 
                 // Get product description if provided (max 400 characters)
@@ -482,13 +508,14 @@ if(isset($_POST['product'])){
                         continue;
                     }
                     
+                    $cat_source_esc = mysqli_real_escape_string($connect, $category_source);
                     if($product_image !== null) {
                         $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
-                        $product_category_value = (!empty($product_category)) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
-                        $product_category_value = (!empty($product_category)) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, product_description='$product_description', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
                     }
                     $update_result = mysqli_query($connect, $update_query);
                     if(!$update_result) {
@@ -503,13 +530,13 @@ if(isset($_POST['product'])){
                     
                     $card_id_escaped = mysqli_real_escape_string($connect, $card_id);
                     $product_name_escaped = mysqli_real_escape_string($connect, $product_name);
-                    
-                    $product_category_value = (!empty($product_category)) ? $product_category : 'NULL';
+                    $cat_source_esc = mysqli_real_escape_string($connect, $category_source);
+                    $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
                     if($product_image !== null) {
                         $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
-                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, product_description, product_image, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$product_description', '$product_image_escaped', $product_mrp, $product_price, $display_order)";
+                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, category_source, product_description, product_image, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$cat_source_esc', '$product_description', '$product_image_escaped', $product_mrp, $product_price, $display_order)";
                     } else {
-                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, product_description, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$product_description', $product_mrp, $product_price, $display_order)";
+                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, category_source, product_description, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$cat_source_esc', '$product_description', $product_mrp, $product_price, $display_order)";
                     }
                     
                     $insert_result = mysqli_query($connect, $insert_query);
@@ -613,7 +640,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
                 <br>
                 <div id="status_remove_img"></div>
-                <button class="btn btn-primary add_product" onclick="openProductModal()"><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Product</span></button>
+                <button type="button" id="addProductBtn" class="btn btn-primary add_product" onclick="openProductModal()" <?php echo (count($products_data ?? []) >= 60) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Product</span></button>
 
                 <div class="Product-ServicesTable">
                     <table class="display table">
@@ -636,14 +663,24 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $prod_id = intval($prod['id']);
                                     $prod_name = !empty($prod['product_name']) ? htmlspecialchars($prod['product_name']) : 'No Name';
                                     
-                                    // Get category name from ID
+                                    // Get category name from ID - use category_source to avoid ID collision
                                     $prod_category_id = !empty($prod['product_category']) ? intval($prod['product_category']) : null;
                                     $prod_category = '';
+                                    $prod_category_source = !empty($prod['category_source']) ? trim($prod['category_source']) : 'system';
+                                    $prod_user_id = !empty($prod['user_id']) ? intval($prod['user_id']) : $user_id;
                                     if($prod_category_id) {
-                                        $cat_query = mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id = $prod_category_id LIMIT 1");
-                                        if($cat_query && mysqli_num_rows($cat_query) > 0) {
-                                            $cat_row = mysqli_fetch_assoc($cat_query);
-                                            $prod_category = htmlspecialchars($cat_row['category_name']);
+                                        if($prod_category_source === 'custom') {
+                                            $ucc_query = mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id = $prod_category_id AND user_id = $prod_user_id AND is_active = 1 LIMIT 1");
+                                            if($ucc_query && mysqli_num_rows($ucc_query) > 0) {
+                                                $ucc_row = mysqli_fetch_assoc($ucc_query);
+                                                $prod_category = htmlspecialchars($ucc_row['category_name']);
+                                            }
+                                        } else {
+                                            $cat_query = mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id = $prod_category_id LIMIT 1");
+                                            if($cat_query && mysqli_num_rows($cat_query) > 0) {
+                                                $cat_row = mysqli_fetch_assoc($cat_query);
+                                                $prod_category = htmlspecialchars($cat_row['category_name']);
+                                            }
                                         }
                                     }
                                     
@@ -651,7 +688,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $prod_mrp = !empty($prod['mrp']) && $prod['mrp'] > 0 ? floatval($prod['mrp']) : 0;
                                     $prod_price = !empty($prod['selling_price']) && $prod['selling_price'] > 0 ? floatval($prod['selling_price']) : 0;
                             ?>
-                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>" data-product-name="<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>" data-product-category="<?php echo intval($prod_category_id); ?>" data-product-mrp="<?php echo $prod_mrp; ?>" data-product-price="<?php echo $prod_price; ?>" data-product-desc="<?php echo htmlspecialchars($prod_description ?? '', ENT_QUOTES); ?>">
+                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>" data-product-name="<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>" data-product-category="<?php echo intval($prod_category_id); ?>" data-product-category-source="<?php echo htmlspecialchars($prod_category_source); ?>" data-product-mrp="<?php echo $prod_mrp; ?>" data-product-price="<?php echo $prod_price; ?>" data-product-desc="<?php echo htmlspecialchars($prod_description ?? '', ENT_QUOTES); ?>">
                                     <td valign="middle">
                                         <?php if(!empty($prod['product_image'])): ?>
                                             <?php
@@ -797,7 +834,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     ");
                                     
                                     while($cat = mysqli_fetch_assoc($child_cats_query)) {
-                                        echo '<option value="' . intval($cat['id']) . '">' . htmlspecialchars($cat['category_name']) . '</option>';
+                                        echo '<option value="s_' . intval($cat['id']) . '">' . htmlspecialchars($cat['category_name']) . '</option>';
                                     }
                                     
                                     // Get user ID for custom categories
@@ -809,7 +846,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                         $user_id = intval($user_row['id']);
                                     }
                                     
-                                    // Get user custom product categories
+                                    // Get user custom product categories (use c_ prefix to avoid ID collision with product_categories)
                                     if($user_id > 0) {
                                         $custom_cats_query = mysqli_query($connect, "
                                             SELECT id, category_name FROM user_custom_categories
@@ -820,7 +857,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                         if(mysqli_num_rows($custom_cats_query) > 0) {
                                             echo '<optgroup label="My Custom Categories">';
                                             while($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
-                                                echo '<option value="' . intval($custom_cat['id']) . '">[Custom] ' . htmlspecialchars($custom_cat['category_name']) . '</option>';
+                                                echo '<option value="c_' . intval($custom_cat['id']) . '">[Custom] ' . htmlspecialchars($custom_cat['category_name']) . '</option>';
                                             }
                                             echo '</optgroup>';
                                         }
@@ -903,6 +940,9 @@ function loadProductNames(categoryId, selectProductName) {
         return;
     }
     
+    // Strip s_ or c_ prefix for API (get_product_names uses product_categories by parent_id)
+    var numericId = String(categoryId).replace(/^[sc]_/, '');
+    
     // Disable the select and show loading state
     productSelect.disabled = true;
     productSelect.innerHTML = '<option value="">Loading products...</option>';
@@ -924,8 +964,8 @@ function loadProductNames(categoryId, selectProductName) {
         }
     }
     
-    // Fetch product names via AJAX
-    fetch('?action=get_product_names&category_id=' + encodeURIComponent(categoryId), {
+    // Fetch product names via AJAX (use numeric id for product_categories lookup)
+    fetch('?action=get_product_names&category_id=' + encodeURIComponent(numericId), {
         method: 'GET',
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -1000,7 +1040,26 @@ function loadProductNames(categoryId, selectProductName) {
     });
 }
 
+var MAX_PRODUCTS = 60;
+function updateAddProductButtonState() {
+    var btn = document.getElementById('addProductBtn');
+    if(!btn) return;
+    var productCount = document.querySelectorAll('tr[data-product-id]').length;
+    if(productCount >= MAX_PRODUCTS) {
+        btn.disabled = true;
+        btn.setAttribute('title', 'Maximum ' + MAX_PRODUCTS + ' products allowed. Delete one to add more.');
+    } else {
+        btn.disabled = false;
+        btn.removeAttribute('title');
+    }
+}
+
 function openProductModal() {
+    var productCount = document.querySelectorAll('tr[data-product-id]').length;
+    if(productCount >= MAX_PRODUCTS) {
+        alert('You can add up to ' + MAX_PRODUCTS + ' products only. Please delete one before adding a new product.');
+        return;
+    }
     currentProductId = null;
     processedProductImageData = null;
     
@@ -1069,13 +1128,14 @@ function editProductFromRow(editLink) {
     var productId = row.getAttribute('data-product-id') || row.dataset.productId;
     var productName = row.getAttribute('data-product-name') || row.dataset.productName || '';
     var productCategoryId = row.getAttribute('data-product-category') || row.dataset.productCategory || '';
+    var productCategorySource = row.getAttribute('data-product-category-source') || row.dataset.productCategorySource || 'system';
     var mrp = row.getAttribute('data-product-mrp') || row.dataset.productMrp || '';
     var price = row.getAttribute('data-product-price') || row.dataset.productPrice || '';
     var productDescription = row.getAttribute('data-product-desc') || row.dataset.productDesc || '';
-    editProduct(productId, productName, productCategoryId, mrp, price, productDescription);
+    editProduct(productId, productName, productCategoryId, productCategorySource, mrp, price, productDescription);
 }
 
-function editProduct(productId, productName, productCategoryId, mrp, price, productDescription) {
+function editProduct(productId, productName, productCategoryId, productCategorySource, mrp, price, productDescription) {
     currentProductId = productId;
     processedProductImageData = null;
     
@@ -1100,13 +1160,17 @@ function editProduct(productId, productName, productCategoryId, mrp, price, prod
         modalProductNameField.disabled = true;
     }
     
-    // Set category and load product names with saved selection
+    // Set category dropdown - use prefixed value (s_X or c_X) so correct option is selected
+    var categoryValue = '';
+    if(productCategoryId) {
+        categoryValue = (productCategorySource === 'custom') ? ('c_' + productCategoryId) : ('s_' + productCategoryId);
+    }
     if(modalProductCategoryField) {
-        modalProductCategoryField.value = productCategoryId || '';
+        modalProductCategoryField.value = categoryValue;
     }
     
     if(productCategoryId) {
-        loadProductNames(productCategoryId, productName);
+        loadProductNames(categoryValue || productCategoryId, productName);
     }
     
     // Get and set product image preview
@@ -1227,6 +1291,14 @@ function addProductToForm() {
     var modalProductIdField = document.getElementById('modal_product_id');
     var productId = modalProductIdField ? modalProductIdField.value : '';
     var isEdit = (productId && productId !== '');
+    
+    if(!isEdit) {
+        var productCount = document.querySelectorAll('tr[data-product-id]').length;
+        if(productCount >= MAX_PRODUCTS) {
+            alert('You can add up to ' + MAX_PRODUCTS + ' products only. Please delete one before adding a new product.');
+            return;
+        }
+    }
     
     var formData = new FormData();
     formData.append('product', '1');
@@ -1354,6 +1426,8 @@ function removeData(productId) {
                 if(tableBody && !hasProducts) {
                     tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td></tr>';
                 }
+                
+                updateAddProductButtonState();
                 
                 if(statusEl) {
                     statusEl.innerHTML = '<div class="alert alert-success">Product removed successfully!</div>';
@@ -1653,6 +1727,12 @@ function saveCustomProductName() {
         background-color: #e9ecef !important;
         color: #6c757d !important;
         cursor: not-allowed !important;
+    }
+
+    .add_product:disabled,
+    .add_product[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 </style>
 

@@ -574,7 +574,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
                 <br>
                 <div id="status_remove_img"></div>
-                <button class="btn btn-primary add_product" onclick="openOfferModal()"><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Offer</span></button>
+                <button type="button" id="addOfferBtn" class="btn btn-primary add_product" onclick="openOfferModal()" <?php echo (count($offers_data ?? []) >= 5) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Offer</span></button>
 
                 <div class="Product-ServicesTable">
                     <table class="display table">
@@ -835,6 +835,12 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
         background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
         background-color: #e9ecef !important;
     }
+
+    .add_product:disabled,
+    .add_product[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 </style>
 
 <script>
@@ -860,7 +866,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+var MAX_OFFERS = 5;
+function updateAddOfferButtonState() {
+    var btn = document.getElementById('addOfferBtn');
+    if(!btn) return;
+    var offerCount = document.querySelectorAll('tr[data-offer-id]').length;
+    if(offerCount >= MAX_OFFERS) {
+        btn.disabled = true;
+        btn.setAttribute('title', 'Maximum ' + MAX_OFFERS + ' offers allowed. Delete one to add more.');
+    } else {
+        btn.disabled = false;
+        btn.removeAttribute('title');
+    }
+}
+
 function openOfferModal() {
+    var offerCount = document.querySelectorAll('tr[data-offer-id]').length;
+    if(offerCount >= MAX_OFFERS) {
+        alert('You can only add up to ' + MAX_OFFERS + ' special offers. Please delete one before adding a new offer.');
+        return;
+    }
     currentOfferId = null;
     processedOfferImageData = null;
     
@@ -1085,8 +1110,8 @@ function addOfferToForm() {
     
     if(!isEdit) {
         var offerRows = document.querySelectorAll('tr[data-offer-id]');
-        if(offerRows.length >= 5) {
-            alert('You can only add up to 5 special offers. Please delete one before adding a new offer.');
+        if(offerRows.length >= MAX_OFFERS) {
+            alert('You can only add up to ' + MAX_OFFERS + ' special offers. Please delete one before adding a new offer.');
             return;
         }
     }
@@ -1274,8 +1299,10 @@ function removeOffer(offerId) {
                 var hasOffers = tableBody ? tableBody.querySelector('tr[data-offer-id]') : null;
                 
                 if(tableBody && !hasOffers) {
-                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No special offers added yet. Click "Add Offer" to add.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No special offers added yet. Click "Add Offer" to add.</td></tr>';
                 }
+                
+                updateAddOfferButtonState();
                 
                 if(statusEl) {
                     statusEl.innerHTML = '<div class="alert alert-success">Offer removed successfully!</div>';

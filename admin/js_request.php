@@ -140,7 +140,7 @@ function sendCollaborationUpgradeEmail($user_email) {
                         
                         <p>You can now access your collaboration features by logging into your account and visiting the collaboration section.</p>
                         
-                        <a href="https://miniwebsite.in/panel/login/login.php" class="button">Login to Your Account</a>
+                        <a href="https://miniwebsite.in/login/customer.php" class="button">Login to Your Account</a>
                         
                         <p>If you have any questions about your new collaborator features, please don\'t hesitate to contact our support team.</p>
                         
@@ -187,7 +187,7 @@ function sendBasicCollaborationEmail($user_email) {
     
     You can now access your collaboration features by logging into your account.
     
-    Login: https://miniwebsite.in/panel/login/login.php
+    Login: https://miniwebsite.in/login/customer.php
     
     If you have any questions, please contact our support team.
     

@@ -58,7 +58,7 @@ function has_role($role) {
 /**
  * Require specific role, redirect if not
  */
-function require_role($required_role, $redirect_url = '/panel/login/login.php') {
+function require_role($required_role, $redirect_url = '/login/customer.php') {
     $current_role = get_current_user_role();
     if ($current_role !== strtoupper($required_role)) {
         header('Location: ' . $redirect_url);
@@ -170,7 +170,7 @@ function has_saleskit_enabled() {
 /**
  * Require login, redirect if not logged in
  */
-function require_login($redirect_url = '/panel/login/login.php') {
+function require_login($redirect_url = '/login/customer.php') {
     if (!is_user_logged_in()) {
         header('Location: ' . $redirect_url);
         exit;

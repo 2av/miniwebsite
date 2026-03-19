@@ -16,8 +16,8 @@ require('header.php');
                             <li>Are you struggling to have an online presence?</li>
                             <li>Do you still use paper visiting cards?</li>
                         </ul>
-        <button class="btn btn-primary d-lg-block d-none" onclick="window.location.href='panel/login/login.php'">
-            <a href="panel/login/login.php" target="_blank" style="text-decoration: none;">
+        <button class="btn btn-primary d-lg-block d-none" onclick="window.location.href='login/customer.php'">
+            <a href="login/customer.php" target="_blank" style="text-decoration: none;">
                 CREATE YOUR MINI WEBSITE
             </a>
         </button>
@@ -29,7 +29,7 @@ require('header.php');
                         <img class="img-fluid" src="assets/images/01Page01/Image.png" alt="">
                     </div>
                     <div class="banner-content d-lg-none d-md-block">
-                        <button class="btn btn-primary"> <a href="panel/login/login.php" target="_blank" style="text-decoration: none; color: #002169;">
+                        <button class="btn btn-primary"> <a href="login/customer.php" target="_blank" style="text-decoration: none; color: #002169;">
                 CREATE YOUR MINI WEBSITE
             </a></button>
                     </div>
@@ -311,8 +311,8 @@ require('header.php');
                             <p class="trail"><span>For 7 days</span></p>
                             <p class="price"><small>(For Each User)</small></p>
                            
-                            <button class="btn-plan btn btn-primary" onclick="window.location.href='panel/login/login.php'">
-    <a href="panel/login/login.php" target="_blank" style="text-decoration: none; color: #002169;">
+                            <button class="btn-plan btn btn-primary" onclick="window.location.href='login/customer.php'">
+    <a href="login/customer.php" target="_blank" style="text-decoration: none; color: #002169;">
         GET PLAN 
     </a>
 </button>
@@ -344,8 +344,8 @@ require('header.php');
                             <p class="old-price">Rs 2000/-</p>
                             <p class="price">Rs 999/- <sub>per year</sub><small>(For Each MiniWebsite)</small></p>
 
-                           <button class="btn-plan btn btn-primary" onclick="window.location.href='panel/login/login.php'">
-    <a href="panel/login/login.php" target="_blank" style="text-decoration: none; color: #002169;">
+                           <button class="btn-plan btn btn-primary" onclick="window.location.href='login/customer.php'">
+    <a href="login/customer.php" target="_blank" style="text-decoration: none; color: #002169;">
         GET PLAN 
     </a>
 </button>

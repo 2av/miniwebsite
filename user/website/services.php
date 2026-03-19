@@ -118,7 +118,7 @@ if(mysqli_num_rows($query) == 0){
 // Get user_id - must be done before form processing
 // Check both user_details (unified table) and customer_login (legacy table) for compatibility
 if(!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
-    header('Location: ../../panel/login/login.php');
+    header('Location: ../../login/customer.php');
     exit;
 }
 
@@ -153,7 +153,7 @@ if($user_id == 0) {
         echo json_encode(['success' => false, 'message' => 'User not found. Please login again.']);
         exit;
     }
-    echo '<script>alert("User not found. Please login again."); window.location.href="../../panel/login/login.php";</script>';
+    echo '<script>alert("User not found. Please login again."); window.location.href="../../login/customer.php";</script>';
     exit;
 }
 
@@ -675,7 +675,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <p class="sub_title">You can add up to 10 services which you want to showcase on your Mini Website.</p>
                 <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
                 <br>
-                <button type="button" class="btn btn-primary add_product" onclick="openProductModal()"><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Service</span></button>
+                <button type="button" id="addServiceBtn" class="btn btn-primary add_product" onclick="openProductModal()" <?php echo (count($products ?? []) >= 10) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Service</span></button>
 
                 <form action="" method="POST" enctype="multipart/form-data" id="productForm" style="display:none;">
                     <!-- Hidden form fields for product data (will be populated dynamically) -->
@@ -1027,6 +1027,20 @@ function handleProductImageUpload(input) {
 // Add product to form and save immediately (with double-submit prevention)
 var addProductSubmitting = false;
 var MAX_SERVICES = 10;
+
+function updateAddButtonState() {
+    var btn = document.getElementById('addServiceBtn');
+    if(!btn) return;
+    var serviceCount = $('tr[data-product-id]').length;
+    if(serviceCount >= MAX_SERVICES) {
+        btn.disabled = true;
+        btn.setAttribute('title', 'Maximum ' + MAX_SERVICES + ' services allowed. Delete one to add more.');
+    } else {
+        btn.disabled = false;
+        btn.removeAttribute('title');
+    }
+}
+
 function addProductToForm() {
     if(addProductSubmitting) {
         return; // Prevent double-click / multiple submissions
@@ -1104,6 +1118,7 @@ function addProductToForm() {
                 if(response && response.success) {
                     // Reload page to show updated data (or refresh table via AJAX)
                     $('#status_remove_img').html('<div class="alert alert-success">' + (response.message || 'Service saved successfully!') + '</div>');
+                    updateAddButtonState();
                     setTimeout(function() {
                         // Reload the page to show updated product list
                         window.location.reload();
@@ -1201,6 +1216,9 @@ function removeData(productId) {
                     if(tableBody.find('tr[data-product-id]').length === 0) {
                         tableBody.html('<tr><td colspan="4" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td></tr>');
                     }
+                    
+                    // Re-enable Add button when under 10 services
+                    updateAddButtonState();
                     
                     $('#status_remove_img').html('<div class="alert alert-success">Service removed successfully!</div>');
                     setTimeout(function(){
@@ -1517,6 +1535,11 @@ padding:0px;
 
 .add_product:hover{
 background-color: #ffbe17a6;
+}
+.add_product:disabled,
+.add_product[disabled]{
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 

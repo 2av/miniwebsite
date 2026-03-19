@@ -405,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Share Profile Section ---
     const shareUrl = window.MW_SHARE_URL || '';
     const heroName = window.MW_HERO_NAME || '';
+    const location = window.MW_LOCATION || '';
     const phone = window.MW_PHONE || '';
     const email = window.MW_EMAIL || '';
     const shareWaInput = document.getElementById('mw-share-wa-input');
@@ -423,7 +424,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (shareWaBtn && shareUrl) {
         shareWaBtn.addEventListener('click', () => {
             const num = (shareWaInput?.value || '').replace(/[^0-9]/g, '');
-            const text = encodeURIComponent(`Check out ${heroName}'s profile: ${shareUrl}`);
+            const msg = `Hello 😊
+
+This is ${heroName} from ${location}.
+
+We have created a MiniWebsite of our business. 
+Now you can easily check our products/services and offers online here:
+
+👉 ${shareUrl}
+
+If you need anything, just send a message on WhatsApp 👍
+
+Thanks a lot for your support 🙏`;
+            const text = encodeURIComponent(msg);
             if (num) {
                 window.open(`https://wa.me/${num}?text=${text}`, '_blank');
             } else {

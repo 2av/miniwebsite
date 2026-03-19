@@ -21,7 +21,7 @@ function sendCustomerWelcomeEmail($customer_name, $customer_email, $customer_pas
         }
         
         // Fallback to simple mail function
-        $login_url = 'https://' . $_SERVER['HTTP_HOST'] . '/panel/login/login.php';
+        $login_url = 'https://' . $_SERVER['HTTP_HOST'] . '/login/customer.php';
         $subject = "Welcome to miniwebsite.in";
         
         // Simple email message
@@ -249,7 +249,7 @@ function sendCustomerWelcomeEmailWithPHPMailer($customer_name, $customer_email, 
         $mail->Subject = "🎉 Welcome to MiniWebsite - Your Account is Ready!";
         
         // Generate login URL
-        $login_url = 'https://' . $_SERVER['HTTP_HOST'] . '/panel/login/login.php';
+        $login_url = 'https://' . $_SERVER['HTTP_HOST'] . '/login/customer.php';
         
         // Simple email message (similar to create-account.php style)
         $message = '

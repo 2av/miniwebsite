@@ -8,7 +8,7 @@ require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
 require_once(__DIR__ . '/../../app/helpers/menu_helper.php');
 
 // Require login for all user pages
-require_login('/panel/login/login.php');
+require_login('/login/customer.php');
 
 // Get current user role
 $current_role = get_current_user_role();

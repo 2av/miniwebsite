@@ -27,7 +27,7 @@ if(!isset($_SESSION['user_email']) || !isset($_SESSION['is_logged_in']) || $_SES
     session_start();
 
     // Redirect to login page with correct path
-    header('Location: ../../panel/login/login.php?session=expired');
+    header('Location: ../../login/customer.php?session=expired');
     exit;
 }
 
