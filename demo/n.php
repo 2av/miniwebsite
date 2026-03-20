@@ -885,7 +885,7 @@ if (!empty($products_flat)) {
                             <img id="mw-product-expanded-img" src="" alt="" class="mw-product-expanded-img" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                             <button type="button" class="mw-product-expanded-prev absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous product"><i class="fas fa-chevron-left"></i></button>
                             <button type="button" class="mw-product-expanded-next absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next product"><i class="fas fa-chevron-right"></i></button>
-                            <button type="button" class="mw-btn-add-shop mw-add-to-cart mw-product-expanded-add-on-image absolute bottom-3 right-3" id="mw-product-expanded-add-float" data-product-index="0">ADD</button>
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart mw-product-expanded-add-on-image absolute" id="mw-product-expanded-add-float" data-product-index="0">ADD</button>
                         </div>
                         <div class="mw-product-expanded-media-prices" aria-label="Pricing">
                             <span id="mw-product-expanded-mrp" class="mw-product-expanded-mrp text-sm text-gray-400 line-through font-bold"></span>

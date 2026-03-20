@@ -329,9 +329,13 @@ html {
 .mw-product-expanded-image-wrap .mw-product-expanded-next {
     z-index: 12;
 }
+.mw-product-expanded-image-wrap .mw-btn-add-shop {
+    bottom: 12px;
+    right: 12px;
+    border-radius: var(--mw-border-radius);
+}
 .mw-product-expanded-add-on-image {
     z-index: 15;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .mw-product-expanded-media-prices {
     display: flex;
@@ -377,13 +381,67 @@ html {
 .mw-product-expanded-desc {
     margin: 0;
 }
+#mw-product-expanded-title,
+#mw-product-expanded-desc {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
 @media (max-width: 639px) {
     .mw-product-expanded-panel {
-        height: min(480px, 82vh);
-        max-height: min(480px, 82vh);
+        height: auto;
+        max-height: min(92vh, 720px);
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .mw-product-expanded-body {
+        flex-direction: column;
+        overflow-x: hidden;
+        overflow-y: visible;
+        flex: 0 1 auto;
+        min-height: 0;
+    }
+    .mw-product-expanded-col {
+        flex: 0 0 auto;
+        width: 100%;
+        min-width: 0;
+    }
+    .mw-product-expanded-media {
+        border-right: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        flex-shrink: 0;
+    }
+    .mw-product-expanded-image-wrap {
+        flex: 0 1 auto;
+        max-height: min(38vh, 260px);
+        min-height: 160px;
+    }
+    .mw-product-expanded-img {
+        max-height: min(34vh, 220px);
+    }
+    .mw-product-expanded-detail {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: visible;
     }
     .mw-product-expanded-detail-inner {
-        padding: 1rem;
+        justify-content: flex-start;
+        align-items: stretch;
+        height: auto;
+        min-height: 0;
+        padding: 0.75rem 1rem 1rem;
+        overflow-y: visible;
+    }
+    .mw-product-expanded-text-block {
+        max-height: none;
+        overflow: visible;
+        width: 100%;
+    }
+    #mw-product-expanded-title,
+    #mw-product-expanded-desc {
+        overflow-wrap: anywhere;
+        hyphens: auto;
     }
 }
 .mw-product-expanded-panel.mw-product-expanded-single .mw-product-expanded-prev,

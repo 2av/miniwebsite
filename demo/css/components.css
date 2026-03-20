@@ -42,10 +42,11 @@
 .mw-btn-add-shop:active {
     transform: scale(0.98);
 }
+/* Shop grid card ADD only (popup uses layout.css) */
 .mw-product-card .mw-product-image-wrap .mw-btn-add-shop {
-    bottom: -6px;
-    right: -4px;
-    border-radius: 6px;
+    bottom: 4px;
+    right: 5px;
+    border-radius: 4px;
 }
 
 /* Forms */
