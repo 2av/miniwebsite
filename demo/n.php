@@ -3,6 +3,80 @@
  * Demo template - Data binding from database (digi_card) or fallback demo data
  * Access: demo/n.php?n=card_id_slug  (loads from DB) or demo/n.php (uses demo data)
  */
+$thumbnail_config = dirname(__DIR__) . '/app/config/thumbnail_api.php';
+if (file_exists($thumbnail_config)) require_once $thumbnail_config;
+
+/**
+ * Fetch thumbnail URL for Instagram, Facebook, TikTok via LinkPreview API or direct og:image.
+ */
+function fetchVideoOgThumb($url, $timeout = 4) {
+    static $cache = [];
+    $url = trim($url);
+    $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+    $key = md5($fetchUrl);
+    if (isset($cache[$key])) return $cache[$key];
+    $clean = preg_replace('#^https?://#', '', $fetchUrl);
+    $isSocial = (strpos($clean, 'instagram.com') !== false || strpos($clean, 'facebook.com') !== false ||
+                 strpos($clean, 'fb.') !== false || strpos($clean, 'tiktok.com') !== false);
+    if (!$isSocial) { $cache[$key] = null; return null; }
+
+    // 1. Try LinkPreview API (works when Instagram/Facebook block direct fetches)
+    if (defined('LINKPREVIEW_API_KEY') && LINKPREVIEW_API_KEY) {
+        $lpUrl = 'https://api.linkpreview.net/?q=' . urlencode($fetchUrl);
+        if (function_exists('curl_init')) {
+            $ch = curl_init($lpUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 5,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTPHEADER => ['X-Linkpreview-Api-Key: ' . LINKPREVIEW_API_KEY],
+            ]);
+            $json = @curl_exec($ch);
+            curl_close($ch);
+        } else {
+            $json = @file_get_contents($lpUrl, false, stream_context_create([
+                'http' => [
+                    'timeout' => 5,
+                    'header' => 'X-Linkpreview-Api-Key: ' . LINKPREVIEW_API_KEY . "\r\n",
+                ],
+            ]));
+        }
+        if ($json) {
+            $data = @json_decode($json, true);
+            if (!empty($data['image']) && filter_var($data['image'], FILTER_VALIDATE_URL)) {
+                $cache[$key] = $data['image'];
+                return $cache[$key];
+            }
+        }
+    }
+
+    // 2. Direct fetch og:image (often blocked by Instagram/Facebook)
+    $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    if (function_exists('curl_init')) {
+        $ch = curl_init($fetchUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_USERAGENT => $ua,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml', 'Accept-Language: en-US,en;q=0.9'],
+        ]);
+        $html = @curl_exec($ch);
+        curl_close($ch);
+    } else {
+        $ctx = stream_context_create([
+            'http' => ['timeout' => $timeout, 'follow_location' => true, 'user_agent' => $ua, 'ignore_errors' => true],
+        ]);
+        $html = @file_get_contents($fetchUrl, false, $ctx);
+    }
+    if ($html && strlen($html) >= 200) {
+        if (preg_match('#<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']#i', $html, $m)) { $cache[$key] = trim($m[1]); return $cache[$key]; }
+        if (preg_match('#<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']#i', $html, $m)) { $cache[$key] = trim($m[1]); return $cache[$key]; }
+    }
+    $cache[$key] = null;
+    return null;
+}
 
 /**
  * Parse video URL (YouTube, Shorts, Instagram, Facebook, etc.) and return title, thumb, platform, embed_url.
@@ -25,17 +99,20 @@ function parseVideoUrl($url, $default_thumb = '', $index = 0) {
     } elseif (preg_match('#instagram\.com/(?:reel|p)/([a-zA-Z0-9_-]+)#', $url, $m)) {
         $platform = 'instagram';
         $title = 'Instagram Video';
-        $thumb = $fallback;
+        $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+        $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
         $embed_url = (strpos($url, '/reel/') !== false ? 'https://www.instagram.com/reel/' : 'https://www.instagram.com/p/') . $m[1] . '/embed/';
     } elseif (preg_match('#(?:facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/#', $url)) {
         $platform = 'facebook';
         $title = 'Facebook Video';
-        $thumb = $fallback;
+        $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+        $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
         $embed_url = $url;
     } elseif (preg_match('#tiktok\.com/(?:@[^/]+/video/|v/)(\d+)#', $url, $m)) {
         $platform = 'tiktok';
         $title = 'TikTok Video';
-        $thumb = $fallback;
+        $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+        $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
         $embed_url = 'https://www.tiktok.com/embed/v2/' . $m[1];
     } else {
         $thumb = $fallback;
@@ -548,8 +625,8 @@ if (!empty($products_by_cat)) {
                     <button type="button" id="mw-share-wa-btn" style="background: var(--mw-offer-cta-bg); color: #111;" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
                         <i class="fab fa-whatsapp"></i> Share on WhatsApp
                     </button>
-                    <button type="button" id="mw-download-qr-btn" class="flex-shrink-0 w-10 h-10 rounded-theme flex items-center justify-center cursor-pointer" style="background: var(--mw-offer-cta-bg); color: #111;" title="Download QR">
-                        <img src="../assets/img/download.png" alt="Download" class="w-5 h-5 object-contain">
+                    <button type="button" id="mw-download-qr-btn" class="flex-shrink-0 w-12 h-12 rounded-theme flex items-center justify-center cursor-pointer" style="background: var(--mw-offer-cta-bg); color: #111;" title="Download QR">
+                    <i class="fa-solid fa-download"></i>
                     </button>
                 </div>
                
@@ -692,8 +769,8 @@ if (!empty($products_by_cat)) {
 
         <!-- Services Grid (visible by default) -->
         <div id="mw-services-grid" class="mw-grid-services">
-            <?php foreach ($services as $idx => $svc): ?>
-            <div class="mw-card mw-offer-card mw-service-card bg-cardbg rounded-theme overflow-hidden relative" data-svc-index="<?php echo $idx; ?>" role="button" tabindex="0">
+            <?php foreach ($services as $svc): ?>
+            <div class="mw-card mw-offer-card mw-service-card bg-cardbg rounded-theme overflow-hidden relative">
                 <div class="mw-service-image-wrap">
                     <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                 </div>
@@ -705,27 +782,6 @@ if (!empty($products_by_cat)) {
                 </div>
             </div>
             <?php endforeach; ?>
-        </div>
-
-        <!-- Desktop: Inline Expanded View (within product box, with prev/next arrows) -->
-        <div id="mw-service-expanded-box" class="mw-service-expanded-box" aria-hidden="true">
-            <div class="mw-card mw-offer-card relative overflow-hidden">
-                <button type="button" class="mw-service-expanded-close absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-cardbg/90 hover:bg-cardbg text-heading flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
-                <div class="relative">
-                    <div class="mw-service-expanded-image-wrap aspect-[4/3] overflow-hidden relative bg-gray-900 flex items-center justify-center">
-                        <img id="mw-service-expanded-img" src="" alt="" class="w-full h-full object-contain" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
-                        <button type="button" class="mw-service-expanded-prev absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
-                        <button type="button" class="mw-service-expanded-next absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 id="mw-service-expanded-title" class="text-heading font-semibold text-xl mb-3"></h3>
-                        <p id="mw-service-expanded-desc" class="text-sm text-textmain leading-relaxed whitespace-pre-line"></p>
-                    </div>
-                </div>
-                <div class="flex justify-center gap-2 py-3 text-sm text-textmain border-t border-white/10">
-                    <span id="mw-service-expanded-counter">1</span> / <?php echo count($services); ?>
-                </div>
-            </div>
         </div>
     </section>
 
@@ -873,10 +929,26 @@ if (!empty($products_by_cat)) {
         <h2 class="mw-section-title">Gallery</h2>
         <div class="mw-grid-gallery">
             <?php foreach ($gallery as $g_img): ?>
-            <div class="aspect-square rounded-lg overflow-hidden border border-white/5"><img src="<?php echo htmlspecialchars($g_img); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300" alt="Gallery" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'"></div>
+            <div class="aspect-square rounded-lg overflow-hidden border border-white/5 mw-gallery-item cursor-pointer group" role="button" tabindex="0" data-gallery-src="<?php echo htmlspecialchars($g_img, ENT_QUOTES); ?>">
+                <img src="<?php echo htmlspecialchars($g_img); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-300 pointer-events-none select-none" alt="Gallery" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+            </div>
             <?php endforeach; ?>
         </div>
     </section>
+
+    <!-- Gallery lightbox: centered on screen, content width matches app section (max 1200px) -->
+    <div id="mw-gallery-modal" class="mw-gallery-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Gallery" data-default-src="<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>">
+        <button type="button" class="mw-gallery-modal-backdrop" aria-label="Close gallery"></button>
+        <div class="mw-gallery-modal-panel">
+            <button type="button" class="mw-gallery-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+            <button type="button" class="mw-gallery-modal-prev" aria-label="Previous image"><i class="fas fa-chevron-left"></i></button>
+            <button type="button" class="mw-gallery-modal-next" aria-label="Next image"><i class="fas fa-chevron-right"></i></button>
+            <div class="mw-gallery-modal-stage">
+                <img id="mw-gallery-modal-img" src="" alt="Gallery" class="mw-gallery-modal-img">
+            </div>
+            <div id="mw-gallery-modal-counter" class="mw-gallery-modal-counter"></div>
+        </div>
+    </div>
 
     <!-- 11. Payment QR Section - Show all uploaded QR codes -->
     <?php
@@ -1004,7 +1076,7 @@ if (!empty($products_by_cat)) {
     window.MW_PHONE = <?php echo json_encode($phone ?? ''); ?>;
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
 </script>
-<script src="js/app.js?v=2"></script>
+<script src="js/app.js?v=4"></script>
 
 </body>
 </html>

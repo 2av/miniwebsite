@@ -1,70 +1,7 @@
 /**
- * Demo App JS - Blinkit Tabs, Sticky Nav, Services Lightbox, AI Menu Planner
+ * Demo App JS - Blinkit Tabs, Sticky Nav, Services read-more, AI Menu Planner
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Services: Desktop inline expanded box (within product box, with prev/next) ---
-    const serviceCards = document.querySelectorAll('.mw-service-card');
-    const servicesSection = document.getElementById('mw-services');
-    const expandedBox = document.getElementById('mw-service-expanded-box');
-    const expandedImg = document.getElementById('mw-service-expanded-img');
-    const expandedTitle = document.getElementById('mw-service-expanded-title');
-    const expandedDesc = document.getElementById('mw-service-expanded-desc');
-    const expandedCounter = document.getElementById('mw-service-expanded-counter');
-    const totalServices = serviceCards.length;
-
-    const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
-
-    let currentServiceIndex = 0;
-
-    function updateExpandedContent(index) {
-        if (index < 0 || index >= totalServices) return;
-        const card = serviceCards[index];
-        if (!card) return;
-        currentServiceIndex = index;
-        const imgEl = card.querySelector('.mw-service-image-wrap img');
-        const nameEl = card.querySelector('h3');
-        const descEl = card.querySelector('.mw-service-desc-full');
-        if (expandedImg) expandedImg.src = imgEl?.src || imgEl?.getAttribute('src') || '';
-        if (expandedImg) expandedImg.alt = nameEl?.textContent || '';
-        if (expandedTitle) expandedTitle.textContent = nameEl?.textContent || '';
-        if (expandedDesc) expandedDesc.innerHTML = descEl?.innerHTML || descEl?.textContent || 'Contact us for details.';
-        if (expandedCounter) expandedCounter.textContent = index + 1;
-    }
-
-    function openExpandedBox(index) {
-        if (index < 0 || index >= totalServices || !servicesSection || !expandedBox) return;
-        updateExpandedContent(index);
-        servicesSection.classList.add('mw-services-expanded-active');
-        expandedBox.setAttribute('aria-hidden', 'false');
-        expandedBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function closeExpandedBox() {
-        if (!servicesSection || !expandedBox) return;
-        servicesSection.classList.remove('mw-services-expanded-active');
-        expandedBox.setAttribute('aria-hidden', 'true');
-    }
-
-    if (serviceCards.length && expandedBox) {
-        serviceCards.forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (e.target.closest('.mw-service-read-more')) return;
-                if (isMobile()) return;
-                const idx = parseInt(card.getAttribute('data-svc-index'), 10);
-                if (!isNaN(idx)) openExpandedBox(idx);
-            });
-            card.addEventListener('keydown', (e) => {
-                if (e.target.closest('.mw-service-read-more')) return;
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (isMobile()) return;
-                    const idx = parseInt(card.getAttribute('data-svc-index'), 10);
-                    if (!isNaN(idx)) openExpandedBox(idx);
-                }
-            });
-        });
-    }
-
     document.querySelectorAll('.mw-service-read-more').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -103,26 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.textContent = 'Read less';
             }
         });
-    });
-
-    const expandedClose = document.querySelector('.mw-service-expanded-close');
-    const expandedPrev = document.querySelector('.mw-service-expanded-prev');
-    const expandedNext = document.querySelector('.mw-service-expanded-next');
-
-    if (expandedClose) expandedClose.addEventListener('click', (e) => { e.stopPropagation(); closeExpandedBox(); });
-    if (expandedPrev) expandedPrev.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = Math.max(0, currentServiceIndex - 1);
-        updateExpandedContent(idx);
-    });
-    if (expandedNext) expandedNext.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = Math.min(totalServices - 1, currentServiceIndex + 1);
-        updateExpandedContent(idx);
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && servicesSection?.classList.contains('mw-services-expanded-active')) closeExpandedBox();
     });
 
     document.querySelectorAll('.mw-product-read-more').forEach(btn => {
@@ -270,6 +187,106 @@ document.addEventListener('DOMContentLoaded', () => {
     if (videoModalClose) videoModalClose.addEventListener('click', closeVideoModal);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && videoModal?.classList.contains('open')) closeVideoModal();
+    });
+
+    // --- Gallery: lightbox (section-width panel, viewport-centered), prev/next + swipe + arrows ---
+    const galleryModal = document.getElementById('mw-gallery-modal');
+    const galleryModalImg = document.getElementById('mw-gallery-modal-img');
+    const galleryModalCounter = document.getElementById('mw-gallery-modal-counter');
+    const galleryBackdrop = galleryModal?.querySelector('.mw-gallery-modal-backdrop');
+    const galleryCloseBtn = galleryModal?.querySelector('.mw-gallery-modal-close');
+    const galleryPrevBtn = galleryModal?.querySelector('.mw-gallery-modal-prev');
+    const galleryNextBtn = galleryModal?.querySelector('.mw-gallery-modal-next');
+    const galleryStage = galleryModal?.querySelector('.mw-gallery-modal-stage');
+    const galleryItemEls = galleryModal ? Array.from(document.querySelectorAll('.mw-gallery-item')) : [];
+    const galleryUrls = galleryItemEls.map((el) => el.getAttribute('data-gallery-src') || '');
+    let galleryIndex = 0;
+    const defaultGallerySrc = galleryModal?.getAttribute('data-default-src') || '';
+
+    function galleryNormIndex(i) {
+        const n = galleryUrls.length;
+        if (n <= 0) return 0;
+        return ((i % n) + n) % n;
+    }
+
+    function showGalleryAt(i) {
+        if (!galleryModal || !galleryModalImg || galleryUrls.length === 0) return;
+        galleryIndex = galleryNormIndex(i);
+        galleryModalImg.src = galleryUrls[galleryIndex] || defaultGallerySrc;
+        if (galleryModalCounter) {
+            galleryModalCounter.textContent = `${galleryIndex + 1} / ${galleryUrls.length}`;
+        }
+    }
+
+    function openGalleryModal(startIndex) {
+        if (!galleryModal || !galleryModalImg || galleryUrls.length === 0) return;
+        galleryModal.classList.toggle('mw-gallery-single', galleryUrls.length <= 1);
+        showGalleryAt(startIndex);
+        galleryModal.classList.add('open');
+        galleryModal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeGalleryModal() {
+        if (!galleryModal || !galleryModalImg) return;
+        galleryModal.classList.remove('open');
+        galleryModal.setAttribute('aria-hidden', 'true');
+        galleryModalImg.src = '';
+        document.body.style.overflow = '';
+    }
+
+    if (galleryModalImg && defaultGallerySrc) {
+        galleryModalImg.addEventListener('error', function onGalleryImgErr() {
+            this.onerror = null;
+            this.src = defaultGallerySrc;
+        });
+    }
+
+    galleryItemEls.forEach((item, idx) => {
+        item.addEventListener('click', () => openGalleryModal(idx));
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openGalleryModal(idx);
+            }
+        });
+    });
+
+    if (galleryBackdrop) galleryBackdrop.addEventListener('click', closeGalleryModal);
+    if (galleryCloseBtn) galleryCloseBtn.addEventListener('click', (e) => { e.stopPropagation(); closeGalleryModal(); });
+    if (galleryPrevBtn) galleryPrevBtn.addEventListener('click', (e) => { e.stopPropagation(); showGalleryAt(galleryIndex - 1); });
+    if (galleryNextBtn) galleryNextBtn.addEventListener('click', (e) => { e.stopPropagation(); showGalleryAt(galleryIndex + 1); });
+
+    let galleryTouchX = null;
+    if (galleryStage) {
+        galleryStage.addEventListener('touchstart', (e) => {
+            if (e.changedTouches?.length) galleryTouchX = e.changedTouches[0].clientX;
+        }, { passive: true });
+        galleryStage.addEventListener('touchend', (e) => {
+            if (galleryTouchX == null || !e.changedTouches?.length) return;
+            const dx = e.changedTouches[0].clientX - galleryTouchX;
+            galleryTouchX = null;
+            if (Math.abs(dx) < 50 || galleryUrls.length <= 1) return;
+            if (dx > 0) showGalleryAt(galleryIndex - 1);
+            else showGalleryAt(galleryIndex + 1);
+        }, { passive: true });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (!galleryModal?.classList.contains('open')) return;
+        if (e.key === 'Escape') {
+            closeGalleryModal();
+            return;
+        }
+        if (galleryUrls.length <= 1) return;
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            showGalleryAt(galleryIndex - 1);
+        }
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            showGalleryAt(galleryIndex + 1);
+        }
     });
 
     // --- Sticky Nav: Smooth scroll + active state ---
