@@ -480,6 +480,16 @@ if (!empty($products_by_cat)) {
         }
     }
 }
+/** Modal/cart JS payload: description max 400 characters */
+$products_for_js = [];
+if (!empty($products_flat)) {
+    foreach ($products_flat as $pj) {
+        $row = $pj;
+        $d = isset($row['desc']) ? (string) $row['desc'] : '';
+        $row['desc'] = function_exists('mb_substr') ? mb_substr($d, 0, 400) : substr($d, 0, 400);
+        $products_for_js[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -840,7 +850,7 @@ if (!empty($products_by_cat)) {
                     <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-2" data-product-index="<?php echo $global_idx; ?>">
                         <div class="mw-product-image-wrap mw-product-click-area aspect-[4/3]  relative rounded-t-xl cursor-pointer" data-product-index="<?php echo $global_idx; ?>" role="button" tabindex="0">
                             <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover" alt="<?php echo htmlspecialchars($prod['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
-                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute bottom-2 right-2 z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()">ADD</button>
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()">ADD</button>
                         </div>
                         <div class="p-3">
                             <h3 class="font-semibold text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
@@ -864,27 +874,34 @@ if (!empty($products_by_cat)) {
             </div>
         </div>
 
-        <!-- Desktop: Inline Expanded View (within section, like Services) -->
+        <!-- Product detail: viewport-centered modal, ~section width (1200px cap), 50% image / 50% detail -->
         <div id="mw-product-expanded-box" class="mw-product-expanded-box" aria-hidden="true">
-            <div class="mw-card mw-offer-card relative overflow-hidden bg-white text-gray-800">
-                <button type="button" class="mw-product-expanded-close absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
-                <div class="relative">
-                    <div class="mw-product-expanded-image-wrap aspect-[4/3] overflow-hidden relative bg-gray-100 flex items-center justify-center">
-                        <img id="mw-product-expanded-img" src="" alt="" class="w-full h-full object-contain" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
-                        <button type="button" class="mw-product-expanded-prev absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
-                        <button type="button" class="mw-product-expanded-next absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 id="mw-product-expanded-title" class="text-gray-900 font-semibold text-xl mb-3"></h3>
-                        <p id="mw-product-expanded-desc" class="text-sm text-gray-500 leading-relaxed whitespace-pre-line mb-4"></p>
-                        <div class="flex items-center gap-3 mb-4">
-                            <span id="mw-product-expanded-mrp" class="text-sm text-gray-400 line-through font-bold hidden"></span>
-                            <span id="mw-product-expanded-price" class="font-bold text-lg text-gray-900"></span>
+            <button type="button" class="mw-product-expanded-backdrop" aria-label="Close product details"></button>
+            <div class="mw-product-expanded-panel mw-card mw-offer-card relative overflow-hidden bg-white text-gray-800 flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-labelledby="mw-product-expanded-title">
+                <button type="button" class="mw-product-expanded-close absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div class="mw-product-expanded-body">
+                    <div class="mw-product-expanded-col mw-product-expanded-media">
+                        <div class="mw-product-expanded-image-wrap relative">
+                            <img id="mw-product-expanded-img" src="" alt="" class="mw-product-expanded-img" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                            <button type="button" class="mw-product-expanded-prev absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous product"><i class="fas fa-chevron-left"></i></button>
+                            <button type="button" class="mw-product-expanded-next absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next product"><i class="fas fa-chevron-right"></i></button>
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart mw-product-expanded-add-on-image absolute bottom-3 right-3" id="mw-product-expanded-add-float" data-product-index="0">ADD</button>
                         </div>
-                        <button type="button" class="mw-btn-add-shop mw-add-to-cart py-2.5 px-6 rounded-theme" id="mw-product-expanded-add">ADD</button>
+                        <div class="mw-product-expanded-media-prices" aria-label="Pricing">
+                            <span id="mw-product-expanded-mrp" class="mw-product-expanded-mrp text-sm text-gray-400 line-through font-bold"></span>
+                            <span id="mw-product-expanded-price" class="mw-product-expanded-sale text-lg font-bold text-gray-900"></span>
+                        </div>
+                    </div>
+                    <div class="mw-product-expanded-col mw-product-expanded-detail">
+                        <div class="mw-product-expanded-detail-inner p-4 md:p-6">
+                            <div class="mw-product-expanded-text-block">
+                                <h3 id="mw-product-expanded-title" class="text-gray-900 font-semibold text-lg md:text-xl mb-2 md:mb-3"></h3>
+                                <p id="mw-product-expanded-desc" class="mw-product-expanded-desc text-sm text-gray-500 leading-relaxed whitespace-pre-line"></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex justify-center gap-2 py-3 text-sm text-gray-500 border-t border-gray-200">
+                <div class="mw-product-expanded-footer flex justify-center gap-2 py-2.5 md:py-3 text-sm text-gray-500 border-t border-gray-200 flex-shrink-0">
                     <span id="mw-product-expanded-counter">1</span> / <?php echo count($products_flat); ?>
                 </div>
             </div>
@@ -1069,7 +1086,7 @@ if (!empty($products_by_cat)) {
 <script>
     window.MW_AI_API_KEY = "<?php echo htmlspecialchars(defined('GEMINI_API_KEY') ? GEMINI_API_KEY : ''); ?>";
     window.MW_WHATSAPP_NUMBER = "<?php echo htmlspecialchars($whatsapp); ?>";
-    window.MW_PRODUCTS = <?php echo json_encode($products_flat ?? []); ?>;
+    window.MW_PRODUCTS = <?php echo json_encode($products_for_js ?? []); ?>;
     window.MW_SHARE_URL = <?php echo json_encode($share_url ?? ''); ?>;
     window.MW_HERO_NAME = <?php echo json_encode($hero_name ?? ''); ?>;
     window.MW_LOCATION = <?php echo json_encode($location ?? ''); ?>;

@@ -42,6 +42,11 @@
 .mw-btn-add-shop:active {
     transform: scale(0.98);
 }
+.mw-product-card .mw-product-image-wrap .mw-btn-add-shop {
+    bottom: -6px;
+    right: -4px;
+    border-radius: 6px;
+}
 
 /* Forms */
 .mw-input { width: 100%; background-color: var(--mw-background-color); border: 1px solid rgba(255,255,255,0.1); color: var(--mw-heading-color); border-radius: var(--mw-border-radius); padding: 0.75rem 1rem; outline: none; transition: border 0.3s; }

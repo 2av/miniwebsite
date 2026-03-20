@@ -71,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const productExpandedMrp = document.getElementById('mw-product-expanded-mrp');
     const productExpandedPrice = document.getElementById('mw-product-expanded-price');
     const productExpandedCounter = document.getElementById('mw-product-expanded-counter');
-    const productExpandedAdd = document.getElementById('mw-product-expanded-add');
     const productsData = window.MW_PRODUCTS || [];
     const totalProducts = productsData.length;
 
@@ -84,18 +83,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (productExpandedImg) productExpandedImg.src = p.image || '';
         if (productExpandedImg) productExpandedImg.alt = p.name || '';
         if (productExpandedTitle) productExpandedTitle.textContent = p.name || '';
-        if (productExpandedDesc) productExpandedDesc.textContent = p.desc || 'Contact us for details.';
+        if (productExpandedDesc) {
+            const raw = (p.desc != null ? String(p.desc) : '') || 'Contact us for details.';
+            productExpandedDesc.textContent = raw.length > 400 ? raw.slice(0, 400) : raw;
+        }
         if (productExpandedMrp) {
             if (p.mrp && p.mrp > p.price) {
                 productExpandedMrp.textContent = '₹' + (p.mrp || 0).toLocaleString();
-                productExpandedMrp.classList.remove('hidden');
+                productExpandedMrp.classList.remove('mw-product-expanded-mrp--empty');
             } else {
-                productExpandedMrp.classList.add('hidden');
+                productExpandedMrp.textContent = '';
+                productExpandedMrp.classList.add('mw-product-expanded-mrp--empty');
             }
         }
         if (productExpandedPrice) productExpandedPrice.textContent = '₹' + (p.price || 0).toLocaleString();
         if (productExpandedCounter) productExpandedCounter.textContent = index + 1;
-        if (productExpandedAdd) productExpandedAdd.setAttribute('data-product-index', String(index));
+        const panel = productExpandedBox?.querySelector('.mw-product-expanded-panel');
+        if (panel) {
+            panel.classList.toggle('mw-product-expanded-single', totalProducts <= 1);
+        }
+        if (productExpandedBox) {
+            productExpandedBox.querySelectorAll('.mw-add-to-cart').forEach(btn => {
+                btn.setAttribute('data-product-index', String(index));
+            });
+        }
     }
 
     function openProductExpandedBox(index) {
@@ -103,13 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProductExpandedContent(index);
         productsSection.classList.add('mw-products-expanded-active');
         productExpandedBox.setAttribute('aria-hidden', 'false');
-        productExpandedBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.body.style.overflow = 'hidden';
     }
 
     function closeProductExpandedBox() {
         if (!productsSection || !productExpandedBox) return;
         productsSection.classList.remove('mw-products-expanded-active');
         productExpandedBox.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
     }
 
     document.querySelectorAll('.mw-product-click-area').forEach(area => {
@@ -132,6 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const productExpandedNext = document.querySelector('.mw-product-expanded-next');
 
     if (productExpandedClose) productExpandedClose.addEventListener('click', (e) => { e.stopPropagation(); closeProductExpandedBox(); });
+    const productExpandedBackdrop = document.querySelector('.mw-product-expanded-backdrop');
+    if (productExpandedBackdrop) productExpandedBackdrop.addEventListener('click', closeProductExpandedBox);
     if (productExpandedPrev) productExpandedPrev.addEventListener('click', (e) => {
         e.stopPropagation();
         const idx = Math.max(0, currentProductIndex - 1);
