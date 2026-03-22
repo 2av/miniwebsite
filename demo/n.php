@@ -121,6 +121,32 @@ function parseVideoUrl($url, $default_thumb = '', $index = 0) {
     return ['title' => $title, 'thumb' => $thumb, 'platform' => $platform, 'embed_url' => $embed_url];
 }
 
+/** Web directory of this script (e.g. /miniwebsite/demo), no trailing slash. */
+function mw_demo_script_dir() {
+    return rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/demo')), '/');
+}
+
+/** Absolute URL to this MiniWebsite page (?n= when slug known). */
+function mw_miniwebsite_profile_url($base_url, $card_identifier) {
+    $path = mw_demo_script_dir() . '/n.php';
+    $q = ($card_identifier !== '' && $card_identifier !== null)
+        ? ('?n=' . rawurlencode((string) $card_identifier)) : '';
+    return rtrim($base_url, '/') . $path . $q;
+}
+
+/** Turn ../assets/... path from demo/ into site-relative path for absolute URLs. */
+function mw_site_relative_from_demo_asset($relative) {
+    if ($relative === '' || preg_match('#^https?://#i', $relative) || strpos($relative, 'data:') === 0) {
+        return '';
+    }
+    $rel = ltrim(preg_replace('#^\.\./#', '', $relative), '/');
+    $parent = dirname(mw_demo_script_dir());
+    if ($parent === '/' || $parent === '\\' || $parent === '.') {
+        return $rel;
+    }
+    return trim(str_replace('\\', '/', $parent), '/') . '/' . $rel;
+}
+
 $card_id_slug = isset($_GET['n']) ? trim($_GET['n']) : (isset($_GET['card_number']) ? trim($_GET['card_number']) : '');
 $row = null;
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
@@ -182,7 +208,8 @@ if ($row) {
     $location = !empty($locParts) ? htmlspecialchars(implode(', ', $locParts)) : 'Berlin, Germany';
     $website = !empty($row['d_website']) ? htmlspecialchars($row['d_website']) : '';
     $google_direction = !empty($row['d_location']) ? htmlspecialchars($row['d_location']) : '';
-    $share_url = $base_url . '/' . htmlspecialchars($row['card_id'] ?? $card_id_slug);
+    $share_card_key = (string) ($row['card_id'] ?? $card_id_slug);
+    $share_url = mw_miniwebsite_profile_url($base_url, $share_card_key);
 
     // Social share links (share profile URL to each platform)
     // Note: Instagram & YouTube have no web share URLs - only link when profile/channel URL exists
@@ -294,6 +321,8 @@ if ($row) {
                 if ($mrp <= 0) $mrp = $price;
                 $products_by_cat[$cat][] = [
                     'name' => htmlspecialchars($p['product_name']),
+                    'cat_key' => $cat,
+                    'category' => htmlspecialchars(isset($cat_display_names[$cat]) ? $cat_display_names[$cat] : ''),
                     'image' => $img,
                     'mrp' => $mrp,
                     'price' => $price,
@@ -378,7 +407,7 @@ if ($row) {
     $location = 'Berlin, Germany';
     $website = 'www.oliviaculinary.com';
     $google_direction = '';
-    $share_url = $base_url . '/demo/n.php';
+    $share_url = mw_miniwebsite_profile_url($base_url, '');
 
     // Demo: Instagram & YouTube have no web share URLs - only show share-capable platforms
     $social_links = [
@@ -441,6 +470,8 @@ if ($row) {
                         if ($mrp <= 0) $mrp = $price;
                         $products_by_cat[$cat][] = [
                             'name' => htmlspecialchars($p['product_name']),
+                            'cat_key' => $cat,
+                            'category' => htmlspecialchars(isset($cat_display_names[$cat]) ? $cat_display_names[$cat] : ''),
                             'image' => $img,
                             'mrp' => $mrp,
                             'price' => $price,
@@ -484,11 +515,86 @@ if (!empty($products_by_cat)) {
 $products_for_js = [];
 if (!empty($products_flat)) {
     foreach ($products_flat as $pj) {
-        $row = $pj;
-        $d = isset($row['desc']) ? (string) $row['desc'] : '';
-        $row['desc'] = function_exists('mb_substr') ? mb_substr($d, 0, 400) : substr($d, 0, 400);
-        $products_for_js[] = $row;
+        $d = isset($pj['desc']) ? (string) $pj['desc'] : '';
+        $pj['desc'] = function_exists('mb_substr') ? mb_substr($d, 0, 400) : substr($d, 0, 400);
+        $products_for_js[] = $pj;
     }
+}
+
+// vCard payload: raw UTF-8 strings (no HTML entities) for Save Contact / .vcf
+$mw_vcard = [];
+if ($row) {
+    $raw_owner = trim(trim($row['d_f_name'] ?? '') . ' ' . trim($row['d_l_name'] ?? ''));
+    $raw_org = trim($row['d_comp_name'] ?? '');
+    $raw_title = trim($row['d_position'] ?? '');
+    $raw_email = trim($row['d_email'] ?? '');
+    $raw_about = isset($row['d_about_us']) ? trim((string) $row['d_about_us']) : '';
+    $raw_website = trim($row['d_website'] ?? '');
+    $tel_cell = preg_replace('/[^0-9+]/', '', (string) ($row['d_contact'] ?? ''));
+    $tel_wa = preg_replace('/[^0-9+]/', '', (string) ($row['d_whatsapp'] ?? ''));
+    if ($tel_wa === '') {
+        $tel_wa = $tel_cell;
+    }
+    $street = trim((string) ($row['d_address'] ?? ''));
+    $ext = trim((string) ($row['d_address2'] ?? ''));
+    $adr_street = $street;
+    if ($ext !== '' && $street !== '') {
+        $adr_street = $street . ', ' . $ext;
+    } elseif ($ext !== '') {
+        $adr_street = $ext;
+    }
+    $photo_rel = mw_site_relative_from_demo_asset($hero_logo);
+    $photo_abs = ($photo_rel !== '') ? (rtrim($base_url, '/') . '/' . $photo_rel) : '';
+    $wa_digits = preg_replace('/\D+/', '', $tel_wa);
+    $mw_vcard = [
+        'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
+        'org' => $raw_org,
+        'title' => $raw_title !== '' ? $raw_title : 'Executive Chef',
+        'telCell' => $tel_cell,
+        'telWhatsapp' => $tel_wa,
+        'email' => $raw_email !== '' ? $raw_email : 'contact@example.com',
+        'urlProfile' => $share_url,
+        'urlWebsite' => $raw_website,
+        'adr' => [
+            'street' => $adr_street,
+            'locality' => trim((string) ($row['d_city'] ?? '')),
+            'region' => trim((string) ($row['d_state'] ?? '')),
+            'postal' => trim((string) ($row['d_pincode'] ?? '')),
+            'country' => trim((string) ($row['d_country'] ?? '')),
+        ],
+        'note' => $raw_about,
+        'photo' => $photo_abs,
+        'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
+    ];
+    $parts = explode(' ', $raw_owner, 2);
+    $mw_vcard['nFamily'] = count($parts) > 1 ? $parts[1] : '';
+    $mw_vcard['nGiven'] = $parts[0] ?? '';
+} else {
+    $wa_digits = preg_replace('/\D+/', '', $whatsapp);
+    $photo_rel = mw_site_relative_from_demo_asset($hero_logo);
+    $photo_abs = ($photo_rel !== '') ? (rtrim($base_url, '/') . '/' . $photo_rel) : '';
+    $mw_vcard = [
+        'fn' => 'Olivia Murray',
+        'org' => 'Olivia Culinary',
+        'title' => 'Executive Chef',
+        'telCell' => preg_replace('/[^0-9+]/', '', $phone),
+        'telWhatsapp' => preg_replace('/[^0-9+]/', '', $whatsapp),
+        'email' => $email,
+        'urlProfile' => $share_url,
+        'urlWebsite' => $website,
+        'adr' => [
+            'street' => 'Sample Street 1',
+            'locality' => 'Berlin',
+            'region' => 'Berlin',
+            'postal' => '10115',
+            'country' => 'Germany',
+        ],
+        'note' => 'Passionately crafting exceptional culinary experiences.',
+        'photo' => $photo_abs,
+        'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
+        'nFamily' => 'Murray',
+        'nGiven' => 'Olivia',
+    ];
 }
 ?>
 <!DOCTYPE html>
@@ -618,8 +724,35 @@ if (!empty($products_flat)) {
     <!-- 5. QR Share Section -->
     <?php
     $qr_image_url = 'https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=' . urlencode($share_url ?? '');
-    $qr_business_name = isset($row) && $row && !empty($row['d_comp_name']) ? htmlspecialchars($row['d_comp_name']) : '';
-    $qr_person_name = isset($row) && $row ? trim(htmlspecialchars(($row['d_f_name'] ?? '') . ' ' . ($row['d_l_name'] ?? ''))) : ($hero_name ?? '');
+    // Match visible hero fallbacks: live DB rows often omit d_comp_name / names but still have card_id or title.
+    $qr_business_name = '';
+    $qr_person_name = '';
+    if ($row) {
+        $comp = trim((string) ($row['d_comp_name'] ?? ''));
+        $fn = trim((string) ($row['d_f_name'] ?? ''));
+        $ln = trim((string) ($row['d_l_name'] ?? ''));
+        $firstlast = trim($fn . ' ' . $ln);
+        $pos = trim((string) ($row['d_position'] ?? ''));
+        $slug = trim((string) ($row['card_id'] ?? $card_id_slug));
+        if ($comp !== '') {
+            $qr_business_name = htmlspecialchars($comp);
+            $qr_person_name = $firstlast !== '' ? htmlspecialchars($firstlast) : ($pos !== '' ? htmlspecialchars($pos) : '');
+        } elseif ($firstlast !== '') {
+            $qr_business_name = htmlspecialchars($firstlast);
+            $qr_person_name = $pos !== '' ? htmlspecialchars($pos) : '';
+        } elseif ($slug !== '') {
+            $qr_business_name = htmlspecialchars($slug);
+            $qr_person_name = $pos !== '' ? htmlspecialchars($pos) : '';
+        } elseif (isset($hero_name) && $hero_name !== '' && $hero_name !== 'Your Name') {
+            $qr_business_name = $hero_name;
+            $qr_person_name = $pos !== '' ? htmlspecialchars($pos) : '';
+        }
+        if ($qr_person_name === '' && $pos !== '' && $qr_business_name !== '') {
+            $qr_person_name = htmlspecialchars($pos);
+        }
+    } else {
+        $qr_person_name = $hero_name ?? '';
+    }
     $qr_card_id = isset($row) && $row ? ($row['card_id'] ?? 'card') : 'card';
     ?>
     <section class="mw-qr-share mw-section-padding bg-cardbg/50">
@@ -814,7 +947,7 @@ if (!empty($products_flat)) {
                     <?php
                         $offer_wa_msg = "Hi 😊\nI am interested in the offer mentioned in your MiniWebsite \"" . $off['title'] . "\".\nPlease share the price & availability of this";
                         ?>
-                    <a href="https://wa.me/<?php echo $whatsapp; ?>?text=<?php echo urlencode($offer_wa_msg); ?>" target="_blank" class="block w-full py-2.5 rounded-theme font-semibold transition text-center mt-4" style="background: var(--mw-offer-cta-bg); color: #111;">Get This Offer</a>
+                    <button type="button" class="mw-offer-wa-cta block w-full py-2.5 rounded-theme font-semibold transition text-center mt-4 cursor-pointer border-0" style="background: var(--mw-offer-cta-bg); color: #111;" data-phone="<?php echo htmlspecialchars((string) $whatsapp, ENT_QUOTES, 'UTF-8'); ?>" data-msg="<?php echo htmlspecialchars($offer_wa_msg, ENT_QUOTES, 'UTF-8'); ?>">Get This Offer</button>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -850,7 +983,7 @@ if (!empty($products_flat)) {
                     <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-2" data-product-index="<?php echo $global_idx; ?>">
                         <div class="mw-product-image-wrap mw-product-click-area aspect-[4/3]  relative rounded-t-xl cursor-pointer" data-product-index="<?php echo $global_idx; ?>" role="button" tabindex="0">
                             <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover" alt="<?php echo htmlspecialchars($prod['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
-                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()">ADD</button>
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()"><span class="mw-cart-btn-label">ADD</span></button>
                         </div>
                         <div class="p-3">
                             <h3 class="font-semibold text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
@@ -874,7 +1007,7 @@ if (!empty($products_flat)) {
             </div>
         </div>
 
-        <!-- Product detail: viewport-centered modal, ~section width (1200px cap), 50% image / 50% detail -->
+        <!-- Product detail: centered on screen; width synced to .mw-blinkit-main (grid column) via JS -->
         <div id="mw-product-expanded-box" class="mw-product-expanded-box" aria-hidden="true">
             <button type="button" class="mw-product-expanded-backdrop" aria-label="Close product details"></button>
             <div class="mw-product-expanded-panel mw-card mw-offer-card relative overflow-hidden bg-white text-gray-800 flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-labelledby="mw-product-expanded-title">
@@ -885,24 +1018,31 @@ if (!empty($products_flat)) {
                             <img id="mw-product-expanded-img" src="" alt="" class="mw-product-expanded-img" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                             <button type="button" class="mw-product-expanded-prev absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous product"><i class="fas fa-chevron-left"></i></button>
                             <button type="button" class="mw-product-expanded-next absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next product"><i class="fas fa-chevron-right"></i></button>
-                            <button type="button" class="mw-btn-add-shop mw-add-to-cart mw-product-expanded-add-on-image absolute" id="mw-product-expanded-add-float" data-product-index="0">ADD</button>
-                        </div>
-                        <div class="mw-product-expanded-media-prices" aria-label="Pricing">
-                            <span id="mw-product-expanded-mrp" class="mw-product-expanded-mrp text-sm text-gray-400 line-through font-bold"></span>
-                            <span id="mw-product-expanded-price" class="mw-product-expanded-sale text-lg font-bold text-gray-900"></span>
                         </div>
                     </div>
                     <div class="mw-product-expanded-col mw-product-expanded-detail">
-                        <div class="mw-product-expanded-detail-inner p-4 md:p-6">
-                            <div class="mw-product-expanded-text-block">
+                        <div class="mw-product-expanded-detail-inner p-4 md:p-6 flex flex-col min-h-0">
+                            <div class="mw-product-expanded-text-block flex-1 min-h-0">
+                                <span id="mw-product-expanded-badge" class="mw-product-expanded-badge hidden"></span>
                                 <h3 id="mw-product-expanded-title" class="text-gray-900 font-semibold text-lg md:text-xl mb-2 md:mb-3"></h3>
                                 <p id="mw-product-expanded-desc" class="mw-product-expanded-desc text-sm text-gray-500 leading-relaxed whitespace-pre-line"></p>
+                                <div class="mw-product-expanded-pricing mt-3 md:mt-4" aria-label="Pricing">
+                                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-2 justify-between">
+                                        <div class="flex flex-wrap items-baseline gap-2">
+                                            <span id="mw-product-expanded-mrp" class="mw-product-expanded-mrp text-sm text-gray-400 line-through font-bold"></span>
+                                            <span id="mw-product-expanded-price" class="mw-product-expanded-sale text-xl md:text-2xl font-bold text-green-600"></span>
+                                        </div>
+                                        <span id="mw-product-expanded-savings" class="mw-product-expanded-savings hidden"></span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">Offer Price <span id="mw-product-expanded-offer-line" class="font-semibold text-gray-700">₹0</span></p>
+                                </div>
                             </div>
+                            <button type="button" class="mw-product-expanded-add-btn mw-btn-add-shop mw-add-to-cart w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold uppercase tracking-wide border-0 cursor-pointer flex-shrink-0" style="background: var(--mw-offer-cta-bg); color: #111;" id="mw-product-expanded-add-main" data-product-index="0" aria-label="Add to cart"><i class="fas fa-shopping-cart" aria-hidden="true"></i><span class="mw-cart-btn-label">ADD</span></button>
                         </div>
                     </div>
                 </div>
                 <div class="mw-product-expanded-footer flex justify-center gap-2 py-2.5 md:py-3 text-sm text-gray-500 border-t border-gray-200 flex-shrink-0">
-                    <span id="mw-product-expanded-counter">1</span> / <?php echo count($products_flat); ?>
+                    <span id="mw-product-expanded-counter">1</span> / <span id="mw-product-expanded-counter-total"><?php echo count($products_flat); ?></span>
                 </div>
             </div>
         </div>
@@ -1092,8 +1232,9 @@ if (!empty($products_flat)) {
     window.MW_LOCATION = <?php echo json_encode($location ?? ''); ?>;
     window.MW_PHONE = <?php echo json_encode($phone ?? ''); ?>;
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
+    window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="js/app.js?v=4"></script>
+<script src="js/app.js?v=9"></script>
 
 </body>
 </html>

@@ -1,6 +1,25 @@
 /**
  * Demo App JS - Blinkit Tabs, Sticky Nav, Services read-more, AI Menu Planner
  */
+
+/** WhatsApp: wa.me redirect mojibake for emoji on desktop/Web; web.whatsapp.com preserves UTF-8. Mobile keeps wa.me / api (works there). */
+function mwOpenWhatsAppShare(phoneDigits, rawText) {
+    const text = encodeURIComponent(rawText);
+    const phone = String(phoneDigits || '').replace(/\D/g, '');
+    const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (phone) {
+        if (mobile) {
+            window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+        } else {
+            window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');
+        }
+    } else if (mobile) {
+        window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    } else {
+        window.open(`https://web.whatsapp.com/send?text=${text}`, '_blank');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.mw-service-read-more').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -71,14 +90,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const productExpandedMrp = document.getElementById('mw-product-expanded-mrp');
     const productExpandedPrice = document.getElementById('mw-product-expanded-price');
     const productExpandedCounter = document.getElementById('mw-product-expanded-counter');
+    const productExpandedBadge = document.getElementById('mw-product-expanded-badge');
+    const productExpandedSavings = document.getElementById('mw-product-expanded-savings');
+    const productExpandedOfferLine = document.getElementById('mw-product-expanded-offer-line');
     const productsData = window.MW_PRODUCTS || [];
     const totalProducts = productsData.length;
+    const blinkitMainEl = document.querySelector('#mw-products-blinkit .mw-blinkit-main');
 
     let currentProductIndex = 0;
+    /** Global indices of products in the same category as the open modal (prev/next scope) */
+    let modalCategoryIndices = [];
+
+    function getIndicesForCategory(catKey) {
+        const key = catKey != null ? String(catKey) : '';
+        const out = [];
+        let anyKeyed = false;
+        for (let i = 0; i < productsData.length; i++) {
+            const k = productsData[i].cat_key != null ? String(productsData[i].cat_key) : '';
+            if (k !== '') anyKeyed = true;
+            if (k === key) out.push(i);
+        }
+        if (!anyKeyed) {
+            return productsData.map((_, i) => i);
+        }
+        return out;
+    }
+
+    function syncProductModalWidth() {
+        if (!productExpandedBox) return;
+        const main = blinkitMainEl || document.querySelector('#mw-products-blinkit .mw-blinkit-main');
+        if (!main) return;
+        const rect = main.getBoundingClientRect();
+        let w = Math.round(rect.width);
+        if (w < 1) return;
+        const maxW = Math.max(280, window.innerWidth - 32);
+        w = Math.min(w, maxW);
+        productExpandedBox.style.setProperty('--mw-product-modal-width', w + 'px');
+    }
 
     function updateProductExpandedContent(index) {
         if (index < 0 || index >= totalProducts || !productsData[index]) return;
         const p = productsData[index];
+        const catKey = p.cat_key != null ? String(p.cat_key) : '';
+        modalCategoryIndices = getIndicesForCategory(catKey);
+        if (modalCategoryIndices.length === 0) modalCategoryIndices = [index];
         currentProductIndex = index;
         if (productExpandedImg) productExpandedImg.src = p.image || '';
         if (productExpandedImg) productExpandedImg.alt = p.name || '';
@@ -97,24 +152,72 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (productExpandedPrice) productExpandedPrice.textContent = '₹' + (p.price || 0).toLocaleString();
-        if (productExpandedCounter) productExpandedCounter.textContent = index + 1;
+        if (productExpandedOfferLine) productExpandedOfferLine.textContent = '₹' + (p.price || 0).toLocaleString();
+        if (productExpandedBadge) {
+            const cat = (p.category != null ? String(p.category) : '').trim();
+            if (cat) {
+                productExpandedBadge.textContent = cat;
+                productExpandedBadge.classList.remove('hidden');
+            } else {
+                productExpandedBadge.textContent = '';
+                productExpandedBadge.classList.add('hidden');
+            }
+        }
+        if (productExpandedSavings) {
+            const m = Number(p.mrp) || 0;
+            const sale = Number(p.price) || 0;
+            const save = m > sale ? m - sale : 0;
+            if (save > 0) {
+                productExpandedSavings.textContent = '✓ You Save ₹' + save.toLocaleString();
+                productExpandedSavings.classList.remove('hidden');
+            } else {
+                productExpandedSavings.textContent = '';
+                productExpandedSavings.classList.add('hidden');
+            }
+        }
+        const catPos = modalCategoryIndices.indexOf(index);
+        if (productExpandedCounter) {
+            productExpandedCounter.textContent = String(catPos >= 0 ? catPos + 1 : 1);
+        }
+        const counterTotalEl = document.getElementById('mw-product-expanded-counter-total');
+        if (counterTotalEl) counterTotalEl.textContent = String(modalCategoryIndices.length);
         const panel = productExpandedBox?.querySelector('.mw-product-expanded-panel');
         if (panel) {
-            panel.classList.toggle('mw-product-expanded-single', totalProducts <= 1);
+            panel.classList.toggle('mw-product-expanded-single', modalCategoryIndices.length <= 1);
         }
         if (productExpandedBox) {
             productExpandedBox.querySelectorAll('.mw-add-to-cart').forEach(btn => {
                 btn.setAttribute('data-product-index', String(index));
             });
         }
+        // Prev/next updates data-product-index; refresh ADD/REMOVE labels for current product
+        updateCartUI();
     }
 
     function openProductExpandedBox(index) {
         if (index < 0 || index >= totalProducts || !productsSection || !productExpandedBox) return;
+        syncProductModalWidth();
         updateProductExpandedContent(index);
         productsSection.classList.add('mw-products-expanded-active');
         productExpandedBox.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+        requestAnimationFrame(() => { syncProductModalWidth(); });
+    }
+
+    let mwProductModalResizeTimer = null;
+    window.addEventListener('resize', () => {
+        if (!productsSection || !productsSection.classList.contains('mw-products-expanded-active')) return;
+        clearTimeout(mwProductModalResizeTimer);
+        mwProductModalResizeTimer = setTimeout(syncProductModalWidth, 80);
+    });
+
+    if (blinkitMainEl && typeof ResizeObserver !== 'undefined') {
+        const mwBlinkitRo = new ResizeObserver(() => {
+            if (productsSection && productsSection.classList.contains('mw-products-expanded-active')) {
+                syncProductModalWidth();
+            }
+        });
+        mwBlinkitRo.observe(blinkitMainEl);
     }
 
     function closeProductExpandedBox() {
@@ -148,13 +251,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (productExpandedBackdrop) productExpandedBackdrop.addEventListener('click', closeProductExpandedBox);
     if (productExpandedPrev) productExpandedPrev.addEventListener('click', (e) => {
         e.stopPropagation();
-        const idx = Math.max(0, currentProductIndex - 1);
-        updateProductExpandedContent(idx);
+        const pos = modalCategoryIndices.indexOf(currentProductIndex);
+        if (pos > 0) updateProductExpandedContent(modalCategoryIndices[pos - 1]);
     });
     if (productExpandedNext) productExpandedNext.addEventListener('click', (e) => {
         e.stopPropagation();
-        const idx = Math.min(totalProducts - 1, currentProductIndex + 1);
-        updateProductExpandedContent(idx);
+        const pos = modalCategoryIndices.indexOf(currentProductIndex);
+        if (pos >= 0 && pos < modalCategoryIndices.length - 1) {
+            updateProductExpandedContent(modalCategoryIndices[pos + 1]);
+        }
     });
 
     document.addEventListener('keydown', (e) => {
@@ -384,7 +489,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update ADD/REMOVE button text
         document.querySelectorAll('.mw-add-to-cart').forEach(btn => {
             const idx = btn.getAttribute('data-product-index');
-            btn.textContent = idx != null && isInCart(parseInt(idx, 10)) ? 'REMOVE' : 'ADD';
+            const label = idx != null && isInCart(parseInt(idx, 10)) ? 'REMOVE' : 'ADD';
+            const span = btn.querySelector('.mw-cart-btn-label');
+            if (span) span.textContent = label;
+            else btn.textContent = label;
         });
     }
 
@@ -429,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 total += item.price * item.qty;
             });
             msg += `\nTotal: ₹${total.toLocaleString()}`;
-            window.open(`https://wa.me/${whatsappNum}?text=${encodeURIComponent(msg)}`, '_blank');
+            mwOpenWhatsAppShare(whatsappNum, msg);
         });
     }
 
@@ -452,46 +560,137 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2000);
     }
 
+    document.querySelectorAll('.mw-offer-wa-cta').forEach((el) => {
+        el.addEventListener('click', () => {
+            const phone = (el.getAttribute('data-phone') || '').replace(/\D/g, '');
+            const msg = el.getAttribute('data-msg') || '';
+            if (!phone || !msg) return;
+            mwOpenWhatsAppShare(phone, msg);
+        });
+    });
+
     if (shareWaBtn && shareUrl) {
         shareWaBtn.addEventListener('click', () => {
             const num = (shareWaInput?.value || '').replace(/[^0-9]/g, '');
-            const msg = `Hello 😊
+            const msg = `Hello \u{1F60A}
 
 This is ${heroName} from ${location}.
 
 We have created a MiniWebsite of our business. 
 Now you can easily check our products/services and offers online here:
 
-👉 ${shareUrl}
+\u{1F449} ${shareUrl}
 
-If you need anything, just send a message on WhatsApp 👍
+If you need anything, just send a message on WhatsApp \u{1F44D}
 
-Thanks a lot for your support 🙏`;
-            const text = encodeURIComponent(msg);
-            if (num) {
-                window.open(`https://wa.me/${num}?text=${text}`, '_blank');
-            } else {
-                window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-            }
+Thanks a lot for your support \u{1F64F}`;
+            mwOpenWhatsAppShare(num, msg);
         });
     }
 
-    if (saveContactBtn && heroName) {
+    function escapeVcardValue(s) {
+        if (s == null || s === '') return '';
+        return String(s)
+            .replace(/\\/g, '\\\\')
+            .replace(/\r\n|\r|\n/g, '\n')
+            .replace(/\n/g, '\\n')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,');
+    }
+
+    function buildMwVcardLines(v) {
+        const e = escapeVcardValue;
+        const fn = e(v.fn || '');
+        const org = e(v.org || '');
+        const title = e(v.title || '');
+        const cell = String(v.telCell || '').replace(/\s/g, '');
+        const wa = String(v.telWhatsapp || '').replace(/\s/g, '');
+        const primary = cell || wa;
+        const em = v.email || '';
+        const urlProf = v.urlProfile || shareUrl || '';
+        const urlWeb = String(v.urlWebsite || '').trim();
+        const photo = String(v.photo || '').trim();
+        const waMe = String(v.waMe || '').trim();
+        const nFam = e(v.nFamily || '');
+        const nGiv = e(v.nGiven || '');
+        const adr = v.adr && typeof v.adr === 'object' ? v.adr : {};
+        const street = e(adr.street || '');
+        const locality = e(adr.locality || '');
+        const region = e(adr.region || '');
+        const postal = e(adr.postal || '');
+        const country = e(adr.country || '');
+
+        const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+        if (nFam || nGiv) {
+            lines.push(`N:${nFam};${nGiv};;;`);
+        } else {
+            lines.push(`N:;${fn};;;`);
+        }
+        lines.push(`FN:${fn}`);
+        if (org) lines.push(`ORG:${org}`);
+        if (title) lines.push(`TITLE:${title}`);
+        if (primary) {
+            lines.push(`TEL;TYPE=CELL,VOICE:${primary}`);
+            lines.push(`TEL;TYPE=WORK,VOICE:${primary}`);
+        }
+        if (wa) {
+            lines.push(`TEL;TYPE=WHATSAPP:${wa}`);
+        }
+        if (em) {
+            lines.push(`EMAIL;TYPE=INTERNET:${e(em)}`);
+        }
+        if (urlProf) {
+            lines.push(`URL;TYPE=WORK:${e(urlProf)}`);
+        }
+        if (urlWeb) {
+            const full = /^https?:\/\//i.test(urlWeb) ? urlWeb : `https://${urlWeb}`;
+            lines.push(`URL:${e(full)}`);
+        }
+        if (street || locality || region || postal || country) {
+            lines.push(`ADR;TYPE=WORK:;;${street};${locality};${region};${postal};${country}`);
+        }
+        if (photo && /^https?:\/\//i.test(photo)) {
+            lines.push(`PHOTO;VALUE=URI:${e(photo)}`);
+        }
+        const noteTail = `Visit my MiniWebsite for products & offers: ${urlProf}`;
+        const noteRaw = v.note ? `${String(v.note)}\n\n${noteTail}` : noteTail;
+        lines.push(`NOTE:${e(noteRaw)}`);
+        if (waMe) {
+            lines.push(`X-SOCIALPROFILE;TYPE=whatsapp:${e(waMe)}`);
+        }
+        lines.push('END:VCARD');
+        return lines;
+    }
+
+    if (saveContactBtn) {
         saveContactBtn.addEventListener('click', () => {
-            const vcard = [
-                'BEGIN:VCARD',
-                'VERSION:3.0',
-                `FN:${heroName.replace(/[,;\\]/g, '')}`,
-                `TEL;TYPE=CELL:${phone ? '+' + phone : ''}`,
-                email ? `EMAIL:${email}` : '',
-                `URL:${shareUrl}`,
-                `NOTE:Profile - ${shareUrl}`,
-                'END:VCARD'
-            ].filter(Boolean).join('\n');
-            const blob = new Blob([vcard], { type: 'text/vcard' });
+            const v = window.MW_VCARD;
+            let lines;
+            if (v && typeof v === 'object' && Object.keys(v).length) {
+                lines = buildMwVcardLines(v);
+            } else if (heroName) {
+                const e = escapeVcardValue;
+                lines = [
+                    'BEGIN:VCARD',
+                    'VERSION:3.0',
+                    `N:;${e(heroName)};;;`,
+                    `FN:${e(heroName)}`,
+                    phone ? `TEL;TYPE=CELL,VOICE:${phone.replace(/\s/g, '')}` : '',
+                    email ? `EMAIL;TYPE=INTERNET:${e(email)}` : '',
+                    shareUrl ? `URL;TYPE=WORK:${e(shareUrl)}` : '',
+                    shareUrl ? `NOTE:${e(`Visit my MiniWebsite for products & offers: ${shareUrl}`)}` : '',
+                    'END:VCARD'
+                ].filter(Boolean);
+            } else {
+                showToast('No contact data');
+                return;
+            }
+            const vcardBody = lines.join('\r\n');
+            const blob = new Blob([vcardBody], { type: 'text/vcard;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = (heroName.replace(/\s+/g, '_') + '.vcf').replace(/[^a-zA-Z0-9_.-]/g, '');
+            const baseName = (v && v.fn) ? v.fn : heroName;
+            a.download = `${String(baseName).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '') || 'contact'}.vcf`;
             a.click();
             URL.revokeObjectURL(a.href);
             showToast('Contact saved!');
@@ -601,8 +800,8 @@ Thanks a lot for your support 🙏`;
                         resultContent.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-heading font-medium">$1</strong>').replace(/\n/g, '<br>');
                     }
                     if (resultContainer) resultContainer.classList.remove('hidden');
-                    const waText = encodeURIComponent(`Hi Chef Olivia! I used your AI Menu Planner. Request: ${prompt}\n\nMenu:\n${text.replace(/\*\*/g, '')}`);
-                    if (bookBtn) bookBtn.onclick = () => window.open(`https://wa.me/${whatsappNumber.replace(/^\+/, '')}?text=${waText}`, '_blank');
+                    const waRaw = `Hi Chef Olivia! I used your AI Menu Planner. Request: ${prompt}\n\nMenu:\n${text.replace(/\*\*/g, '')}`;
+                    if (bookBtn) bookBtn.onclick = () => mwOpenWhatsAppShare(whatsappNumber.replace(/^\+/, ''), waRaw);
                 } else throw new Error("No menu generated.");
             } catch (error) {
                 if (errorEl) {

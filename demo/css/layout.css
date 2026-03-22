@@ -42,10 +42,10 @@ html {
 .mw-offer-card .mw-offer-image-wrap:hover img { transform: scale(1.1); }
 .mw-offer-badge { transform: scale(1.2); transform-origin: left top; }
 
-/* Products: 2x2 grid on mobile, 3 cols desktop */
+/* Products: 2 cols mobile, 4 cols desktop (Shop Online) */
 .mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; overflow: visible; }
 @media (min-width: 768px) {
-    .mw-grid-products { grid-template-columns: repeat(3, 1fr); }
+    .mw-grid-products { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* Gallery: 2x2 grid on mobile, 3 cols desktop */
@@ -242,7 +242,7 @@ html {
 .mw-product-card .mw-product-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .mw-product-card .mw-product-image-wrap:hover img { transform: scale(1.1); }
 
-/* Products: centered modal (same max width as .app-container), 50/50 image + detail */
+/* Products: modal centered on screen; width = .mw-blinkit-main (grid column), set via --mw-product-modal-width (JS) */
 .mw-product-expanded-box {
     display: none;
     position: fixed;
@@ -271,22 +271,26 @@ html {
 .mw-product-expanded-panel {
     position: relative;
     z-index: 1;
-    width: 100%;
-    max-width: 1200px;
-    /* Fixed modal height so layout stays consistent regardless of description length */
-    height: min(528px, 84vh);
-    max-height: min(528px, 84vh);
+    /* Width matches live .mw-blinkit-main (product grid column); never wider than viewport */
+    width: var(--mw-product-modal-width, min(100%, calc(100vw - 2rem)));
+    max-width: calc(100vw - 2rem);
+    height: auto;
+    max-height: min(92vh, 900px);
     margin: auto;
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .mw-product-expanded-body {
     display: flex;
     flex-direction: row;
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 0 1 auto;
+    min-height: min(240px, 40vh);
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
 }
@@ -329,25 +333,31 @@ html {
 .mw-product-expanded-image-wrap .mw-product-expanded-next {
     z-index: 12;
 }
-.mw-product-expanded-image-wrap .mw-btn-add-shop {
-    bottom: 12px;
-    right: 12px;
-    border-radius: var(--mw-border-radius);
+.mw-product-expanded-badge {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: #fef3c7;
+    color: #78350f;
+    margin-bottom: 0.35rem;
 }
-.mw-product-expanded-add-on-image {
-    z-index: 15;
-}
-.mw-product-expanded-media-prices {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
+.mw-product-expanded-savings {
+    background: #dcfce7;
+    color: #166534;
+    padding: 0.35rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
     flex-shrink: 0;
-    padding: 0.65rem 0.85rem 0.75rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    background: #fff;
+}
+.mw-product-expanded-add-btn {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.mw-product-expanded-add-btn:hover {
+    filter: brightness(0.97);
 }
 #mw-product-expanded-mrp.mw-product-expanded-mrp--empty {
     visibility: hidden;
@@ -367,11 +377,11 @@ html {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: stretch;
 }
 .mw-product-expanded-text-block {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-height: 0;
     max-height: 100%;
     overflow-y: auto;
