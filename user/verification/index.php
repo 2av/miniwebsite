@@ -392,7 +392,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])){
                                             <img id="showPreviewPan" style="display:none;" alt="PAN Card Preview">
                                         <?php endif; ?>
                                     </div>
-                                    <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
                                     
                                     <p class="addlogo">Add PAN Card</p>
                                     <div class="file-upload">
@@ -421,7 +420,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])){
                                             <img id="showPreviewAadhaarFront" style="display:none;" alt="Aadhaar Front Preview">
                                         <?php endif; ?>
                                     </div>
-                                    <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
                                     
                                     <p class="addlogo">Add Aadhaar Front</p>
                                     <div class="file-upload">
@@ -450,7 +448,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_documents'])){
                                             <img id="showPreviewAadhaarBack" style="display:none;" alt="Aadhaar Back Preview">
                                         <?php endif; ?>
                                     </div>
-                                    <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
                                     
                                     <p class="addlogo">Add Aadhaar Back</p>
                                     <div class="file-upload">

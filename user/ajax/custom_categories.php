@@ -56,6 +56,14 @@ if ($action === 'create') {
         exit;
     }
     
+    if (in_array($category_type, ['product-category', 'product-name'], true)) {
+        $nameLen = function_exists('mb_strlen') ? mb_strlen($category_name) : strlen($category_name);
+        if ($nameLen > 30) {
+            echo json_encode(['success' => false, 'message' => 'Name must be 30 characters or less.']);
+            exit;
+        }
+    }
+    
     if (strlen($category_name) > 255) {
         echo json_encode(['success' => false, 'message' => 'Category name must not exceed 255 characters.']);
         exit;

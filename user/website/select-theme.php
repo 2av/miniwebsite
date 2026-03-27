@@ -166,7 +166,7 @@ $themes = [
                             </div>
                         <?php endforeach; ?>
                     </div>
-                    <div class="Product-ServicesBtn" style="margin-top: 20px;">
+                    <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="business-name.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
@@ -256,16 +256,15 @@ $themes = [
 }
 
 .Product-ServicesBtn{
-    width: 75% !important;
+    width: 80% !important;
     padding:0px !important;
             margin-top: 40px !important;
-            margin:auto;
 }
 .save_btn{
         position: absolute;
     bottom: 150px;
-    width: 115px !important;
-    left: 100px;
+    width: 145px !important;
+    left: 96px;
     height: 36px;
 }
 .Copyright-left,
@@ -319,10 +318,13 @@ $themes = [
 .Product-ServicesBtn  .btn{
         line-height:24px !important;
     }
-    .Product-ServicesBtn .btn-primary {
+    .Product-ServicesBtn button {
         padding: 7px !important;
         margin-top: 22px !important;
     }
+    .save_btn{
+    width: 115px !important;
+}
 </style>
 
 <script>

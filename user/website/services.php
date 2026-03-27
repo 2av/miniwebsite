@@ -755,13 +755,13 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
                    
                 </div>
-                <div class="Product-ServicesBtn">
+                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="payment-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
                         <button type="button" class="btn btn-primary align-center save_btn" onclick="saveProducts()">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
                             <span>Save</span>
                         </button>
                         <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
@@ -775,15 +775,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </main>
 
 <!-- Product Add/Edit Modal -->
-<div class="modal fade" id="productModal" tabindex="-1" role="dialog" aria-labelledby="productModalLabel" aria-hidden="true">
+<div class="modal fade website-step-modal" id="productModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="productModalLabel">Add/Edit Service</h5>
-                <button type="button" class="close" onclick="closeProductModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="modal-content website-step-modal-content">
+            <button type="button" class="website-step-modal-close close" onclick="closeProductModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body">
                 <form id="modalProductForm">
                     <input type="hidden" id="modal_product_number" value="">
@@ -797,7 +792,6 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </div>
                         <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
-                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
                     </div>
                     <div class="form-group">
                         <label for="modal_product_name">Service Name <span class="text-danger">*</span></label>
@@ -868,8 +862,7 @@ function openProductModal() {
     // Try Bootstrap 5 method
     else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modalElement = document.getElementById('productModal');
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement).show();
     }
     // Fallback: show directly
     else {
@@ -934,7 +927,14 @@ function editProduct(productId, productName, productImageData, productDescriptio
     
     $('#productModalLabel').text('Edit Service');
     $('.modal-footer button:last').text('Update Service');
-    $('#productModal').modal('show');
+    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        $('#productModal').modal('show');
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('productModal')).show();
+    } else {
+        var el = document.getElementById('productModal');
+        if(el) { el.style.display = 'block'; el.classList.add('show'); document.body.classList.add('modal-open'); }
+    }
     updateCharCount();
 }
 
@@ -1245,17 +1245,25 @@ function closeProductModal() {
         var modal = bootstrap.Modal.getInstance(modalElement);
         if(modal) {
             modal.hide();
+        } else if(modalElement) {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
         }
     }
     // Fallback: hide directly
     else {
-        document.getElementById('productModal').style.display = 'none';
-        document.getElementById('productModal').classList.remove('show');
+        var el = document.getElementById('productModal');
+        if(el) {
+            el.style.display = 'none';
+            el.classList.remove('show');
+        }
         document.body.classList.remove('modal-open');
         var backdrop = document.getElementById('modalBackdrop');
-        if(backdrop) {
-            backdrop.remove();
-        }
+        if(backdrop) backdrop.remove();
     }
     currentProductNumber = null;
 }
@@ -1382,46 +1390,6 @@ document.addEventListener('click', function(event) {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.Product-ServicesBtn button{
-    display: flex !important;
-    color: #fff !important;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
-
-.Product-ServicesBtn button .angle{
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #fff !important;
-    color:#000;
-    font-weight:bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.Product-ServicesBtn button span:not(.angle){
-    font-weight:500;
-    font-size:22px;
-}
-.Product-ServicesBtn button span .fa-angle-left,
-.Product-ServicesBtn button span .fa-angle-right{
-    font-weight: bold;
-    font-size: 16px !important;
-}
-.Product-ServicesBtn .align-center{
-    padding: 4px 10px;
-}
-.Product-ServicesBtn .align-center img{
-    width: 23px;
-}
-.Product-ServicesBtn .align-center span{
-    color:#000;
-}
-.Product-ServicesBtn{
-    margin-top:30px;
-}
 @media screen and (max-width: 768px) {
         .card-body form {
     padding: 0px 15px;
@@ -1457,37 +1425,8 @@ document.addEventListener('click', function(event) {
 .add_product i, .add_product span {
     font-size: 22px !important;
 }
-.Product-ServicesTable{
-width: 100%;
-overflow-x:auto;
-}
-.Product-ServicesTable table{
-    width: 700px;
-    white-space:nowrap;
-}
-.Product-ServicesTable table th:first-child, .Product-ServicesTable table td:first-child {
-    padding-left: 10px;
-    padding-top:10px;
-    padding-bottom:10px;
-    padding-right: 20px;
-    font-weight:500 !important;
-}
-.Product-ServicesTable table th,
- .Product-ServicesTable table td {
-    padding-left: 10px;
-    padding-top:10px;
-    padding-bottom:10px;
-    padding-right: 20px;
-    font-weight:500 !important;
-}
+/* Mobile table scroll: shared in user/website/css/website-step-nav.css */
 
-.Product-ServicesBtn{
-padding:0px;
-}
-.Product-ServicesBtn button span:not(.angle) {
-    font-weight: 500;
-    font-size: 15px;
-}
 .Dashboard .main-top {
         padding:0px;
     }
@@ -1504,16 +1443,15 @@ padding:0px;
     }
 
     .Product-ServicesBtn{
-    width: 75% !important;
+    width: 80% !important;
     padding:0px !important;
             margin-top: 40px !important;
-            margin:auto;
 }
 .save_btn{
     position: absolute;
         bottom: 150px;
-        width: 110px !important;
-        left: 90px;
+        width: 145px !important;
+        left: 96px;
         height: 36px;
 }
 .Copyright-left,
@@ -1592,6 +1530,9 @@ background-color: #ffbe17a6;
         padding: 7px !important;
         margin-top: 22px !important;
     }
+    .save_btn{
+    width: 115px !important;
+}
     .card-body .heading{
         font-size:24px ;
         font-weight: 500;

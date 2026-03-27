@@ -464,7 +464,6 @@ include '../includes/header.php';
                                     <small>ADD QR CODE</small>
                                 <?php endif; ?>
                             </div>
-                            <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp      </div>
                             <div class="file-upload">
                                 <span id="gpayFileName">No File Chosen</span>
                                 <label for="clickMeImage3" class="choose-btn">Choose File</label>
@@ -491,7 +490,6 @@ include '../includes/header.php';
                                     <small>ADD QR CODE</small>
                                 <?php endif; ?>
                             </div>
-                            <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
                             <div class="file-upload">
                                 <span id="paytmFileName">No File Chosen</span>
                                 <label for="clickMeImage10" class="choose-btn">Choose File</label>
@@ -518,7 +516,6 @@ include '../includes/header.php';
                                     <small>ADD QR CODE</small>
                                 <?php endif; ?>
                             </div>
-                            <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
                             <div class="file-upload">
                                 <span id="phonepeFileName">No File Chosen</span>
                                 <label for="clickMeImage2" class="choose-btn">Choose File</label>
@@ -557,7 +554,7 @@ include '../includes/header.php';
                             <input type="text" name="d_ac_type" id="d_ac_type" maxlength="100" class="form-control" placeholder="Enter GST Number" value="<?php echo !empty($cardRow['d_ac_type']) ? htmlspecialchars($cardRow['d_ac_type']) : ''; ?>">
                         </div>
                     </div>
-                    <div class="Product-ServicesBtn" style="margin-top: 20px;">
+                    <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
@@ -993,7 +990,7 @@ function removeData(qr_id, qr_num){
     $('#status_remove_img').css('color','blue');
     
     $.ajax({
-        url:'../../panel/login/js_request.php',
+        url:'../../admin/js_request.php',
         method:'POST',
         data:{qr_id:qr_id, qr_num:qr_num},
         dataType:'text',
@@ -1315,7 +1312,7 @@ function removeData(qr_id, qr_num){
 
     
     .Product-ServicesBtn{
-        padding: 0px 28px;
+        padding: 0px 40px;
         display: flex;
         justify-content: space-between;
         margin-top: 30px;
@@ -1363,6 +1360,9 @@ function removeData(qr_id, qr_num){
         padding: 7px !important;
         margin-top: 22px !important;
     }
+    .save_btn{
+    width: 115px !important;
+}
 </style>
 
 

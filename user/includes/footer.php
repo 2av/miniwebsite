@@ -32,6 +32,13 @@
     }
     $assets_base = get_assets_base_path();
     ?>
+    <?php
+    $__step_nav_dir = basename(dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+    if ($__step_nav_dir === 'website') {
+        $step_nav_css = htmlspecialchars($assets_base . '/user/website/css/website-step-nav.css', ENT_QUOTES, 'UTF-8');
+        echo '<link rel="stylesheet" href="' . $step_nav_css . '">';
+    }
+    ?>
     <script src="<?php echo $assets_base; ?>/assets/js/image_upload_crop.js"></script>
     <script src="<?php echo $assets_base; ?>/assets/js/scripts.js"></script>
     <?php

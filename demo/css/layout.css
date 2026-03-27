@@ -40,10 +40,11 @@ html {
 .mw-offer-card .mw-offer-image-wrap { aspect-ratio: 4/3; overflow: hidden; }
 .mw-offer-card .mw-offer-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .mw-offer-card .mw-offer-image-wrap:hover img { transform: scale(1.1); }
-.mw-offer-badge { transform: scale(1.2); transform-origin: left top; }
+/* Special Offers badge: ~20% larger than previous scale(1.2) → 1.2 × 1.2 */
+.mw-offer-badge { transform: scale(1.44); transform-origin: left top; }
 
 /* Products: 2 cols mobile, 4 cols desktop (Shop Online) */
-.mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; overflow: visible; }
+.mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; overflow: visible; }
 @media (min-width: 768px) {
     .mw-grid-products { grid-template-columns: repeat(4, 1fr); }
 }
@@ -58,6 +59,10 @@ html {
 .mw-grid-videos { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1rem; }
 @media (min-width: 768px) { .mw-grid-videos { grid-template-columns: repeat(3, 1fr); } }
 .mw-video-item.mw-video-hidden { display: none !important; }
+a.mw-video-external:focus-visible {
+    outline: 2px solid var(--mw-primary-color, #c9a227);
+    outline-offset: 3px;
+}
 
 /* Video Modal (play within page) */
 .mw-video-modal {
@@ -231,7 +236,7 @@ html {
 .mw-blinkit-container { display: flex; height: 600px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--mw-border-radius); overflow: hidden; }
 .mw-blinkit-sidebar { width: 80px; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; background-color: var(--mw-background-color); }
 @media (min-width: 768px) { .mw-blinkit-sidebar { width: 110px; } }
-.mw-blinkit-main { flex: 1; overflow-y: auto; padding: 1rem; background-color: rgba(31, 31, 37, 0.3); }
+.mw-blinkit-main { flex: 1; overflow-y: auto; padding: 0.5rem; background-color: rgba(31, 31, 37, 0.3); }
 
 /* Hide Scrollbar Utility */
 .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -242,8 +247,9 @@ html {
 .mw-product-card .mw-product-image-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .mw-product-card .mw-product-image-wrap:hover img { transform: scale(1.1); }
 
-/* Products: modal centered on screen; width = .mw-blinkit-main (grid column), set via --mw-product-modal-width (JS) */
+/* Products: modal centered on screen; width = .mw-blinkit-main (grid column), set via --mw-product-modal-width (JS); min 350px when viewport allows */
 .mw-product-expanded-box {
+    --mw-product-modal-width: 350px;
     display: none;
     position: fixed;
     inset: 0;
@@ -271,8 +277,9 @@ html {
 .mw-product-expanded-panel {
     position: relative;
     z-index: 1;
-    /* Width matches live .mw-blinkit-main (product grid column); never wider than viewport */
-    width: var(--mw-product-modal-width, min(100%, calc(100vw - 2rem)));
+    /* Width matches live .mw-blinkit-main (product grid column); min 350px; never wider than viewport */
+    width: min(max(350px, var(--mw-product-modal-width, min(100%, calc(100vw - 2rem)))), calc(100vw - 2rem));
+    min-width: min(350px, calc(100vw - 2rem));
     max-width: calc(100vw - 2rem);
     height: auto;
     max-height: min(92vh, 900px);
@@ -355,6 +362,11 @@ html {
 }
 .mw-product-expanded-add-btn {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    align-self: flex-end;
+    width: fit-content;
+    min-width: 5.5rem;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.8125rem;
 }
 .mw-product-expanded-add-btn:hover {
     filter: brightness(0.97);

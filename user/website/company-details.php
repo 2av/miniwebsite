@@ -609,7 +609,6 @@ include '../includes/header.php';
                                 <img id="showPreviewLogo" style="display:none;">
                             <?php endif; ?>
                         </div>
-                        <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp</div>
                         
                         <p class="addlogo">Add your Logo</p>
                         <div class="file-upload">
@@ -633,7 +632,7 @@ include '../includes/header.php';
                                 <img id="showPreviewHero" style="display:none;">
                             <?php endif; ?>
                         </div>
-                        <div class="file-info">File Supported - .png, .jpg, .jpeg, .gif, .webp | Size: 1200×600px</div>
+                        <div class="file-info">Size: 1200×600px</div>
                         
                         <p class="addlogo">Add Hero Image (1200×600)</p>
                         <div class="file-upload">
@@ -963,7 +962,7 @@ include '../includes/header.php';
                             </div>
                         </div>
 
-                        <div class="Product-ServicesBtn" style="margin-top: 20px;">
+                        <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                             <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                                 <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                                 <span>Back</span>
@@ -1536,7 +1535,7 @@ padding-bottom:0px;
 }
 
 .Product-ServicesBtn{
-        
+        padding: 0px 40px;
         display: flex;
         justify-content: space-between;
         margin-top: 30px;
@@ -1584,6 +1583,9 @@ padding-bottom:0px;
         padding: 7px !important;
         margin-top: 22px !important;
     }
+    .save_btn{
+    width: 115px !important;
+}
 
     select.form-control {
         appearance: none;
@@ -1603,15 +1605,10 @@ padding-bottom:0px;
 </style>
 
 <!-- Custom Business Category Modal -->
-<div class="modal fade" id="customBusinessCategoryModal" tabindex="-1" role="dialog" aria-labelledby="customBusinessCategoryLabel" aria-hidden="true">
+<div class="modal fade website-step-modal" id="customBusinessCategoryModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="customBusinessCategoryLabel">Add Custom Business Category</h5>
-                <button type="button" class="close" onclick="closeCustomBusinessCategoryModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="modal-content website-step-modal-content">
+            <button type="button" class="website-step-modal-close close" onclick="closeCustomBusinessCategoryModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body">
                 <form id="customBusinessCategoryForm">
                     <div class="form-group">
@@ -1647,8 +1644,7 @@ function openCustomBusinessCategoryModal() {
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery(modalElement).modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement).show();
     } else {
         // Fallback: show modal manually
         modalElement.style.display = 'block';
@@ -1668,13 +1664,19 @@ function closeCustomBusinessCategoryModal() {
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modal = bootstrap.Modal.getInstance(modalElement);
         if(modal) modal.hide();
+        else {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
+        }
     } else {
-        // Fallback: hide modal manually
         modalElement.style.display = 'none';
         modalElement.classList.remove('show');
         document.body.classList.remove('modal-open');
-        var backdrop = document.querySelector('.modal-backdrop');
-        if(backdrop) backdrop.remove();
+        document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
     }
 }
 

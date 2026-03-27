@@ -318,7 +318,9 @@ if(isset($_POST['product'])){
             }
             
             if($slot_found) {
-                $product_name = mysqli_real_escape_string($connect, trim($_POST["pro_name$slot_found"]));
+                $product_name_raw = trim($_POST["pro_name$slot_found"]);
+                $product_name_raw = function_exists('mb_substr') ? mb_substr($product_name_raw, 0, 30) : substr($product_name_raw, 0, 30);
+                $product_name = mysqli_real_escape_string($connect, $product_name_raw);
                 $product_category = null;
                 $category_source = 'system';
                 if(isset($_POST["pro_category$slot_found"]) && trim($_POST["pro_category$slot_found"]) !== '') {
@@ -409,7 +411,9 @@ if(isset($_POST['product'])){
             // Check if product name was submitted
             if(isset($_POST["pro_name$x"]) && !empty(trim($_POST["pro_name$x"]))) {
                 $products_processed = true;
-                $product_name = mysqli_real_escape_string($connect, trim($_POST["pro_name$x"]));
+                $product_name_raw = trim($_POST["pro_name$x"]);
+                $product_name_raw = function_exists('mb_substr') ? mb_substr($product_name_raw, 0, 30) : substr($product_name_raw, 0, 30);
+                $product_name = mysqli_real_escape_string($connect, $product_name_raw);
                 
                 // Get MRP and price
                 if(isset($_POST["pro_mrp$x"]) && !empty(trim($_POST["pro_mrp$x"]))) {
@@ -661,11 +665,13 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             if($productCount > 0):
                                 foreach($products_data as $index => $prod): 
                                     $prod_id = intval($prod['id']);
-                                    $prod_name = !empty($prod['product_name']) ? htmlspecialchars($prod['product_name']) : 'No Name';
+                                    $prod_name_raw = !empty($prod['product_name']) ? $prod['product_name'] : '';
+                                    $prod_name = $prod_name_raw !== '' ? htmlspecialchars($prod_name_raw) : 'No Name';
                                     
                                     // Get category name from ID - use category_source to avoid ID collision
                                     $prod_category_id = !empty($prod['product_category']) ? intval($prod['product_category']) : null;
                                     $prod_category = '';
+                                    $prod_category_raw = '';
                                     $prod_category_source = !empty($prod['category_source']) ? trim($prod['category_source']) : 'system';
                                     $prod_user_id = !empty($prod['user_id']) ? intval($prod['user_id']) : $user_id;
                                     if($prod_category_id) {
@@ -673,22 +679,25 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                             $ucc_query = mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id = $prod_category_id AND user_id = $prod_user_id AND is_active = 1 LIMIT 1");
                                             if($ucc_query && mysqli_num_rows($ucc_query) > 0) {
                                                 $ucc_row = mysqli_fetch_assoc($ucc_query);
-                                                $prod_category = htmlspecialchars($ucc_row['category_name']);
+                                                $prod_category_raw = $ucc_row['category_name'];
+                                                $prod_category = htmlspecialchars($prod_category_raw);
                                             }
                                         } else {
                                             $cat_query = mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id = $prod_category_id LIMIT 1");
                                             if($cat_query && mysqli_num_rows($cat_query) > 0) {
                                                 $cat_row = mysqli_fetch_assoc($cat_query);
-                                                $prod_category = htmlspecialchars($cat_row['category_name']);
+                                                $prod_category_raw = $cat_row['category_name'];
+                                                $prod_category = htmlspecialchars($prod_category_raw);
                                             }
                                         }
                                     }
                                     
-                                    $prod_description = !empty($prod['product_description']) ? htmlspecialchars($prod['product_description']) : '';
+                                    $prod_description_raw = !empty($prod['product_description']) ? $prod['product_description'] : '';
+                                    $prod_description = $prod_description_raw !== '' ? htmlspecialchars($prod_description_raw) : '';
                                     $prod_mrp = !empty($prod['mrp']) && $prod['mrp'] > 0 ? floatval($prod['mrp']) : 0;
                                     $prod_price = !empty($prod['selling_price']) && $prod['selling_price'] > 0 ? floatval($prod['selling_price']) : 0;
                             ?>
-                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>" data-product-name="<?php echo htmlspecialchars($prod_name, ENT_QUOTES); ?>" data-product-category="<?php echo intval($prod_category_id); ?>" data-product-category-source="<?php echo htmlspecialchars($prod_category_source); ?>" data-product-mrp="<?php echo $prod_mrp; ?>" data-product-price="<?php echo $prod_price; ?>" data-product-desc="<?php echo htmlspecialchars($prod_description ?? '', ENT_QUOTES); ?>">
+                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>" data-product-name="<?php echo htmlspecialchars($prod_name_raw, ENT_QUOTES, 'UTF-8'); ?>" data-product-category="<?php echo intval($prod_category_id); ?>" data-product-category-source="<?php echo htmlspecialchars($prod_category_source, ENT_QUOTES, 'UTF-8'); ?>" data-product-mrp="<?php echo $prod_mrp; ?>" data-product-price="<?php echo $prod_price; ?>" data-product-desc="<?php echo htmlspecialchars($prod_description_raw, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td valign="middle">
                                         <?php if(!empty($prod['product_image'])): ?>
                                             <?php
@@ -706,9 +715,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td valign="middle"><?php echo $prod_category ? $prod_category : '<span class="text-muted">-</span>'; ?></td>
-                                    <td valign="middle"><?php echo $prod_name; ?></td>
-                                    <td valign="middle"><?php echo !empty($prod_description) ? $prod_description : '<span class="text-muted">-</span>'; ?></td>
+                                    <td valign="middle" class="product-table-cell-clip" title="<?php echo $prod_category_raw !== '' ? htmlspecialchars($prod_category_raw, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_category ? $prod_category : '<span class="text-muted">-</span>'; ?></td>
+                                    <td valign="middle" class="product-table-cell-clip" title="<?php echo $prod_name_raw !== '' ? htmlspecialchars($prod_name_raw, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_name; ?></td>
+                                    <td valign="middle" class="product-table-desc-cell" title="<?php echo $prod_description_raw !== '' ? htmlspecialchars($prod_description_raw, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_description !== '' ? $prod_description : '<span class="text-muted">-</span>'; ?></td>
                                     <td valign="middle">
                                         <?php if($prod_mrp > 0): ?>
                                             <i class="fa fa-inr" aria-hidden="true"></i> <?php echo number_format($prod_mrp, 2); ?>
@@ -756,12 +765,15 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
                    
                 </div>
-                <div class="Product-ServicesBtn">
+                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
-                        <button class="btn btn-primary align-center save_btn" onclick="saveProducts()"><img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> <span>Save</span></button>
+                        <button type="button" class="btn btn-primary align-center save_btn" onclick="saveProducts()">
+                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
+                            <span>Save</span>
+                        </button>
                         <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
@@ -773,15 +785,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </main>
 
 <!-- Product Modal -->
-<div class="modal fade" id="productModal" tabindex="-1" role="dialog" aria-labelledby="productModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+<div class="modal fade website-step-modal" id="productModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="productModalLabel">Add/Edit Product/Service</h5>
-                <button type="button" class="close" onclick="closeProductModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="modal-content website-step-modal-content">
+            <button type="button" class="website-step-modal-close close" onclick="closeProductModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body">
                 <form id="modalProductForm">
                     <input type="hidden" id="modal_product_id" value="">
@@ -797,10 +804,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </div>
                         <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
-                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
                     </div>
                     <div class="form-group">
                         <label for="modal_product_category">Product Category</label>
+                        <small class="form-text text-muted d-block mb-1">Category and product name are each limited to 30 characters when saved.</small>
                         <div style="display: flex; gap: 10px;">
                             <select name="modal_product_category" id="modal_product_category" class="form-control" style="flex: 1;" onchange="loadProductNames(this.value)">
                                 <option value="">Select Product Category</option>
@@ -1086,10 +1093,6 @@ function openProductModal() {
             imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
         }
 
-        // Update modal title and button text
-        var modalLabel = document.getElementById('productModalLabel');
-        if(modalLabel) modalLabel.textContent = 'Add Product';
-
         var submitBtn = document.getElementById('productModalSubmitBtn');
         if(submitBtn) submitBtn.textContent = 'Add Product';
 
@@ -1104,8 +1107,7 @@ function openProductModal() {
         if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
             jQuery('#productModal').modal('show');
         } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            var modal = new bootstrap.Modal(productModalEl);
-            modal.show();
+            bootstrap.Modal.getOrCreateInstance(productModalEl, { backdrop: 'static', keyboard: false }).show();
         } else {
             productModalEl.style.display = 'block';
             productModalEl.classList.add('show');
@@ -1186,12 +1188,6 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
         }
     }
     
-    // Update modal title and button text - use specific ID to avoid wrong modal
-    var modalLabel = document.getElementById('productModalLabel');
-    if(modalLabel) {
-        modalLabel.textContent = 'Edit Product/Service';
-    }
-    
     var submitBtn = document.getElementById('productModalSubmitBtn');
     if(submitBtn) {
         submitBtn.textContent = 'Update Product';
@@ -1204,8 +1200,7 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
         jQuery('#productModal').modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modalElement = document.getElementById('productModal');
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
     } else {
         document.getElementById('productModal').style.display = 'block';
         document.getElementById('productModal').classList.add('show');
@@ -1286,6 +1281,9 @@ function addProductToForm() {
             // Remove [Custom] prefix if present for storage
             productNameText = productNameText.replace('[Custom] ', '').trim();
         }
+    }
+    if(productNameText.length > 30) {
+        productNameText = productNameText.substring(0, 30);
     }
     
     var modalProductIdField = document.getElementById('modal_product_id');
@@ -1446,18 +1444,27 @@ function removeData(productId) {
 }
 
 function closeProductModal() {
+    var productModalEl = document.getElementById('productModal');
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery('#productModal').modal('hide');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('productModal');
-        var modal = bootstrap.Modal.getInstance(modalElement);
+    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal && productModalEl) {
+        var modal = bootstrap.Modal.getInstance(productModalEl);
         if(modal) modal.hide();
-    } else {
-        document.getElementById('productModal').style.display = 'none';
-        document.getElementById('productModal').classList.remove('show');
+        else {
+            productModalEl.classList.remove('show');
+            productModalEl.style.display = 'none';
+            productModalEl.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
+        }
+    } else if(productModalEl) {
+        productModalEl.style.display = 'none';
+        productModalEl.classList.remove('show');
+        productModalEl.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('modal-open');
-        var backdrop = document.getElementById('modalBackdrop');
-        if(backdrop) backdrop.remove();
+        document.body.style.paddingRight = '';
+        document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
     }
     
     var modalProductIdField = document.getElementById('modal_product_id');
@@ -1486,10 +1493,8 @@ function openCustomProductCategoryModal() {
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery(modalElement).modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
     } else {
-        // Fallback: show modal manually
         modalElement.style.display = 'block';
         modalElement.classList.add('show');
         document.body.classList.add('modal-open');
@@ -1507,14 +1512,61 @@ function closeCustomProductCategoryModal() {
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modal = bootstrap.Modal.getInstance(modalElement);
         if(modal) modal.hide();
+        else {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            var bds = document.querySelectorAll('.modal-backdrop');
+            if (bds.length) bds[bds.length - 1].remove();
+            if (!document.querySelector('.modal.show')) {
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = '';
+            }
+        }
     } else {
-        // Fallback: hide modal manually
         modalElement.style.display = 'none';
         modalElement.classList.remove('show');
-        document.body.classList.remove('modal-open');
-        var backdrop = document.querySelector('.modal-backdrop');
-        if(backdrop) backdrop.remove();
+        var bds = document.querySelectorAll('.modal-backdrop');
+        if (bds.length) bds[bds.length - 1].remove();
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+        }
     }
+}
+
+/** Insert new custom category into product modal dropdown and select it (no page reload). */
+function addCustomProductCategoryToSelect(categoryId, categoryName) {
+    var sel = document.getElementById('modal_product_category');
+    if (!sel || categoryId == null || categoryId === '') return;
+    var val = 'c_' + String(parseInt(categoryId, 10));
+    var displayLabel = '[Custom] ' + String(categoryName).replace(/^\[Custom\]\s*/i, '').trim();
+    var i;
+    for (i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === val) {
+            sel.value = val;
+            if (typeof loadProductNames === 'function') loadProductNames(val);
+            return;
+        }
+    }
+    var optgroup = null;
+    for (i = 0; i < sel.children.length; i++) {
+        var node = sel.children[i];
+        if (node.tagName === 'OPTGROUP' && node.label === 'My Custom Categories') {
+            optgroup = node;
+            break;
+        }
+    }
+    if (!optgroup) {
+        optgroup = document.createElement('optgroup');
+        optgroup.label = 'My Custom Categories';
+        sel.appendChild(optgroup);
+    }
+    var opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = displayLabel;
+    optgroup.appendChild(opt);
+    sel.value = val;
+    if (typeof loadProductNames === 'function') loadProductNames(val);
 }
 
 function saveCustomProductCategory() {
@@ -1524,6 +1576,11 @@ function saveCustomProductCategory() {
     
     if (!categoryName) {
         errorElement.textContent = 'Category name is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    if (categoryName.length > 30) {
+        errorElement.textContent = 'Category name must be 30 characters or less.';
         errorElement.style.display = 'block';
         return;
     }
@@ -1550,14 +1607,16 @@ function saveCustomProductCategory() {
     })
     .then(data => {
         if (data.success) {
-            successElement.textContent = 'Category created! Reloading...';
+            successElement.textContent = 'Category added.';
             successElement.style.display = 'block';
             errorElement.style.display = 'none';
-            
+            addCustomProductCategoryToSelect(data.category_id, data.category_name || categoryName);
+            var nameInput = document.getElementById('custom_product_category_name');
+            if (nameInput) nameInput.value = '';
             setTimeout(function() {
                 closeCustomProductCategoryModal();
-                window.location.reload();
-            }, 1000);
+                successElement.style.display = 'none';
+            }, 500);
         } else {
             errorElement.textContent = data.message || 'Error creating category.';
             errorElement.style.display = 'block';
@@ -1588,10 +1647,8 @@ function openCustomProductNameModal() {
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery(modalElement).modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
     } else {
-        // Fallback: show modal manually
         modalElement.style.display = 'block';
         modalElement.classList.add('show');
         document.body.classList.add('modal-open');
@@ -1609,13 +1666,25 @@ function closeCustomProductNameModal() {
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modal = bootstrap.Modal.getInstance(modalElement);
         if(modal) modal.hide();
+        else {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            var bds = document.querySelectorAll('.modal-backdrop');
+            if (bds.length) bds[bds.length - 1].remove();
+            if (!document.querySelector('.modal.show')) {
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = '';
+            }
+        }
     } else {
-        // Fallback: hide modal manually
         modalElement.style.display = 'none';
         modalElement.classList.remove('show');
-        document.body.classList.remove('modal-open');
-        var backdrop = document.querySelector('.modal-backdrop');
-        if(backdrop) backdrop.remove();
+        var bds = document.querySelectorAll('.modal-backdrop');
+        if (bds.length) bds[bds.length - 1].remove();
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+        }
     }
 }
 
@@ -1626,6 +1695,11 @@ function saveCustomProductName() {
     
     if (!productName) {
         errorElement.textContent = 'Product name is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    if (productName.length > 30) {
+        errorElement.textContent = 'Product name must be 30 characters or less.';
         errorElement.style.display = 'block';
         return;
     }
@@ -1683,6 +1757,78 @@ function saveCustomProductName() {
 }
 </script>
 <style>
+    .Product-ServicesBtn{
+        padding: 0px 40px;
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+    }
+    .Product-ServicesBtn button,
+    .Product-ServicesBtn a{
+        display: flex !important;
+        color: #fff !important;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+    }
+    .Product-ServicesBtn button .angle,
+    .Product-ServicesBtn a .angle{
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff !important;
+        color:#000;
+        font-weight:bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .Product-ServicesBtn button span:not(.angle),
+    .Product-ServicesBtn a span:not(.angle){
+        font-weight:500;
+        font-size:16px;
+    }
+    .Product-ServicesBtn .align-center{
+        padding: 4px 10px;
+    }
+    .Product-ServicesBtn .align-center img{
+        width: 23px;
+    }
+    .Product-ServicesBtn .align-center span{
+        color:#000;
+    }
+    .Product-ServicesBtn .btn{
+        line-height:24px !important;
+    }
+    .Product-ServicesBtn button {
+        padding: 7px !important;
+        margin-top: 22px !important;
+    }
+    @media screen and (max-width: 768px) {
+        .card-body {
+            padding-bottom: 100px !important;
+        }
+        .Product-ServicesBtn{
+            width: 80% !important;
+            padding:0px !important;
+            margin-top: 40px !important;
+        }
+        .save_btn{
+            position: absolute;
+            bottom: 150px;
+            width: 145px !important;
+            left: 96px;
+            height: 36px;
+        }
+        .Copyright-left,
+        .Copyright-right{
+            padding:0px;
+        }
+    }
+    .save_btn{
+        width: 115px !important;
+    }
     #imageCropModal{
         z-index: 10000 !important;
     }
@@ -1734,24 +1880,32 @@ function saveCustomProductName() {
         opacity: 0.6;
         cursor: not-allowed;
     }
+
+    /* Single-line cells: long text does not stretch row layout */
+    .Product-ServicesTable .display.table td.product-table-cell-clip,
+    .Product-ServicesTable .display.table td.product-table-desc-cell {
+        max-width: 12rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle !important;
+    }
+    .Product-ServicesTable .display.table td.product-table-desc-cell {
+        max-width: 16rem;
+    }
 </style>
 
 <!-- Custom Product Category Modal -->
-<div class="modal fade" id="customProductCategoryModal" tabindex="-1" role="dialog" aria-labelledby="customProductCategoryLabel" aria-hidden="true">
+<div class="modal fade website-step-modal" id="customProductCategoryModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="customProductCategoryLabel">Add Custom Product Category</h5>
-                <button type="button" class="close" onclick="closeCustomProductCategoryModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="modal-content website-step-modal-content">
+            <button type="button" class="website-step-modal-close close" onclick="closeCustomProductCategoryModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body">
                 <form id="customProductCategoryForm">
                     <div class="form-group">
                         <label for="custom_product_category_name">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="custom_product_category_name" placeholder="Enter category name" maxlength="255" required>
-                        <small class="form-text text-muted">This category will only be visible to you</small>
+                        <input type="text" class="form-control" id="custom_product_category_name" placeholder="Enter category name (max 30)" maxlength="30" required>
+                        <small class="form-text text-muted">Max 30 characters. This category will only be visible to you.</small>
                     </div>
                     <div id="customProductCategoryError" class="alert alert-danger" style="display: none;"></div>
                     <div id="customProductCategorySuccess" class="alert alert-success" style="display: none;"></div>
@@ -1766,21 +1920,16 @@ function saveCustomProductName() {
 </div>
 
 <!-- Custom Product Name Modal -->
-<div class="modal fade" id="customProductNameModal" tabindex="-1" role="dialog" aria-labelledby="customProductNameLabel" aria-hidden="true">
+<div class="modal fade website-step-modal" id="customProductNameModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="customProductNameLabel">Add Custom Product Name</h5>
-                <button type="button" class="close" onclick="closeCustomProductNameModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="modal-content website-step-modal-content">
+            <button type="button" class="website-step-modal-close close" onclick="closeCustomProductNameModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body">
                 <form id="customProductNameForm">
                     <div class="form-group">
                         <label for="custom_product_name">Product Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="custom_product_name" placeholder="Enter product name" maxlength="255" required>
-                        <small class="form-text text-muted">This product name will only be visible to you</small>
+                        <input type="text" class="form-control" id="custom_product_name" placeholder="Enter product name (max 30)" maxlength="30" required>
+                        <small class="form-text text-muted">Max 30 characters. This product name will only be visible to you.</small>
                     </div>
                     <div id="customProductNameError" class="alert alert-danger" style="display: none;"></div>
                     <div id="customProductNameSuccess" class="alert alert-success" style="display: none;"></div>

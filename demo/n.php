@@ -78,47 +78,108 @@ function fetchVideoOgThumb($url, $timeout = 4) {
     return null;
 }
 
+/** Normalize user-entered video URL for opening in a new tab. */
+function mw_normalize_video_watch_url($url) {
+    $url = trim((string) $url);
+    if ($url === '') {
+        return '';
+    }
+    return preg_match('#^https?://#i', $url) ? $url : 'https://' . $url;
+}
+
 /**
- * Parse video URL (YouTube, Shorts, Instagram, Facebook, etc.) and return title, thumb, platform, embed_url.
+ * Parse video URL: YouTube → iframe embed; Facebook / Instagram / TikTok → thumbnail + external link only (no iframe).
+ *
+ * @param string $explicit_type  '', 'auto', 'youtube', 'facebook', 'instagram' (from dashboard)
+ * @param string $explicit_thumb_file  Filename stored in assets/upload/websites/video-thumbnails/
  */
-function parseVideoUrl($url, $default_thumb = '', $index = 0) {
-    $url = trim($url);
+function parseVideoUrl($url, $default_thumb = '', $index = 0, $explicit_type = '', $explicit_thumb_file = '') {
+    $url = trim((string) $url);
     $fallback = $default_thumb ?: '../assets/img/default.jpg';
-    if (empty($url)) return ['title' => 'Video', 'thumb' => $fallback, 'platform' => 'other', 'embed_url' => ''];
-    $title = 'Video';
+    $watch_url = mw_normalize_video_watch_url($url);
+    $has_uploaded_thumb = false;
     $thumb = $fallback;
+    if ($explicit_thumb_file !== '' && preg_match('/^[a-zA-Z0-9._-]+$/', $explicit_thumb_file)) {
+        $absThumb = dirname(__DIR__) . '/assets/upload/websites/video-thumbnails/' . $explicit_thumb_file;
+        if (is_file($absThumb)) {
+            $thumb = '../assets/upload/websites/video-thumbnails/' . $explicit_thumb_file;
+            $has_uploaded_thumb = true;
+        }
+    }
+
+    if ($url === '') {
+        return [
+            'title' => 'Video',
+            'thumb' => $fallback,
+            'platform' => 'other',
+            'embed_url' => '',
+            'watch_url' => '',
+            'play_mode' => 'external',
+        ];
+    }
+
+    $title = 'Video';
     $platform = 'other';
     $embed_url = '';
+
     // YouTube: watch?v=, youtu.be/, youtube.com/shorts/
     if (preg_match('#(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})#', $url, $m)) {
         $vid = $m[1];
-        $thumb = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
+        if (!$has_uploaded_thumb) {
+            $thumb = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
+        }
         $embed_url = "https://www.youtube.com/embed/{$vid}?autoplay=1";
         $platform = 'youtube';
         $title = 'YouTube Video';
-    } elseif (preg_match('#instagram\.com/(?:reel|p)/([a-zA-Z0-9_-]+)#', $url, $m)) {
+    } elseif (preg_match('#instagram\.com/(?:reel|p|tv)/#i', $url)) {
         $platform = 'instagram';
         $title = 'Instagram Video';
-        $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
-        $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
-        $embed_url = (strpos($url, '/reel/') !== false ? 'https://www.instagram.com/reel/' : 'https://www.instagram.com/p/') . $m[1] . '/embed/';
-    } elseif (preg_match('#(?:facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/#', $url)) {
+        if (!$has_uploaded_thumb) {
+            $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+            $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
+        }
+    } elseif (preg_match('#(?:facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/#i', $url)) {
         $platform = 'facebook';
         $title = 'Facebook Video';
-        $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
-        $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
-        $embed_url = $url;
-    } elseif (preg_match('#tiktok\.com/(?:@[^/]+/video/|v/)(\d+)#', $url, $m)) {
+        if (!$has_uploaded_thumb) {
+            $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+            $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
+        }
+    } elseif (preg_match('#tiktok\.com/#i', $url)) {
         $platform = 'tiktok';
         $title = 'TikTok Video';
-        $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
-        $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
-        $embed_url = 'https://www.tiktok.com/embed/v2/' . $m[1];
+        if (!$has_uploaded_thumb) {
+            $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+            $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
+        }
     } else {
-        $thumb = $fallback;
-        $embed_url = $url;
+        if (!$has_uploaded_thumb) {
+            $thumb = $fallback;
+        }
     }
-    return ['title' => $title, 'thumb' => $thumb, 'platform' => $platform, 'embed_url' => $embed_url];
+
+    $et = strtolower(trim((string) $explicit_type));
+    if (in_array($et, ['youtube', 'facebook', 'instagram'], true)) {
+        $platform = $et;
+    }
+
+    // Facebook / Instagram must never use iframe (platform policy). TikTok: embed unreliable → external link.
+    $play_mode = 'external';
+    if ($platform === 'youtube' && $embed_url !== '') {
+        $play_mode = 'iframe';
+    }
+    if ($platform === 'youtube' && $embed_url === '') {
+        $play_mode = 'external';
+    }
+
+    return [
+        'title' => $title,
+        'thumb' => $thumb,
+        'platform' => $platform,
+        'embed_url' => ($play_mode === 'iframe') ? $embed_url : '',
+        'watch_url' => $watch_url,
+        'play_mode' => $play_mode,
+    ];
 }
 
 /** Web directory of this script (e.g. /miniwebsite/demo), no trailing slash. */
@@ -147,12 +208,67 @@ function mw_site_relative_from_demo_asset($relative) {
     return trim(str_replace('\\', '/', $parent), '/') . '/' . $rel;
 }
 
+/** Read image from disk for embedded vCard PHOTO (Windows Contacts ignores PHOTO;VALUE=URI on import). */
+function mw_vcard_local_image_bytes($demo_relative, $max_bytes = 2097152) {
+    if ($demo_relative === '' || strpos($demo_relative, 'data:') === 0) {
+        return null;
+    }
+    $clean = preg_replace('#^\.\./+#', '', $demo_relative);
+    $full = dirname(__DIR__) . '/' . str_replace('\\', '/', $clean);
+    if (!is_file($full) || !is_readable($full)) {
+        return null;
+    }
+    $size = @filesize($full);
+    if ($size === false || $size > $max_bytes) {
+        return null;
+    }
+    $bytes = @file_get_contents($full);
+    return ($bytes !== false && $bytes !== '') ? $bytes : null;
+}
+
+function mw_vcard_image_type_from_bytes($bytes) {
+    $sig = substr((string) $bytes, 0, 12);
+    if (strncmp($sig, "\x89PNG", 4) === 0) {
+        return 'PNG';
+    }
+    if (strncmp($sig, "\xFF\xD8\xFF", 3) === 0) {
+        return 'JPEG';
+    }
+    if (strncmp($sig, 'GIF8', 4) === 0) {
+        return 'GIF';
+    }
+    if (strlen($sig) >= 12 && strncmp($sig, 'RIFF', 4) === 0 && substr($sig, 8, 4) === 'WEBP') {
+        return 'WEBP';
+    }
+    return 'JPEG';
+}
+
 $card_id_slug = isset($_GET['n']) ? trim($_GET['n']) : (isset($_GET['card_number']) ? trim($_GET['card_number']) : '');
 $row = null;
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
 $assets_base = dirname(__DIR__) . '/assets';
 // Default image when src is unavailable or broken (use whichever file exists)
 $default_image = (file_exists(dirname(__DIR__) . '/assets/img/default.jpg') ? '../assets/img/default.jpg' : '../assets/img/deafult.jpg');
+
+/** Product image: file under assets/upload/websites/product-pricing, or default if missing; data URL for large/binary DB blobs. */
+function mw_demo_card_product_image_src($product_image, $default_image, $assets_root) {
+    if ($product_image === null || $product_image === '') {
+        return $default_image;
+    }
+    if (is_string($product_image) && strlen($product_image) < 255 && strpos($product_image, '.') !== false
+        && strpos($product_image, '/') === false && strpos($product_image, '\\') === false) {
+        $safe = basename($product_image);
+        $abs = $assets_root . '/upload/websites/product-pricing/' . $safe;
+        if (is_file($abs)) {
+            return '../assets/upload/websites/product-pricing/' . htmlspecialchars($safe);
+        }
+        return $default_image;
+    }
+    if (!is_string($product_image) || strlen($product_image) > 100) {
+        return 'data:image/*;base64,' . base64_encode($product_image);
+    }
+    return $default_image;
+}
 
 // Try to load from database when card_id provided
 if (!empty($card_id_slug)) {
@@ -308,14 +424,9 @@ if ($row) {
                     $products_by_cat[$cat] = [];
                     $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
                 }
-                $img = $default_image;
-                if (!empty($p['product_image'])) {
-                    if (is_string($p['product_image']) && strlen($p['product_image']) < 255 && strpos($p['product_image'], '.') !== false && strpos($p['product_image'], '/') === false && strpos($p['product_image'], '\\') === false) {
-                        $img = '../assets/upload/websites/product-pricing/' . htmlspecialchars($p['product_image']);
-                    } elseif (!is_string($p['product_image']) || strlen($p['product_image']) > 100) {
-                        $img = 'data:image/*;base64,' . base64_encode($p['product_image']);
-                    }
-                }
+                $img = !empty($p['product_image'])
+                    ? mw_demo_card_product_image_src($p['product_image'], $default_image, $assets_base)
+                    : $default_image;
                 $mrp = floatval($p['mrp'] ?? 0);
                 $price = floatval($p['selling_price'] ?? 0);
                 if ($mrp <= 0) $mrp = $price;
@@ -370,13 +481,21 @@ if ($row) {
     for ($i = 1; $i <= 20; $i++) {
         $url = trim($row['d_youtube' . $i] ?? '');
         if (empty($url)) continue;
-        $parsed = parseVideoUrl($url, $default_thumb, $vid_idx);
+        $vtype = strtolower(trim((string) ($row['d_video_type' . $i] ?? '')));
+        if ($vtype === 'auto') {
+            $vtype = '';
+        }
+        $vthumb = trim((string) ($row['d_video_thumb' . $i] ?? ''));
+        $parsed = parseVideoUrl($url, $default_thumb, $vid_idx, $vtype, $vthumb);
+        $watch = !empty($parsed['watch_url']) ? $parsed['watch_url'] : mw_normalize_video_watch_url($url);
         $videos[] = [
             'url' => $url,
             'title' => $parsed['title'],
             'thumb' => $parsed['thumb'],
             'platform' => $parsed['platform'],
-            'embed_url' => $parsed['embed_url'] ?? $url,
+            'embed_url' => $parsed['embed_url'] ?? '',
+            'watch_url' => $watch,
+            'play_mode' => $parsed['play_mode'] ?? 'external',
         ];
         $vid_idx++;
     }
@@ -457,14 +576,9 @@ if ($row) {
                             $products_by_cat[$cat] = [];
                             $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
                         }
-                        $img = $default_image;
-                        if (!empty($p['product_image'])) {
-                            if (is_string($p['product_image']) && strlen($p['product_image']) < 255 && strpos($p['product_image'], '.') !== false && strpos($p['product_image'], '/') === false && strpos($p['product_image'], '\\') === false) {
-                                $img = '../assets/upload/websites/product-pricing/' . htmlspecialchars($p['product_image']);
-                            } elseif (!is_string($p['product_image']) || strlen($p['product_image']) > 100) {
-                                $img = 'data:image/*;base64,' . base64_encode($p['product_image']);
-                            }
-                        }
+                        $img = !empty($p['product_image'])
+                            ? mw_demo_card_product_image_src($p['product_image'], $default_image, $assets_base)
+                            : $default_image;
                         $mrp = floatval($p['mrp'] ?? 0);
                         $price = floatval($p['selling_price'] ?? 0);
                         if ($mrp <= 0) $mrp = $price;
@@ -526,7 +640,6 @@ $mw_vcard = [];
 if ($row) {
     $raw_owner = trim(trim($row['d_f_name'] ?? '') . ' ' . trim($row['d_l_name'] ?? ''));
     $raw_org = trim($row['d_comp_name'] ?? '');
-    $raw_title = trim($row['d_position'] ?? '');
     $raw_email = trim($row['d_email'] ?? '');
     $raw_about = isset($row['d_about_us']) ? trim((string) $row['d_about_us']) : '';
     $raw_website = trim($row['d_website'] ?? '');
@@ -543,13 +656,64 @@ if ($row) {
     } elseif ($ext !== '') {
         $adr_street = $ext;
     }
-    $photo_rel = mw_site_relative_from_demo_asset($hero_logo);
-    $photo_abs = ($photo_rel !== '') ? (rtrim($base_url, '/') . '/' . $photo_rel) : '';
+    // Embedded PHOTO base64: Windows Contacts does not fetch PHOTO;VALUE=URI from .vcf — must embed bytes.
+    $vcard_photo_abs = '';
+    $vcard_photo_b64 = '';
+    $vcard_photo_type = 'JPEG';
+    if (!empty($row['d_logo'])) {
+        $blob = (string) $row['d_logo'];
+        $vcard_photo_b64 = base64_encode($blob);
+        $vcard_photo_type = mw_vcard_image_type_from_bytes($blob);
+    } else {
+        $paths_to_try = [];
+        if (!empty($row['d_hero_image_location'])) {
+            $paths_to_try[] = $hero_cover;
+        }
+        if (!empty($row['d_logo_location'])) {
+            $paths_to_try[] = $hero_logo;
+        }
+        $paths_to_try[] = $hero_logo;
+        $paths_to_try = array_values(array_unique(array_filter($paths_to_try)));
+        foreach ($paths_to_try as $p) {
+            if ($p === null || $p === '' || strpos($p, 'data:') === 0) {
+                continue;
+            }
+            $bytes = mw_vcard_local_image_bytes($p);
+            if ($bytes !== null) {
+                $vcard_photo_b64 = base64_encode($bytes);
+                $vcard_photo_type = mw_vcard_image_type_from_bytes($bytes);
+                $rel = mw_site_relative_from_demo_asset($p);
+                if ($rel !== '') {
+                    $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
+                }
+                break;
+            }
+        }
+    }
+    if ($vcard_photo_b64 === '' && $vcard_photo_abs === '') {
+        if (!empty($row['d_hero_image_location'])) {
+            $rel = mw_site_relative_from_demo_asset($hero_cover);
+            if ($rel !== '') {
+                $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
+            }
+        }
+        if ($vcard_photo_abs === '' && !empty($row['d_logo_location'])) {
+            $rel = mw_site_relative_from_demo_asset($hero_logo);
+            if ($rel !== '') {
+                $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
+            }
+        }
+        if ($vcard_photo_abs === '') {
+            $rel = mw_site_relative_from_demo_asset($hero_logo);
+            if ($rel !== '') {
+                $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
+            }
+        }
+    }
     $wa_digits = preg_replace('/\D+/', '', $tel_wa);
     $mw_vcard = [
         'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
         'org' => $raw_org,
-        'title' => $raw_title !== '' ? $raw_title : 'Executive Chef',
         'telCell' => $tel_cell,
         'telWhatsapp' => $tel_wa,
         'email' => $raw_email !== '' ? $raw_email : 'contact@example.com',
@@ -563,7 +727,9 @@ if ($row) {
             'country' => trim((string) ($row['d_country'] ?? '')),
         ],
         'note' => $raw_about,
-        'photo' => $photo_abs,
+        'photo' => $vcard_photo_abs,
+        'photoB64' => $vcard_photo_b64,
+        'photoType' => $vcard_photo_type,
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
     ];
     $parts = explode(' ', $raw_owner, 2);
@@ -571,12 +737,14 @@ if ($row) {
     $mw_vcard['nGiven'] = $parts[0] ?? '';
 } else {
     $wa_digits = preg_replace('/\D+/', '', $whatsapp);
-    $photo_rel = mw_site_relative_from_demo_asset($hero_logo);
+    $photo_rel = mw_site_relative_from_demo_asset($hero_cover);
     $photo_abs = ($photo_rel !== '') ? (rtrim($base_url, '/') . '/' . $photo_rel) : '';
+    $demo_vcard_bytes = mw_vcard_local_image_bytes($hero_cover);
+    $demo_photo_b64 = ($demo_vcard_bytes !== null) ? base64_encode($demo_vcard_bytes) : '';
+    $demo_photo_type = ($demo_vcard_bytes !== null) ? mw_vcard_image_type_from_bytes($demo_vcard_bytes) : 'JPEG';
     $mw_vcard = [
         'fn' => 'Olivia Murray',
         'org' => 'Olivia Culinary',
-        'title' => 'Executive Chef',
         'telCell' => preg_replace('/[^0-9+]/', '', $phone),
         'telWhatsapp' => preg_replace('/[^0-9+]/', '', $whatsapp),
         'email' => $email,
@@ -591,6 +759,8 @@ if ($row) {
         ],
         'note' => 'Passionately crafting exceptional culinary experiences.',
         'photo' => $photo_abs,
+        'photoB64' => $demo_photo_b64,
+        'photoType' => $demo_photo_type,
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
         'nFamily' => 'Murray',
         'nGiven' => 'Olivia',
@@ -980,23 +1150,24 @@ if ($row) {
                             if ($ok === $cat_key) { $global_idx += $pidx; break; }
                             $global_idx += isset($products_by_cat[$ok]) ? count($products_by_cat[$ok]) : 0;
                         } ?>
-                    <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-2" data-product-index="<?php echo $global_idx; ?>">
-                        <div class="mw-product-image-wrap mw-product-click-area aspect-[4/3]  relative rounded-t-xl cursor-pointer" data-product-index="<?php echo $global_idx; ?>" role="button" tabindex="0">
-                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover" alt="<?php echo htmlspecialchars($prod['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
-                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10" data-product-index="<?php echo $global_idx; ?>" onclick="event.stopPropagation()"><span class="mw-cart-btn-label">ADD</span></button>
+                    <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-1 cursor-pointer" data-product-index="<?php echo $global_idx; ?>">
+                        <div class="mw-product-image-wrap aspect-[4/3] relative rounded-t-xl">
+                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover pointer-events-none select-none" alt="<?php echo htmlspecialchars($prod['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10 pointer-events-auto" data-product-index="<?php echo $global_idx; ?>" aria-label="Add <?php echo htmlspecialchars($prod['name']); ?> to cart"><span class="mw-cart-btn-label">ADD</span></button>
                         </div>
-                        <div class="p-3">
-                            <h3 class="font-semibold text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
+                        <div class="p-1">
+                            <h3 class="font-medium text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
                             <p class="mw-product-desc-preview text-xs text-gray-500 line-clamp-1"><?php echo !empty($prod['desc']) ? htmlspecialchars($prod['desc']) : 'Contact us for details.'; ?></p>
                             <div class="mw-product-desc-full hidden text-xs text-gray-500 mt-2 leading-relaxed"><?php echo !empty($prod['desc']) ? nl2br(htmlspecialchars($prod['desc'])) : 'Contact us for details.'; ?></div>
                             <button type="button" class="mw-product-read-more text-primary text-xs font-medium mt-1 hover:underline">Read more</button>
-                            <div class="flex items-center gap-2 justify-between mt-2">
-                                <?php if (isset($prod['mrp']) && $prod['mrp'] > $prod['price']): ?>
+                            <?php
+                            $mw_has_prod_discount = isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
+                            ?>
+                            <div class="mw-product-card-prices flex flex-col items-start gap-0.5 mt-2 md:flex-row md:items-center md:gap-2 <?php echo $mw_has_prod_discount ? 'md:justify-between' : ''; ?>">
+                                <?php if ($mw_has_prod_discount): ?>
                                 <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
-                                <?php else: ?>
-                                <span></span>
                                 <?php endif; ?>
-                                <span class="font-bold text-sm text-gray-900">₹<?php echo number_format($prod['price']); ?></span>
+                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">₹<?php echo number_format($prod['price']); ?></span>
                             </div>
                         </div>
                     </div>
@@ -1037,7 +1208,7 @@ if ($row) {
                                     <p class="text-xs text-gray-500 mt-2">Offer Price <span id="mw-product-expanded-offer-line" class="font-semibold text-gray-700">₹0</span></p>
                                 </div>
                             </div>
-                            <button type="button" class="mw-product-expanded-add-btn mw-btn-add-shop mw-add-to-cart w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold uppercase tracking-wide border-0 cursor-pointer flex-shrink-0" style="background: var(--mw-offer-cta-bg); color: #111;" id="mw-product-expanded-add-main" data-product-index="0" aria-label="Add to cart"><i class="fas fa-shopping-cart" aria-hidden="true"></i><span class="mw-cart-btn-label">ADD</span></button>
+                            <button type="button" class="mw-product-expanded-add-btn mw-btn-add-shop mw-add-to-cart mt-4 flex items-center justify-center gap-2 rounded-xl font-bold uppercase tracking-wide border-0 cursor-pointer flex-shrink-0 self-end" style="background: var(--mw-offer-cta-bg); color: #111;" id="mw-product-expanded-add-main" data-product-index="0" aria-label="Add to cart"><span class="mw-cart-btn-label">ADD</span></button>
                         </div>
                     </div>
                 </div>
@@ -1055,12 +1226,33 @@ if ($row) {
     <section class="mw-video-gallery mw-section-padding bg-cardbg/20">
         <h2 class="mw-section-title">Videos</h2>
         <div class="mw-grid-videos">
-            <?php foreach ($videos as $idx => $v): ?>
-            <div class="mw-video-item mw-card aspect-video relative group cursor-pointer overflow-hidden block <?php echo $idx >= 6 ? 'mw-video-hidden' : ''; ?>" data-video-url="<?php echo htmlspecialchars($v['embed_url'] ?? $v['url']); ?>" data-video-fallback="<?php echo htmlspecialchars($v['url']); ?>" role="button" tabindex="0">
+            <?php foreach ($videos as $idx => $v):
+                $is_iframe = !empty($v['play_mode']) && $v['play_mode'] === 'iframe' && !empty($v['embed_url']);
+                $wrap_class = 'mw-video-item mw-card aspect-video relative group cursor-pointer overflow-hidden block ' . ($idx >= 6 ? 'mw-video-hidden' : '');
+                ?>
+            <?php if ($is_iframe): ?>
+            <div class="<?php echo $wrap_class; ?>" data-play-mode="iframe" data-video-url="<?php echo htmlspecialchars($v['embed_url']); ?>" data-video-fallback="<?php echo htmlspecialchars($v['url']); ?>" role="button" tabindex="0">
                 <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                 <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="fas fa-play ml-1"></i></div></div>
                 <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
             </div>
+            <?php else:
+                $ext_href = !empty($v['watch_url']) ? $v['watch_url'] : $v['url'];
+                $plat = $v['platform'] ?? 'other';
+                if ($plat === 'facebook') {
+                    $ext_center_icon = 'fab fa-facebook-f';
+                } elseif ($plat === 'instagram') {
+                    $ext_center_icon = 'fab fa-instagram';
+                } else {
+                    $ext_center_icon = 'fas fa-external-link-alt ml-0.5';
+                }
+                ?>
+            <a href="<?php echo htmlspecialchars($ext_href); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo $wrap_class; ?> mw-video-external no-underline text-inherit">
+                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="<?php echo htmlspecialchars($ext_center_icon); ?>"></i></div></div>
+                <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
+            </a>
+            <?php endif; ?>
             <?php endforeach; ?>
         </div>
         <?php if (count($videos) > 6): ?>
@@ -1083,7 +1275,7 @@ if ($row) {
 
     <!-- 10. Image Gallery -->
     <section id="mw-gallery" class="mw-image-gallery mw-section-padding">
-        <h2 class="mw-section-title">Gallery</h2>
+        <h2 class="mw-section-title">Image Gallery</h2>
         <div class="mw-grid-gallery">
             <?php foreach ($gallery as $g_img): ?>
             <div class="aspect-square rounded-lg overflow-hidden border border-white/5 mw-gallery-item cursor-pointer group" role="button" tabindex="0" data-gallery-src="<?php echo htmlspecialchars($g_img, ENT_QUOTES); ?>">
@@ -1234,7 +1426,7 @@ if ($row) {
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="js/app.js?v=9"></script>
+<script src="js/app.js?v=11"></script>
 
 </body>
 </html>

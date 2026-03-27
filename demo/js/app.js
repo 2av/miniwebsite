@@ -61,25 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.querySelectorAll('.mw-product-read-more').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const card = btn.closest('.mw-product-card');
-            if (!card) return;
-            const preview = card.querySelector('.mw-product-desc-preview');
-            const full = card.querySelector('.mw-product-desc-full');
-            const isExpanded = full && !full.classList.contains('hidden');
-            if (isExpanded) {
-                full.classList.add('hidden');
-                preview?.classList.remove('hidden');
-                btn.textContent = 'Read more';
-            } else {
-                preview?.classList.add('hidden');
-                full?.classList.remove('hidden');
-                btn.textContent = 'Read less';
-            }
-        });
-    });
+    // --- Products: Shop grid (read more / card body opens popup via handler below; no inline expand) ---
 
     // --- Products: Desktop inline expanded box (like Services, on image click) ---
     const productsSection = document.getElementById('mw-products');
@@ -123,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const rect = main.getBoundingClientRect();
         let w = Math.round(rect.width);
         if (w < 1) return;
-        const maxW = Math.max(280, window.innerWidth - 32);
+        const maxW = Math.max(350, window.innerWidth - 32);
         w = Math.min(w, maxW);
         productExpandedBox.style.setProperty('--mw-product-modal-width', w + 'px');
     }
@@ -227,18 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = '';
     }
 
-    document.querySelectorAll('.mw-product-click-area').forEach(area => {
-        area.addEventListener('click', (e) => {
+    document.querySelectorAll('.mw-product-card').forEach(card => {
+        card.addEventListener('click', (e) => {
             if (e.target.closest('.mw-add-to-cart')) return;
-            const idx = parseInt(area.getAttribute('data-product-index'), 10);
+            const idx = parseInt(card.getAttribute('data-product-index'), 10);
             if (!isNaN(idx)) openProductExpandedBox(idx);
-        });
-        area.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const idx = parseInt(area.getAttribute('data-product-index'), 10);
-                if (!isNaN(idx)) openProductExpandedBox(idx);
-            }
         });
     });
 
@@ -279,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoModal = document.getElementById('mw-video-modal');
     const videoModalIframe = document.getElementById('mw-video-modal-iframe');
     const videoModalClose = document.querySelector('.mw-video-modal-close');
-    document.querySelectorAll('.mw-video-item').forEach(item => {
+    document.querySelectorAll('.mw-video-item[data-play-mode="iframe"]').forEach(item => {
         item.addEventListener('click', (e) => {
             const embedUrl = item.getAttribute('data-video-url') || item.getAttribute('data-video-fallback');
             if (!embedUrl || !videoModal || !videoModalIframe) return;
@@ -598,11 +573,23 @@ Thanks a lot for your support \u{1F64F}`;
             .replace(/,/g, '\\,');
     }
 
+    /** RFC 2425 folding: max 75 octets per line, continuation lines start with space. */
+    function foldVcardLine(line) {
+        const max = 75;
+        if (line.length <= max) return line;
+        let out = line.slice(0, max);
+        let pos = max;
+        while (pos < line.length) {
+            out += '\r\n ' + line.slice(pos, pos + 74);
+            pos += 74;
+        }
+        return out;
+    }
+
     function buildMwVcardLines(v) {
         const e = escapeVcardValue;
         const fn = e(v.fn || '');
         const org = e(v.org || '');
-        const title = e(v.title || '');
         const cell = String(v.telCell || '').replace(/\s/g, '');
         const wa = String(v.telWhatsapp || '').replace(/\s/g, '');
         const primary = cell || wa;
@@ -610,6 +597,8 @@ Thanks a lot for your support \u{1F64F}`;
         const urlProf = v.urlProfile || shareUrl || '';
         const urlWeb = String(v.urlWebsite || '').trim();
         const photo = String(v.photo || '').trim();
+        const photoB64 = String(v.photoB64 || '').trim();
+        const photoType = String(v.photoType || 'JPEG').replace(/[^A-Z0-9]/gi, '').toUpperCase() || 'JPEG';
         const waMe = String(v.waMe || '').trim();
         const nFam = e(v.nFamily || '');
         const nGiv = e(v.nGiven || '');
@@ -628,7 +617,6 @@ Thanks a lot for your support \u{1F64F}`;
         }
         lines.push(`FN:${fn}`);
         if (org) lines.push(`ORG:${org}`);
-        if (title) lines.push(`TITLE:${title}`);
         if (primary) {
             lines.push(`TEL;TYPE=CELL,VOICE:${primary}`);
             lines.push(`TEL;TYPE=WORK,VOICE:${primary}`);
@@ -649,7 +637,10 @@ Thanks a lot for your support \u{1F64F}`;
         if (street || locality || region || postal || country) {
             lines.push(`ADR;TYPE=WORK:;;${street};${locality};${region};${postal};${country}`);
         }
-        if (photo && /^https?:\/\//i.test(photo)) {
+        // Embedded base64 first: Windows Contacts ignores PHOTO;VALUE=URI when importing .vcf from disk.
+        if (photoB64) {
+            lines.push(foldVcardLine(`PHOTO;ENCODING=b;TYPE=${photoType}:${photoB64}`));
+        } else if (photo && /^https?:\/\//i.test(photo)) {
             lines.push(`PHOTO;VALUE=URI:${e(photo)}`);
         }
         const noteTail = `Visit my MiniWebsite for products & offers: ${urlProf}`;

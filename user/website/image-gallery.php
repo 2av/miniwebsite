@@ -409,8 +409,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                 <div id="status_remove_img"></div>
                 <button class="btn btn-primary add_image" onclick="openImageModal()" style="width: auto;"><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Images</span></button>
 
-                            <div class="Product-ServicesTable">
-                                <table class="display table">
+                            <div class="Product-ServicesTable image-gallery-table-compact">
+                                <table class="display table table-image-gallery">
                                     <thead class="bg-secondary">
                                         <tr>
                                             <th>Image Details</th>
@@ -442,9 +442,11 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
                                     </td>
-                                            <td valign="middle" class="text-right">
-                                        <a class="edit" href="javascript:void(0);" onclick="editImageFromRow(this)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
-                                        <a class="delet" href="javascript:void(0);" onclick="removeData('<?php echo $card_id; ?>', <?php echo $img_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
+                                            <td valign="middle" class="text-right image-gallery-manage-cell">
+                                        <span class="image-gallery-actions">
+                                        <a class="edit" href="javascript:void(0);" onclick="editImageFromRow(this)" title="Edit"><i class="fa fa-edit" aria-hidden="true"></i></a>
+                                        <a class="delet" href="javascript:void(0);" onclick="removeData('<?php echo $card_id; ?>', <?php echo $img_id; ?>)" title="Delete"><i class="fa fa-trash" aria-hidden="true"></i></a>
+                                        </span>
                                             </td>
                                         </tr>
                             <?php 
@@ -471,12 +473,15 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
                           
                                 </div>
-                                <div class="Product-ServicesBtn">
+                                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
-                        <button class="btn btn-primary align-center save_btn" onclick="saveImages()"><img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> <span>Save</span></button>
+                        <button type="button" class="btn btn-primary align-center save_btn" onclick="saveImages()">
+                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
+                            <span>Save</span>
+                        </button>
                         <a href="../dashboard/" class="btn btn-secondary align-right">
                             <span>Finish</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
@@ -488,15 +493,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </main>
  
 <!-- Image Modal -->
-<div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+<div class="modal fade website-step-modal" id="imageModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="imageModalLabel">Add/Edit Gallery Image</h5>
-                <button type="button" class="close" onclick="closeImageModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="modal-content website-step-modal-content">
+            <button type="button" class="website-step-modal-close close" onclick="closeImageModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body">
                 <form id="modalImageForm">
                     <input type="hidden" id="modal_image_id" value="">
@@ -512,7 +512,6 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </div>
                         <input type="file" id="modal_image" onchange="handleGalleryImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_image').click()">Choose Image</button>
-                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
                     </div>
                 </form>
             </div>
@@ -556,8 +555,7 @@ function openImageModal() {
         $('#imageModal').modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modalElement = document.getElementById('imageModal');
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
     } else {
         // Fallback: direct DOM manipulation
         document.getElementById('imageModal').style.display = 'block';
@@ -936,12 +934,11 @@ function updateImageTable(imageNum, imagePreview, imageId) {
         var rowImageId = imageId || '';
         var newRow = '<tr data-image-id="' + rowImageId + '" data-image-num="' + imageNum + '" data-card-id="' + cardId + '">' +
             '<td valign="middle">' + imagePreview + '</td>' +
-            '<td valign="middle" class="text-right">' +
-            '<a class="edit" href="javascript:void(0);" onclick="editImageFromRow(this)">' +
-            '<img src="../../assets/images/edit1.png" alt=""></a> ' +
-            '<a class="delet" href="javascript:void(0);" onclick="removeData(' + cardId + ', ' + (imageId || imageNum) + ')">' +
-            '<img src="../../assets/images/delet.png" alt=""></a>' +
-            '</td>' +
+            '<td valign="middle" class="text-right image-gallery-manage-cell">' +
+            '<span class="image-gallery-actions">' +
+            '<a class="edit" href="javascript:void(0);" onclick="editImageFromRow(this)" title="Edit"><i class="fa fa-edit" aria-hidden="true"></i></a>' +
+            '<a class="delet" href="javascript:void(0);" onclick="removeData(' + cardId + ', ' + (imageId || imageNum) + ')" title="Delete"><i class="fa fa-trash" aria-hidden="true"></i></a>' +
+            '</span></td>' +
             '</tr>';
         tableBody.append(newRow);
     }
@@ -996,13 +993,20 @@ function closeImageModal() {
         var modal = bootstrap.Modal.getInstance(modalElement);
         if(modal) {
             modal.hide();
-        } else {
-            var newModal = new bootstrap.Modal(modalElement);
-            newModal.hide();
+        } else if(modalElement) {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
         }
     } else {
-        document.getElementById('imageModal').style.display = 'none';
-        document.getElementById('imageModal').classList.remove('show');
+        var el = document.getElementById('imageModal');
+        if(el) {
+            el.style.display = 'none';
+            el.classList.remove('show');
+        }
         document.body.classList.remove('modal-open');
         var backdrop = document.getElementById('modalBackdrop');
         if(backdrop) backdrop.remove();
@@ -1088,47 +1092,9 @@ function closeImageModal() {
 .Product-ServicesTable table td:nth-child(3){
     text-align:center !important;
 }
-.Product-ServicesBtn button{
-    display: flex !important;
-    color: #fff !important;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
-.Product-ServicesBtn{
-    padding: 0px 40px;
-}
-.Product-ServicesBtn button .angle{
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #fff !important;
-    color:#000;
-    font-weight:bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.Product-ServicesBtn button span:not(.angle){
-    font-weight:500;
-    font-size:22px;
-}
-.Product-ServicesBtn button span .fa-angle-left,
-.Product-ServicesBtn button span .fa-angle-right{
-    font-weight: bold;
-    font-size: 16px !important;
-}
-.Product-ServicesBtn .align-center{
-    padding: 4px 10px;
-}
-.Product-ServicesBtn .align-center img{
-    width: 23px;
-}
-.Product-ServicesBtn .align-center span{
-    color:#000;
-}
-.Product-ServicesBtn{
-    margin-top:30px;
+.image-gallery-table-compact table th:nth-child(2),
+.image-gallery-table-compact table td:nth-child(2) {
+    text-align: right !important;
 }
 @media screen and (max-width: 768px) {
         .card-body form {
@@ -1140,16 +1106,15 @@ function closeImageModal() {
 }
 
 .Product-ServicesBtn{
-    width: 75% !important;
+    width: 80% !important;
     padding:0px !important;
             margin-top: 40px !important;
-            margin:auto;
 }
 .save_btn{
     position: absolute;
         bottom: 150px;
-        width: 110px !important;
-        left: 98px;
+        width: 145px !important;
+        left: 96px;
         height: 36px;
 }
 .Copyright-left,
@@ -1177,14 +1142,7 @@ function closeImageModal() {
 .add_product i, .add_product span {
     font-size: 16px !important;
 }
-.Product-ServicesTable{
-width: 100%;
-overflow-x:auto;
-}
-.Product-ServicesTable table{
-    width: 700px;
-    white-space:nowrap;
-}
+/* Mobile table scroll: shared in user/website/css/website-step-nav.css */
 .Product-ServicesTable table th:first-child, .Product-ServicesTable table td:first-child {
     padding-left: 10px;
     padding-top:10px;
@@ -1199,14 +1157,6 @@ overflow-x:auto;
     padding-bottom:10px;
     padding-right: 20px;
     font-weight:500 !important;
-}
-
-.Product-ServicesBtn{
-padding:0px;
-}
-.Product-ServicesBtn button span:not(.angle) {
-    font-weight: 500;
-    font-size: 15px;
 }
 
 .headingTop {
@@ -1242,7 +1192,7 @@ padding:0px;
 
     
 .Product-ServicesBtn{
-        
+        padding: 0px 40px;
         display: flex;
         justify-content: space-between;
         margin-top: 30px;
@@ -1290,6 +1240,9 @@ padding:0px;
         padding: 7px !important;
         margin-top: 22px !important;
     }
+    .save_btn{
+    width: 115px !important;
+}
     
     #imageCropModal{
         z-index: 10000 !important;

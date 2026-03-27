@@ -24,13 +24,10 @@ if (!defined('IMAGE_CROP_MODAL_INCLUDED')) {
         #imageCropModal .crop-preview-box { width: 120px; height: 120px; }
     }
 </style>
-<div class="modal fade" id="imageCropModal" tabindex="-1" role="dialog" aria-labelledby="imageCropModalLabel" aria-hidden="true">
+<div class="modal fade website-step-modal" id="imageCropModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="background-color: #f8f9fa;">
-            <div class="modal-header">
-                <h5 class="modal-title text-dark" id="imageCropModalTitle" style="font-weight: 600; color: black;">Adjust & Crop Image</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+        <div class="modal-content website-step-modal-content" style="background-color: #f8f9fa;">
+            <button type="button" class="website-step-modal-close close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body">
                 <div class="container-fluid">
                     <div class="row">
@@ -73,7 +70,7 @@ if (!defined('IMAGE_CROP_MODAL_INCLUDED')) {
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="cropCancelBtn" data-bs-dismiss="modal"><i class="fa fa-times"></i> Cancel</button>
+                <button type="button" class="btn btn-secondary" id="cropCancelBtn" data-dismiss="modal"><i class="fa fa-times"></i> Cancel</button>
                 <button type="button" class="btn btn-primary" id="cropAndSaveBtn"><i class="fa fa-check-circle"></i> Crop & Save</button>
             </div>
         </div>

@@ -133,7 +133,7 @@ include '../includes/header.php';
                         <input type="text" name="d_pinterest" id="d_pinterest" maxlength="200" class="form-control" placeholder="Enter Your Pinterest Link" value="<?php echo !empty($cardRow['d_pinterest']) ? htmlspecialchars($cardRow['d_pinterest']) : ''; ?>">
                     </div>
 
-                    <div class="Product-ServicesBtn" style="margin-top: 20px;">
+                    <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="company-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
@@ -270,22 +270,21 @@ include '../includes/header.php';
     padding:0px;
 }
 .Product-ServicesBtn{
-    width: 75% !important;
+    width: 80% !important;
     padding:0px !important;
             margin-top: 40px !important;
-            margin:auto;
 }
 .save_btn{
     position: absolute;
         bottom: 150px;
-        width: 138px !important;
-        left: 87px;
+        width: 145px !important;
+        left: 96px;
         height: 36px;
 }
     }
 
     .Product-ServicesBtn{
-        
+        padding: 0px 40px;
         display: flex;
         justify-content: space-between;
         margin-top: 30px;
@@ -333,6 +332,9 @@ include '../includes/header.php';
         padding: 7px !important;
         margin-top: 22px !important;
     }
+    .save_btn{
+    width: 115px !important;
+}
 
 </style>
 

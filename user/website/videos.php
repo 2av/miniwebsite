@@ -18,47 +18,58 @@ if(!isset($_SESSION['card_id_inprocess']) || empty($_SESSION['card_id_inprocess'
     exit;
 }
 
+// Helper to add missing columns (uses TEXT for long strings so digi_card stays under MySQL row-size limit)
+function ensureColumnExists($connect, $table, $column, $definition){
+    $res = @mysqli_query($connect, "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+    if(!$res || mysqli_num_rows($res) == 0){
+        $sql = "ALTER TABLE `{$table}` ADD `{$column}` {$definition}";
+        try {
+            if (!mysqli_query($connect, $sql)) {
+                return false;
+            }
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+    return true;
+}
+
+for ($vi = 1; $vi <= 20; $vi++) {
+    ensureColumnExists($connect, 'digi_card', 'd_youtube' . $vi, "VARCHAR(150) DEFAULT ''");
+}
+
 $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
 
 if(mysqli_num_rows($query) == 0){
     echo '<script>alert("Card id does not match with your email account"); window.location.href="business-name.php";</script>';
     exit;
-} else {
-    // Use associative array so $cardRow['d_youtube1'] etc. work correctly
-    $cardRow = mysqli_fetch_assoc($query);
 }
-
-// Helper to add missing columns
-function ensureColumnExists($connect, $table, $column, $definition){
-    $res = @mysqli_query($connect, "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
-    if(!$res || mysqli_num_rows($res) == 0){
-        @mysqli_query($connect, "ALTER TABLE `{$table}` ADD `{$column}` {$definition}");
-    }
-}
+// Use associative array so $cardRow['d_youtube1'] etc. work correctly
+$cardRow = mysqli_fetch_assoc($query);
 
 // Handle form submission
 if(isset($_POST['process3'])){
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'"');
     if(mysqli_num_rows($query) == 1){
 
-        // Ensure d_youtube1..d_youtube20 columns exist
         for($i = 1; $i <= 20; $i++){
             ensureColumnExists($connect, 'digi_card', 'd_youtube' . $i, "VARCHAR(150) DEFAULT ''");
         }
 
-        // Build update parts dynamically for 20 video link fields (d_youtube1..d_youtube20)
         $updates = array();
+
         for($i = 1; $i <= 20; $i++){
             $field = 'd_youtube' . $i;
             $value = isset($_POST[$field]) ? mysqli_real_escape_string($connect, trim($_POST[$field])) : '';
             $updates[] = $field . '="' . $value . '"';
         }
+
         $update_sql = 'UPDATE digi_card SET ' . implode(', ', $updates) . ' WHERE id="' . $_SESSION['card_id_inprocess'] . '"';
 
         $update = mysqli_query($connect, $update_sql);
 
         if($update){
-            $_SESSION['save_success'] = "Video Links Updated Successfully!";
+            $_SESSION['save_success'] = 'Video Links Updated Successfully!';
             // Re-fetch updated record so form shows saved values (before redirect)
             $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
             if($query && mysqli_num_rows($query) > 0){
@@ -121,26 +132,23 @@ include '../includes/header.php';
         <div class="card mb-4">
             <div class="card-body">
             <label class="heading2">Video Links:</label>
-            <p class="description">you can upload upto 20 videos</p>
-                <form action="" method="POST" enctype="multipart/form-data" id="card_form">
-                   
-         
+            <p class="description">Add up to 20 videos</p>
+                <form action="" method="POST" id="card_form">
 
                     <?php
-                    // Generate 20  link inputs
                     for ($i = 1; $i <= 20; $i++) {
                         $field = 'd_youtube' . $i;
                         $labelNum = str_pad($i, 2, '0', STR_PAD_LEFT);
                         $value = isset($cardRow[$field]) && $cardRow[$field] !== null ? htmlspecialchars($cardRow[$field]) : '';
                     ?>
-                    <div class="form-group">
-                        <label for="<?php echo $field; ?>"> Video Link <?php echo $labelNum; ?> </label>
-                        <input type="text" name="<?php echo $field; ?>" id="<?php echo $field; ?>" maxlength="200" class="form-control" placeholder="Enter Your  Video Link" value="<?php echo $value; ?>">
+                    <div class="form-group border-bottom pb-4 mb-4">
+                        <label for="<?php echo $field; ?>">Video Link <?php echo $labelNum; ?></label>
+                        <input type="text" name="<?php echo $field; ?>" id="<?php echo $field; ?>" maxlength="500" class="form-control" placeholder="YouTube, Facebook, or Instagram video link" value="<?php echo $value; ?>">
                     </div>
                     <?php } ?>
 
 
-                    <div class="Product-ServicesBtn" style="margin-top: 20px;">
+                    <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="social-links.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
@@ -277,16 +285,15 @@ include '../includes/header.php';
     padding:0px;
 }
 .Product-ServicesBtn{
-    width: 75% !important;
+    width: 80% !important;
     padding:0px !important;
             margin-top: 40px !important;
-            margin:auto;
 }
 .save_btn{
     position: absolute;
         bottom: 150px;
-        width: 138px !important;
-        left: 87px;
+        width: 145px !important;
+        left: 96px;
         height: 36px;
 }
     }
@@ -340,6 +347,9 @@ include '../includes/header.php';
         padding: 7px !important;
         margin-top: 22px !important;
     }
+    .save_btn{
+    width: 115px !important;
+}
 
 </style>
 

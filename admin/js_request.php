@@ -366,6 +366,46 @@ if(isset($_POST['action']) && $_POST['action'] === 'delete_gallery_image' && iss
     exit;
 }
 
+// AJAX: clear payment QR (BLOB) on digi_card — payment-details.php
+if (isset($_POST['qr_id'], $_POST['qr_num']) && $_POST['qr_id'] !== '' && $_POST['qr_num'] !== '') {
+    if (!isset($_SESSION['user_email']) || $_SESSION['user_email'] === '') {
+        echo '<div class="alert danger">Unauthorized. Please login and try again.</div>';
+        exit;
+    }
+
+    $card_id = intval($_POST['qr_id']);
+    $qr_num = intval($_POST['qr_num']);
+    $allowed_nums = [1 => 'd_qr_paytm', 2 => 'd_qr_google_pay', 3 => 'd_qr_phone_pay'];
+    if (!isset($allowed_nums[$qr_num])) {
+        echo '<div class="alert danger">Invalid QR type.</div>';
+        exit;
+    }
+
+    $user_email = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $verify = mysqli_query($connect, "SELECT id FROM digi_card WHERE id = $card_id AND user_email = '$user_email' LIMIT 1");
+    if (!$verify || mysqli_num_rows($verify) === 0) {
+        echo '<div class="alert danger">Card not found or access denied.</div>';
+        exit;
+    }
+
+    $col = $allowed_nums[$qr_num];
+    $upd = mysqli_query($connect, "UPDATE digi_card SET `$col` = NULL WHERE id = $card_id AND user_email = '$user_email' LIMIT 1");
+    if ($upd) {
+        $prefixes = [1 => $card_id . '_paytm', 2 => $card_id . '_gpay', 3 => $card_id . '_phonepe'];
+        $dir = __DIR__ . '/../assets/upload/websites/payment-details/';
+        if (is_dir($dir) && isset($prefixes[$qr_num])) {
+            $safe = preg_replace('/[^0-9a-zA-Z_-]/', '_', $prefixes[$qr_num]);
+            foreach (glob($dir . $safe . '_*.jpg') ?: [] as $f) {
+                @unlink($f);
+            }
+        }
+        echo '<div class="alert success">QR code deleted successfully.</div>';
+    } else {
+        echo '<div class="alert danger">Failed to remove QR: ' . mysqli_error($connect) . '</div>';
+    }
+    exit;
+}
+
 if(isset($_POST['id'])){
 	$query=mysqli_query($connect,'SELECT * FROM digi_card2 WHERE id="'.$_POST['id'].'" ');
 	$value=$_POST['d_pro_img'];

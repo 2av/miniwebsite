@@ -257,6 +257,9 @@ if(isset($_POST['offer'])){
                 $offer_badge = '';
                 $badge_val = isset($_POST["offer_badge$slot_found"]) ? trim($_POST["offer_badge$slot_found"]) : '';
                 if($badge_val !== '') {
+                    if(strlen($badge_val) > 20) {
+                        $badge_val = substr($badge_val, 0, 20);
+                    }
                     $offer_badge = mysqli_real_escape_string($connect, $badge_val);
                 }
                 
@@ -354,7 +357,11 @@ if(isset($_POST['offer'])){
                 }
                 
                 if(isset($_POST["offer_badge$x"]) && !empty(trim($_POST["offer_badge$x"]))) {
-                    $offer_badge = mysqli_real_escape_string($connect, trim($_POST["offer_badge$x"]));
+                    $badge_trimmed = trim($_POST["offer_badge$x"]);
+                    if(strlen($badge_trimmed) > 20) {
+                        $badge_trimmed = substr($badge_trimmed, 0, 20);
+                    }
+                    $offer_badge = mysqli_real_escape_string($connect, $badge_trimmed);
                 }
                 
                 if(isset($_POST["offer_start_date$x"]) && !empty($_POST["offer_start_date$x"])) {
@@ -687,7 +694,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <form id="offerForm" action="" method="POST" enctype="multipart/form-data" style="display:none;">
                         <?php for($m = 1; $m <= 5; $m++): ?>
                             <input type="text" name="offer_title<?php echo $m; ?>" id="form_offer_title<?php echo $m; ?>" value="">
-                            <input type="text" name="offer_badge<?php echo $m; ?>" id="form_offer_badge<?php echo $m; ?>" value="">
+                            <input type="text" name="offer_badge<?php echo $m; ?>" id="form_offer_badge<?php echo $m; ?>" value="" maxlength="20">
                             <input type="number" name="offer_discount<?php echo $m; ?>" id="form_offer_discount<?php echo $m; ?>" value="">
                             <input type="text" name="offer_desc<?php echo $m; ?>" id="form_offer_desc<?php echo $m; ?>" value="">
                             <input type="date" name="offer_start_date<?php echo $m; ?>" id="form_offer_start_date<?php echo $m; ?>" value="">
@@ -702,12 +709,15 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     </form>
                    
                 </div>
-                <div class="Product-ServicesBtn">
+                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
                         <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
-                        <button class="btn btn-primary align-center save_btn" onclick="saveOffers()"><img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> <span>Save</span></button>
+                        <button type="button" class="btn btn-primary align-center save_btn" onclick="saveOffers()">
+                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
+                            <span>Save</span>
+                        </button>
                         <a href="image-gallery.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
@@ -719,15 +729,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </main>
 
 <!-- Offer Modal -->
-<div class="modal fade" id="offerModal" tabindex="-1" role="dialog" aria-labelledby="offerModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+<div class="modal fade website-step-modal" id="offerModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="offerModalLabel">Add Special Offer</h5>
-                <button type="button" class="close" onclick="closeOfferModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="modal-content website-step-modal-content">
+            <button type="button" class="website-step-modal-close close" onclick="closeOfferModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
                 <form id="modalOfferForm">
                     <input type="hidden" id="modal_offer_id" value="">
@@ -744,7 +749,6 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </div>
                         <input type="file" id="modal_offer_image" onchange="handleOfferImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_offer_image').click()">Choose Image</button>
-                        <small class="form-text text-muted">File Supported - .png, .jpg, .jpeg, .gif, .webp</small>
                     </div>
 
                     <div class="form-group">
@@ -754,7 +758,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
                     <div class="form-group">
                         <label for="modal_offer_badge">Badge <span class="text-muted">(Optional)</span></label>
-                        <input type="text" class="form-control" id="modal_offer_badge" placeholder="e.g., Hot Deal, Limited Time" maxlength="100">
+                        <input type="text" class="form-control" id="modal_offer_badge" placeholder="e.g., Hot Deal" maxlength="20">
+                        <small class="form-text text-muted"><strong id="badge_char_counter">0</strong>/20 characters</small>
                     </div>
 
                     <div class="form-group">
@@ -813,6 +818,78 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 </div>
 
 <style>
+    .Product-ServicesBtn{
+        padding: 0px 40px;
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+    }
+    .Product-ServicesBtn button,
+    .Product-ServicesBtn a{
+        display: flex !important;
+        color: #fff !important;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+    }
+    .Product-ServicesBtn button .angle,
+    .Product-ServicesBtn a .angle{
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff !important;
+        color:#000;
+        font-weight:bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .Product-ServicesBtn button span:not(.angle),
+    .Product-ServicesBtn a span:not(.angle){
+        font-weight:500;
+        font-size:16px;
+    }
+    .Product-ServicesBtn .align-center{
+        padding: 4px 10px;
+    }
+    .Product-ServicesBtn .align-center img{
+        width: 23px;
+    }
+    .Product-ServicesBtn .align-center span{
+        color:#000;
+    }
+    .Product-ServicesBtn .btn{
+        line-height:24px !important;
+    }
+    .Product-ServicesBtn button {
+        padding: 7px !important;
+        margin-top: 22px !important;
+    }
+    @media screen and (max-width: 768px) {
+        .card-body {
+            padding-bottom: 100px !important;
+        }
+        .Product-ServicesBtn{
+            width: 80% !important;
+            padding:0px !important;
+            margin-top: 40px !important;
+        }
+        .save_btn{
+            position: absolute;
+            bottom: 150px;
+            width: 145px !important;
+            left: 96px;
+            height: 36px;
+        }
+        .Copyright-left,
+        .Copyright-right{
+            padding:0px;
+        }
+    }
+    .save_btn{
+        width: 115px !important;
+    }
     #imageCropModal {
         z-index: 10000 !important;
     }
@@ -857,12 +934,26 @@ function updateCharCount() {
     }
 }
 
+function updateBadgeCharCount() {
+    var badgeInput = document.getElementById('modal_offer_badge');
+    var badgeCounter = document.getElementById('badge_char_counter');
+    if(badgeInput && badgeCounter) {
+        badgeCounter.textContent = String(badgeInput.value.length);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     var textarea = document.getElementById('modal_offer_description');
     if(textarea) {
         textarea.addEventListener('input', updateCharCount);
         textarea.addEventListener('keyup', updateCharCount);
         textarea.addEventListener('change', updateCharCount);
+    }
+    var badgeInput = document.getElementById('modal_offer_badge');
+    if(badgeInput) {
+        badgeInput.addEventListener('input', updateBadgeCharCount);
+        badgeInput.addEventListener('keyup', updateBadgeCharCount);
+        badgeInput.addEventListener('change', updateBadgeCharCount);
     }
 });
 
@@ -932,13 +1023,13 @@ function openOfferModal() {
     }
     
     updateCharCount();
+    updateBadgeCharCount();
     
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery('#offerModal').modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modalElement = document.getElementById('offerModal');
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
     } else {
         document.getElementById('offerModal').style.display = 'block';
         document.getElementById('offerModal').classList.add('show');
@@ -980,7 +1071,11 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
     
     if(modalOfferIdField) modalOfferIdField.value = offerId;
     if(modalOfferTitleField) modalOfferTitleField.value = offerTitle || '';
-    if(modalOfferBadgeField) modalOfferBadgeField.value = (offerBadge && offerBadge !== '-') ? offerBadge : '';
+    if(modalOfferBadgeField) {
+        var badgeVal = (offerBadge && offerBadge !== '-') ? offerBadge : '';
+        if(badgeVal.length > 20) badgeVal = badgeVal.substring(0, 20);
+        modalOfferBadgeField.value = badgeVal;
+    }
     if(modalOfferDiscountField) modalOfferDiscountField.value = offerDiscount || '';
     if(modalOfferDescField) modalOfferDescField.value = offerDescription || '';
     if(modalOfferStartDateField) modalOfferStartDateField.value = (startDate && startDate !== '-') ? startDate : '';
@@ -1012,13 +1107,13 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
     }
     
     updateCharCount();
+    updateBadgeCharCount();
     
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery('#offerModal').modal('show');
     } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         var modalElement = document.getElementById('offerModal');
-        var modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
     } else {
         document.getElementById('offerModal').style.display = 'block';
         document.getElementById('offerModal').classList.add('show');
@@ -1327,9 +1422,20 @@ function closeOfferModal() {
         var modalElement = document.getElementById('offerModal');
         var modal = bootstrap.Modal.getInstance(modalElement);
         if(modal) modal.hide();
+        else if(modalElement) {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
+        }
     } else {
-        document.getElementById('offerModal').style.display = 'none';
-        document.getElementById('offerModal').classList.remove('show');
+        var el = document.getElementById('offerModal');
+        if(el) {
+            el.style.display = 'none';
+            el.classList.remove('show');
+        }
         document.body.classList.remove('modal-open');
         var backdrop = document.getElementById('modalBackdrop');
         if(backdrop) backdrop.remove();

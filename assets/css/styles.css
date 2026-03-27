@@ -11630,7 +11630,7 @@ body {
 .Product-Services .btn  { color:#030303; font-size:32px; font-weight:600;}
 .Product-ServicesTable { margin:100px auto;}
 .Product-ServicesTable .table td,.Product-ServicesTable .table th { vertical-align: middle; text-align: center; border-bottom:solid 2px #eff3f7 !important;}
-.Product-ServicesTable .edit ,.Product-ServicesTable .delet { padding:10px; display:inline-block; cursor:pointer;}
+.Product-ServicesTable .edit ,.Product-ServicesTable .delet { padding:1px; display:inline-block; cursor:pointer;}
 .Product-ServicesTable .edit { margin-right:12px;}
 .Product-ServicesTable .btn-secondary { background-color:#666666; color:#fff;}
 .Product-ServicesTable .fa-inverse { color:#666 !important; }
@@ -11845,12 +11845,12 @@ h6, .h6 { font-size: 11px !important; }
 
 /* Buttons */
 .btn {
-  font-size: 12px !important;
+  font-size: 18px !important;
 }
 
 /* Navigation */
 .navbar-nav .nav-link {
-  font-size: 13px !important;
+  font-size: 18px !important;
 }
 
 /* General text elements */
