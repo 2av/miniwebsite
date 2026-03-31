@@ -930,11 +930,6 @@ function updateCharCount() {
     }
 }
 
-// Bind character count - inline oninput/onpaste/onkeyup for reliable live updates
-$(document).ready(function() {
-    $('#modal_product_description').on('input paste keyup', updateCharCount);
-});
-
 // Product names load via inline onchange on category select (loadProductNames)
 
 function loadProductNames(categoryId, selectProductName) {
@@ -1387,8 +1382,11 @@ function addProductToForm() {
 }
 
 function saveProducts() {
-    $('#status_remove_img').html('<div class="alert alert-success">All products saved successfully!</div>');
-    setTimeout(function(){ $('#status_remove_img').html(''); }, 2000);
+    var statusEl = document.getElementById('status_remove_img');
+    if (statusEl) {
+        statusEl.innerHTML = '<div class="alert alert-success">All products saved successfully!</div>';
+        setTimeout(function() { statusEl.innerHTML = ''; }, 2000);
+    }
 }
 
 function removeData(productId) {

@@ -49,4 +49,24 @@ function get_db_connection() {
     return $connect;
 }
 
+/**
+ * Stores last previous MiniWebsite URL slug per card (avoids ALTER on wide digi_card row).
+ */
+function mw_ensure_digi_card_previous_slug_table() {
+    global $connect;
+    static $done = false;
+    if ($done || !($connect instanceof mysqli) || $connect->connect_error) {
+        return;
+    }
+    $done = true;
+    $sql = 'CREATE TABLE IF NOT EXISTS digi_card_previous_slug (
+  digi_card_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  previous_slug VARCHAR(255) NOT NULL,
+  UNIQUE KEY uk_previous_slug (previous_slug(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+    @$connect->query($sql);
+}
+
+mw_ensure_digi_card_previous_slug_table();
+
 ?>

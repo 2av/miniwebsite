@@ -4,9 +4,9 @@
       <footer class="py-4 bg-blue mt-auto">
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between Copyright">
-            <div class="Copyright-left">www.miniwebsite.in</div>
+            <div class="Copyright-left"><a href="https://www.miniwebsite.in" target="_blank" rel="noopener noreferrer">www.miniwebsite.in</a></div>
             <div class="Copyright-right">
-                <p>Copyright &copy; 2025. All Rights Reserved.</p>
+                <p>Copyright &copy; <?php echo date('Y'); ?>. All Rights Reserved.</p>
             </div>
         </div>
     </div>

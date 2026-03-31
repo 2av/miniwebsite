@@ -208,43 +208,9 @@ function mw_site_relative_from_demo_asset($relative) {
     return trim(str_replace('\\', '/', $parent), '/') . '/' . $rel;
 }
 
-/** Read image from disk for embedded vCard PHOTO (Windows Contacts ignores PHOTO;VALUE=URI on import). */
-function mw_vcard_local_image_bytes($demo_relative, $max_bytes = 2097152) {
-    if ($demo_relative === '' || strpos($demo_relative, 'data:') === 0) {
-        return null;
-    }
-    $clean = preg_replace('#^\.\./+#', '', $demo_relative);
-    $full = dirname(__DIR__) . '/' . str_replace('\\', '/', $clean);
-    if (!is_file($full) || !is_readable($full)) {
-        return null;
-    }
-    $size = @filesize($full);
-    if ($size === false || $size > $max_bytes) {
-        return null;
-    }
-    $bytes = @file_get_contents($full);
-    return ($bytes !== false && $bytes !== '') ? $bytes : null;
-}
-
-function mw_vcard_image_type_from_bytes($bytes) {
-    $sig = substr((string) $bytes, 0, 12);
-    if (strncmp($sig, "\x89PNG", 4) === 0) {
-        return 'PNG';
-    }
-    if (strncmp($sig, "\xFF\xD8\xFF", 3) === 0) {
-        return 'JPEG';
-    }
-    if (strncmp($sig, 'GIF8', 4) === 0) {
-        return 'GIF';
-    }
-    if (strlen($sig) >= 12 && strncmp($sig, 'RIFF', 4) === 0 && substr($sig, 8, 4) === 'WEBP') {
-        return 'WEBP';
-    }
-    return 'JPEG';
-}
-
 $card_id_slug = isset($_GET['n']) ? trim($_GET['n']) : (isset($_GET['card_number']) ? trim($_GET['card_number']) : '');
 $row = null;
+$mw_old_slug_redirect = null;
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
 $assets_base = dirname(__DIR__) . '/assets';
 // Default image when src is unavailable or broken (use whichever file exists)
@@ -284,8 +250,89 @@ if (!empty($card_id_slug)) {
         }
         if ($query && mysqli_num_rows($query) > 0) {
             $row = mysqli_fetch_assoc($query);
+        } elseif (!ctype_digit($card_id_slug)) {
+            // Locked old MiniWebsite URL — row in digi_card_previous_slug (not on digi_card to avoid row-size limit)
+            $q_prev = mysqli_query($connect, "SELECT digi_card_id FROM digi_card_previous_slug WHERE previous_slug='$card_id_esc' LIMIT 1");
+            if ($q_prev && mysqli_num_rows($q_prev) > 0) {
+                $pr = mysqli_fetch_assoc($q_prev);
+                $did = intval($pr['digi_card_id'] ?? 0);
+                if ($did > 0) {
+                    $did_esc = mysqli_real_escape_string($connect, (string) $did);
+                    $q_card = mysqli_query($connect, "SELECT * FROM digi_card WHERE id='$did_esc' LIMIT 1");
+                    if ($q_card && mysqli_num_rows($q_card) > 0) {
+                        $mw_old_slug_redirect = mysqli_fetch_assoc($q_card);
+                    }
+                }
+            }
         }
     }
+}
+
+/** Requested a card by URL (?n= / card_number) but no matching row in the database. */
+$mw_card_not_found = ($card_id_slug !== '' && $row === null && $mw_old_slug_redirect === null);
+if ($mw_old_slug_redirect !== null) {
+    $mw_company_label = trim((string) ($mw_old_slug_redirect['d_display_name'] ?? ''));
+    if ($mw_company_label === '') {
+        $mw_company_label = trim((string) ($mw_old_slug_redirect['d_comp_name'] ?? 'Company'));
+    }
+    $mw_new_profile_url = mw_miniwebsite_profile_url($base_url, (string) ($mw_old_slug_redirect['card_id'] ?? ''));
+    header('Content-Type: text/html; charset=UTF-8');
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniWebsite URL updated</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>body { font-family: Inter, system-ui, sans-serif; }</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-6">
+    <div class="max-w-lg w-full text-center space-y-6">
+        <p class="text-lg text-slate-700 leading-relaxed">
+            <?php echo htmlspecialchars($mw_company_label, ENT_QUOTES, 'UTF-8'); ?> MiniWebsite URL changed to new URL.
+            <a href="<?php echo htmlspecialchars($mw_new_profile_url, ENT_QUOTES, 'UTF-8'); ?>"
+               class="text-slate-900 font-medium underline underline-offset-2 hover:text-slate-600">
+                Click here to Visit: <?php echo htmlspecialchars($mw_new_profile_url, ENT_QUOTES, 'UTF-8'); ?>
+            </a>
+        </p>
+    </div>
+</body>
+</html>
+<?php
+    exit;
+}
+
+if ($mw_card_not_found) {
+    $mw_miniwebsite_home = rtrim($base_url, '/') . dirname(mw_demo_script_dir());
+    header('HTTP/1.1 404 Not Found');
+    header('Content-Type: text/html; charset=UTF-8');
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card not found — MiniWebsite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>body { font-family: Inter, system-ui, sans-serif; }</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-6">
+        <p class="text-lg text-slate-600 leading-relaxed">
+            This digital card is not available. It may have been removed or the link might be incorrect.
+        </p>
+        <a href="<?php echo htmlspecialchars($mw_miniwebsite_home, ENT_QUOTES, 'UTF-8'); ?>"
+           class="inline-flex items-center justify-center rounded-lg bg-slate-900 text-white px-6 py-3 text-sm font-medium hover:bg-slate-800 transition-colors">
+            Go to MiniWebsite
+        </a>
+    </div>
+</body>
+</html>
+<?php
+    exit;
 }
 
 // Build data arrays (from DB or demo fallback)
@@ -656,60 +703,6 @@ if ($row) {
     } elseif ($ext !== '') {
         $adr_street = $ext;
     }
-    // Embedded PHOTO base64: Windows Contacts does not fetch PHOTO;VALUE=URI from .vcf — must embed bytes.
-    $vcard_photo_abs = '';
-    $vcard_photo_b64 = '';
-    $vcard_photo_type = 'JPEG';
-    if (!empty($row['d_logo'])) {
-        $blob = (string) $row['d_logo'];
-        $vcard_photo_b64 = base64_encode($blob);
-        $vcard_photo_type = mw_vcard_image_type_from_bytes($blob);
-    } else {
-        $paths_to_try = [];
-        if (!empty($row['d_hero_image_location'])) {
-            $paths_to_try[] = $hero_cover;
-        }
-        if (!empty($row['d_logo_location'])) {
-            $paths_to_try[] = $hero_logo;
-        }
-        $paths_to_try[] = $hero_logo;
-        $paths_to_try = array_values(array_unique(array_filter($paths_to_try)));
-        foreach ($paths_to_try as $p) {
-            if ($p === null || $p === '' || strpos($p, 'data:') === 0) {
-                continue;
-            }
-            $bytes = mw_vcard_local_image_bytes($p);
-            if ($bytes !== null) {
-                $vcard_photo_b64 = base64_encode($bytes);
-                $vcard_photo_type = mw_vcard_image_type_from_bytes($bytes);
-                $rel = mw_site_relative_from_demo_asset($p);
-                if ($rel !== '') {
-                    $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
-                }
-                break;
-            }
-        }
-    }
-    if ($vcard_photo_b64 === '' && $vcard_photo_abs === '') {
-        if (!empty($row['d_hero_image_location'])) {
-            $rel = mw_site_relative_from_demo_asset($hero_cover);
-            if ($rel !== '') {
-                $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
-            }
-        }
-        if ($vcard_photo_abs === '' && !empty($row['d_logo_location'])) {
-            $rel = mw_site_relative_from_demo_asset($hero_logo);
-            if ($rel !== '') {
-                $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
-            }
-        }
-        if ($vcard_photo_abs === '') {
-            $rel = mw_site_relative_from_demo_asset($hero_logo);
-            if ($rel !== '') {
-                $vcard_photo_abs = rtrim($base_url, '/') . '/' . $rel;
-            }
-        }
-    }
     $wa_digits = preg_replace('/\D+/', '', $tel_wa);
     $mw_vcard = [
         'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
@@ -727,9 +720,6 @@ if ($row) {
             'country' => trim((string) ($row['d_country'] ?? '')),
         ],
         'note' => $raw_about,
-        'photo' => $vcard_photo_abs,
-        'photoB64' => $vcard_photo_b64,
-        'photoType' => $vcard_photo_type,
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
     ];
     $parts = explode(' ', $raw_owner, 2);
@@ -737,11 +727,6 @@ if ($row) {
     $mw_vcard['nGiven'] = $parts[0] ?? '';
 } else {
     $wa_digits = preg_replace('/\D+/', '', $whatsapp);
-    $photo_rel = mw_site_relative_from_demo_asset($hero_cover);
-    $photo_abs = ($photo_rel !== '') ? (rtrim($base_url, '/') . '/' . $photo_rel) : '';
-    $demo_vcard_bytes = mw_vcard_local_image_bytes($hero_cover);
-    $demo_photo_b64 = ($demo_vcard_bytes !== null) ? base64_encode($demo_vcard_bytes) : '';
-    $demo_photo_type = ($demo_vcard_bytes !== null) ? mw_vcard_image_type_from_bytes($demo_vcard_bytes) : 'JPEG';
     $mw_vcard = [
         'fn' => 'Olivia Murray',
         'org' => 'Olivia Culinary',
@@ -758,9 +743,6 @@ if ($row) {
             'country' => 'Germany',
         ],
         'note' => 'Passionately crafting exceptional culinary experiences.',
-        'photo' => $photo_abs,
-        'photoB64' => $demo_photo_b64,
-        'photoType' => $demo_photo_type,
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
         'nFamily' => 'Murray',
         'nGiven' => 'Olivia',
@@ -830,7 +812,7 @@ if ($row) {
            
 
             <div class="flex gap-4 w-full max-w-sm justify-center">
-                <a href="tel:+<?php echo $phone; ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
+                <a href="tel:<?php echo htmlspecialchars($phone, ENT_QUOTES, 'UTF-8'); ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
                     <i class="fas fa-phone-alt"></i> Call Now
                 </a>
                 <a href="https://wa.me/<?php echo $whatsapp; ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
@@ -870,7 +852,7 @@ if ($row) {
                     <i class="fas fa-phone-alt text-xl"></i>
                 </span>
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Phone Number</h3>
-                <p class="text-heading font-medium text-sm">+<?php echo $phone; ?></p>
+                <p class="text-heading font-medium text-sm"><?php echo htmlspecialchars($phone, ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
             <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
                 <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
@@ -1205,8 +1187,7 @@ if ($row) {
                                         </div>
                                         <span id="mw-product-expanded-savings" class="mw-product-expanded-savings hidden"></span>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-2">Offer Price <span id="mw-product-expanded-offer-line" class="font-semibold text-gray-700">₹0</span></p>
-                                </div>
+                                   </div>
                             </div>
                             <button type="button" class="mw-product-expanded-add-btn mw-btn-add-shop mw-add-to-cart mt-4 flex items-center justify-center gap-2 rounded-xl font-bold uppercase tracking-wide border-0 cursor-pointer flex-shrink-0 self-end" style="background: var(--mw-offer-cta-bg); color: #111;" id="mw-product-expanded-add-main" data-product-index="0" aria-label="Add to cart"><span class="mw-cart-btn-label">ADD</span></button>
                         </div>

@@ -87,11 +87,19 @@ if(isset($_POST['process1'])){
     // Check if company name already exists - MUST be unique
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE d_comp_name="'.$comp_name.'"');
     if(mysqli_num_rows($query) == 0){
-        // Company name is unique, create new card
         $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $comp_name);
+        $card_id_esc = mysqli_real_escape_string($connect, $card_id);
+        $slug_taken = mysqli_query($connect, 'SELECT id FROM digi_card WHERE card_id="'.$card_id_esc.'" LIMIT 1');
+        $slug_prev = mysqli_query($connect, 'SELECT digi_card_id FROM digi_card_previous_slug WHERE previous_slug="'.$card_id_esc.'" LIMIT 1');
+        if (mysqli_num_rows($slug_taken) > 0 || mysqli_num_rows($slug_prev) > 0) {
+            $_SESSION['save_error'] = "This MiniWebsite URL is reserved or locked. Please choose a different URL.";
+            header('Location: business-name.php');
+            exit;
+        }
+        // Company name is unique, create new card
         $date = date('Y-m-d H:i:s');
         
-        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,d_display_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date) VALUES ("'.$comp_name.'","'.$display_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id.'","'.$franchisee_email.'",DATE_ADD("'.$date.'", INTERVAL 7 DAY))');
+        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,d_display_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date) VALUES ("'.$comp_name.'","'.$display_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id_esc.'","'.$franchisee_email.'",DATE_ADD("'.$date.'", INTERVAL 7 DAY))');
         
         if($insert){
             // Insert data in 2nd and 3rd database tables
@@ -141,10 +149,9 @@ if(isset($_POST['process2'])){
         // Try to add the column (silent failure will be handled later)
         @mysqli_query($connect, "ALTER TABLE digi_card ADD COLUMN d_name_change_count INT NOT NULL DEFAULT 0");
     }
-
     // Load current record to check change count and current name
     $current_id = intval($_SESSION['card_id_inprocess']);
-    $current_query = mysqli_query($connect, 'SELECT d_comp_name, d_name_change_count FROM digi_card WHERE id="'.$current_id.'" LIMIT 1');
+    $current_query = mysqli_query($connect, 'SELECT d_comp_name, d_name_change_count, card_id FROM digi_card WHERE id="'.$current_id.'" LIMIT 1');
     $current_row = mysqli_fetch_array($current_query);
     $current_change_count = isset($current_row['d_name_change_count']) ? intval($current_row['d_name_change_count']) : 0;
 
@@ -165,11 +172,21 @@ if(isset($_POST['process2'])){
     // Check if company name already exists for a different record
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE d_comp_name="'.$comp_name.'" AND id != "'.$_SESSION['card_id_inprocess'].'"');
 
-    if(mysqli_num_rows($query) == 0){
-        // Company name is unique (or belongs to current record), allow update and increment change counter
-        $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $comp_name);
-        $update = mysqli_query($connect, 'UPDATE digi_card SET d_comp_name="'.$comp_name.'", d_display_name="'.$display_name.'", card_id="'.$card_id.'", d_name_change_count = d_name_change_count + 1 WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+    $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $comp_name);
+    $card_id_esc = mysqli_real_escape_string($connect, $card_id);
+    $cid = intval($_SESSION['card_id_inprocess']);
+    // Block taking a URL slug reserved as another card's previous (locked) URL
+    $slug_taken = mysqli_query($connect, 'SELECT id FROM digi_card WHERE card_id="'.$card_id_esc.'" AND id != '.$cid.' LIMIT 1');
+    $slug_prev = mysqli_query($connect, 'SELECT digi_card_id FROM digi_card_previous_slug WHERE previous_slug="'.$card_id_esc.'" AND digi_card_id != '.$cid.' LIMIT 1');
+    if(mysqli_num_rows($query) == 0 && mysqli_num_rows($slug_taken) == 0 && mysqli_num_rows($slug_prev) == 0){
+        // Company name is unique; slug not locked by another card — allow update and increment change counter
+        $old_card_id = mysqli_real_escape_string($connect, isset($current_row['card_id']) ? (string) $current_row['card_id'] : '');
+        $update = mysqli_query($connect, 'UPDATE digi_card SET d_comp_name="'.$comp_name.'", d_display_name="'.$display_name.'", card_id="'.$card_id_esc.'", d_name_change_count = d_name_change_count + 1 WHERE id="'.$_SESSION['card_id_inprocess'].'"');
         if($update){
+            mysqli_query($connect, 'DELETE FROM digi_card_previous_slug WHERE digi_card_id='.$cid);
+            if ($old_card_id !== '') {
+                mysqli_query($connect, 'INSERT INTO digi_card_previous_slug (digi_card_id, previous_slug) VALUES ('.$cid.', "'.$old_card_id.'")');
+            }
             $_SESSION['save_success'] = "Company Name Updated Successfully";
             header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
             exit;
@@ -179,8 +196,11 @@ if(isset($_POST['process2'])){
             exit;
         }
     } else {
-        // Company name already exists for a different record - show error
-        $_SESSION['save_error'] = "Company Name already exists. Please choose a different name.";
+        if (mysqli_num_rows($query) > 0) {
+            $_SESSION['save_error'] = "Company Name already exists. Please choose a different name.";
+        } else {
+            $_SESSION['save_error'] = "This MiniWebsite URL is reserved or locked. Please choose a different URL.";
+        }
         header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
         exit;
     }
@@ -195,6 +215,8 @@ if ($is_ajax && (isset($_GET['check_business_name']) || isset($_POST['check_busi
     $exists = false;
     if ($name !== '') {
         $name_esc = mysqli_real_escape_string($connect, $name);
+        $cid_raw = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $name);
+        $cid_esc = mysqli_real_escape_string($connect, $cid_raw);
         $q = 'SELECT id FROM digi_card WHERE d_comp_name="' . $name_esc . '"';
         if ($exclude_id > 0) {
             $q .= ' AND id != "' . $exclude_id . '"';
@@ -202,6 +224,24 @@ if ($is_ajax && (isset($_GET['check_business_name']) || isset($_POST['check_busi
         $q .= ' LIMIT 1';
         $res = mysqli_query($connect, $q);
         $exists = $res && mysqli_num_rows($res) > 0;
+        if (!$exists) {
+            $q2 = 'SELECT id FROM digi_card WHERE card_id="' . $cid_esc . '"';
+            if ($exclude_id > 0) {
+                $q2 .= ' AND id != "' . $exclude_id . '"';
+            }
+            $q2 .= ' LIMIT 1';
+            $res2 = mysqli_query($connect, $q2);
+            $exists = $res2 && mysqli_num_rows($res2) > 0;
+        }
+        if (!$exists) {
+            $q3 = 'SELECT digi_card_id FROM digi_card_previous_slug WHERE previous_slug="' . $cid_esc . '"';
+            if ($exclude_id > 0) {
+                $q3 .= ' AND digi_card_id != "' . $exclude_id . '"';
+            }
+            $q3 .= ' LIMIT 1';
+            $res3 = mysqli_query($connect, $q3);
+            $exists = $res3 && mysqli_num_rows($res3) > 0;
+        }
     }
     echo json_encode(array('exists' => $exists));
     exit;
@@ -227,6 +267,15 @@ include '../includes/header.php';
             $_SESSION['card_id_inprocess'] = $_GET['card_number'];
             $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
             $row = mysqli_fetch_array($query);
+            $row_previous_slug = '';
+            if ($row && mysqli_num_rows($query) > 0) {
+                $cid_view = intval($row['id']);
+                $q_ps = mysqli_query($connect, 'SELECT previous_slug FROM digi_card_previous_slug WHERE digi_card_id='.$cid_view.' LIMIT 1');
+                if ($q_ps && mysqli_num_rows($q_ps) > 0) {
+                    $rps = mysqli_fetch_array($q_ps);
+                    $row_previous_slug = (string) ($rps['previous_slug'] ?? '');
+                }
+            }
             
             if(mysqli_num_rows($query) == 0): ?>
                 <div class="alert alert-danger">Card id Removed/Not available.</div>
@@ -276,6 +325,13 @@ include '../includes/header.php';
                                     $remaining = max(0, 2 - $change_count);
                                 ?>
                                 <sup>URL: <a href="<?php echo htmlspecialchars($business_url); ?>" target="_blank"><?php echo htmlspecialchars($business_url); ?></a></sup>
+                                <?php if (!empty($row_previous_slug)):
+                                    $prev_slug = $row_previous_slug;
+                                    $prev_url = $site_url . '/' . urlencode($prev_slug);
+                                ?>
+                                <br>
+                                <sup>Previous URL (reference): <a href="<?php echo htmlspecialchars($prev_url); ?>" target="_blank"><?php echo htmlspecialchars($prev_url); ?></a></sup>
+                                <?php endif; ?>
                                 <br>
                                 <sup>
                                     <?php if($remaining > 0): ?>

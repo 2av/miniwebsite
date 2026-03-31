@@ -573,19 +573,6 @@ Thanks a lot for your support \u{1F64F}`;
             .replace(/,/g, '\\,');
     }
 
-    /** RFC 2425 folding: max 75 octets per line, continuation lines start with space. */
-    function foldVcardLine(line) {
-        const max = 75;
-        if (line.length <= max) return line;
-        let out = line.slice(0, max);
-        let pos = max;
-        while (pos < line.length) {
-            out += '\r\n ' + line.slice(pos, pos + 74);
-            pos += 74;
-        }
-        return out;
-    }
-
     function buildMwVcardLines(v) {
         const e = escapeVcardValue;
         const fn = e(v.fn || '');
@@ -596,9 +583,6 @@ Thanks a lot for your support \u{1F64F}`;
         const em = v.email || '';
         const urlProf = v.urlProfile || shareUrl || '';
         const urlWeb = String(v.urlWebsite || '').trim();
-        const photo = String(v.photo || '').trim();
-        const photoB64 = String(v.photoB64 || '').trim();
-        const photoType = String(v.photoType || 'JPEG').replace(/[^A-Z0-9]/gi, '').toUpperCase() || 'JPEG';
         const waMe = String(v.waMe || '').trim();
         const nFam = e(v.nFamily || '');
         const nGiv = e(v.nGiven || '');
@@ -618,7 +602,6 @@ Thanks a lot for your support \u{1F64F}`;
         lines.push(`FN:${fn}`);
         if (org) lines.push(`ORG:${org}`);
         if (primary) {
-            lines.push(`TEL;TYPE=CELL,VOICE:${primary}`);
             lines.push(`TEL;TYPE=WORK,VOICE:${primary}`);
         }
         if (wa) {
@@ -636,12 +619,6 @@ Thanks a lot for your support \u{1F64F}`;
         }
         if (street || locality || region || postal || country) {
             lines.push(`ADR;TYPE=WORK:;;${street};${locality};${region};${postal};${country}`);
-        }
-        // Embedded base64 first: Windows Contacts ignores PHOTO;VALUE=URI when importing .vcf from disk.
-        if (photoB64) {
-            lines.push(foldVcardLine(`PHOTO;ENCODING=b;TYPE=${photoType}:${photoB64}`));
-        } else if (photo && /^https?:\/\//i.test(photo)) {
-            lines.push(`PHOTO;VALUE=URI:${e(photo)}`);
         }
         const noteTail = `Visit my MiniWebsite for products & offers: ${urlProf}`;
         const noteRaw = v.note ? `${String(v.note)}\n\n${noteTail}` : noteTail;
@@ -666,7 +643,7 @@ Thanks a lot for your support \u{1F64F}`;
                     'VERSION:3.0',
                     `N:;${e(heroName)};;;`,
                     `FN:${e(heroName)}`,
-                    phone ? `TEL;TYPE=CELL,VOICE:${phone.replace(/\s/g, '')}` : '',
+                    phone ? `TEL;TYPE=WORK,VOICE:${phone.replace(/\s/g, '')}` : '',
                     email ? `EMAIL;TYPE=INTERNET:${e(email)}` : '',
                     shareUrl ? `URL;TYPE=WORK:${e(shareUrl)}` : '',
                     shareUrl ? `NOTE:${e(`Visit my MiniWebsite for products & offers: ${shareUrl}`)}` : '',

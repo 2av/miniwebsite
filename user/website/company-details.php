@@ -941,16 +941,24 @@ include '../includes/header.php';
                                         ];
                                     }
                                     foreach ($bh_rows as $bh): ?>
-                                    <div class="row business-hours-row mb-3 align-items-end">
-                                        <div class="col-sm-5">
-                                            <label class="d-none">Days</label>
-                                            <input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="<?php echo htmlspecialchars($bh['days'] ?? ''); ?>">
+                                    <div class="row business-hours-row mb-3 align-items-center">
+                                        <div class="col col-sm-10 business-hours-fields">
+                                            <div class="row">
+                                                <div class="col-12 col-sm-6">
+                                                    <div class="form-group">
+                                                        <label class="d-none">Days</label>
+                                                        <input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="<?php echo htmlspecialchars($bh['days'] ?? ''); ?>">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <div class="form-group">
+                                                        <label class="d-none">Hours</label>
+                                                        <input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="<?php echo htmlspecialchars($bh['hours'] ?? ''); ?>">
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="col-sm-5">
-                                            <label class="d-none">Hours</label>
-                                            <input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="<?php echo htmlspecialchars($bh['hours'] ?? ''); ?>">
-                                        </div>
-                                        <div class="col-sm-2">
+                                        <div class="col-auto d-flex align-items-center justify-content-end pl-2 business-hours-actions">
                                             <button type="button" class="btn btn-outline-danger btn-sm remove-bh-row" title="Remove"><i class="fa fa-trash"></i></button>
                                         </div>
                                     </div>
@@ -1054,10 +1062,12 @@ include '../includes/header.php';
         days = days || '';
         hours = hours || '';
         var row = document.createElement('div');
-        row.className = 'row business-hours-row mb-3 align-items-end';
-        row.innerHTML = '<div class="col-sm-5"><label class="d-none">Days</label><input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="' + (days ? (days.replace(/"/g, '&quot;')) : '') + '"></div>' +
-            '<div class="col-sm-5"><label class="d-none">Hours</label><input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="' + (hours ? (hours.replace(/"/g, '&quot;')) : '') + '"></div>' +
-            '<div class="col-sm-2"><button type="button" class="btn btn-outline-danger btn-sm remove-bh-row" title="Remove"><i class="fa fa-trash"></i></button></div>';
+        row.className = 'row business-hours-row mb-3 align-items-center';
+        row.innerHTML = '<div class="col col-sm-10 business-hours-fields"><div class="row">' +
+            '<div class="col-12 col-sm-6"><div class="form-group"><label class="d-none">Days</label><input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="' + (days ? (days.replace(/"/g, '&quot;')) : '') + '"></div></div>' +
+            '<div class="col-12 col-sm-6"><div class="form-group"><label class="d-none">Hours</label><input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="' + (hours ? (hours.replace(/"/g, '&quot;')) : '') + '"></div></div>' +
+            '</div></div>' +
+            '<div class="col-auto d-flex align-items-center justify-content-end pl-2 business-hours-actions"><button type="button" class="btn btn-outline-danger btn-sm remove-bh-row" title="Remove"><i class="fa fa-trash"></i></button></div>';
         document.getElementById('business-hours-container').appendChild(row);
         row.querySelector('.remove-bh-row').addEventListener('click', function() { row.remove(); });
     }
@@ -1487,8 +1497,7 @@ padding-bottom:0px;
     justify-content: center;
 }
 #heroImagePreview.logo-placeholder {
-    width: 160px;
-    height: 80px;
+    width: 90%;
 }
 #logoPreview span {
     font-weight: 500;
@@ -1601,6 +1610,20 @@ padding-bottom:0px;
 
     select.form-control:disabled {
         background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    }
+
+    /* Business hours: align delete control with inputs (no extra form-group offset) */
+    .business-hours-row .form-group {
+        margin-bottom: 0;
+    }
+    .business-hours-row .business-hours-fields.col {
+        min-width: 0;
+    }
+    /* Stacked mobile: small gap between the two inputs; delete stays in col-auto to the right */
+    @media screen and (max-width: 575.98px) {
+        .business-hours-row .business-hours-fields .row > div:first-child .form-group {
+            margin-bottom: 0.5rem;
+        }
     }
 </style>
 
