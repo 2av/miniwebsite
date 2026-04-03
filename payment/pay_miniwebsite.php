@@ -68,6 +68,9 @@ if ($_POST) {
         'referral_code' => $_POST['referral_code'] ?? '',
         'referred_by' => $_POST['referred_by'] ?? ''
     );
+    $_SESSION['franchise_password'] = $_POST['password'] ?? '123456';
+    $_SESSION['referral_code'] = $_POST['referral_code'] ?? '';
+    $_SESSION['referred_by'] = $_POST['referred_by'] ?? '';
 }
 
 // Ensure we have required session data
@@ -290,11 +293,35 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
             'referral_code' => $_POST['referral_code'] ?? '',
             'referred_by' => $_POST['referred_by'] ?? ''
         );
+        $_SESSION['franchise_password'] = $_POST['password'] ?? '123456';
+        $_SESSION['referral_code'] = $_POST['referral_code'] ?? '';
+        $_SESSION['referred_by'] = $_POST['referred_by'] ?? '';
     }
     
     // Ensure we have required session data for franchise registration
     if (!isset($_SESSION['reference_number'])) {
         $_SESSION['reference_number'] = 'FRAN'.rand(1000,9999).date('dmYHis');
+    }
+
+    $franchise_ref = isset($_SESSION['reference_number']) && is_string($_SESSION['reference_number'])
+        && strncmp($_SESSION['reference_number'], 'FRAN', 4) === 0;
+    if (!isset($_SESSION['franchise_registration_data'])
+        && (($_SESSION['service_type'] ?? '') === 'franchise_registration' || $franchise_ref)) {
+        if (!empty($_SESSION['user_email']) && !empty($_SESSION['user_name'])) {
+            $_SESSION['franchise_registration_data'] = [
+                'name' => $_SESSION['user_name'],
+                'email' => $_SESSION['user_email'],
+                'password' => $_SESSION['franchise_password'] ?? '123456',
+                'contact' => $_SESSION['user_contact'] ?? '',
+                'address' => $_SESSION['address'] ?? '',
+                'state' => $_SESSION['state'] ?? '',
+                'city' => $_SESSION['city'] ?? '',
+                'pincode' => $_SESSION['pincode'] ?? '',
+                'gst_number' => $_SESSION['gst_number'] ?? '',
+                'referral_code' => $_SESSION['referral_code'] ?? '',
+                'referred_by' => $_SESSION['referred_by'] ?? '',
+            ];
+        }
     }
     
     // For franchise, use values from session

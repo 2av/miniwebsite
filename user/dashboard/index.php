@@ -623,7 +623,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                     <?php if($row['complimentary_enabled'] == 'Yes') { ?>
                                         <span class="badge bg-info">Complimentary</span>
                                     <?php } else if($payment_status != 'Success') { ?>
-                                        <button class="btn btn-primary paynow_btn" onclick="window.location.href='<?php echo $assets_base; ?>/payment/pay_miniwebsite.php?id=<?php echo $row['id']; ?>&source=<?php echo strtolower($current_role); ?>'">Pay Now</button>
+                                        <button type="button" class="btn btn-primary paynow_btn" onclick="window.open('<?php echo htmlspecialchars($assets_base . '/payment/pay_miniwebsite.php?id=' . (int) $row['id'] . '&source=' . rawurlencode(strtolower($current_role)), ENT_QUOTES, 'UTF-8'); ?>', '_blank', 'noopener,noreferrer')">Pay Now</button>
                                     <?php } else { 
                                         $paid_on = !empty($row['d_payment_date']) ? date('d-m-Y', strtotime($row['d_payment_date'])) : '';
                                         if ($paid_on) { ?>

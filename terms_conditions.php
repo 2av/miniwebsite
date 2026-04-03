@@ -1,13 +1,7 @@
 <?php
-// Database connection
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
+require_once __DIR__ . '/app/config/database.php';
 
 try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    
     // Get terms and conditions content
     $query = mysqli_query($connect, "SELECT * FROM content_management WHERE content_type='terms_conditions' AND is_active=1");
     

@@ -1,20 +1,5 @@
 <?php
-session_start();
-
-// Database connection
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
-
-try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    if ($connect->connect_error) {
-        die("Connection failed: " . $connect->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database connection error: " . $e->getMessage());
-}
+require_once __DIR__ . '/../app/config/database.php';
 
 // Get payment details from URL parameters
 $ref = $_GET['ref'] ?? '';

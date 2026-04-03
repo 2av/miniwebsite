@@ -1,25 +1,13 @@
 <?php
-// Start session at the very beginning, before any HTML output
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/app/config/database.php';
 
 // Get email from URL parameter
 $prefill_email = isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '';
 
 // Database connection and fetch user details
 $user_data = null;
-$connect = null;
-
-// Database connection
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
 
 try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    
     // Get franchisee distributor agreement content
     $content_query = mysqli_query($connect, "SELECT * FROM content_management WHERE content_type='franchisee_distributer' AND is_active=1");
     

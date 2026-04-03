@@ -3,7 +3,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-session_start();
+require_once __DIR__ . '/../app/config/database.php';
 
 // Log session data for debugging
 error_log("Verify.php - Session data: " . print_r($_SESSION, true));
@@ -202,28 +202,6 @@ function sendBasicEmail($to, $subject, $message) {
     }
 }
 
-// Database connection
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
-
-try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    
-    // Check connection
-    if ($connect->connect_error) {
-        throw new Exception("Connection failed: " . $connect->connect_error);
-    }
-    
-    // Set charset to utf8
-    $connect->set_charset("utf8");
-    
-} catch (Exception $e) {
-    error_log("Database connection error: " . $e->getMessage());
-    die("Database connection error: " . $e->getMessage());
-}
-
 // Razorpay credentials
 $keyId = 'rzp_live_xU57a1JhH7To1G';
 $keySecret = 'VHJzQnCxqF5HTNsE3LUTZtnI';
@@ -248,9 +226,13 @@ if ($test_mode && isset($_SESSION['user_email']) && in_array($_SESSION['user_ema
         $api = new Api($keyId, $keySecret);
 
         try {
-            // Verify the payment signature
+            $order_id = $_POST['razorpay_order_id'] ?? $_SESSION['razorpay_order_id'] ?? '';
+            if ($order_id !== '') {
+                $_SESSION['razorpay_order_id'] = $order_id;
+            }
+            // Verify the payment signature (order_id must match the one used at checkout; POST is authoritative)
             $attributes = array(
-                 'razorpay_order_id' => $_SESSION['razorpay_order_id'],
+                'razorpay_order_id' => $order_id,
                 'razorpay_payment_id' => $_POST['razorpay_payment_id'],
                 'razorpay_signature' => $_POST['razorpay_signature']
             );
@@ -265,6 +247,167 @@ if ($test_mode && isset($_SESSION['user_email']) && in_array($_SESSION['user_ema
 
 if ($success === true) {
     $date = date('Y-m-d H:i:s');
+
+    if (!isset($_SESSION['reference_number']) || $_SESSION['reference_number'] === '') {
+        if (!empty($_POST['shopping_order_id'])) {
+            $_SESSION['reference_number'] = preg_replace('/[^A-Za-z0-9\/\-_.]/', '', (string) $_POST['shopping_order_id']);
+        }
+    }
+
+    // Mini website customer/card payment (?id= on pay_miniwebsite.php) — not franchise
+    if (($_SESSION['service_type'] ?? '') === 'card_payment' && !empty($_SESSION['card_id'])) {
+        if (!isset($_SESSION['reference_number']) || $_SESSION['reference_number'] === '') {
+            error_log('ERROR: reference_number missing (card payment)');
+            die('Payment verification failed: Missing reference number. Please try again.');
+        }
+        $card_id_int = (int) $_SESSION['card_id'];
+        if ($card_id_int < 1) {
+            die('Payment verification failed: Invalid card session. Please try again.');
+        }
+        $cid_esc = mysqli_real_escape_string($connect, (string) $card_id_int);
+        $amount_paid = isset($_SESSION['final_total']) ? (float) $_SESSION['final_total'] : (float) ($_SESSION['amount'] ?? 0);
+        $amt_esc = mysqli_real_escape_string($connect, (string) $amount_paid);
+        $date_esc = mysqli_real_escape_string($connect, $date);
+        $upd_card = mysqli_query($connect, "UPDATE digi_card SET 
+            d_payment_status = 'Success',
+            d_payment_date = '$date_esc',
+            d_card_status = 'Active',
+            d_payment_amount = '$amt_esc',
+            validity_date = DATE_ADD(NOW(), INTERVAL 1 YEAR)
+            WHERE id = '$cid_esc' LIMIT 1");
+        if (!$upd_card) {
+            error_log('verify_miniwebsite card: digi_card update failed: ' . mysqli_error($connect));
+            die('Payment verification failed: Could not activate your website. Please contact support with your Razorpay payment ID.');
+        }
+
+        $last_invoice_query = mysqli_query($connect, "SELECT MAX(CAST(SUBSTRING_INDEX(invoice_number, '/', -1) AS UNSIGNED)) as last_number FROM invoice_details WHERE invoice_number LIKE 'KIR/%'");
+        $last_invoice_result = mysqli_fetch_array($last_invoice_query);
+        $next_number = ($last_invoice_result['last_number'] ?? 0) + 1;
+        $invoice_number = 'KIR/' . str_pad((string) $next_number, 5, '0', STR_PAD_LEFT);
+        $invoice_date = date('Y-m-d');
+        $current_timestamp = date('Y-m-d H:i:s');
+
+        $original_amount = isset($_SESSION['original_amount']) ? (float) $_SESSION['original_amount'] : $amount_paid;
+        $discount_amount = isset($_SESSION['discount_amount']) ? (float) $_SESSION['discount_amount'] : 0.0;
+        $subtotal_amount = isset($_SESSION['subtotal_amount']) ? (float) $_SESSION['subtotal_amount'] : max(0.0, $original_amount - $promo_discount);
+        $cgst_amount = isset($_SESSION['cgst_amount']) ? (float) $_SESSION['cgst_amount'] : 0.0;
+        $sgst_amount = isset($_SESSION['sgst_amount']) ? (float) $_SESSION['sgst_amount'] : 0.0;
+        $igst_amount = isset($_SESSION['igst_amount']) ? (float) $_SESSION['igst_amount'] : 0.0;
+        $final_total = isset($_SESSION['final_total']) ? (float) $_SESSION['final_total'] : $amount_paid;
+        $promo_code = $_SESSION['promo_code'] ?? '';
+        $promo_discount = isset($_SESSION['promo_discount']) ? (float) $_SESSION['promo_discount'] : 0.0;
+
+        $bill_name = $_SESSION['billing_gst_name'] ?? $_SESSION['user_name'] ?? '';
+        $bill_email = $_SESSION['billing_gst_email'] ?? $_SESSION['user_email'] ?? '';
+        $bill_contact = $_SESSION['billing_gst_contact'] ?? $_SESSION['user_contact'] ?? '';
+        $bill_addr = $_SESSION['billing_gst_address'] ?? '';
+        $bill_state = $_SESSION['billing_gst_state'] ?? '';
+        $bill_city = $_SESSION['billing_gst_city'] ?? '';
+        $bill_pin = $_SESSION['billing_gst_pincode'] ?? '';
+        $bill_gst = $_SESSION['billing_gst_number'] ?? '';
+
+        $u_email = $_SESSION['user_email'] ?? '';
+        $u_name = $_SESSION['user_name'] ?? '';
+        $u_contact = $_SESSION['user_contact'] ?? '';
+
+        $rz_order = $_POST['razorpay_order_id'] ?? $_SESSION['razorpay_order_id'] ?? $_SESSION['reference_number'];
+        $rz_pay = $_POST['razorpay_payment_id'] ?? '';
+        $rz_sig = $_POST['razorpay_signature'] ?? '';
+        $ref_num = $_SESSION['reference_number'];
+
+        $unit_price = $final_total;
+        $total_price = $final_total;
+        $sub_total = $subtotal_amount;
+        $total_amount = $final_total;
+        $gst_percentage = 18;
+        $hsn_sac_code = '998314';
+        $service_name = 'Mini Website Subscription';
+
+        $invoice_insert_query = "INSERT INTO invoice_details (
+            invoice_number, invoice_date, card_id, user_email, user_name, user_contact,
+            billing_name, billing_email, billing_contact, billing_address, billing_state, 
+            billing_city, billing_pincode, billing_gst_number, original_amount, discount_amount, 
+            final_amount, promo_code, promo_discount, razorpay_order_id, razorpay_payment_id, 
+            razorpay_signature, payment_status, payment_date, service_name, service_description,
+            hsn_sac_code, quantity, unit_price, total_price, sub_total, igst_percentage, 
+            igst_amount, cgst_amount, sgst_amount, total_amount, payment_type, reference_number, created_at, updated_at
+        ) VALUES (
+            '" . mysqli_real_escape_string($connect, $invoice_number) . "',
+            '" . mysqli_real_escape_string($connect, $invoice_date) . "',
+            '" . $cid_esc . "',
+            '" . mysqli_real_escape_string($connect, $u_email) . "',
+            '" . mysqli_real_escape_string($connect, $u_name) . "',
+            '" . mysqli_real_escape_string($connect, $u_contact) . "',
+            '" . mysqli_real_escape_string($connect, $bill_name) . "',
+            '" . mysqli_real_escape_string($connect, $bill_email) . "',
+            '" . mysqli_real_escape_string($connect, $bill_contact) . "',
+            '" . mysqli_real_escape_string($connect, $bill_addr) . "',
+            '" . mysqli_real_escape_string($connect, $bill_state) . "',
+            '" . mysqli_real_escape_string($connect, $bill_city) . "',
+            '" . mysqli_real_escape_string($connect, $bill_pin) . "',
+            '" . mysqli_real_escape_string($connect, $bill_gst) . "',
+            '" . mysqli_real_escape_string($connect, $original_amount) . "',
+            '" . mysqli_real_escape_string($connect, $discount_amount) . "',
+            '" . mysqli_real_escape_string($connect, $final_total) . "',
+            '" . mysqli_real_escape_string($connect, $promo_code) . "',
+            '" . mysqli_real_escape_string($connect, $promo_discount) . "',
+            '" . mysqli_real_escape_string($connect, $rz_order) . "',
+            '" . mysqli_real_escape_string($connect, $rz_pay) . "',
+            '" . mysqli_real_escape_string($connect, $rz_sig) . "',
+            'Success',
+            '" . mysqli_real_escape_string($connect, $date) . "',
+            '" . mysqli_real_escape_string($connect, $service_name) . "',
+            '" . mysqli_real_escape_string($connect, $service_name) . "',
+            '" . mysqli_real_escape_string($connect, $hsn_sac_code) . "',
+            '1',
+            '" . mysqli_real_escape_string($connect, $unit_price) . "',
+            '" . mysqli_real_escape_string($connect, $total_price) . "',
+            '" . mysqli_real_escape_string($connect, $sub_total) . "',
+            '" . mysqli_real_escape_string($connect, $gst_percentage) . "',
+            '" . mysqli_real_escape_string($connect, $igst_amount) . "',
+            '" . mysqli_real_escape_string($connect, $cgst_amount) . "',
+            '" . mysqli_real_escape_string($connect, $sgst_amount) . "',
+            '" . mysqli_real_escape_string($connect, $total_amount) . "',
+            'Regular',
+            '" . mysqli_real_escape_string($connect, $ref_num) . "',
+            '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+            '" . mysqli_real_escape_string($connect, $current_timestamp) . "'
+        )";
+
+        $invoice_result = mysqli_query($connect, $invoice_insert_query);
+        if (!$invoice_result) {
+            error_log('verify_miniwebsite card: invoice insert failed: ' . mysqli_error($connect));
+        }
+
+        $_SESSION['invoice_number'] = $invoice_number;
+        $payment_id = $rz_pay !== '' ? $rz_pay : ('pay_' . time());
+        echo '<div class="payment_confirmation">Your Payment Successful. Please wait we are redirecting...</div>';
+        echo '<meta http-equiv="refresh" content="3;URL=../user/invoice/download_receipt.php?ref=' . rawurlencode($ref_num) . '&payment_id=' . rawurlencode($payment_id) . '">';
+        exit;
+    }
+
+    $ref = $_SESSION['reference_number'] ?? '';
+    $franchise_flow = ($_SESSION['service_type'] ?? '') === 'franchise_registration'
+        || (is_string($ref) && strncmp($ref, 'FRAN', 4) === 0);
+
+    if (!isset($_SESSION['franchise_registration_data']) && $franchise_flow) {
+        if (!empty($_SESSION['user_email']) && !empty($_SESSION['user_name'])) {
+            $_SESSION['franchise_registration_data'] = [
+                'name' => $_SESSION['user_name'],
+                'email' => $_SESSION['user_email'],
+                'password' => $_SESSION['franchise_password'] ?? '123456',
+                'contact' => $_SESSION['user_contact'] ?? '',
+                'address' => $_SESSION['address'] ?? '',
+                'state' => $_SESSION['state'] ?? '',
+                'city' => $_SESSION['city'] ?? '',
+                'pincode' => $_SESSION['pincode'] ?? '',
+                'gst_number' => $_SESSION['gst_number'] ?? '',
+                'referral_code' => $_SESSION['referral_code'] ?? '',
+                'referred_by' => $_SESSION['referred_by'] ?? '',
+            ];
+            error_log("verify_miniwebsite: rebuilt franchise_registration_data from session (flat keys)");
+        }
+    }
     
     // Check if required session variables exist
     if (!isset($_SESSION['franchise_registration_data'])) {
@@ -272,7 +415,7 @@ if ($success === true) {
         die("Payment verification failed: Missing registration data. Please try again.");
     }
     
-    if (!isset($_SESSION['reference_number'])) {
+    if (!isset($_SESSION['reference_number']) || $_SESSION['reference_number'] === '') {
         error_log("ERROR: reference_number not found in session");
         die("Payment verification failed: Missing reference number. Please try again.");
     }
@@ -562,7 +705,9 @@ if ($success === true) {
     
     // Redirect to receipt page with both reference number and payment ID
     $payment_id = $_POST['razorpay_payment_id'] ?? 'test_payment_' . time();
-    echo '<meta http-equiv="refresh" content="3;URL=download_receipt.php?ref=' . $_SESSION['reference_number'] . '&payment_id=' . $payment_id . '">';
+    $ref_out = rawurlencode((string) $_SESSION['reference_number']);
+    $pay_out = rawurlencode((string) $payment_id);
+    echo '<meta http-equiv="refresh" content="3;URL=../user/invoice/download_receipt.php?ref=' . $ref_out . '&payment_id=' . $pay_out . '">';
 } else {
     ?>
     <!DOCTYPE html>

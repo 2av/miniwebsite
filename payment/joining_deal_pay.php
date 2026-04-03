@@ -1,35 +1,11 @@
 <?php
-session_start();
-
-// Include database connection - use the correct path
- 
-// Database configuration
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
-
-// Create database connection
-try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    if ($connect->connect_error) {
-        die("Connection failed: " . $connect->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database connection error: " . $e->getMessage());
-}
-
-// Set charset
-$connect->set_charset("utf8");
+require_once __DIR__ . '/../app/config/database.php';
 
 // Razorpay configuration
 $keyId = 'rzp_live_xU57a1JhH7To1G';
 $keySecret = 'VHJzQnCxqF5HTNsE3LUTZtnI';
 $displayCurrency = 'INR';
 
-// Set timezone
-date_default_timezone_set("Asia/Kolkata");
- 
 // Process form data if coming from franchisee-distributer-agreement.php
 if ($_POST) {
     $_SESSION['gst_number'] = $_POST['gst_number'] ?? '';

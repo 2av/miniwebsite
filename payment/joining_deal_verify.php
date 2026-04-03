@@ -3,38 +3,16 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-session_start();
+require_once __DIR__ . '/../app/config/database.php';
 
 // Log session data for debugging
 error_log("Joining Deal Verify.php - Session data: " . print_r($_SESSION, true));
 error_log("Joining Deal Verify.php - POST data: " . print_r($_POST, true));
 
-require_once(__DIR__ . '/../vendor/autoload.php');');
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Razorpay\Api\Api;
 use Razorpay\Api\Errors\SignatureVerificationError;
-
-// Database connection
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
-
-try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    
-    // Check connection
-    if ($connect->connect_error) {
-        throw new Exception("Connection failed: " . $connect->connect_error);
-    }
-    
-    // Set charset to utf8
-    $connect->set_charset("utf8");
-    
-} catch (Exception $e) {
-    error_log("Database connection error: " . $e->getMessage());
-    die("Database connection error: " . $e->getMessage());
-}
 
 // Razorpay credentials
 $keyId = 'rzp_live_xU57a1JhH7To1G';

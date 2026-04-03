@@ -494,7 +494,7 @@ try {
 ?>
 
 <!-- Hidden form for Razorpay -->
-<form action="verify.php" method="POST" name="razorpayform" style="display:none;">
+<form action="verify_miniwebsite.php" method="POST" name="razorpayform" style="display:none;">
     <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
     <input type="hidden" name="razorpay_signature" id="razorpay_signature">
     <input type="hidden" name="razorpay_order_id" id="razorpay_order_id" value="<?php echo $razorpayOrderId; ?>">

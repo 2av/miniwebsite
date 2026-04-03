@@ -29,7 +29,7 @@ function getDatabaseConnection() {
     } elseif ($_SERVER['HTTP_HOST'] == "localhost") {
         $connect = mysqli_connect("localhost", "root", "", "digicard") or die('Database not available...');
     } else {
-        $connect = mysqli_connect("localhost", "miniweb_vcard", "miniweb_vcard", "miniweb_vcard") or die('Connection issue #567844 Error');
+        require_once __DIR__ . '/app/config/database.php';
     }
     
     return $connect;

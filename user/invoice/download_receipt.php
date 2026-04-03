@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../app/config/database.php';
 
 // Get parameters - make payment_id optional for franchise receipts
 $reference_number = $_GET['ref'] ?? '';
@@ -7,18 +7,6 @@ $payment_id = $_GET['payment_id'] ?? 'N/A';
 
 if (empty($reference_number)) {
     die('Invalid receipt request - Reference number missing');
-}
-
-// Database connection
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
-
-try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-} catch (Exception $e) {
-    die("Database connection error: " . $e->getMessage());
 }
 
 // All data will come from invoice_details table - no need for franchise data fallback

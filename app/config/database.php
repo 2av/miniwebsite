@@ -36,6 +36,9 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     if ($connect->connect_error) {
         die("Database connection failed: " . $connect->connect_error);
     }
+    $connect->set_charset('utf8');
+    // So includes from function scope (e.g. contact_download) still populate global helpers
+    $GLOBALS['connect'] = $connect;
 
 
 // Current date/time

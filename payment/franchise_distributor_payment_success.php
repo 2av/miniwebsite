@@ -1,24 +1,7 @@
 <?php
-// Start session at the very beginning
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Database connection
-$db_host = "p004.bom1.mysecurecloudhost.com";
-$db_user = "wwwmoody_miniweb_vcard";
-$db_pass = "miniweb_vcard";
-$db_name = "miniweb_vcard";
-
-$connect = null;
+require_once __DIR__ . '/../app/config/database.php';
 
 try {
-    $connect = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    
-    if ($connect->connect_error) {
-        throw new Exception("Connection failed: " . $connect->connect_error);
-    }
-    
     // Get payment details from POST data
     $user_email = isset($_POST['email']) ? trim($_POST['email']) : '';
     $transaction_id = isset($_POST['transaction_id']) ? trim($_POST['transaction_id']) : '';
@@ -114,10 +97,6 @@ try {
         'success' => false,
         'message' => 'Payment processing failed: ' . $e->getMessage()
     ]);
-} finally {
-    if ($connect) {
-        $connect->close();
-    }
 }
 ?>
 
