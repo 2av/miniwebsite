@@ -236,6 +236,65 @@ function mw_demo_card_product_image_src($product_image, $default_image, $assets_
     return $default_image;
 }
 
+/** Normalize DB date for special offer (DATE / invalid sentinels). */
+function mw_demo_clean_offer_date($raw) {
+    $d = trim((string) ($raw ?? ''));
+    if ($d === '' || $d === '0000-00-00' || strpos($d, '0000-00-00') === 0) {
+        return '';
+    }
+    return $d;
+}
+
+/** One line: formatted date (j M Y) or ''. */
+function mw_demo_format_offer_date_part($raw) {
+    $d = mw_demo_clean_offer_date($raw);
+    if ($d === '') {
+        return '';
+    }
+    $t = strtotime($d);
+    return $t ? date('j M Y', $t) : $d;
+}
+
+/** One line: formatted time (g:i A) or ''. */
+function mw_demo_format_offer_time_part($raw) {
+    $t = trim((string) ($raw ?? ''));
+    if ($t === '') {
+        return '';
+    }
+    $dt = DateTime::createFromFormat('H:i:s', $t) ?: DateTime::createFromFormat('H:i', $t);
+    return $dt ? $dt->format('g:i A') : $t;
+}
+
+/**
+ * Start = start date + start time; End = end date + end time (comma-separated when both set).
+ *
+ * @return array{start: string, end: string} plain text, not escaped
+ */
+function mw_demo_offer_start_end_display($start_date, $end_date, $start_time, $end_time) {
+    $start_parts = [];
+    $ds = mw_demo_format_offer_date_part($start_date);
+    $ts = mw_demo_format_offer_time_part($start_time);
+    if ($ds !== '') {
+        $start_parts[] = $ds;
+    }
+    if ($ts !== '') {
+        $start_parts[] = $ts;
+    }
+    $end_parts = [];
+    $de = mw_demo_format_offer_date_part($end_date);
+    $te = mw_demo_format_offer_time_part($end_time);
+    if ($de !== '') {
+        $end_parts[] = $de;
+    }
+    if ($te !== '') {
+        $end_parts[] = $te;
+    }
+    return [
+        'start' => implode(', ', $start_parts),
+        'end' => implode(', ', $end_parts),
+    ];
+}
+
 // Try to load from database when card_id provided
 if (!empty($card_id_slug)) {
     $db_config = dirname(__DIR__) . '/app/config/database.php';
@@ -417,7 +476,7 @@ if ($row) {
 
     // Special offers from card_special_offers
     $offers = [];
-    $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge FROM card_special_offers WHERE card_id='$card_db_id' AND status='Active' ORDER BY display_order ASC");
+    $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge, start_date, end_date, start_time, end_time FROM card_special_offers WHERE card_id='$card_db_id' AND status='Active' ORDER BY display_order ASC");
     if ($off_query) {
         while ($o = mysqli_fetch_assoc($off_query)) {
             if (!empty($o['offer_title'])) {
@@ -425,18 +484,26 @@ if ($row) {
                 if (!empty($o['offer_image']) && strpos($o['offer_image'], '.') !== false) {
                     $img = '../assets/upload/websites/special-offers/' . htmlspecialchars($o['offer_image']);
                 }
+                $sched = mw_demo_offer_start_end_display(
+                    $o['start_date'] ?? null,
+                    $o['end_date'] ?? null,
+                    $o['start_time'] ?? null,
+                    $o['end_time'] ?? null
+                );
                 $offers[] = [
                     'title' => htmlspecialchars($o['offer_title']),
                     'desc' => htmlspecialchars($o['offer_description'] ?? ''),
                     'image' => $img,
                     'badge' => !empty($o['badge']) ? htmlspecialchars($o['badge']) : (!empty($o['discount_percentage']) ? $o['discount_percentage'] . '% OFF' : 'OFFER'),
+                    'offer_start' => $sched['start'] !== '' ? htmlspecialchars($sched['start']) : '',
+                    'offer_end' => $sched['end'] !== '' ? htmlspecialchars($sched['end']) : '',
                 ];
             }
         }
     }
     if (empty($offers)) {
         $offers = [
-            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER'],
+            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER', 'offer_start' => '', 'offer_end' => ''],
         ];
     }
 
@@ -1093,6 +1160,16 @@ if ($row) {
                 </div>
                 <div class="p-5">
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $off['title']; ?></h3>
+                    <?php if (!empty($off['offer_start'] ?? '') || !empty($off['offer_end'] ?? '')): ?>
+                    <div class="flex flex-col gap-1.5 text-xs text-textmain mt-2 mb-1">
+                        <?php if (!empty($off['offer_start'] ?? '')): ?>
+                        <p class="flex items-start gap-2 leading-snug"><span class="text-primary mt-0.5 flex-shrink-0" aria-hidden="true"><i class="fas fa-calendar-plus"></i></span><span><span class="font-medium text-heading">Start: </span> <?php echo $off['offer_start']; ?></span></p>
+                        <?php endif; ?>
+                        <?php if (!empty($off['offer_end'] ?? '')): ?>
+                        <p class="flex items-start gap-2 leading-snug"><span class="text-primary mt-0.5 flex-shrink-0" aria-hidden="true"><i class="fas fa-calendar-check"></i></span><span><span class="font-medium text-heading">End: </span> <?php echo $off['offer_end']; ?></span></p>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                     <p class="mw-offer-desc-preview text-sm text-textmain line-clamp-1"><?php echo !empty($off['desc']) ? htmlspecialchars($off['desc']) : 'Contact us for details.'; ?></p>
                     <div class="mw-offer-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($off['desc']) ? nl2br(htmlspecialchars($off['desc'])) : 'Contact us for details.'; ?></div>
                     <button type="button" class="mw-offer-read-more text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
