@@ -1,1496 +1,1489 @@
 <?php
-require_once(__DIR__ . '/app/config/database.php');
-
-// Load email configuration
-$email_config_paths = [
-    __DIR__ . '/app/config/email.php',
-    __DIR__ . '/common/email_config.php'
-];
-foreach($email_config_paths as $email_config_path) {
-    if(file_exists($email_config_path)) {
-        require_once($email_config_path);
-        break;
-    }
-}
-
-// Add autoloader for Composer packages
-// Check multiple possible locations for vendor/autoload.php
-$vendor_paths = [
-    __DIR__ . '/old/vendor/autoload.php',
-    __DIR__ . '/vendor/autoload.php',
-    __DIR__ . '/../vendor/autoload.php'
-];
-
-$vendor_loaded = false;
-foreach($vendor_paths as $vendor_path) {
-    if(file_exists($vendor_path)) {
-        require_once $vendor_path;
-        $vendor_loaded = true;
-        break;
-    }
-}
-
-if(!$vendor_loaded) {
-    // If vendor autoload is not found, try to load PHPMailer directly
-    $phpmailer_paths = [
-        __DIR__ . '/old/vendor/phpmailer/phpmailer/src/PHPMailer.php',
-        __DIR__ . '/vendor/phpmailer/phpmailer/src/PHPMailer.php'
-    ];
-    
-    foreach($phpmailer_paths as $phpmailer_path) {
-        if(file_exists($phpmailer_path)) {
-            require_once $phpmailer_path;
-            require_once dirname($phpmailer_path) . '/SMTP.php';
-            require_once dirname($phpmailer_path) . '/Exception.php';
-            break;
-        }
-    }
-}
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+/**
+ * MiniWebsite card template - data from database (digi_card) or fallback demo data
+ * Access: n.php?n=card_id_slug (loads from DB) or n.php (uses demo data)
+ */
+$thumbnail_config = __DIR__ . '/app/config/thumbnail_api.php';
+if (file_exists($thumbnail_config)) require_once $thumbnail_config;
 
 /**
- * Function to send email with proper formatting and multiple recipients using PHPMailer with SMTP
- *
- * @param string $to Primary recipient email
- * @param string $subject Email subject
- * @param string $message_content Message content
- * @param array $sender Sender information (name, email)
- * @param array $additional_recipients Additional recipients (cc, bcc)
- * @return boolean Success or failure
+ * Fetch thumbnail URL for Instagram, Facebook, TikTok via LinkPreview API or direct og:image.
  */
-function send_formatted_email($to, $subject, $message_content, $sender, $additional_recipients = []) {
-    // Validate email addresses
-    $to = filter_var($to, FILTER_SANITIZE_EMAIL);
-    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-        return false; // Invalid primary recipient
-    }
+function fetchVideoOgThumb($url, $timeout = 4) {
+    static $cache = [];
+    $url = trim($url);
+    $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+    $key = md5($fetchUrl);
+    if (isset($cache[$key])) return $cache[$key];
+    $clean = preg_replace('#^https?://#', '', $fetchUrl);
+    $isSocial = (strpos($clean, 'instagram.com') !== false || strpos($clean, 'facebook.com') !== false ||
+                 strpos($clean, 'fb.') !== false || strpos($clean, 'tiktok.com') !== false);
+    if (!$isSocial) { $cache[$key] = null; return null; }
 
-    // Sanitize sender information
-    $sender_name = isset($sender['name']) ? trim(preg_replace('/[\r\n\t\f\v]/', '', $sender['name'])) : '';
-    $sender_email = isset($sender['email']) ? filter_var($sender['email'], FILTER_SANITIZE_EMAIL) : '';
-
-    if (!filter_var($sender_email, FILTER_VALIDATE_EMAIL)) {
-        // Use default sender from config if available, otherwise use a fallback
-        $sender_email = defined('DEFAULT_FROM_EMAIL') ? DEFAULT_FROM_EMAIL : 'support@miniwebsite.in';
-        $sender_name = defined('DEFAULT_FROM_NAME') ? DEFAULT_FROM_NAME : 'MiniWebsite Support';
-    }
-
-    // Create HTML message with proper encoding
-    $html_message = "<!DOCTYPE html>\n<html>\n<head>\n";
-    $html_message .= "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n";
-    $html_message .= "<title>" . htmlspecialchars($subject) . "</title>\n";
-    $html_message .= "</head>\n<body>\n";
-    $html_message .= $message_content;
-    $html_message .= "\n</body>\n</html>";
-
-    try {
-        // Create a new PHPMailer instance
-        $mail = new PHPMailer(true);
-
-        // Server settings
-        $mail->isSMTP();                                      // Use SMTP
-        $mail->Host       = SMTP_HOST;                        // SMTP server address
-        $mail->SMTPAuth   = SMTP_AUTH;                        // Enable SMTP authentication
-        $mail->Username   = SMTP_USERNAME;                    // SMTP username
-        $mail->Password   = SMTP_PASSWORD;                    // SMTP password
-        $mail->SMTPSecure = SMTP_SECURE;                      // Enable SSL encryption
-        $mail->Port       = SMTP_PORT;                        // TCP port to connect to
-        $mail->CharSet    = 'UTF-8';
-
-        // Additional SMTP settings for better compatibility
-        $mail->SMTPOptions = array(
-            'ssl' => array(
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            )
-        );
-        $mail->setLanguage('en'); // Set language to English
-
-        // Recipients
-        $mail->setFrom($sender_email, $sender_name);
-        $mail->addAddress($to);                              // Add a recipient
-        $mail->addReplyTo($sender_email, $sender_name);
-
-        // Add CC recipients if provided
-        if (!empty($additional_recipients['cc'])) {
-            $cc_email = filter_var($additional_recipients['cc'], FILTER_SANITIZE_EMAIL);
-            if (filter_var($cc_email, FILTER_VALIDATE_EMAIL)) {
-                $mail->addCC($cc_email);
-            }
-        }
-
-        // Add BCC recipients if provided
-        if (!empty($additional_recipients['bcc'])) {
-            $bcc_email = filter_var($additional_recipients['bcc'], FILTER_SANITIZE_EMAIL);
-            if (filter_var($bcc_email, FILTER_VALIDATE_EMAIL)) {
-                $mail->addBCC($bcc_email);
-            }
-        }
-
-        // Content
-        $mail->isHTML(true);                                  // Set email format to HTML
-        $mail->Subject = $subject;
-        $mail->Body    = $html_message;
-        $mail->AltBody = strip_tags(str_replace('<br>', "\n", $message_content)); // Plain text version
-
-        // Send the email
-        return $mail->send();
-
-    } catch (\Exception $e) {
-        // Log the error
-        error_log("Email sending failed: " . $e->getMessage());
-
-        // Return false to indicate failure
-        return false;
-    }
-}
-
-
-
-// Get the card ID from the URL parameter (n.php?n=xxx) or from clean URL (e.g. /akhitest3)
-$card_id = isset($_GET['n']) ? $_GET['n'] : '';
-if ($card_id === '' && isset($_SERVER['REQUEST_URI'])) {
-	$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-	$path = trim($path, '/');
-	// Single segment only (no slashes), no file extension
-	if ($path !== '' && strpos($path, '/') === false && strpos($path, '.') === false) {
-		$card_id = $path;
-	}
-}
-
-// Query the database for the card
-$query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE card_id="'.$card_id.'" ');
-
-// Fetch the card data
-$row = mysqli_fetch_array($query);
-?>
-
-
-
-<head>
-
-
-        <!-- HTML Meta Tags kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk-->
-        <title><?php if(isset($row) && $row && !empty($row['d_comp_name'])){echo $row['d_comp_name'];} ?> || Digital Visiting Miniwebsite  </title>
-
-
-        <!-- Facebook Meta Tags -->
-		 <!--<meta property="og:image" content="https://digiweblive.com/panel/favicons/220118012208Screenshot_20220104-094428_WhatsAppBusiness.jpg">-->
-		 <meta property="og:image" content="https://<?php echo $_SERVER['HTTP_HOST']; ?><?php
-            if (isset($row) && $row && !empty($row['d_logo'])) {
-                $logoLoc = isset($row['d_logo_location']) ? trim($row['d_logo_location']) : '';
-                if ($logoLoc !== '') {
-                    // If DB stores ONLY filename, prepend our new folder
-                    if (strpos($logoLoc, '/') === false && strpos($logoLoc, '\\') === false) {
-                        $logoLoc = 'assets/upload/websites/company_details/' . $logoLoc;
-                    }
-                    // Normalize legacy stored paths like ../../favicons/...
-                    $logoLoc = str_replace('\\', '/', $logoLoc);
-                    $logoLoc = preg_replace('#^\.\./+#', '', $logoLoc);
-                    echo '/' . $logoLoc;
-                }
-            }
-         ?>">
-
-        <meta property="og:url" content="https://<?php echo $_SERVER['HTTP_HOST'].'/'.(isset($row) && $row ? $row['card_id'] : ''); ?>">
-        <meta property="og:type" content="website">
-        <meta property="og:title" content="<?php if(isset($row) && $row && !empty($row['d_comp_name'])){echo $row['d_comp_name'];} ?> || Digital Visiting Miniwebsite Online">
-        <meta property="og:description" content=" <?php if(isset($row) && $row && !empty($row['d_f_name'])){echo $row['d_f_name'].' '.$row['d_l_name'];} ?><?php if(isset($row) && $row && !empty($row['d_position'])){echo ' ('.$row['d_position'].')';} ?><?php if(isset($row) && $row && !empty($row['d_about_us'])){echo ' '.$row['d_about_us'].'';} ?>">
-
-        <!-- Twitter Meta Tags -->
-		 <meta name="twitter:image" content="<?php
-            if (isset($row) && $row && !empty($row['d_logo'])) {
-                $logoLoc = isset($row['d_logo_location']) ? trim($row['d_logo_location']) : '';
-                if ($logoLoc !== '') {
-                    if (strpos($logoLoc, '/') === false && strpos($logoLoc, '\\') === false) {
-                        $logoLoc = 'assets/upload/websites/company_details/' . $logoLoc;
-                    }
-                    $logoLoc = str_replace('\\', '/', $logoLoc);
-                    $logoLoc = preg_replace('#^\.\./+#', '', $logoLoc);
-                    // Keep legacy behavior of prefixing "panel/" for twitter tag output
-                    echo 'panel/' . $logoLoc;
-                }
-            }
-         ?>">
-
-        <meta property="twitter:url" content="https://<?php echo $_SERVER['HTTP_HOST'].'/'.(isset($row) && $row ? $row['card_id'] : ''); ?>">
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="<?php if(isset($row) && $row && !empty($row['d_comp_name'])){echo $row['d_comp_name'];} ?> || Digital Visiting MiniWebsite Online">
-        <meta name="twitter:description" content=" <?php if(isset($row) && $row && !empty($row['d_f_name'])){echo $row['d_f_name'].' '.$row['d_l_name'];} ?><?php if(isset($row) && $row && !empty($row['d_position'])){echo ' ('.$row['d_position'].')';} ?><?php if(isset($row) && $row && !empty($row['d_about_us'])){echo ' '.$row['d_about_us'];} ?>">
-
-        <!-- Meta Tags Generated via -->
-
-
-
-		<link rel="icon" href="<?php if(isset($row) && $row && !empty($row['d_logo'])){echo 'data:image/x-icon;base64,'.base64_encode($row['d_logo']);} ?>" type="image/*" sizes="16x16"/>
-
-
-
-  <!-- Required meta tags -->
-		  <meta charset="utf-8" />
-		  <!-- Required meta tags -->
-		  <meta charset="utf-8" />
-		  <link rel='stylesheet' href='panel/all.css' integrity='sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ' crossorigin='anonymous'>
-		  <link rel="stylesheet" href="panel/awesome.min.css">
-		  <link rel="preconnect" href="https://fonts.googleapis.com">
-		  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
-
- <!-- Required css  -->
-		 <meta      name='viewport'      content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
-
-		<link rel="stylesheet" href="assets/css.css" >
-		<link rel="stylesheet" href="assets/css/mobile_css.css" >
-		<script src="assets/js/master_js.js"></script>
-
-
-		<style>
-.full_page_alert {position: fixed;
-    width: -webkit-fill-available;
-    height: -webkit-fill-available;
-    background: white;
-    top: 0;
-    z-index: 9999999;
-    padding: 63px;
-    text-align: center;}
-
-</style>
-
-
-
-<?php
-// Query the database for the card using the same card_id variable
-$query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE card_id="'.$card_id.'" ');
-
-if(mysqli_num_rows($query) == 0){
-	// Card not found, redirect to homepage
-	echo '<meta http-equiv="refresh" content="5;URL=../index.php">';
-}else {
-	$row = mysqli_fetch_array($query);
-}
-
-if(isset($row) && $row && strlen($row['f_user_email'] ?? '') < 3){
-// check if more then 1 year
-
-if(isset($row) && $row && $row['d_card_status']=="Active" && $row['d_payment_status']=="Success"){
-			// Check validity using the new validity_date field
-			$validity_date = strtotime($row['validity_date']);
-			$today_date = strtotime($date);
-
-			if($validity_date && $today_date > $validity_date && isset($row) && $row && $row['complimentary_enabled']=="No"){
-				mysqli_query($connect,'UPDATE digi_card SET d_payment_status="Pending", d_card_status="Inactive" WHERE id="'.$row['id'].'"');
-			}else {
-				mysqli_query($connect,'UPDATE digi_card SET d_payment_status="Success", d_card_status="Active" WHERE id="'.$row['id'].'"');
-			}
-}
-    // Enforce 7-day trial window for unpaid cards
-    if (isset($row) && $row && $row['d_payment_status'] == "Created") {
-        $today_ts = strtotime($date);
-        // Trial ends 7 days after uploaded_date (complimentary bypasses)
-        $trial_end_ts = strtotime($row['uploaded_date'] . ' +7 days');
-        if ($row['complimentary_enabled'] == "No" && $today_ts > $trial_end_ts) {
-            // Trial expired -> Inactive to block external access
-            mysqli_query($connect, 'UPDATE digi_card SET d_card_status="Inactive" WHERE id="' . $row['id'] . '"');
+    // 1. Try LinkPreview API (works when Instagram/Facebook block direct fetches)
+    if (defined('LINKPREVIEW_API_KEY') && LINKPREVIEW_API_KEY) {
+        $lpUrl = 'https://api.linkpreview.net/?q=' . urlencode($fetchUrl);
+        if (function_exists('curl_init')) {
+            $ch = curl_init($lpUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 5,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTPHEADER => ['X-Linkpreview-Api-Key: ' . LINKPREVIEW_API_KEY],
+            ]);
+            $json = @curl_exec($ch);
+            curl_close($ch);
         } else {
-            // Within trial -> ensure Active
-            if ($row['d_card_status'] != 'Active') {
-                mysqli_query($connect, 'UPDATE digi_card SET d_card_status="Active" WHERE id="' . $row['id'] . '"');
+            $json = @file_get_contents($lpUrl, false, stream_context_create([
+                'http' => [
+                    'timeout' => 5,
+                    'header' => 'X-Linkpreview-Api-Key: ' . LINKPREVIEW_API_KEY . "\r\n",
+                ],
+            ]));
+        }
+        if ($json) {
+            $data = @json_decode($json, true);
+            if (!empty($data['image']) && filter_var($data['image'], FILTER_VALIDATE_URL)) {
+                $cache[$key] = $data['image'];
+                return $cache[$key];
             }
         }
     }
 
-
+    // 2. Direct fetch og:image (often blocked by Instagram/Facebook)
+    $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    if (function_exists('curl_init')) {
+        $ch = curl_init($fetchUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_USERAGENT => $ua,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml', 'Accept-Language: en-US,en;q=0.9'],
+        ]);
+        $html = @curl_exec($ch);
+        curl_close($ch);
+    } else {
+        $ctx = stream_context_create([
+            'http' => ['timeout' => $timeout, 'follow_location' => true, 'user_agent' => $ua, 'ignore_errors' => true],
+        ]);
+        $html = @file_get_contents($fetchUrl, false, $ctx);
+    }
+    if ($html && strlen($html) >= 200) {
+        if (preg_match('#<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']#i', $html, $m)) { $cache[$key] = trim($m[1]); return $cache[$key]; }
+        if (preg_match('#<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']#i', $html, $m)) { $cache[$key] = trim($m[1]); return $cache[$key]; }
+    }
+    $cache[$key] = null;
+    return null;
 }
 
-	// check if trial avtive
+/** Normalize user-entered video URL for opening in a new tab. */
+function mw_normalize_video_watch_url($url) {
+    $url = trim((string) $url);
+    if ($url === '') {
+        return '';
+    }
+    return preg_match('#^https?://#i', $url) ? $url : 'https://' . $url;
+}
 
+/**
+ * Parse video URL: YouTube → iframe embed; Facebook / Instagram / TikTok → thumbnail + external link only (no iframe).
+ *
+ * @param string $explicit_type  '', 'auto', 'youtube', 'facebook', 'instagram' (from dashboard)
+ * @param string $explicit_thumb_file  Filename stored in assets/upload/websites/video-thumbnails/
+ */
+function parseVideoUrl($url, $default_thumb = '', $index = 0, $explicit_type = '', $explicit_thumb_file = '') {
+    $url = trim((string) $url);
+    $fallback = $default_thumb ?: 'assets/img/default.jpg';
+    $watch_url = mw_normalize_video_watch_url($url);
+    $has_uploaded_thumb = false;
+    $thumb = $fallback;
+    if ($explicit_thumb_file !== '' && preg_match('/^[a-zA-Z0-9._-]+$/', $explicit_thumb_file)) {
+        $absThumb = __DIR__ . '/assets/upload/websites/video-thumbnails/' . $explicit_thumb_file;
+        if (is_file($absThumb)) {
+            $thumb = 'assets/upload/websites/video-thumbnails/' . $explicit_thumb_file;
+            $has_uploaded_thumb = true;
+        }
+    }
 
+    if ($url === '') {
+        return [
+            'title' => 'Video',
+            'thumb' => $fallback,
+            'platform' => 'other',
+            'embed_url' => '',
+            'watch_url' => '',
+            'play_mode' => 'external',
+        ];
+    }
 
+    $title = 'Video';
+    $platform = 'other';
+    $embed_url = '';
 
+    // YouTube: watch?v=, youtu.be/, youtube.com/shorts/
+    if (preg_match('#(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})#', $url, $m)) {
+        $vid = $m[1];
+        if (!$has_uploaded_thumb) {
+            $thumb = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
+        }
+        $embed_url = "https://www.youtube.com/embed/{$vid}?autoplay=1";
+        $platform = 'youtube';
+        $title = 'YouTube Video';
+    } elseif (preg_match('#instagram\.com/(?:reel|p|tv)/#i', $url)) {
+        $platform = 'instagram';
+        $title = 'Instagram Video';
+        if (!$has_uploaded_thumb) {
+            $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+            $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
+        }
+    } elseif (preg_match('#(?:facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/#i', $url)) {
+        $platform = 'facebook';
+        $title = 'Facebook Video';
+        if (!$has_uploaded_thumb) {
+            $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+            $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
+        }
+    } elseif (preg_match('#tiktok\.com/#i', $url)) {
+        $platform = 'tiktok';
+        $title = 'TikTok Video';
+        if (!$has_uploaded_thumb) {
+            $fetchUrl = (preg_match('#^https?://#', $url) ? $url : 'https://' . $url);
+            $thumb = fetchVideoOgThumb($fetchUrl) ?: $fallback;
+        }
+    } else {
+        if (!$has_uploaded_thumb) {
+            $thumb = $fallback;
+        }
+    }
 
-    if(isset($row) && $row && $row['d_card_status']=="Inactive"){
+    $et = strtolower(trim((string) $explicit_type));
+    if (in_array($et, ['youtube', 'facebook', 'instagram'], true)) {
+        $platform = $et;
+    }
 
-    echo '<div class="full_page_alert">
-    <style>
-        body {
-            font-family: "Roboto", sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #f9f9f9;
-            margin: 0;
+    // Facebook / Instagram must never use iframe (platform policy). TikTok: embed unreliable → external link.
+    $play_mode = 'external';
+    if ($platform === 'youtube' && $embed_url !== '') {
+        $play_mode = 'iframe';
+    }
+    if ($platform === 'youtube' && $embed_url === '') {
+        $play_mode = 'external';
+    }
+
+    return [
+        'title' => $title,
+        'thumb' => $thumb,
+        'platform' => $platform,
+        'embed_url' => ($play_mode === 'iframe') ? $embed_url : '',
+        'watch_url' => $watch_url,
+        'play_mode' => $play_mode,
+    ];
+}
+
+/** Web directory of this script (e.g. /miniwebsite), no trailing slash. */
+function mw_demo_script_dir() {
+    return rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/n.php')), '/');
+}
+
+/** Absolute URL to this MiniWebsite page (clean /slug when possible, else n.php). */
+function mw_miniwebsite_profile_url($base_url, $card_identifier) {
+    $dir = mw_demo_script_dir();
+    if ($card_identifier !== '' && $card_identifier !== null) {
+        $slug = rawurlencode((string) $card_identifier);
+        return rtrim($base_url, '/') . $dir . '/' . $slug;
+    }
+    return rtrim($base_url, '/') . $dir . '/n.php';
+}
+
+/** Site path under the app web root for an assets-relative URL (n.php at project root). */
+function mw_site_relative_from_demo_asset($relative) {
+    if ($relative === '' || preg_match('#^https?://#i', $relative) || strpos($relative, 'data:') === 0) {
+        return '';
+    }
+    $rel = ltrim(preg_replace('#^\.\./+#', '', $relative), '/');
+    $dir = trim(str_replace('\\', '/', mw_demo_script_dir()), '/');
+    if ($dir === '') {
+        return $rel;
+    }
+    return $dir . '/' . $rel;
+}
+
+$card_id_slug = isset($_GET['n']) ? trim($_GET['n']) : (isset($_GET['card_number']) ? trim($_GET['card_number']) : '');
+$row = null;
+$mw_old_slug_redirect = null;
+$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+$assets_base = __DIR__ . '/assets';
+// Default image when src is unavailable or broken (use whichever file exists)
+$default_image = (file_exists(__DIR__ . '/assets/img/default.jpg') ? 'assets/img/default.jpg' : 'assets/img/deafult.jpg');
+
+/** Product image: file under assets/upload/websites/product-pricing, or default if missing; data URL for large/binary DB blobs. */
+function mw_demo_card_product_image_src($product_image, $default_image, $assets_root) {
+    if ($product_image === null || $product_image === '') {
+        return $default_image;
+    }
+    if (is_string($product_image) && strlen($product_image) < 255 && strpos($product_image, '.') !== false
+        && strpos($product_image, '/') === false && strpos($product_image, '\\') === false) {
+        $safe = basename($product_image);
+        $abs = $assets_root . '/upload/websites/product-pricing/' . $safe;
+        if (is_file($abs)) {
+            return 'assets/upload/websites/product-pricing/' . htmlspecialchars($safe);
         }
-        .full_page_alert {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            width: 100%;
+        return $default_image;
+    }
+    if (!is_string($product_image) || strlen($product_image) > 100) {
+        return 'data:image/*;base64,' . base64_encode($product_image);
+    }
+    return $default_image;
+}
+
+/** Normalize DB date for special offer (DATE / invalid sentinels). */
+function mw_demo_clean_offer_date($raw) {
+    $d = trim((string) ($raw ?? ''));
+    if ($d === '' || $d === '0000-00-00' || strpos($d, '0000-00-00') === 0) {
+        return '';
+    }
+    return $d;
+}
+
+/** Compact date for offer row (e.g. "1 May") — matches card UI reference. */
+function mw_demo_format_offer_date_compact($raw) {
+    $d = mw_demo_clean_offer_date($raw);
+    if ($d === '') {
+        return '';
+    }
+    $t = strtotime($d);
+    return $t ? date('j M', $t) : $d;
+}
+
+/** One line: formatted time (g:i A) or ''. */
+function mw_demo_format_offer_time_part($raw) {
+    $t = trim((string) ($raw ?? ''));
+    if ($t === '') {
+        return '';
+    }
+    $dt = DateTime::createFromFormat('H:i:s', $t) ?: DateTime::createFromFormat('H:i', $t);
+    return $dt ? $dt->format('g:i A') : $t;
+}
+
+/**
+ * Valid date range + time range for one row above CTA (plain text, not escaped).
+ *
+ * @return array{valid: string, time: string}
+ */
+function mw_demo_offer_valid_time_labels($start_date, $end_date, $start_time, $end_time) {
+    $ds = mw_demo_format_offer_date_compact($start_date);
+    $de = mw_demo_format_offer_date_compact($end_date);
+    $valid = '';
+    if ($ds !== '' && $de !== '') {
+        $valid = ($ds === $de) ? $ds : ($ds . ' – ' . $de);
+    } elseif ($ds !== '') {
+        $valid = $ds;
+    } elseif ($de !== '') {
+        $valid = $de;
+    }
+
+    $ts = mw_demo_format_offer_time_part($start_time);
+    $te = mw_demo_format_offer_time_part($end_time);
+    $time = '';
+    if ($ts !== '' && $te !== '') {
+        $time = ($ts === $te) ? $ts : ($ts . ' – ' . $te);
+    } elseif ($ts !== '') {
+        $time = $ts;
+    } elseif ($te !== '') {
+        $time = $te;
+    }
+
+    return ['valid' => $valid, 'time' => $time];
+}
+
+// Try to load from database when card_id provided
+if (!empty($card_id_slug)) {
+    $db_config = __DIR__ . '/app/config/database.php';
+    if (file_exists($db_config)) {
+        require_once $db_config;
+        $card_id_esc = mysqli_real_escape_string($connect, $card_id_slug);
+        // Support both: slug (card_id) and numeric id (from card_number in URL)
+        if (ctype_digit($card_id_slug)) {
+            $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE id='$card_id_esc'");
+        } else {
+            $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE card_id='$card_id_esc'");
         }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 90%;
-            max-width: 500px;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        if ($query && mysqli_num_rows($query) > 0) {
+            $row = mysqli_fetch_assoc($query);
+        } elseif (!ctype_digit($card_id_slug)) {
+            // Locked old MiniWebsite URL — row in digi_card_previous_slug (not on digi_card to avoid row-size limit)
+            $q_prev = mysqli_query($connect, "SELECT digi_card_id FROM digi_card_previous_slug WHERE previous_slug='$card_id_esc' LIMIT 1");
+            if ($q_prev && mysqli_num_rows($q_prev) > 0) {
+                $pr = mysqli_fetch_assoc($q_prev);
+                $did = intval($pr['digi_card_id'] ?? 0);
+                if ($did > 0) {
+                    $did_esc = mysqli_real_escape_string($connect, (string) $did);
+                    $q_card = mysqli_query($connect, "SELECT * FROM digi_card WHERE id='$did_esc' LIMIT 1");
+                    if ($q_card && mysqli_num_rows($q_card) > 0) {
+                        $mw_old_slug_redirect = mysqli_fetch_assoc($q_card);
+                    }
+                }
+            }
         }
-        .alert-box {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px 30px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: 700;
-            font-size: 18px;
-            text-align: center;
-        }
-        .message-box {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: #555;
-            text-align: center;
-        }
-        .button-box {
-            background-color: #4caf50;
-            color: #fff;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 8px;
-            font-size: 18px;
-            cursor: pointer;
-            margin-bottom: 30px;
-            text-decoration: none;
-            text-align: center;
-        }
-        .button-box:hover {
-            background-color: #45a049;
-        }
-        .help-box {
-            text-align: center;
-            font-size: 16px;
-            color: #333;
-        }
-        .whatsapp-icon {
-            width: 50px;
-            margin-top: 15px;
-        }
-    </style>
-    <div class="container">
-        <div class="alert-box">Miniwebsite is Deactivated.</div>
-        <div class="message-box">Your 7 day trial is expired. Pay now to upgrade your plan.</div>
-        <a href="https://'.$_SERVER['HTTP_HOST'].'/pay?id='.$row['id'].'" class="button-box">Pay Now</a>
-        <div class="help-box">
-            Need Help?<br>
-            Contact us on our customer support number<br><br>
-            <a href="https://wa.me/9429693574?text=Hi%2C%20I%20am%20interested%20to%20take%20franchise%20of%20miniwebsite.in%2C%20Please%20provide%20more%20details." target="_blank" style="display: inline-block; margin-left: 10px; vertical-align: middle;">
-                <i class="fa fa-whatsapp" style="font-size: 24px; color: #25D366;"></i>
+    }
+}
+
+/** Requested a card by URL (?n= / card_number) but no matching row in the database. */
+$mw_card_not_found = ($card_id_slug !== '' && $row === null && $mw_old_slug_redirect === null);
+if ($mw_old_slug_redirect !== null) {
+    $mw_company_label = trim((string) ($mw_old_slug_redirect['d_display_name'] ?? ''));
+    if ($mw_company_label === '') {
+        $mw_company_label = trim((string) ($mw_old_slug_redirect['d_comp_name'] ?? 'Company'));
+    }
+    $mw_new_profile_url = mw_miniwebsite_profile_url($base_url, (string) ($mw_old_slug_redirect['card_id'] ?? ''));
+    header('Content-Type: text/html; charset=UTF-8');
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniWebsite URL updated</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>body { font-family: Inter, system-ui, sans-serif; }</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-6">
+    <div class="max-w-lg w-full text-center space-y-6">
+        <p class="text-lg text-slate-700 leading-relaxed">
+            <?php echo htmlspecialchars($mw_company_label, ENT_QUOTES, 'UTF-8'); ?> MiniWebsite URL changed to new URL.
+            <a href="<?php echo htmlspecialchars($mw_new_profile_url, ENT_QUOTES, 'UTF-8'); ?>"
+               class="text-slate-900 font-medium underline underline-offset-2 hover:text-slate-600">
+                Click here to Visit: <?php echo htmlspecialchars($mw_new_profile_url, ENT_QUOTES, 'UTF-8'); ?>
             </a>
+        </p>
+    </div>
+</body>
+</html>
+<?php
+    exit;
+}
+
+if ($mw_card_not_found) {
+    $mw_miniwebsite_home = rtrim($base_url, '/') . mw_demo_script_dir();
+    header('HTTP/1.1 404 Not Found');
+    header('Content-Type: text/html; charset=UTF-8');
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card not found — MiniWebsite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>body { font-family: Inter, system-ui, sans-serif; }</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-6">
+        <p class="text-lg text-slate-600 leading-relaxed">
+            This digital card is not available. It may have been removed or the link might be incorrect.
+        </p>
+        <a href="<?php echo htmlspecialchars($mw_miniwebsite_home, ENT_QUOTES, 'UTF-8'); ?>"
+           class="inline-flex items-center justify-center rounded-lg bg-slate-900 text-white px-6 py-3 text-sm font-medium hover:bg-slate-800 transition-colors">
+            Go to MiniWebsite
+        </a>
+    </div>
+</body>
+</html>
+<?php
+    exit;
+}
+
+// Build data arrays (from DB or demo fallback)
+if ($row) {
+    $card_db_id = intval($row['id']);
+    $hero_name = !empty($row['d_comp_name']) ? htmlspecialchars($row['d_comp_name']) : trim((isset($row['d_f_name']) ? $row['d_f_name'] : '') . ' ' . (isset($row['d_l_name']) ? $row['d_l_name'] : ''));
+    if (empty($hero_name)) $hero_name = 'Your Name';
+    $hero_title = !empty($row['d_position']) ? htmlspecialchars($row['d_position']) : 'Executive Chef';
+    // Hero cover: use d_hero_image_location first, fallback to default image
+    $hero_cover = $default_image;
+    if (!empty($row['d_hero_image_location'])) {
+        $hero_path = trim($row['d_hero_image_location']);
+        if (strpos($hero_path, '/') === false) $hero_path = 'assets/upload/websites/company_details/' . $hero_path;
+        $hero_cover = ltrim(preg_replace('#^\.\./+#', '', $hero_path), '/');
+    }
+    $hero_logo = $hero_cover; // placeholder; logo uses d_logo below
+    if (!empty($row['d_logo_location'])) {
+        $logo_path = trim($row['d_logo_location']);
+        if (strpos($logo_path, '/') === false) $logo_path = 'assets/upload/websites/company_details/' . $logo_path;
+        $hero_logo = ltrim(preg_replace('#^\.\./+#', '', $logo_path), '/');
+    } elseif (!empty($row['d_logo'])) {
+        $hero_logo = 'data:image/*;base64,' . base64_encode($row['d_logo']);
+    } else {
+        $hero_logo = $default_image;
+    }
+    $phone = !empty($row['d_contact']) ? preg_replace('/[^0-9+]/', '', $row['d_contact']) : '1234567890';
+    $whatsapp = !empty($row['d_whatsapp']) ? preg_replace('/[^0-9+]/', '', $row['d_whatsapp']) : $phone;
+    $about = !empty($row['d_about_us']) ? htmlspecialchars($row['d_about_us']) : 'Passionately crafting exceptional culinary experiences.';
+    $email = !empty($row['d_email']) ? htmlspecialchars($row['d_email']) : 'contact@example.com';
+    // Location: Area, City, State only
+    $locParts = array_filter([
+        !empty($row['d_address2']) ? trim($row['d_address2']) : null,
+        !empty($row['d_city']) ? trim($row['d_city']) : null,
+        !empty($row['d_state']) ? trim($row['d_state']) : null,
+    ]);
+    $location = !empty($locParts) ? htmlspecialchars(implode(', ', $locParts)) : 'Berlin, Germany';
+    $website = !empty($row['d_website']) ? htmlspecialchars($row['d_website']) : '';
+    $google_direction = !empty($row['d_location']) ? htmlspecialchars($row['d_location']) : '';
+    $share_card_key = (string) ($row['card_id'] ?? $card_id_slug);
+    $share_url = mw_miniwebsite_profile_url($base_url, $share_card_key);
+
+    // Social share links (share profile URL to each platform)
+    // Note: Instagram & YouTube have no web share URLs - only link when profile/channel URL exists
+    $social_links = [
+        ['icon' => 'facebook-f', 'url' => 'https://www.facebook.com/sharer/sharer.php?u=' . urlencode($share_url)],
+    ];
+    if (!empty(trim($row['d_instagram'] ?? ''))) $social_links[] = ['icon' => 'instagram', 'url' => trim($row['d_instagram'])];
+    $social_links[] = ['icon' => 'linkedin-in', 'url' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . urlencode($share_url)];
+    if (!empty(trim($row['d_youtube'] ?? ''))) $social_links[] = ['icon' => 'youtube', 'url' => trim($row['d_youtube'])];
+    $social_links[] = ['icon' => 'x-twitter', 'url' => 'https://twitter.com/intent/tweet?url=' . urlencode($share_url) . '&text=' . urlencode($hero_name)];
+    $social_links[] = ['icon' => 'pinterest', 'url' => 'https://pinterest.com/pin/create/button/?url=' . urlencode($share_url) . '&description=' . urlencode($hero_name)];
+
+    // Services from card_products_services (products & services)
+    $services = [];
+    $svc_query = mysqli_query($connect, "SELECT product_name, product_description, product_image FROM card_products_services WHERE card_id='$card_db_id' ORDER BY display_order ASC");
+    if ($svc_query) {
+        while ($s = mysqli_fetch_assoc($svc_query)) {
+            if (!empty($s['product_name'])) {
+                $img = '';
+                if (!empty($s['product_image']) && strpos($s['product_image'], '.') !== false && strpos($s['product_image'], '/') === false) {
+                    $img = 'assets/upload/websites/product-and-services/' . htmlspecialchars($s['product_image']);
+                } elseif (!empty($s['product_image'])) {
+                    $img = 'data:image/*;base64,' . base64_encode($s['product_image']);
+                } else {
+                    $img = $default_image;
+                }
+                $services[] = [
+                    'name' => htmlspecialchars($s['product_name']),
+                    'desc' => !empty($s['product_description']) ? htmlspecialchars($s['product_description']) : '',
+                    'image' => $img,
+                ];
+            }
+        }
+    }
+    if (empty($services)) {
+        $services = [
+            ['name' => 'Private Dining', 'desc' => 'Exclusive dining experiences tailored to your preferences.', 'image' => $default_image],
+            ['name' => 'Event Catering', 'desc' => 'Full-service catering for weddings, corporate events & more.', 'image' => $default_image],
+            ['name' => 'Masterclasses', 'desc' => 'Hands-on cooking classes for all skill levels.', 'image' => $default_image],
+        ];
+    }
+
+    // Special offers from card_special_offers
+    $offers = [];
+    $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge, start_date, end_date, start_time, end_time FROM card_special_offers WHERE card_id='$card_db_id' AND status='Active' ORDER BY display_order ASC");
+    if ($off_query) {
+        while ($o = mysqli_fetch_assoc($off_query)) {
+            if (!empty($o['offer_title'])) {
+                $img = $default_image;
+                if (!empty($o['offer_image']) && strpos($o['offer_image'], '.') !== false) {
+                    $img = 'assets/upload/websites/special-offers/' . htmlspecialchars($o['offer_image']);
+                }
+                $vt = mw_demo_offer_valid_time_labels(
+                    $o['start_date'] ?? null,
+                    $o['end_date'] ?? null,
+                    $o['start_time'] ?? null,
+                    $o['end_time'] ?? null
+                );
+                $offers[] = [
+                    'title' => htmlspecialchars($o['offer_title']),
+                    'desc' => htmlspecialchars($o['offer_description'] ?? ''),
+                    'image' => $img,
+                    'badge' => !empty($o['badge']) ? htmlspecialchars($o['badge']) : (!empty($o['discount_percentage']) ? $o['discount_percentage'] . '% OFF' : 'OFFER'),
+                    'offer_valid' => $vt['valid'] !== '' ? htmlspecialchars($vt['valid']) : '',
+                    'offer_time' => $vt['time'] !== '' ? htmlspecialchars($vt['time']) : '',
+                ];
+            }
+        }
+    }
+    if (empty($offers)) {
+        $offers = [
+            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER', 'offer_valid' => '', 'offer_time' => ''],
+        ];
+    }
+
+    // Products from card_product_pricing (grouped by category for Blinkit UI)
+    // category_name: from product_categories OR user_custom_categories (use category_source to avoid ID collision)
+    $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE 'category_source'");
+    if(!$col_check || mysqli_num_rows($col_check) == 0) {
+        @mysqli_query($connect, "ALTER TABLE card_product_pricing ADD category_source VARCHAR(10) DEFAULT 'system' AFTER product_category");
+    }
+    $products_by_cat = [];
+    $cat_display_names = [];
+    $prod_query = mysqli_query($connect, "
+        SELECT pp.*,
+            CASE
+                WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name
+                WHEN (pp.category_source = 'system' OR pp.category_source IS NULL OR pp.category_source = '') AND pc.category_name IS NOT NULL THEN pc.category_name
+                ELSE COALESCE(ucc.category_name, pc.category_name,
+                    CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
+                )
+            END as category_name
+        FROM card_product_pricing pp
+        LEFT JOIN product_categories pc ON pp.product_category = pc.id
+        LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.user_id = pp.user_id AND ucc.is_active = 1
+        WHERE pp.card_id='$card_db_id'
+        ORDER BY pp.product_category, pp.display_order ASC
+    ");
+    if ($prod_query) {
+        while ($p = mysqli_fetch_assoc($prod_query)) {
+            if (!empty($p['product_name'])) {
+                $cat = !empty($p['category_name']) ? strtolower(preg_replace('/[^a-z0-9]+/i', '_', trim($p['category_name']))) : 'mains';
+                if (!isset($products_by_cat[$cat])) {
+                    $products_by_cat[$cat] = [];
+                    $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
+                }
+                $img = !empty($p['product_image'])
+                    ? mw_demo_card_product_image_src($p['product_image'], $default_image, $assets_base)
+                    : $default_image;
+                $mrp = floatval($p['mrp'] ?? 0);
+                $price = floatval($p['selling_price'] ?? 0);
+                if ($mrp <= 0) $mrp = $price;
+                $products_by_cat[$cat][] = [
+                    'name' => htmlspecialchars($p['product_name']),
+                    'cat_key' => $cat,
+                    'category' => htmlspecialchars(isset($cat_display_names[$cat]) ? $cat_display_names[$cat] : ''),
+                    'image' => $img,
+                    'mrp' => $mrp,
+                    'price' => $price,
+                    'desc' => htmlspecialchars($p['product_description'] ?? ''),
+                ];
+            }
+        }
+    }
+    // Build cat_order and labels from DB categories (no "All" tab - only real categories)
+    $cat_order = array_keys($products_by_cat);
+    $cat_labels = [];
+    $cat_icons = [
+        'mains' => 'https://cdn-icons-png.flaticon.com/512/3480/3480823.png',
+        'starters' => 'https://cdn-icons-png.flaticon.com/512/2515/2515183.png',
+        'desserts' => 'https://cdn-icons-png.flaticon.com/512/3233/3233015.png',
+        'drinks' => 'https://cdn-icons-png.flaticon.com/512/3050/3050116.png',
+    ];
+    foreach ($cat_order as $ck) {
+        $cat_labels[$ck] = isset($cat_display_names[$ck]) ? $cat_display_names[$ck] : ucfirst(str_replace('_', ' ', $ck));
+        if (!isset($cat_icons[$ck])) $cat_icons[$ck] = $cat_icons['mains'];
+    }
+
+    // Gallery from card_image_gallery
+    $gallery = [];
+    $gal_query = mysqli_query($connect, "SELECT gallery_image FROM card_image_gallery WHERE card_id='$card_db_id' ORDER BY display_order ASC");
+    if ($gal_query) {
+        while ($g = mysqli_fetch_assoc($gal_query)) {
+            if (!empty($g['gallery_image'])) {
+                if (is_string($g['gallery_image']) && strpos($g['gallery_image'], '.') !== false && strpos($g['gallery_image'], '/') === false) {
+                    $gallery[] = 'assets/upload/websites/image-gallery/' . htmlspecialchars($g['gallery_image']);
+                } else {
+                    $gallery[] = 'data:image/*;base64,' . base64_encode($g['gallery_image']);
+                }
+            }
+        }
+    }
+    if (empty($gallery)) {
+        $gallery = [$default_image];
+    }
+
+    // Videos from d_youtube1..d_youtube20 (YouTube, Shorts, Instagram, Facebook, etc.)
+    $videos = [];
+    $default_thumb = $default_image;
+    $vid_idx = 0;
+    for ($i = 1; $i <= 20; $i++) {
+        $url = trim($row['d_youtube' . $i] ?? '');
+        if (empty($url)) continue;
+        $vtype = strtolower(trim((string) ($row['d_video_type' . $i] ?? '')));
+        if ($vtype === 'auto') {
+            $vtype = '';
+        }
+        $vthumb = trim((string) ($row['d_video_thumb' . $i] ?? ''));
+        $parsed = parseVideoUrl($url, $default_thumb, $vid_idx, $vtype, $vthumb);
+        $watch = !empty($parsed['watch_url']) ? $parsed['watch_url'] : mw_normalize_video_watch_url($url);
+        $videos[] = [
+            'url' => $url,
+            'title' => $parsed['title'],
+            'thumb' => $parsed['thumb'],
+            'platform' => $parsed['platform'],
+            'embed_url' => $parsed['embed_url'] ?? '',
+            'watch_url' => $watch,
+            'play_mode' => $parsed['play_mode'] ?? 'external',
+        ];
+        $vid_idx++;
+    }
+
+    // Business Hours from d_business_hours (JSON)
+    $business_hours = [];
+    if (!empty($row['d_business_hours'])) {
+        $bh_decoded = json_decode($row['d_business_hours'], true);
+        if (is_array($bh_decoded)) $business_hours = $bh_decoded;
+    }
+    if (empty($business_hours)) {
+        $business_hours = [
+            ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+            ['days' => 'Sunday', 'hours' => 'Closed'],
+        ];
+    }
+} else {
+    // Demo fallback data
+    $hero_name = 'Olivia Murray';
+    $hero_title = 'Executive Chef';
+    $hero_cover = $default_image;
+    $hero_logo = $default_image;
+    $phone = '1234567890';
+    $whatsapp = '1234567890';
+    $about = 'Passionately crafting exceptional culinary experiences. With over 15 years in fine dining, I specialize in blending classic techniques with modern flavor profiles to deliver an unforgettable taste journey right to your table or private event.';
+    $email = 'olivia@gourmet.com';
+    $location = 'Berlin, Germany';
+    $website = 'www.oliviaculinary.com';
+    $google_direction = '';
+    $share_url = mw_miniwebsite_profile_url($base_url, '');
+
+    // Demo: Instagram & YouTube have no web share URLs - only show share-capable platforms
+    $social_links = [
+        ['icon' => 'facebook-f', 'url' => 'https://www.facebook.com/sharer/sharer.php?u=' . urlencode($share_url)],
+        ['icon' => 'linkedin-in', 'url' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . urlencode($share_url)],
+        ['icon' => 'x-twitter', 'url' => 'https://twitter.com/intent/tweet?url=' . urlencode($share_url) . '&text=' . urlencode($hero_name)],
+        ['icon' => 'pinterest', 'url' => 'https://pinterest.com/pin/create/button/?url=' . urlencode($share_url) . '&description=' . urlencode($hero_name)],
+    ];
+
+    $services =[];
+
+    $offers = [];
+
+    // Products from card_product_pricing (dynamic - no hardcoding)
+    $products_by_cat = [];
+    $cat_display_names = [];
+    $db_config = __DIR__ . '/app/config/database.php';
+    if (file_exists($db_config)) {
+        require_once $db_config;
+        $demo_card_query = mysqli_query($connect, "SELECT pp.card_id FROM card_product_pricing pp INNER JOIN digi_card dc ON dc.id = pp.card_id ORDER BY pp.card_id ASC");
+        if ($demo_card_query && $dc = mysqli_fetch_assoc($demo_card_query)) {
+            $card_db_id = intval($dc['card_id']);
+            $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE 'category_source'");
+            if(!$col_check || mysqli_num_rows($col_check) == 0) {
+                @mysqli_query($connect, "ALTER TABLE card_product_pricing ADD category_source VARCHAR(10) DEFAULT 'system' AFTER product_category");
+            }
+            $prod_query = mysqli_query($connect, "
+                SELECT pp.*,
+                    CASE
+                        WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name
+                        WHEN (pp.category_source = 'system' OR pp.category_source IS NULL OR pp.category_source = '') AND pc.category_name IS NOT NULL THEN pc.category_name
+                        ELSE COALESCE(ucc.category_name, pc.category_name,
+                            CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
+                        )
+                    END as category_name
+                FROM card_product_pricing pp
+                LEFT JOIN product_categories pc ON pp.product_category = pc.id
+                LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.user_id = pp.user_id AND ucc.is_active = 1
+                WHERE pp.card_id='$card_db_id'
+                ORDER BY pp.product_category, pp.display_order ASC
+            ");
+            if ($prod_query) {
+                while ($p = mysqli_fetch_assoc($prod_query)) {
+                    if (!empty($p['product_name'])) {
+                        $cat = !empty($p['category_name']) ? strtolower(preg_replace('/[^a-z0-9]+/i', '_', trim($p['category_name']))) : 'mains';
+                        if (!isset($products_by_cat[$cat])) {
+                            $products_by_cat[$cat] = [];
+                            $cat_display_names[$cat] = !empty($p['category_name']) ? trim($p['category_name']) : 'Mains';
+                        }
+                        $img = !empty($p['product_image'])
+                            ? mw_demo_card_product_image_src($p['product_image'], $default_image, $assets_base)
+                            : $default_image;
+                        $mrp = floatval($p['mrp'] ?? 0);
+                        $price = floatval($p['selling_price'] ?? 0);
+                        if ($mrp <= 0) $mrp = $price;
+                        $products_by_cat[$cat][] = [
+                            'name' => htmlspecialchars($p['product_name']),
+                            'cat_key' => $cat,
+                            'category' => htmlspecialchars(isset($cat_display_names[$cat]) ? $cat_display_names[$cat] : ''),
+                            'image' => $img,
+                            'mrp' => $mrp,
+                            'price' => $price,
+                            'desc' => htmlspecialchars($p['product_description'] ?? ''),
+                        ];
+                    }
+                }
+            }
+        }
+    }
+
+    $business_hours = [
+        ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+        ['days' => 'Sunday', 'hours' => 'Closed'],
+    ];
+
+    $gallery = [$default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image];
+    $videos = []; // Demo fallback: no videos when no card loaded
+}
+$cat_order = !empty($products_by_cat) ? array_keys($products_by_cat) : ['mains', 'starters', 'desserts', 'drinks'];
+$cat_labels = ['mains' => 'Mains', 'starters' => 'Starters', 'desserts' => 'Desserts', 'drinks' => 'Drinks'];
+if (!empty($cat_display_names) && is_array($cat_display_names)) {
+    foreach ($cat_display_names as $ck => $label) { $cat_labels[$ck] = $label; }
+}
+$cat_icons = [
+    'mains' => 'https://cdn-icons-png.flaticon.com/512/3480/3480823.png',
+    'starters' => 'https://cdn-icons-png.flaticon.com/512/2515/2515183.png',
+    'desserts' => 'https://cdn-icons-png.flaticon.com/512/3233/3233015.png',
+    'drinks' => 'https://cdn-icons-png.flaticon.com/512/3050/3050116.png',
+];
+$products_flat = [];
+if (!empty($products_by_cat)) {
+    foreach ($cat_order as $ck) {
+        if (isset($products_by_cat[$ck])) {
+            foreach ($products_by_cat[$ck] as $p) { $products_flat[] = $p; }
+        }
+    }
+}
+/** Modal/cart JS payload: description max 400 characters */
+$products_for_js = [];
+if (!empty($products_flat)) {
+    foreach ($products_flat as $pj) {
+        $d = isset($pj['desc']) ? (string) $pj['desc'] : '';
+        $pj['desc'] = function_exists('mb_substr') ? mb_substr($d, 0, 400) : substr($d, 0, 400);
+        $products_for_js[] = $pj;
+    }
+}
+
+// vCard payload: raw UTF-8 strings (no HTML entities) for Save Contact / .vcf
+$mw_vcard = [];
+if ($row) {
+    $raw_owner = trim(trim($row['d_f_name'] ?? '') . ' ' . trim($row['d_l_name'] ?? ''));
+    $raw_org = trim($row['d_comp_name'] ?? '');
+    $raw_email = trim($row['d_email'] ?? '');
+    $raw_about = isset($row['d_about_us']) ? trim((string) $row['d_about_us']) : '';
+    $raw_website = trim($row['d_website'] ?? '');
+    $tel_cell = preg_replace('/[^0-9+]/', '', (string) ($row['d_contact'] ?? ''));
+    $tel_wa = preg_replace('/[^0-9+]/', '', (string) ($row['d_whatsapp'] ?? ''));
+    if ($tel_wa === '') {
+        $tel_wa = $tel_cell;
+    }
+    $street = trim((string) ($row['d_address'] ?? ''));
+    $ext = trim((string) ($row['d_address2'] ?? ''));
+    $adr_street = $street;
+    if ($ext !== '' && $street !== '') {
+        $adr_street = $street . ', ' . $ext;
+    } elseif ($ext !== '') {
+        $adr_street = $ext;
+    }
+    $wa_digits = preg_replace('/\D+/', '', $tel_wa);
+    $mw_vcard = [
+        'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
+        'org' => $raw_org,
+        'telCell' => $tel_cell,
+        'telWhatsapp' => $tel_wa,
+        'email' => $raw_email !== '' ? $raw_email : 'contact@example.com',
+        'urlProfile' => $share_url,
+        'urlWebsite' => $raw_website,
+        'adr' => [
+            'street' => $adr_street,
+            'locality' => trim((string) ($row['d_city'] ?? '')),
+            'region' => trim((string) ($row['d_state'] ?? '')),
+            'postal' => trim((string) ($row['d_pincode'] ?? '')),
+            'country' => trim((string) ($row['d_country'] ?? '')),
+        ],
+        'note' => $raw_about,
+        'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
+    ];
+    $parts = explode(' ', $raw_owner, 2);
+    $mw_vcard['nFamily'] = count($parts) > 1 ? $parts[1] : '';
+    $mw_vcard['nGiven'] = $parts[0] ?? '';
+} else {
+    $wa_digits = preg_replace('/\D+/', '', $whatsapp);
+    $mw_vcard = [
+        'fn' => 'Olivia Murray',
+        'org' => 'Olivia Culinary',
+        'telCell' => preg_replace('/[^0-9+]/', '', $phone),
+        'telWhatsapp' => preg_replace('/[^0-9+]/', '', $whatsapp),
+        'email' => $email,
+        'urlProfile' => $share_url,
+        'urlWebsite' => $website,
+        'adr' => [
+            'street' => 'Sample Street 1',
+            'locality' => 'Berlin',
+            'region' => 'Berlin',
+            'postal' => '10115',
+            'country' => 'Germany',
+        ],
+        'note' => 'Passionately crafting exceptional culinary experiences.',
+        'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
+        'nFamily' => 'Murray',
+        'nGiven' => 'Olivia',
+    ];
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($hero_name); ?></title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--mw-primary-color)',
+                        secondary: 'var(--mw-secondary-color)',
+                        bgbase: 'var(--mw-background-color)',
+                        cardbg: 'var(--mw-card-background)',
+                        textmain: 'var(--mw-text-color)',
+                        heading: 'var(--mw-heading-color)',
+                    },
+                    fontFamily: {
+                        heading: ['var(--mw-font-heading)', 'cursive'],
+                        body: ['var(--mw-font-body)', 'sans-serif'],
+                    },
+                    borderRadius: { theme: 'var(--mw-border-radius)' }
+                }
+            }
+        }
+    </script>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="theme/css/theme.css">
+    <link rel="stylesheet" href="theme/css/layout.css">
+    <link rel="stylesheet" href="theme/css/components.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- 1. Hero Section -->
+    <section id="mw-hero" class="mw-hero relative">
+        <div class="h-64 md:h-80 w-full overflow-hidden relative">
+            <img src="<?php echo htmlspecialchars($hero_cover); ?>" alt="Cover" class="w-full h-full object-cover opacity-60" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+            <div class="absolute inset-0 bg-gradient-to-t from-bgbase to-transparent"></div>
+        </div>
+
+        <div class="mw-section-padding relative -mt-24 text-center z-10 flex flex-col items-center">
+            <div class="w-32 h-32 rounded-full border-4 border-bgbase shadow-card overflow-hidden mb-4">
+                <img src="<?php echo htmlspecialchars($hero_logo); ?>" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold mb-1"><?php echo $hero_name; ?></h1>
+           
+
+            <div class="flex gap-4 w-full max-w-sm justify-center">
+                <a href="tel:<?php echo htmlspecialchars($phone, ENT_QUOTES, 'UTF-8'); ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
+                    <i class="fas fa-phone-alt"></i> Call Now
+                </a>
+                <a href="https://wa.me/<?php echo $whatsapp; ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Social Links -->
+    <section class="mw-social-links pb-6 flex justify-center gap-5">
+        <?php foreach ($social_links as $s): ?>
+        <a href="<?php echo htmlspecialchars($s['url']); ?>" target="_blank" rel="noopener" class="w-10 h-10 rounded-full bg-cardbg flex items-center justify-center text-primary hover:bg-primary hover:text-bgbase transition"><i class="fab fa-<?php echo $s['icon']; ?>"></i></a>
+        <?php endforeach; ?>
+    </section>
+
+    <!-- 3. Business Intro -->
+    <section class="mw-business-intro mw-section-padding text-center">
+        <p class="text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
+            <?php echo nl2br($about); ?>
+        </p>
+    </section>
+
+    <!-- 4. Quick Action Grid -->
+    <section class="mw-action-grid mw-section-padding">
+        <h2 class="mw-section-title">Contact</h2>
+        <div class="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-envelope text-xl"></i>
+                </span>
+                <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Email Address</h3>
+                <p class="text-heading font-medium text-sm truncate"><?php echo $email; ?></p>
+            </div>
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-phone-alt text-xl"></i>
+                </span>
+                <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Phone Number</h3>
+                <p class="text-heading font-medium text-sm"><?php echo htmlspecialchars($phone, ENT_QUOTES, 'UTF-8'); ?></p>
+            </div>
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-map-marker-alt text-xl"></i>
+                </span>
+                <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Location</h3>
+                <p class="text-heading font-medium text-sm"><?php echo $location; ?></p>
+            </div>
+            <?php if (!empty($google_direction)): ?>
+            <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
+                <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
+                    <i class="fas fa-directions text-xl"></i>
+                </span>
+                <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Google Direction</h3>
+                <a href="<?php echo htmlspecialchars((strpos($google_direction, 'http') === 0 ? $google_direction : 'https://' . $google_direction)); ?>" target="_blank" rel="noopener" class="text-heading font-medium text-sm truncate hover:underline">Get Directions</a>
+            </div>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <!-- 5. QR Share Section -->
+    <?php
+    $qr_image_url = 'https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=' . urlencode($share_url ?? '');
+    // Match visible hero fallbacks: live DB rows often omit d_comp_name / names but still have card_id or title.
+    $qr_business_name = '';
+    $qr_person_name = '';
+    if ($row) {
+        $comp = trim((string) ($row['d_comp_name'] ?? ''));
+        $fn = trim((string) ($row['d_f_name'] ?? ''));
+        $ln = trim((string) ($row['d_l_name'] ?? ''));
+        $firstlast = trim($fn . ' ' . $ln);
+        $pos = trim((string) ($row['d_position'] ?? ''));
+        $slug = trim((string) ($row['card_id'] ?? $card_id_slug));
+        if ($comp !== '') {
+            $qr_business_name = htmlspecialchars($comp);
+            $qr_person_name = $firstlast !== '' ? htmlspecialchars($firstlast) : ($pos !== '' ? htmlspecialchars($pos) : '');
+        } elseif ($firstlast !== '') {
+            $qr_business_name = htmlspecialchars($firstlast);
+            $qr_person_name = $pos !== '' ? htmlspecialchars($pos) : '';
+        } elseif ($slug !== '') {
+            $qr_business_name = htmlspecialchars($slug);
+            $qr_person_name = $pos !== '' ? htmlspecialchars($pos) : '';
+        } elseif (isset($hero_name) && $hero_name !== '' && $hero_name !== 'Your Name') {
+            $qr_business_name = $hero_name;
+            $qr_person_name = $pos !== '' ? htmlspecialchars($pos) : '';
+        }
+        if ($qr_person_name === '' && $pos !== '' && $qr_business_name !== '') {
+            $qr_person_name = htmlspecialchars($pos);
+        }
+    } else {
+        $qr_person_name = $hero_name ?? '';
+    }
+    $qr_card_id = isset($row) && $row ? ($row['card_id'] ?? 'card') : 'card';
+    ?>
+    <section class="mw-qr-share mw-section-padding bg-cardbg/50">
+        <h2 class="mw-section-title">Share Profile</h2>
+        <div class="max-w-md mx-auto mw-card p-6 text-center">
+            <div class="bg-white p-2 w-40 h-40 mx-auto rounded-lg mb-6">
+                <img id="mw-qr-code-img" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode($share_url ?? ''); ?>" alt="QR Code" class="w-full h-full" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+            </div>
+            <canvas id="mw-qr-canvas" style="display: none;"></canvas>
+            <div class="space-y-4">
+                <input type="tel" id="mw-share-wa-input" placeholder="Enter WhatsApp Number" class="mw-input" maxlength="15">
+                <div class="flex gap-3 items-center">
+                    <button type="button" id="mw-share-wa-btn" style="background: var(--mw-offer-cta-bg); color: #111;" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
+                        <i class="fab fa-whatsapp"></i> Share on WhatsApp
+                    </button>
+                    <button type="button" id="mw-download-qr-btn" class="flex-shrink-0 w-12 h-12 rounded-theme flex items-center justify-center cursor-pointer" style="background: var(--mw-offer-cta-bg); color: #111;" title="Download QR">
+                    <i class="fa-solid fa-download"></i>
+                    </button>
+                </div>
+               
+                <div class="flex gap-4">
+                    <button type="button" id="mw-save-contact-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
+                     Save Contact
+                    </button>
+                    <button type="button" id="mw-share-link-btn" class="mw-share-btn flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 font-medium cursor-pointer">
+                        Share Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('mw-qr-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const backgroundImageUrl = 'assets/images/Miniwebsite_QR.png';
+        const qrImageUrl = <?php echo json_encode($qr_image_url); ?>;
+        const businessName = <?php echo json_encode($qr_business_name); ?>;
+        const personName = <?php echo json_encode($qr_person_name); ?>;
+        const websiteUrl = 'www.miniwebsite.in';
+        const downloadFilename = 'QR_Code_<?php echo htmlspecialchars($qr_card_id); ?>.png';
+
+        let imagesLoaded = 0;
+        const totalImages = 2;
+        let bgImage, qrImage;
+        let canvasReady = false;
+
+        function drawCanvas() {
+            if (imagesLoaded < totalImages) return;
+            canvas.width = bgImage.width;
+            canvas.height = bgImage.height;
+            ctx.drawImage(bgImage, 0, 0);
+            const padding = 18;
+            const qrSize = Math.min(canvas.width * 0.555, canvas.height * 0.555);
+            const qrX = (canvas.width - qrSize) / 2 + 8;
+            const qrY = (canvas.height - qrSize) / 2 - 70;
+            ctx.fillStyle = '#FFFFFF';
+            const borderRadius = 12;
+            const bgX = qrX - padding;
+            const bgY = qrY - padding;
+            const bgWidth = qrSize + (padding * 2);
+            const bgHeight = qrSize + (padding * 2);
+            ctx.beginPath();
+            ctx.moveTo(bgX + borderRadius, bgY);
+            ctx.lineTo(bgX + bgWidth - borderRadius, bgY);
+            ctx.quadraticCurveTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + borderRadius);
+            ctx.lineTo(bgX + bgWidth, bgY + bgHeight - borderRadius);
+            ctx.quadraticCurveTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - borderRadius, bgY + bgHeight);
+            ctx.lineTo(bgX + borderRadius, bgY + bgHeight);
+            ctx.quadraticCurveTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - borderRadius);
+            ctx.lineTo(bgX, bgY + borderRadius);
+            ctx.quadraticCurveTo(bgX, bgY, bgX + borderRadius, bgY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+            if (businessName) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold ' + Math.floor(canvas.width * 0.08) + 'px "Roboto Condensed"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(businessName.toUpperCase(), canvas.width / 2, canvas.height * 0.12);
+            }
+            if (personName) {
+                ctx.fillStyle = '#202023';
+                ctx.font = 'bold ' + Math.floor(canvas.width * 0.04) + 'px "Roboto Condensed"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(personName.toUpperCase(), canvas.width / 2, qrY + qrSize + 60);
+            }
+            ctx.fillStyle = '#202023';
+            ctx.font = 'bold ' + Math.floor(canvas.width * 0.070) + 'px "Roboto Condensed"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const scanTextY = personName ? qrY + qrSize + 180 : qrY + qrSize + 160;
+            ctx.fillText('SCAN TO VIEW AND SAVE!', canvas.width / 2, scanTextY);
+            ctx.fillStyle = '#202023';
+            ctx.font = Math.floor(canvas.width * 0.03) + 'px "Roboto Condensed"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Access our Miniwebsite & Contact Info', canvas.width / 2, scanTextY + 120);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = Math.floor(canvas.width * 0.04) + 'px "Roboto Condensed"';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(websiteUrl, canvas.width - (canvas.width * 0.05), canvas.height - (canvas.height * 0.015));
+            canvasReady = true;
+        }
+
+        function initCanvas() {
+            bgImage = new Image();
+            bgImage.crossOrigin = 'anonymous';
+            qrImage = new Image();
+            qrImage.crossOrigin = 'anonymous';
+            bgImage.onload = function() { imagesLoaded++; drawCanvas(); };
+            qrImage.onload = function() { imagesLoaded++; drawCanvas(); };
+            bgImage.onerror = function() { console.error('Failed to load QR background'); };
+            qrImage.onerror = function() { console.error('Failed to load QR image'); };
+            bgImage.src = backgroundImageUrl;
+            qrImage.src = qrImageUrl;
+        }
+
+        if (document.fonts && document.fonts.load) {
+            document.fonts.load('bold 16px "Roboto Condensed"').then(initCanvas).catch(initCanvas);
+        } else {
+            setTimeout(initCanvas, 500);
+        }
+
+        function mwQrToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-heading text-bgbase px-4 py-2 rounded-theme text-sm font-medium shadow-lg z-[60] transition-opacity duration-300';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 2000);
+        }
+        const btn = document.getElementById('mw-download-qr-btn');
+        if (btn) {
+            btn.addEventListener('click', function() {
+                if (!canvasReady) {
+                    mwQrToast('Please wait, QR code is still being prepared...');
+                    return;
+                }
+                const link = document.createElement('a');
+                link.download = downloadFilename;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                mwQrToast('QR downloaded!');
+            });
+        }
+    })();
+    </script>
+
+    <!-- 6. Services Section -->
+    <section id="mw-services" class="mw-services mw-section-padding bg-cardbg/30">
+        <h2 class="mw-section-title">Our Services</h2>
+
+        <!-- Services Grid (visible by default) -->
+        <div id="mw-services-grid" class="mw-grid-services">
+            <?php foreach ($services as $svc): ?>
+            <div class="mw-card mw-offer-card mw-service-card bg-cardbg rounded-theme overflow-hidden relative">
+                <div class="mw-service-image-wrap">
+                    <img src="<?php echo htmlspecialchars($svc['image']); ?>" alt="<?php echo htmlspecialchars($svc['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                </div>
+                <div class="p-5">
+                    <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $svc['name']; ?></h3>
+                    <p class="mw-service-desc-preview text-sm text-textmain line-clamp-3"><?php echo !empty($svc['desc']) ? htmlspecialchars($svc['desc']) : 'Contact us for details.'; ?></p>
+                    <div class="mw-service-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($svc['desc']) ? nl2br(htmlspecialchars($svc['desc'])) : 'Contact us for details.'; ?></div>
+                    <button type="button" class="mw-service-read-more self-start text-left text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+
+    <!-- 7. Special Offers Section -->
+    <section id="mw-offers" class="mw-special-offers mw-section-padding bg-cardbg/30">
+        <h2 class="mw-section-title">Special Offers</h2>
+        <div class="mw-grid-offers">
+            <?php foreach ($offers as $off): ?>
+            <div class="mw-card mw-offer-card bg-cardbg rounded-theme relative overflow-hidden">
+                <div class="mw-offer-badge absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold z-10" style="background: var(--mw-offer-badge-bg); color: var(--mw-offer-badge-color);"><?php echo htmlspecialchars($off['badge']); ?></div>
+                <div class="mw-offer-image-wrap aspect-[4/3] overflow-hidden">
+                    <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                </div>
+                <div class="p-5 flex flex-col min-h-0">
+                    <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $off['title']; ?></h3>
+                    <p class="mw-offer-desc-preview text-sm text-textmain line-clamp-1"><?php echo !empty($off['desc']) ? htmlspecialchars($off['desc']) : 'Contact us for details.'; ?></p>
+                    <div class="mw-offer-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($off['desc']) ? nl2br(htmlspecialchars($off['desc'])) : 'Contact us for details.'; ?></div>
+                    <button type="button" class="mw-offer-read-more self-start text-left text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
+                    <?php if (!empty($off['offer_valid'] ?? '') || !empty($off['offer_time'] ?? '')): ?>
+                    <div class="mw-offer-valid-row flex flex-row justify-between items-baseline gap-3 w-full text-xs text-textmain pt-3 mt-3 border-t border-white/10">
+                        <span class="min-w-0 text-left leading-snug"><?php if (!empty($off['offer_valid'] ?? '')): ?><span class="font-medium text-heading">Valid:</span> <?php echo $off['offer_valid']; ?><?php endif; ?></span>
+                        <span class="min-w-0 text-right leading-snug shrink-0"><?php if (!empty($off['offer_time'] ?? '')): ?><span class="font-medium text-heading">Time:</span> <?php echo $off['offer_time']; ?><?php endif; ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php
+                        $offer_wa_msg = "Hi 😊\nI am interested in the offer mentioned in your MiniWebsite \"" . $off['title'] . "\".\nPlease share the price & availability of this";
+                        ?>
+                    <button type="button" class="mw-offer-wa-cta block w-full py-2.5 rounded-theme font-semibold transition text-center mt-3 cursor-pointer border-0" style="background: var(--mw-offer-cta-bg); color: #111;" data-phone="<?php echo htmlspecialchars((string) $whatsapp, ENT_QUOTES, 'UTF-8'); ?>" data-msg="<?php echo htmlspecialchars($offer_wa_msg, ENT_QUOTES, 'UTF-8'); ?>">Get This Offer</button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+    <!-- 8. Products Section (Blinkit Style) -->
+    <?php if (!empty($products_by_cat)): ?>
+    <section id="mw-products" class="mw-products mw-section-padding">
+        <h2 class="mw-section-title">Shop Online</h2>
+        
+        <div id="mw-products-blinkit" class="mw-blinkit-container">
+            <!-- Sidebar Categories -->
+            <div class="mw-blinkit-sidebar" id="categorySidebar">
+                <?php foreach ($cat_order as $idx => $cat_key): if (!isset($products_by_cat[$cat_key]) || empty($products_by_cat[$cat_key])) continue; ?>
+                <div class="mw-cat-item <?php echo $idx === 0 ? 'active' : ''; ?>" data-cat="<?php echo htmlspecialchars($cat_key); ?>">
+                    <div class="mw-cat-img-box"><img src="<?php echo htmlspecialchars($cat_icons[$cat_key] ?? $cat_icons['mains']); ?>" class="w-full h-full object-contain" alt="" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'"></div>
+                    <span class="text-[10px] md:text-xs font-medium text-heading"><?php echo htmlspecialchars($cat_labels[$cat_key] ?? ucfirst($cat_key)); ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Products Area -->
+            <div class="mw-blinkit-main">
+                <?php foreach ($cat_order as $idx => $cat_key): if (!isset($products_by_cat[$cat_key]) || empty($products_by_cat[$cat_key])) continue; ?>
+                <div class="product-category-grid mw-grid-products <?php echo $idx === 0 ? 'active' : 'hidden'; ?>" id="grid-<?php echo htmlspecialchars($cat_key); ?>">
+                    <?php foreach ($products_by_cat[$cat_key] as $pidx => $prod):
+                        $global_idx = 0;
+                        foreach ($cat_order as $ok) {
+                            if ($ok === $cat_key) { $global_idx += $pidx; break; }
+                            $global_idx += isset($products_by_cat[$ok]) ? count($products_by_cat[$ok]) : 0;
+                        } ?>
+                    <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-1 cursor-pointer" data-product-index="<?php echo $global_idx; ?>">
+                        <div class="mw-product-image-wrap aspect-[4/3] relative rounded-t-xl">
+                            <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover pointer-events-none select-none" alt="<?php echo htmlspecialchars($prod['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10 pointer-events-auto" data-product-index="<?php echo $global_idx; ?>" aria-label="Add <?php echo htmlspecialchars($prod['name']); ?> to cart"><span class="mw-cart-btn-label">ADD</span></button>
+                        </div>
+                        <div class="p-1">
+                            <h3 class="font-medium text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
+                            <p class="mw-product-desc-preview text-xs text-gray-500 line-clamp-1"><?php echo !empty($prod['desc']) ? htmlspecialchars($prod['desc']) : 'Contact us for details.'; ?></p>
+                            <div class="mw-product-desc-full hidden text-xs text-gray-500 mt-2 leading-relaxed"><?php echo !empty($prod['desc']) ? nl2br(htmlspecialchars($prod['desc'])) : 'Contact us for details.'; ?></div>
+                            <button type="button" class="mw-product-read-more text-primary text-xs font-medium mt-1 hover:underline">Read more</button>
+                            <?php
+                            $mw_has_prod_discount = isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
+                            ?>
+                            <div class="mw-product-card-prices flex flex-col items-start gap-0.5 mt-2 md:flex-row md:items-center md:gap-2 <?php echo $mw_has_prod_discount ? 'md:justify-between' : ''; ?>">
+                                <?php if ($mw_has_prod_discount): ?>
+                                <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
+                                <?php endif; ?>
+                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">₹<?php echo number_format($prod['price']); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endforeach; ?>
+
+            </div>
+        </div>
+
+        <!-- Product detail: centered on screen; width synced to .mw-blinkit-main (grid column) via JS -->
+        <div id="mw-product-expanded-box" class="mw-product-expanded-box" aria-hidden="true">
+            <button type="button" class="mw-product-expanded-backdrop" aria-label="Close product details"></button>
+            <div class="mw-product-expanded-panel mw-card mw-offer-card relative overflow-hidden bg-white text-gray-800 flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-labelledby="mw-product-expanded-title">
+                <button type="button" class="mw-product-expanded-close absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center justify-center transition shadow-lg" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div class="mw-product-expanded-body">
+                    <div class="mw-product-expanded-col mw-product-expanded-media">
+                        <div class="mw-product-expanded-image-wrap relative">
+                            <img id="mw-product-expanded-img" src="" alt="" class="mw-product-expanded-img" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                            <button type="button" class="mw-product-expanded-prev absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Previous product"><i class="fas fa-chevron-left"></i></button>
+                            <button type="button" class="mw-product-expanded-next absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/95 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg transition" aria-label="Next product"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="mw-product-expanded-col mw-product-expanded-detail">
+                        <div class="mw-product-expanded-detail-inner p-4 md:p-6 flex flex-col min-h-0">
+                            <div class="mw-product-expanded-text-block flex-1 min-h-0">
+                                <span id="mw-product-expanded-badge" class="mw-product-expanded-badge hidden"></span>
+                                <h3 id="mw-product-expanded-title" class="text-gray-900 font-semibold text-lg md:text-xl mb-2 md:mb-3"></h3>
+                                <p id="mw-product-expanded-desc" class="mw-product-expanded-desc text-sm text-gray-500 leading-relaxed whitespace-pre-line"></p>
+                                <div class="mw-product-expanded-pricing mt-3 md:mt-4" aria-label="Pricing">
+                                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-2 justify-between">
+                                        <div class="flex flex-wrap items-baseline gap-2">
+                                            <span id="mw-product-expanded-mrp" class="mw-product-expanded-mrp text-sm text-gray-400 line-through font-bold"></span>
+                                            <span id="mw-product-expanded-price" class="mw-product-expanded-sale text-xl md:text-2xl font-bold text-green-600"></span>
+                                        </div>
+                                        <span id="mw-product-expanded-savings" class="mw-product-expanded-savings hidden"></span>
+                                    </div>
+                                   </div>
+                            </div>
+                            <button type="button" class="mw-product-expanded-add-btn mw-btn-add-shop mw-add-to-cart mt-4 flex items-center justify-center gap-2 rounded-xl font-bold uppercase tracking-wide border-0 cursor-pointer flex-shrink-0 self-end" style="background: var(--mw-offer-cta-bg); color: #111;" id="mw-product-expanded-add-main" data-product-index="0" aria-label="Add to cart"><span class="mw-cart-btn-label">ADD</span></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mw-product-expanded-footer flex justify-center gap-2 py-2.5 md:py-3 text-sm text-gray-500 border-t border-gray-200 flex-shrink-0">
+                    <span id="mw-product-expanded-counter">1</span> / <span id="mw-product-expanded-counter-total"><?php echo count($products_flat); ?></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <?php endif; ?>
+
+    <!-- 9. Video Section (1 col mobile, 3 cols desktop, 6 visible + Load more) -->
+    <?php if (!empty($videos)): ?>
+    <section class="mw-video-gallery mw-section-padding bg-cardbg/20">
+        <h2 class="mw-section-title">Videos</h2>
+        <div class="mw-grid-videos">
+            <?php foreach ($videos as $idx => $v):
+                $is_iframe = !empty($v['play_mode']) && $v['play_mode'] === 'iframe' && !empty($v['embed_url']);
+                $wrap_class = 'mw-video-item mw-card aspect-video relative group cursor-pointer overflow-hidden block ' . ($idx >= 6 ? 'mw-video-hidden' : '');
+                ?>
+            <?php if ($is_iframe): ?>
+            <div class="<?php echo $wrap_class; ?>" data-play-mode="iframe" data-video-url="<?php echo htmlspecialchars($v['embed_url']); ?>" data-video-fallback="<?php echo htmlspecialchars($v['url']); ?>" role="button" tabindex="0">
+                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="fas fa-play ml-1"></i></div></div>
+                <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
+            </div>
+            <?php else:
+                $ext_href = !empty($v['watch_url']) ? $v['watch_url'] : $v['url'];
+                $plat = $v['platform'] ?? 'other';
+                if ($plat === 'facebook') {
+                    $ext_center_icon = 'fab fa-facebook-f';
+                } elseif ($plat === 'instagram') {
+                    $ext_center_icon = 'fab fa-instagram';
+                } else {
+                    $ext_center_icon = 'fas fa-external-link-alt ml-0.5';
+                }
+                ?>
+            <a href="<?php echo htmlspecialchars($ext_href); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo $wrap_class; ?> mw-video-external no-underline text-inherit">
+                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="<?php echo htmlspecialchars($ext_center_icon); ?>"></i></div></div>
+                <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
+            </a>
+            <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <?php if (count($videos) > 6): ?>
+        <div id="mw-videos-load-more-wrap" class="mt-6 text-center">
+            <button type="button" id="mw-videos-load-more" class="w-full max-w-xs mx-auto py-3 px-6 rounded-theme font-semibold transition bg-primary/20 text-primary hover:bg-primary hover:text-bgbase border border-primary/50">
+                Load more (<?php echo count($videos) - 6; ?> more)
+            </button>
+        </div>
+        <?php endif; ?>
+    </section>
+
+    <!-- Video Modal (play within Miniwebsite) -->
+    <div id="mw-video-modal" class="mw-video-modal" aria-hidden="true">
+        <button type="button" class="mw-video-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+        <div class="mw-video-modal-content">
+            <iframe id="mw-video-modal-iframe" src="" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
     </div>
-</div>';
-	
-	return;
-}
-
-
-?>
-<?php
-		$card_css = !empty($row['d_css']) ? trim($row['d_css']) : 'card_css1.css';
-		// Only prepend folder if d_css is just a filename (theme picker may save full path)
-		if (strpos($card_css, '/') === false && strpos($card_css, '\\') === false) {
-			$card_css = 'assets/css/templates/' . $card_css;
-		}
-		// Normalize path: strip leading ../ so it works from n.php (site root)
-		$card_css = preg_replace('#^\.\./+#', '', $card_css);
-	?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($card_css); ?>" >
-
-<script>
-
-$(document).ready(function(){
-	$('.mobile_home').on('click',function(){
-		$('#header').toggleClass('add_height');
-
-	})
-})
-
-
-
-</script>
-<!----------------------copy from here ------------------------->
-
-
-	<div class="card" id="home" >
-
-	<?php
-//view counter
-
-			$query_views=mysqli_query($connect,'SELECT * FROM views WHERE ip="'.$_SERVER['REMOTE_ADDR'].'" AND card_id="'.(isset($row) && $row ? $row['id'] : '').'"');
-		// count views
-			$query_views_count=mysqli_query($connect,'SELECT * FROM views WHERE card_id="'.(isset($row) && $row ? $row['id'] : '').'"');
-			// count views
-			echo '<div class="view_counter"><i class="fa fa-eye"></i> <br>'.mysqli_num_rows($query_views_count).'</div>';
-			if(mysqli_num_rows($query_views) >> 0){}
-			else {
-				$insert_view=mysqli_query($connect,'INSERT INTO views (ip,uploaded_date,card_id) VALUES ("'.$_SERVER['REMOTE_ADDR'].'","'.$date.'","'.(isset($row) && $row ? $row['id'] : '').'")');
-			}
-// view counter
-			?>
-
-			<div class="card_content"><img src="<?php if(isset($row) && $row && !empty($row['d_logo'])){echo 'data:image/*;base64,'.base64_encode($row['d_logo']);} ?>" alt="Logo"></div>
-			<div class="card_content2">
-				<h2><?php if(isset($row) && $row && !empty($row['d_comp_name'])){echo $row['d_comp_name'];} ?></h2>
-				<p><?php if(isset($row) && $row && !empty($row['d_f_name'])){echo $row['d_f_name'].' '.$row['d_l_name'];} ?></p>
-				<p><?php if(isset($row) && $row && !empty($row['d_position'])){echo $row['d_position'];} ?></p>
-
-			</div>
-			<div class="dis_flex">
-				<?php if(isset($row) && $row && !empty($row['d_contact'])){echo '<a href="tel:+91'.$row['d_contact'].'" target="_blank"><div class="link_btn"><i class="fa fa-phone"></i> Call</div></a>';} ?>
-				<?php if(isset($row) && $row && !empty($row['d_whatsapp'])){echo '<a href="https://api.whatsapp.com/send?phone=91'.str_replace('+91','',$row['d_whatsapp']).'&text=Hi, '.$row['d_comp_name'].'" target="_blank"><div class="link_btn"><i class="fa fa-whatsapp"></i> WhatsApp</div></a>';} ?>
-
-
-
-				<?php if(isset($row) && $row && !empty($row['d_location'])){echo '<a href="'.$row['d_location'].'" target="_blank"><div class="link_btn"><i class="fa fa-map-marker"></i> Direction</div></a>';} ?>
-				<?php if(isset($row) && $row && !empty($row['d_email'])){echo '<a href="Mailto:'.$row['d_email'].'" target="_blank"><div class="link_btn"><i class="fa fa-envelope"></i> Mail</div></a>';} ?>
-				<?php if(isset($row) && $row && !empty($row['d_website'])){echo '<a href="https://'.$row['d_website'].'" target="_blank"><div class="link_btn"><i class="fa fa-globe"></i> Website</div></a>';} ?>
-
-			</div>
-
-			<div class="contact_details">
-				<?php if(!empty($row['d_contact'])){echo '<div class="contact_d"><i class="fa fa-phone"></i><p>'.$row['d_contact'].'</p></div>';} ?>
-				<?php if(!empty($row['d_contact2'])){echo '<div class="contact_d"><i class="fa fa-phone"></i><p>'.$row['d_contact2'].'</p></div>';} ?>
-				<?php if(!empty($row['d_email'])){echo '<div class="contact_d"><i class="fa fa-envelope"></i><p>'.$row['d_email'].'</p></div>';} ?>
-				<?php if(!empty($row['d_address'])){echo '<div class="contact_d"><i class="fa fa-map-marker" ></i><p>'.$row['d_address'].'</p></div>';} ?>
-
-			</div>
-
-			<div class="dis_flex">
-				<div class="share_wtsp">
-					<form action="https://api.whatsapp.com/send" id="wtsp_form" target="_blank"><input type="text"  name="phone" placeholder="WhatsApp Number with Country code	" value="+91"><input type="hidden" name="text" value="https://<?php echo $_SERVER['HTTP_HOST']; ?>/<?php echo $row['card_id']; ?>"><div class="wtsp_share_btn" onclick="subForm()"><i class="fa fa-whatsapp"></i> Share On WhatsApp</div></form>
-
-					<script>
-
-					$(document).ready(function(){
-						$('.wtsp_share_btn').on('click',function(){
-							$('#wtsp_form').submit();
-						})
-
-					})
-					</script>
-				</div>
-			</div>
-
-			<div class="dis_flex">
-
-			<?php if(!empty($row['d_contact'])){echo '<a href="contact_download.php?id='.$row['id'].'"><div class="big_btns">Save to Contacts <i class="fa fa-download"></i></div></a>';} ?>
-
-				<div class="big_btns" id="share_box_pop">Share <i class="fa fa-share-alt"></i></div>
-
-				<div class="share_box">
-
-
-				<div class="close" id="close_sharer">&times;</div>
-				<p>Share My Digital Miniwebsite </p>
-                <div><i class="fa-brands fa-x-twitter"></i></div>
-						<a href="https://api.whatsapp.com/send?text=https://<?php echo $_SERVER['HTTP_HOST']; ?>/<?php echo $row['card_id']; ?>"><div class="shar_btns"><i class="fa fa-whatsapp" id="whatsapp2"  target="_blank"></i><p>WhatsApp</p></div></a>
-					<a href="sms:?body=https://<?php echo $_SERVER['HTTP_HOST']; ?>/<?php echo $row['card_id']; ?>" target="_blank"><div class="shar_btns"><i class="fa fa-comment" ></i><p>SMS</p></div></a>
-
-					<a href="https://www.facebook.com/sharer/sharer.php?u=https://<?php echo $_SERVER['HTTP_HOST']; ?>/<?php echo $row['card_id']; ?>" target="_blank"><div class="shar_btns"><i class="fa fa-facebook" ></i><p>Facebook</p></div></a>
-					<a href="https://twitter.com/intent/tweet?text=https://<?php echo $_SERVER['HTTP_HOST']; ?>/<?php echo $row['card_id']; ?>" target="_blank"><div class="shar_btns"><i class="fa fa-twitter"></i><p>Twitter</p></div></a>
-					<a href="" target="_blank"><div class="shar_btns"><i class="fa fa-instagram"></i><p>Instagram</p></div></a>
-					<a href="https://www.linkedin.com/cws/share?url=https://<?php echo $_SERVER['HTTP_HOST']; ?>/<?php echo $row['card_id']; ?>" target="_blank"><div class="shar_btns"><i class="fa fa-linkedin"></i><p>Linkedin</p></div></a>
-				</div>
-
-				<script>
-					$(document).ready(function(){
-						$('#close_sharer,#share_box_pop').on('click',function(){
-							$('.share_box').slideToggle();
-						});
-					})
-
-
-				</script>
-
-			</div>
-			<div class="dis_flex">
-
-				<?php if(!empty($row['d_fb'])){echo '<a href="'.$row['d_fb'].'" target="_blank"><div class="social_med" ><i class="fa fa-facebook"></i></div></a>';} ?>
-				<?php if(!empty($row['d_youtube'])){echo '<a href="'.$row['d_youtube'].'" target="_blank"><div class="social_med"><i class="fa fa-youtube"></i></div></a>';} ?>
-				<?php if(!empty($row['d_twitter'])){echo '<a href="'.$row['d_twitter'].'" target="_blank"><div class="social_med"><i class="fa fa-twitter"></i></div></a>';} ?>
-				<?php if(!empty($row['d_instagram'])){echo '<a href="'.$row['d_instagram'].'" target="_blank"><div class="social_med"><i class="fa fa-instagram"></i></div></a>';} ?>
-				<?php if(!empty($row['d_linkedin'])){echo '<a href="'.$row['d_linkedin'].'" target="_blank"><div class="social_med"><i class="fa fa-linkedin"></i></div></a>';} ?>
-				<?php if(!empty($row['d_pinterest'])){echo '<a href="'.$row['d_pinterest'].'" target="_blank"><div class="social_med"><i class="fa fa-pinterest"></i></div></a>';} ?>
-			</div>
-
-
-
-
-	</div>
-
-	<div class="card2">
-
-	<h3>Scan QR Code to download the contact details</h3>
-	<div class="qr_code_container" id="qrContainer" style="width: 100%; box-sizing: border-box;">
-		<?php
-		// Create the QR code URL with clean URL format
-		$qrCodeUrl = "https://" . $_SERVER['HTTP_HOST'] . "/" . (isset($row) && $row ? $row['card_id'] : '');
-		$encodedUrl = urlencode($qrCodeUrl);
-		// Use a more reliable QR code service - increased size for better visibility and scaling
-		$qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=" . $encodedUrl;
-		// Get business name and person name for display
-		$businessName = isset($row) && $row && !empty($row['d_comp_name']) ? htmlspecialchars($row['d_comp_name']) : '';
-		$personName = isset($row) && $row ? trim(htmlspecialchars(($row['d_f_name'] ?? '') . ' ' . ($row['d_l_name'] ?? ''))) : '';
-		$websiteUrl = "www.miniwebsite.in";
-		?>
-		<div class="qr_card_wrapper" style="text-align: center; width: 100%; max-width: 100%; box-sizing: border-box; overflow: visible; position: relative;">
-			<!-- Display simple QR code image on page -->
-			<img id="qrDisplayImage" src="<?php echo $qrImageUrl; ?>" alt="QR Code" style="max-width: 200px; height: auto; margin: 0 auto; display: block;">
-			<!-- Hidden canvas for download (with full design) -->
-			<canvas id="qrCanvas" style="display: none;"></canvas>
-		</div>
-
-		<div class="download-btn-wrapper">
-			<button id="downloadQrBtn" class="qr_download_btn" style="cursor: pointer; border: none;">
-				<i class="fa fa-download"></i> Download QR Code
-			</button>
-		</div>
-	</div>
-
-	</div>
-
-
-	<script>
-	document.addEventListener('DOMContentLoaded', function() {
-		const canvas = document.getElementById('qrCanvas');
-		const ctx = canvas.getContext('2d');
-		
-		// Data from PHP
-		const backgroundImageUrl = 'assets/images/Miniwebsite_QR.png';
-		const qrImageUrl = '<?php echo $qrImageUrl; ?>';
-		const businessName = '<?php echo $businessName; ?>';
-		const personName = '<?php echo $personName; ?>';
-		const websiteUrl = '<?php echo $websiteUrl; ?>';
-		
-		// Wait for Roboto Condensed font to load
-		if (document.fonts && document.fonts.check) {
-			document.fonts.load('bold 16px "Roboto Condensed"').then(function() {
-				initCanvas();
-			}).catch(function() {
-				// If font loading fails, proceed anyway
-				initCanvas();
-			});
-		} else {
-			// Fallback if font loading API not available
-			setTimeout(initCanvas, 500);
-		}
-		
-		// Settings object to store all adjustable values
-		let settings = {
-			businessName: { font: 0.08, x: 0, y: 0.12 },
-			personName: { font: 0.04, x: 0, y: 60 },
-			scanText: { font: 0.080, x: 0, y: 200 },
-			accessText: { font: 0.04, x: 0, y: 120 },
-			website: { font: 0.04, x: 0.05, y: 0.015 },
-			qr: { x: 8, y: -70, size: 0.555 }
-		};
-		
-		// Function to update settings from input fields
-		function updateSettingsFromInputs() {
-			settings.businessName.font = parseFloat(document.getElementById('businessNameFont').value) || 0.08;
-			settings.businessName.x = parseFloat(document.getElementById('businessNameX').value) || 0;
-			settings.businessName.y = parseFloat(document.getElementById('businessNameY').value) || 0.12;
-			
-			settings.personName.font = parseFloat(document.getElementById('personNameFont').value) || 0.04;
-			settings.personName.x = parseFloat(document.getElementById('personNameX').value) || 0;
-			settings.personName.y = parseFloat(document.getElementById('personNameY').value) || 60;
-			
-			settings.scanText.font = parseFloat(document.getElementById('scanTextFont').value) || 0.080;
-			settings.scanText.x = parseFloat(document.getElementById('scanTextX').value) || 0;
-			settings.scanText.y = parseFloat(document.getElementById('scanTextY').value) || 200;
-			
-			settings.accessText.font = parseFloat(document.getElementById('accessTextFont').value) || 0.04;
-			settings.accessText.x = parseFloat(document.getElementById('accessTextX').value) || 0;
-			settings.accessText.y = parseFloat(document.getElementById('accessTextY').value) || 120;
-			
-			settings.website.font = parseFloat(document.getElementById('websiteFont').value) || 0.04;
-			settings.website.x = parseFloat(document.getElementById('websiteX').value) || 0.05;
-			settings.website.y = parseFloat(document.getElementById('websiteY').value) || 0.015;
-			
-			settings.qr.x = parseFloat(document.getElementById('qrX').value) || 8;
-			settings.qr.y = parseFloat(document.getElementById('qrY').value) || -70;
-			settings.qr.size = parseFloat(document.getElementById('qrSizePercent').value) || 0.555;
-			
-			// Redraw canvas with new settings immediately
-			if (imagesLoaded >= totalImages) {
-				drawCanvas();
-			}
-		}
-		
-		// Add event listeners to all input fields for real-time updates
-		function setupSettingsListeners() {
-			const inputs = ['businessNameFont', 'businessNameX', 'businessNameY',
-							'personNameFont', 'personNameX', 'personNameY',
-							'scanTextFont', 'scanTextX', 'scanTextY',
-							'accessTextFont', 'accessTextX', 'accessTextY',
-							'websiteFont', 'websiteX', 'websiteY',
-							'qrX', 'qrY', 'qrSizePercent'];
-			
-			inputs.forEach(id => {
-				const input = document.getElementById(id);
-				if (input) {
-					input.addEventListener('input', updateSettingsFromInputs);
-					input.addEventListener('change', updateSettingsFromInputs);
-				}
-			});
-		}
-		
-		// Variables to track image loading
-		let imagesLoaded = 0;
-		const totalImages = 2;
-		let bgImage, qrImage;
-		let canvasReady = false; // Track if canvas is ready for download
-		
-		function initCanvas() {
-			// Load background image
-			bgImage = new Image();
-			bgImage.crossOrigin = 'anonymous';
-			
-			// Load QR code image
-			qrImage = new Image();
-			qrImage.crossOrigin = 'anonymous';
-		
-		function drawCanvas() {
-			if (imagesLoaded < totalImages) return;
-			
-			// Canvas stays hidden - only used for download
-			// Set canvas size to match background image
-			canvas.width = bgImage.width;
-			canvas.height = bgImage.height;
-			
-			// Draw background image
-			ctx.drawImage(bgImage, 0, 0);
-			
-			// Calculate QR code position (center of canvas) - fit within the yellow border in background image
-			// Adjust size to fill the yellow border area without covering the border itself
-			const padding = 18; // Padding around QR code
-			const qrSize = Math.min(canvas.width * 0.555, canvas.height * 0.555);
-			const qrX = (canvas.width - qrSize) / 2 + 8;
-			const qrY = (canvas.height - qrSize) / 2 - 70;
-			
-			// Draw white background for QR code with padding and rounded corners
-			ctx.fillStyle = '#FFFFFF';
-			const borderRadius = 12; // Rounded corner radius
-			const bgX = qrX - padding;
-			const bgY = qrY - padding;
-			const bgWidth = qrSize + (padding * 2);
-			const bgHeight = qrSize + (padding * 2);
-			
-			// Draw rounded rectangle for white background
-			ctx.beginPath();
-			ctx.moveTo(bgX + borderRadius, bgY);
-			ctx.lineTo(bgX + bgWidth - borderRadius, bgY);
-			ctx.quadraticCurveTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + borderRadius);
-			ctx.lineTo(bgX + bgWidth, bgY + bgHeight - borderRadius);
-			ctx.quadraticCurveTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - borderRadius, bgY + bgHeight);
-			ctx.lineTo(bgX + borderRadius, bgY + bgHeight);
-			ctx.quadraticCurveTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - borderRadius);
-			ctx.lineTo(bgX, bgY + borderRadius);
-			ctx.quadraticCurveTo(bgX, bgY, bgX + borderRadius, bgY);
-			ctx.closePath();
-			ctx.fill();
-			
-			// Draw QR code - fill the area inside the yellow border from background image
-			ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
-			
-			// Draw business name at top (on blue background area)
-			if (businessName) {
-				ctx.fillStyle = '#FFFFFF';
-				ctx.font = 'bold ' + Math.floor(canvas.width * 0.08) + 'px "Roboto Condensed"';
-				ctx.textAlign = 'center';
-				ctx.textBaseline = 'middle';
-				ctx.fillText(businessName.toUpperCase(), canvas.width / 2, canvas.height * 0.12);
-			}
-			
-			// Draw person name below QR code - shifted further down
-			if (personName) {
-				ctx.fillStyle = '#202023';
-				ctx.font = 'bold ' + Math.floor(canvas.width * 0.04) + 'px "Roboto Condensed"';
-				ctx.textAlign = 'center';
-				ctx.textBaseline = 'top';
-				ctx.fillText(personName.toUpperCase(), canvas.width / 2, qrY + qrSize + 60);
-			}
-			
-			// Draw "SCAN TO VIEW AND SAVE!" text - shifted further down
-			ctx.fillStyle = '#202023';
-			ctx.font = 'bold ' + Math.floor(canvas.width * 0.070) + 'px "Roboto Condensed"  ';
-			ctx.textAlign = 'center';
-			ctx.textBaseline = 'top';
-			const scanTextY = personName ? qrY + qrSize + 180 : qrY + qrSize + 160;
-			ctx.fillText('SCAN TO VIEW AND SAVE!', canvas.width / 2, scanTextY);
-			
-			// Draw "Access our Miniwebsite & Contact Info" text - shifted further down
-			ctx.fillStyle = '#202023';
-			ctx.font = Math.floor(canvas.width * 0.03) + 'px "Roboto Condensed"';
-			ctx.textAlign = 'center';
-			ctx.textBaseline = 'top';
-			ctx.fillText('Access our Miniwebsite & Contact Info', canvas.width / 2, scanTextY + 120);
-			
-			// Draw website URL at bottom (on blue background area)
-			ctx.fillStyle = '#FFFFFF';
-			ctx.font = Math.floor(canvas.width * 0.04) + 'px "Roboto Condensed"';
-			ctx.textAlign = 'right';
-			ctx.textBaseline = 'bottom';
-			ctx.fillText(websiteUrl, canvas.width - (canvas.width * 0.05), canvas.height - (canvas.height * 0.015));
-			
-			// Mark canvas as ready for download
-			canvasReady = true;
-		}
-		
-			// Handle background image load
-			bgImage.onload = function() {
-				imagesLoaded++;
-				drawCanvas();
-			};
-			
-			// Handle QR code image load
-			qrImage.onload = function() {
-				imagesLoaded++;
-				drawCanvas();
-			};
-			
-			// Handle errors
-			bgImage.onerror = function() {
-				console.error('Failed to load background image');
-			};
-			
-			qrImage.onerror = function() {
-				console.error('Failed to load QR code image');
-			};
-			
-			// Start loading images
-			bgImage.src = backgroundImageUrl;
-			qrImage.src = qrImageUrl;
-		}
-		
-		// Download button handler
-		document.getElementById('downloadQrBtn').addEventListener('click', function() {
-			if (!canvasReady) {
-				alert('Please wait, QR code is still being prepared for download...');
-				return;
-			}
-			const link = document.createElement('a');
-			link.download = 'QR_Code_<?php echo isset($row) && $row ? $row['card_id'] : 'card'; ?>.png';
-			link.href = canvas.toDataURL('image/png');
-			link.click();
-		});
-		
-	});
-	</script>
-
-
-<!--------------about us --------------------------->
-
-	<div class="card2" id="about_us">
-		<h3>About Us</h3>
-	<?php if(!empty($row['d_comp_est_date'])){echo '<p>'.$row['d_comp_est_date'].'</p>';} ?>
-	<?php if(!empty($row['d_about_us'])){echo '<p>'.$row['d_about_us'].'</p>';} ?>
-
-
-
-	</div>
-
-<!------------shopping online-------------------------->
-
-
-<?php
-$product_count = 0;
-$query_pricing = null;
-$displayed_products = 0;
-$use_old_table = false;
-$old_products_data = null;
-
-if(isset($row['id']) && !empty($row['id'])){
-	// First try new card_product_pricing table
-	$card_id_for_query = intval($row['id']);
-	$query_pricing = mysqli_query($connect, 'SELECT * FROM card_product_pricing WHERE card_id="'.$card_id_for_query.'" ORDER BY display_order ASC, id ASC');
-	
-	if($query_pricing){
-		$product_count = mysqli_num_rows($query_pricing);
-	}
-	
-	// If no products in new table, check old products table (backward compatibility)
-	if($product_count == 0){
-		$query_old = mysqli_query($connect, 'SELECT * FROM products WHERE id="'.$card_id_for_query.'" LIMIT 1');
-		if($query_old && mysqli_num_rows($query_old) > 0){
-			$old_products_data = mysqli_fetch_array($query_old);
-			$use_old_table = true;
-			// Count products in old table
-			for($x=1;$x<=20;$x++){
-				if(!empty($old_products_data["pro_name$x"])){
-					$product_count++;
-				}
-			}
-		}
-	}
-}
-
-// Display section if there are products
-if($product_count > 0){ ?>
-	<div class="card2" id="shop_online">
-		<h3>Shop Online </h3><h3>From Our Store</h3>
-
-		<?php
-		if($use_old_table && $old_products_data){
-			// Display from old products table
-			for($x=1;$x<=20;$x++){
-				if(!empty($old_products_data["pro_name$x"])){
-					$displayed_products++;
-					echo '<div class="order_box">';
-
-					// Display image if available
-					if(!empty($old_products_data["pro_img$x"])){
-						echo '<img src="data:image/*;base64,'.base64_encode($old_products_data["pro_img$x"]).'" alt="Product">';
-					} else {
-						echo '<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#999; border-radius:8px;"><i class="fa fa-image" style="font-size:48px;"></i></div>';
-					}
-					
-					echo '<h2>'.htmlspecialchars($old_products_data["pro_name$x"]).'</h2>';
-					
-					if(!empty($old_products_data["pro_mrp$x"]) && floatval($old_products_data["pro_mrp$x"]) > 0){
-						echo '<p><del>'.number_format($old_products_data["pro_mrp$x"], 2).' <i class="fa fa-rupee"></i></del></p>';
-					}
-					if(!empty($old_products_data["pro_price$x"]) && floatval($old_products_data["pro_price$x"]) > 0){
-						echo '<h4>'.number_format($old_products_data["pro_price$x"], 2).' <i class="fa fa-rupee"></i></h4>';
-					}
-
-					// WhatsApp inquiry link
-					if(!empty($row['d_whatsapp'])){
-						$mrp_display = !empty($old_products_data["pro_mrp$x"]) && floatval($old_products_data["pro_mrp$x"]) > 0 ? number_format($old_products_data["pro_mrp$x"], 2) : (!empty($old_products_data["pro_price$x"]) && floatval($old_products_data["pro_price$x"]) > 0 ? number_format($old_products_data["pro_price$x"], 2) : 'N/A');
-						$whatsapp_text = urlencode("Hello sir, I checked your products on your digital visiting card. I am interested in Product: ".$old_products_data["pro_name$x"].", Price: ".$mrp_display);
-						echo "<a href='https://api.whatsapp.com/send?phone=91".str_replace("+91","",$row['d_whatsapp'])."&text=".$whatsapp_text."' target='_blank'><div class='btn_buy'>Inquire Now</div></a>";
-					} else {
-						if(!empty($row['d_contact'])){
-							echo "<a href='tel:+91".str_replace("+91","",$row['d_contact'])."'><div class='btn_buy'>Contact Now</div></a>";
-						} else {
-							echo "<div class='btn_buy' style='opacity:0.6; cursor:default;'>Inquire Now</div>";
-						}
-					}
-
-					echo '</div>';
-				}
-			}
-		} else if($query_pricing) {
-			// Display from new card_product_pricing table
-			while($row3 = mysqli_fetch_array($query_pricing)){
-				// Only require product_name, image is optional
-				if(!empty($row3["product_name"])){
-					$displayed_products++;
-					echo '<div class="order_box">';
-
-				// Display image if available, otherwise show placeholder
-				if(!empty($row3["product_image"])){
-					// Check if product_image is just a filename
-					if(is_string($row3["product_image"]) && strpos($row3["product_image"], '/') === false && strpos($row3["product_image"], '\\') === false && strpos($row3["product_image"], '.') !== false) {
-						// It's just a filename - construct the full path
-						$image_src = 'assets/upload/websites/product-pricing/' . htmlspecialchars($row3["product_image"]);
-						echo '<img src="' . $image_src . '" alt="Product">';
-					} else {
-						// It's binary data - convert to base64 (legacy support)
-						echo '<img src="data:image/*;base64,'.base64_encode($row3["product_image"]).'" alt="Product">';
-					}
-				} else {
-					// Show placeholder div if no image
-					echo '<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; color:#999; border-radius:8px;"><i class="fa fa-image" style="font-size:48px;"></i></div>';
-				}
-					
-					echo '<h2>'.htmlspecialchars($row3["product_name"]).'</h2>';
-					
-					if(!empty($row3["mrp"]) && floatval($row3["mrp"]) > 0){
-						echo '<p><del>'.number_format($row3["mrp"], 2).' <i class="fa fa-rupee"></i></del></p>';
-					}
-					if(!empty($row3["selling_price"]) && floatval($row3["selling_price"]) > 0){
-						echo '<h4>'.number_format($row3["selling_price"], 2).' <i class="fa fa-rupee"></i></h4>';
-					}
-
-					// WhatsApp inquiry link - only show if WhatsApp number exists
-					if(!empty($row['d_whatsapp'])){
-						$mrp_display = !empty($row3["mrp"]) && floatval($row3["mrp"]) > 0 ? number_format($row3["mrp"], 2) : (!empty($row3["selling_price"]) && floatval($row3["selling_price"]) > 0 ? number_format($row3["selling_price"], 2) : 'N/A');
-						$whatsapp_text = urlencode("Hello sir, I checked your products on your digital visiting card. I am interested in Product: ".$row3["product_name"].", Price: ".$mrp_display);
-						echo "<a href='https://api.whatsapp.com/send?phone=91".str_replace("+91","",$row['d_whatsapp'])."&text=".$whatsapp_text."' target='_blank'><div class='btn_buy'>Inquire Now</div></a>";
-					} else {
-						// Show contact button if no WhatsApp
-						if(!empty($row['d_contact'])){
-							echo "<a href='tel:+91".str_replace("+91","",$row['d_contact'])."'><div class='btn_buy'>Contact Now</div></a>";
-						} else {
-							echo "<div class='btn_buy' style='opacity:0.6; cursor:default;'>Inquire Now</div>";
-						}
-					}
-
-					echo '</div>';
-				}
-			}
-		}
-		
-		// If no products were displayed, hide the section
-		if($displayed_products == 0){
-			echo '<style>#shop_online { display: none; }</style>';
-		}
-		?>
-
-	</div>
-<?php } ?>
-
-
-
-
-<!--------------youtube videos--------------------------->
-
-<?php
-    // Check if any youtube fields 1..20 are present
-    $has_any_youtube = false;
-    for ($i = 1; $i <= 20; $i++) {
-        if (!empty($row["d_youtube{$i}"])) { $has_any_youtube = true; break; }
+    <?php endif; ?>
+
+    <!-- 10. Image Gallery -->
+    <section id="mw-gallery" class="mw-image-gallery mw-section-padding">
+        <h2 class="mw-section-title">Image Gallery</h2>
+        <div class="mw-grid-gallery">
+            <?php foreach ($gallery as $g_img): ?>
+            <div class="aspect-square rounded-lg overflow-hidden border border-white/5 mw-gallery-item cursor-pointer group" role="button" tabindex="0" data-gallery-src="<?php echo htmlspecialchars($g_img, ENT_QUOTES); ?>">
+                <img src="<?php echo htmlspecialchars($g_img); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-300 pointer-events-none select-none" alt="Gallery" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+    <!-- Gallery lightbox: centered on screen, content width matches app section (max 1200px) -->
+    <div id="mw-gallery-modal" class="mw-gallery-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Gallery" data-default-src="<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>">
+        <button type="button" class="mw-gallery-modal-backdrop" aria-label="Close gallery"></button>
+        <div class="mw-gallery-modal-panel">
+            <button type="button" class="mw-gallery-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+            <button type="button" class="mw-gallery-modal-prev" aria-label="Previous image"><i class="fas fa-chevron-left"></i></button>
+            <button type="button" class="mw-gallery-modal-next" aria-label="Next image"><i class="fas fa-chevron-right"></i></button>
+            <div class="mw-gallery-modal-stage">
+                <img id="mw-gallery-modal-img" src="" alt="Gallery" class="mw-gallery-modal-img">
+            </div>
+            <div id="mw-gallery-modal-counter" class="mw-gallery-modal-counter"></div>
+        </div>
+    </div>
+
+    <!-- 11. Payment QR Section - Show all uploaded QR codes -->
+    <?php
+    $payment_qrs = [];
+    if ($row) {
+        if (!empty($row['d_qr_paytm'])) $payment_qrs[] = ['label' => 'Paytm', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_paytm']), 'upi' => trim($row['d_paytm'] ?? '')];
+        if (!empty($row['d_qr_google_pay'])) $payment_qrs[] = ['label' => 'Google Pay', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_google_pay']), 'upi' => trim($row['d_google_pay'] ?? '')];
+        if (!empty($row['d_qr_phone_pay'])) $payment_qrs[] = ['label' => 'PhonePe', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_phone_pay']), 'upi' => trim($row['d_phone_pay'] ?? '')];
     }
-    if ($has_any_youtube) { ?>
-	<div class="card2" id="youtube_video">
-		<h3>Youtube Videos</h3>
-
-
-		<?php
-		for($x=1;$x<=20;$x++){
-			if(!empty($row["d_youtube$x"])){
-				$array1=array('youtu.be/','watch?v=','&feature=youtu.be');
-				$array2=array('www.youtube.com/embed/','embed/','');
-				$youtubelink=str_replace($array1,$array2,$row["d_youtube$x"]);
-				echo '<iframe src="'.$youtubelink.'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
-			}
-		}
-
-		?>
-
-
-	</div>
-<?php } ?>
-
-
-
-<!----------product and services ----------------------->
-<?php
-$product_services_count = 0;
-$query_products_services = null;
-if(isset($row['id'])){
-	$query_products_services=mysqli_query($connect,'SELECT * FROM card_products_services WHERE card_id="'.$row['id'].'" ORDER BY display_order ASC');
-	$product_services_count = mysqli_num_rows($query_products_services);
-}
-
-	if($product_services_count > 0 && $query_products_services) { ?>
-
-	<div class="card2" id="product_services">
-		<h3>Products & Services</h3>
-
-
-		<?php
-		while($row2 = mysqli_fetch_array($query_products_services)){
-			// Display if there's a product name or image
-			if(!empty($row2["product_name"]) || !empty($row2["product_image"])){
-				echo '<div class="product_s">';
-				if(!empty($row2["product_name"])){
-					echo '<p>'.$row2["product_name"].'</p>';
-				}
-				if(!empty($row2["product_image"])){
-					// Check if product_image is just a filename
-					if(is_string($row2["product_image"]) && strpos($row2["product_image"], '/') === false && strpos($row2["product_image"], '\\') === false && strpos($row2["product_image"], '.') !== false) {
-						// It's just a filename - construct the full path
-						$image_src = 'assets/upload/websites/product-and-services/' . htmlspecialchars($row2["product_image"]);
-						echo '<img src="' . $image_src . '" alt="Logo">';
-					} else {
-						// It's binary data - convert to base64 (legacy support)
-						echo '<img src="data:image/*;base64,'.base64_encode($row2["product_image"]).'" alt="Logo">';
-					}
-				}
-				echo '</div>';
-			}
-		}
-
-		?>
-
-
-	</div>
-
-<?php } ?>
-
-
-
-<!----------image gallery----------------------->
-<style>
-/* Override gallery styles to display full width and stack vertically */
-#gallery .img_gall {
-    display: block !important;
-    width: 100% !important;
-    margin: 10px 0 !important;
-    vertical-align: top !important;
-}
-#gallery .img_gall img {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    display: block !important;
-    margin: 0 auto !important;
-    border-radius: 8px;
-}
-</style>
-<?php
-$gallery_count = 0;
-$query_gallery = null;
-if(isset($row['id'])){
-	$query_gallery=mysqli_query($connect,'SELECT * FROM card_image_gallery WHERE card_id="'.$row['id'].'" ORDER BY display_order ASC');
-	$gallery_count = mysqli_num_rows($query_gallery);
-}
-	if($gallery_count > 0 && $query_gallery) { ?>
-
-
-		<div class="card2" id="gallery">
-		<h3>Image Gallery</h3>
-
-
-		<?php
-		while($row3 = mysqli_fetch_array($query_gallery)){
-			if(!empty($row3["gallery_image"])){
-				echo '<div class="img_gall">';
-				// Check if gallery_image is just a filename
-				if(is_string($row3["gallery_image"]) && strpos($row3["gallery_image"], '/') === false && strpos($row3["gallery_image"], '\\') === false && strpos($row3["gallery_image"], '.') !== false) {
-					// It's just a filename - construct the full path
-					$image_src = 'assets/upload/websites/image-gallery/' . htmlspecialchars($row3["gallery_image"]);
-					echo '<img src="' . $image_src . '" alt="Gallery Image">';
-				} else {
-					// It's binary data - convert to base64 (legacy support)
-					echo '<img src="data:image/*;base64,'.base64_encode($row3["gallery_image"]).'" alt="Gallery Image">';
-				}
-				echo '</div>';
-			}
-		}
-
-		?>
-
-
-	</div>
-
-<?php } ?>
-
-
-
-<!----------payment info----------------------->
-<?php 	if(!empty($row["d_paytm"]) || !empty($row["d_account_no"]) ||!empty($row["d_qr_paytm"]) ||!empty($row["d_qr_phone_pay"]) ||!empty($row["d_qr_google_pay"]) || !empty($row["d_google_pay"]) || !empty($row["d_phone_pay"]) ){ ?>
-
-	<div class="card2" id="payment">
-		<h3>Payment Info</h3>
-
-
-		<?php 	if(!empty($row["d_paytm"])){echo '<h2>Paytm</h2><p>'.$row['d_paytm'].'</p>';}	?>
-		<?php 	if(!empty($row["d_google_pay"])){echo '<h2>Google Pay</h2><p>'.$row['d_google_pay'].'</p>';}?>
-		<?php 	if(!empty($row["d_phone_pay"])){echo '<h2>PhonePe</h2><p>'.$row['d_phone_pay'].'</p>';}	?>
-
-		<h3>Bank Account Details</h3>
-
-		<?php 	if(!empty($row["d_ac_name"])){echo '<h2>Name:</h2><p>'.$row['d_ac_name'].'</p>';}	?>
-		<?php 	if(!empty($row["d_account_no"])){echo '<h2>Account Number:</h2><p>'.$row['d_account_no'].'</p>';}?>
-		<?php 	if(!empty($row["d_ifsc"])){echo '<h2>IFSC Code:</h2><p>'.$row['d_ifsc'].'</p>';	}?>
-		<?php 	if(!empty($row["d_ac_type"])){echo '<h2>GST Number:</h2><p>'.$row['d_ac_type'].'</p>';	}?>
-		<?php 	if(!empty($row["d_bank_name"])){echo '<h2>BANK Name:</h2><p>'.$row['d_bank_name'].'</p>';}	?>
-
-
-		<?php if(!empty($row["d_qr_paytm"])){echo '<img src="data:image/*;base64,'.base64_encode($row["d_qr_paytm"]).'" alt="Paytm QR">';	}	?>
-		<?php if(!empty($row["d_qr_google_pay"])){echo '<img src="data:image/*;base64,'.base64_encode($row["d_qr_google_pay"]).'" alt="Google Pay QR">';	}	?>
-		<?php if(!empty($row["d_qr_phone_pay"])){echo '<img src="data:image/*;base64,'.base64_encode($row["d_qr_phone_pay"]).'" alt="PhonePe QR">';	}	?>
-
-
-
-	</div>
-	<?php } ?>
-
-
-<!----------email to  info----------------------->
-<div class="card2" id="enquery">
-    <form action="#enquery" method="post" id="enquiryForm" onsubmit="return validateForm()">
-        <h3>Contact Us</h3>
-
-        <input type="text" name="c_name" id="c_name" placeholder="Enter Your Name" required 
-               pattern="[A-Za-z\s]+" title="Please enter a valid name (letters and spaces only)">
-               
-        <input type="tel" name="c_contact" id="c_contact" maxlength="13" placeholder="Enter Your Mobile No" required 
-               pattern="[0-9]{10,13}" title="Please enter a valid 10-13 digit phone number">
-               
-        <input type="email" name="c_email" id="c_email" placeholder="Enter Your Email Address"
-               pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Please enter a valid email address">
-               
-        <textarea name="c_msg" id="c_msg" placeholder="Enter your Message or Query" required
-                  minlength="10" title="Please enter at least 10 characters"></textarea>
-                  
-        <input type="submit" value="Send!" name="email_to_client" id="submitBtn">
-    </form>
-
-<script>
-function validateForm() {
-    // Get form elements
-    var name = document.getElementById('c_name');
-    var contact = document.getElementById('c_contact');
-    var email = document.getElementById('c_email');
-    var message = document.getElementById('c_msg');
-    var isValid = true;
-    
-    // Reset all error states
-    name.classList.remove('error');
-    contact.classList.remove('error');
-    email.classList.remove('error');
-    message.classList.remove('error');
-    
-    // Validate name (required, letters and spaces only)
-    if(!name.value.trim() || !/^[A-Za-z\s]+$/.test(name.value.trim())) {
-        name.classList.add('error');
-        isValid = false;
+    if (empty($payment_qrs)) {
+        $payment_qrs = [['label' => 'Scan & Pay', 'img' => 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UPI://pay?pa=chef@upi&pn=Olivia', 'upi' => 'chef@upi']];
     }
-    
-    // Validate contact (required, 10-13 digits)
-    if(!contact.value.trim() || !/^[0-9]{10,13}$/.test(contact.value.trim())) {
-        contact.classList.add('error');
-        isValid = false;
-    }
-    
-    // Validate email if provided
-    if(email.value.trim() && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.value.trim())) {
-        email.classList.add('error');
-        isValid = false;
-    }
-    
-    // Validate message (required, at least 10 chars)
-    if(!message.value.trim() || message.value.trim().length < 10) {
-        message.classList.add('error');
-        isValid = false;
-    }
-    
-    // Show alert if validation fails
-    if(!isValid) {
-        alert('Please fill in all required fields correctly');
-    }
-    
-    return isValid;
-}
+    ?>
+    <section id="mw-pay" class="mw-payment-qr mw-section-padding">
+        <h2 class="mw-section-title">QR Code</h2>
+        <div class="max-w-2xl mx-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 <?php echo count($payment_qrs) >= 3 ? 'md:grid-cols-3' : ''; ?> gap-6">
+                <?php foreach ($payment_qrs as $qr): ?>
+                <div class="mw-card p-6 text-center">
+                    <h3 class="text-heading font-medium mb-4 uppercase tracking-widest text-sm"><?php echo htmlspecialchars($qr['label']); ?></h3>
+                    <div class="bg-white p-2 rounded-lg aspect-square w-40 mx-auto overflow-hidden group cursor-pointer">
+                        <img src="<?php echo htmlspecialchars($qr['img']); ?>" alt="<?php echo htmlspecialchars($qr['label']); ?> QR" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                    </div>
+                    <?php if (!empty($qr['upi'])): ?>
+                    <p class="text-heading font-medium text-sm mt-3 break-all"><?php echo htmlspecialchars($qr['upi']); ?></p>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
 
-// Add event listeners for real-time validation feedback
-document.getElementById('c_name').addEventListener('blur', function() {
-    if(!this.value.trim() || !/^[A-Za-z\s]+$/.test(this.value.trim())) {
-        this.classList.add('error');
-    } else {
-        this.classList.remove('error');
-    }
-});
-
-document.getElementById('c_contact').addEventListener('blur', function() {
-    if(!this.value.trim() || !/^[0-9]{10,13}$/.test(this.value.trim())) {
-        this.classList.add('error');
-    } else {
-        this.classList.remove('error');
-    }
-});
-
-document.getElementById('c_email').addEventListener('blur', function() {
-    if(this.value.trim() && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(this.value.trim())) {
-        this.classList.add('error');
-    } else {
-        this.classList.remove('error');
-    }
-});
-
-document.getElementById('c_msg').addEventListener('blur', function() {
-    if(!this.value.trim() || this.value.trim().length < 10) {
-        this.classList.add('error');
-    } else {
-        this.classList.remove('error');
-    }
-});
-</script>
-
-<style>
-.error {
-    border: 2px solid #ff0000 !important;
-    background-color: #ffeeee !important;
-}
-</style>
-
-<?php
-if(isset($_POST['email_to_client'])){
-    // Server-side validation
-    $errors = [];
-    
-    // Validate and sanitize input - use trim to remove whitespace
-    // Replace deprecated FILTER_SANITIZE_STRING with htmlspecialchars
-    $name = htmlspecialchars(trim($_POST['c_name'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $contact = htmlspecialchars(trim($_POST['c_contact'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $email = filter_var(trim($_POST['c_email'] ?? ''), FILTER_SANITIZE_EMAIL);
-    $message = htmlspecialchars(trim($_POST['c_msg'] ?? ''), ENT_QUOTES, 'UTF-8');
-    
-    // Name validation (required, letters and spaces only)
-    if(empty($name) || !preg_match('/^[A-Za-z\s]+$/', $name)) {
-        $errors[] = "Please enter a valid name (letters and spaces only).";
-    }
-    
-    // Contact validation (required, 10-13 digits)
-    if(empty($contact) || !preg_match('/^[0-9]{10,13}$/', $contact)) {
-        $errors[] = "Please enter a valid 10-13 digit phone number.";
-    }
-    
-    // Email validation if provided
-    if(!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Please enter a valid email address.";
-    }
-    
-    // Message validation (required, at least 10 chars)
-    if(empty($message) || strlen($message) < 10) {
-        $errors[] = "Please enter a message with at least 10 characters.";
-    }
-    
-    // If validation passes, send email
-    if(empty($errors)) {
-        // Use default email if not provided
-        if(empty($email)) {
-            $email = 'noreply@' . $_SERVER['HTTP_HOST'];
-        }
-        
-        // Load email configuration if not already loaded
-        if (!defined('SUPPORT_EMAIL')) {
-            $email_config_paths = [
-                __DIR__ . '/app/config/email.php',
-                __DIR__ . '/common/email_config.php'
-            ];
-            foreach($email_config_paths as $email_config_path) {
-                if(file_exists($email_config_path)) {
-                    require_once($email_config_path);
-                    break;
+    <!-- 12. Business Information (Hierarchical Format) -->
+    <section class="mw-business-info mw-section-padding bg-cardbg/20">
+        <h2 class="mw-section-title">Business Hours</h2>
+        <div class="max-w-lg mx-auto">
+            <div class="space-y-3 text-sm md:text-base border-t border-b border-white/10 py-6">
+                <?php foreach ($business_hours as $bh): ?>
+                <div class="flex justify-between items-center">
+                    <span class="text-textmain"><?php echo htmlspecialchars($bh['days'] ?? ''); ?></span>
+                    <span class="text-heading font-medium<?php echo (isset($bh['hours']) && stripos($bh['hours'], 'closed') !== false) ? ' text-primary' : ''; ?>"><?php echo htmlspecialchars($bh['hours'] ?? ''); ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="mt-8 text-center space-y-2 text-sm text-textmain">
+                <?php
+                $biz_name = $hero_name;
+                $biz_addr = $location;
+                $biz_gst = '';
+                $biz_web = '';
+                if ($row && isset($row['d_gst_number'])) $biz_gst = htmlspecialchars($row['d_gst_number']);
+                if ($row && isset($row['d_website'])) $biz_web = htmlspecialchars($row['d_website']);
+                if (!$row) {
+                    $biz_name = 'Chef Olivia Murray';
+                    $biz_addr = 'Berlin, Germany - 10115';
+                    $biz_gst = $biz_gst ?: '12XXXXX3456XXZ';
+                    $biz_web = $biz_web ?: 'www.oliviaculinary.com';
+                } else {
+                    $addr_parts = array_filter([
+                        !empty($row['d_address']) ? $row['d_address'] : null,
+                        !empty($row['d_address2']) ? $row['d_address2'] : null,
+                        !empty($row['d_city']) ? $row['d_city'] : null,
+                        !empty($row['d_state']) ? $row['d_state'] : null
+                    ]);
+                    $biz_addr = implode(' ', $addr_parts) ?: $location;
                 }
-            }
-        }
+                ?>
+                <p><span class="text-heading"><?php echo $biz_name; ?></span></p>
+                <p>Address: <?php echo htmlspecialchars($biz_addr); ?></p>
+                <?php if (!empty($biz_gst)): ?><p>GST No: <span class="text-heading"><?php echo $biz_gst; ?></span></p><?php endif; ?>
+                <?php if (!empty($biz_web)): ?>
+                <a href="<?php echo htmlspecialchars((strpos($biz_web, 'http') === 0 ? $biz_web : 'https://' . $biz_web)); ?>" target="_blank" class="text-primary hover:underline flex items-center justify-center gap-2 mt-2">
+                    <i class="fas fa-globe"></i> <?php echo htmlspecialchars(preg_replace('#^https?://#', '', $biz_web)); ?>
+                </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
 
-        // Define default values if constants are not defined
-        if (!defined('SMTP_HOST')) {
-            define('SMTP_HOST', 'p004.bom1.mysecurecloudhost.com');
-        }
-        if (!defined('SMTP_PORT')) {
-            define('SMTP_PORT', 465);
-        }
-        if (!defined('SMTP_SECURE')) {
-            define('SMTP_SECURE', 'ssl');
-        }
-        if (!defined('SMTP_AUTH')) {
-            define('SMTP_AUTH', true);
-        }
-        if (!defined('SMTP_USERNAME')) {
-            define('SMTP_USERNAME', 'support@miniwebsite.in');
-        }
-        if (!defined('SMTP_PASSWORD')) {
-            define('SMTP_PASSWORD', 'Kirovahelp@2025');
-        }
-        if (!defined('SUPPORT_EMAIL')) {
-            define('SUPPORT_EMAIL', 'support@miniwebsite.in');
-        }
-        if (!defined('ALL_EMAILS')) {
-            define('ALL_EMAILS', 'allmails@miniwebsite.in');
-        }
+    <!-- 13. Footer -->
+    <footer class="mw-footer mw-section-padding text-center border-t border-white/5 mt-8">
+        <p class="text-xs text-textmain mb-2">&copy; <?php echo date('Y'); ?> <?php echo $hero_name; ?>. All rights reserved.</p>
+        <p class="text-[10px] uppercase tracking-widest text-textmain/50">Powered by <span class="text-primary">MiniWebsite.in</span></p>
+    </footer>
 
-        // Original recipient (card owner's email)
-        //$to = !empty($row['d_email']) ? $row['d_email'] : SUPPORT_EMAIL;
-        $to = $row['d_email'];
-        
-        // Support email addresses
-        $support_email = SUPPORT_EMAIL;
-        $all_emails = ALL_EMAILS;
+</div>
 
-        // Subject with customer name and website info
-        $subject = "Customer Inquiry from ".$_SERVER['HTTP_HOST']." - ".$name;
+<!-- Shop Cart Bar (visible when products added) -->
+<?php if (!empty($products_flat)): ?>
+<div id="mw-shop-cart-bar" class="mw-shop-cart-bar hidden fixed left-0 right-0 bottom-[60px] z-[45] bg-cardbg/98 backdrop-blur border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] px-4 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+        <span id="mw-cart-count" class="bg-primary text-bgbase font-bold text-sm w-7 h-7 rounded-full flex items-center justify-center">0</span>
+        <span id="mw-cart-label" class="text-heading font-medium text-sm">items in cart</span>
+    </div>
+    <button type="button" id="mw-cart-share-wa" class="w-12 h-12 bg-[#25D366] text-white rounded-full flex items-center justify-center text-2xl hover:bg-[#20bd5a] transition shadow-lg" aria-label="Share on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </button>
+</div>
+<?php endif; ?>
 
-        // Create message content with styling
-        $message_content = '';
-        $message_content .= '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">';
-        $message_content .= '<h2 style="color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 10px;">New Customer Inquiry</h2>';
-        $message_content .= '<p><strong>From:</strong> '.$name.'</p>';
-        $message_content .= '<p><strong>Contact Number:</strong> '.$contact.'</p>';
-        $message_content .= '<p><strong>Email:</strong> '.$email.'</p>';
-        $message_content .= '<p><strong>Message:</strong><br>'.nl2br($message).'</p>';
-        if (!empty($row['card_id'])) {
-            $message_content .= '<p><strong>Miniwebsite ID:</strong> '.$row['card_id'].'</p>';
-        }
-        $message_content .= '<p><strong>Sent from:</strong> '.$_SERVER['HTTP_HOST'].'</p>';
-        $message_content .= '<p style="color: #777; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">';
-        $message_content .= 'This email was sent from the contact form on '.$_SERVER['HTTP_HOST'].' at '.date('Y-m-d H:i:s').'</p>';
-        $message_content .= '</div>';
+<!-- 14. Sticky Bottom Navigation -->
+<nav class="mw-sticky-nav">
+    <a href="#mw-hero" class="mw-nav-item active" data-section="mw-hero"><i class="fas fa-home mw-nav-icon"></i><span>Home</span></a>
+    <a href="#mw-services" class="mw-nav-item" data-section="mw-services"><i class="fas fa-concierge-bell mw-nav-icon"></i><span>Serv</span></a>
+    <a href="#mw-offers" class="mw-nav-item" data-section="mw-offers"><i class="fas fa-tags mw-nav-icon"></i><span>Offers</span></a>
+    <a href="#mw-products" class="mw-nav-item <?php echo empty($products_by_cat) ? 'hidden' : ''; ?>" data-section="mw-products"><i class="fas fa-store mw-nav-icon"></i><span>Shop</span></a>
+    <a href="#mw-gallery" class="mw-nav-item" data-section="mw-gallery"><i class="fas fa-images mw-nav-icon"></i><span>Gallery</span></a>
+    <a href="#mw-pay" class="mw-nav-item hidden sm:flex" data-section="mw-pay"><i class="fas fa-qrcode mw-nav-icon"></i><span>Pay</span></a>
+</nav>
 
-        // Send the email using PHPMailer
-        $email_sent = false;
+<!-- 15. Floating WhatsApp Button (hidden when cart bar is visible) -->
+<a id="mw-floating-wa-btn" href="https://wa.me/<?php echo $whatsapp; ?>" target="_blank" class="fixed bottom-[80px] right-4 md:right-8 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center text-3xl shadow-[0_4px_15px_rgba(37,211,102,0.4)] z-50 hover:scale-110 transition-transform">
+    <i class="fab fa-whatsapp"></i>
+</a>
 
-        try {
-            // Create a new PHPMailer instance
-            $mail = new PHPMailer(true);
-            
-            // Server settings
-            $mail->isSMTP();
-            $mail->Host       = SMTP_HOST;
-            $mail->SMTPAuth   = SMTP_AUTH;
-            $mail->Username   = SMTP_USERNAME;
-            $mail->Password   = SMTP_PASSWORD;
-            $mail->SMTPSecure = SMTP_SECURE;
-            $mail->Port       = SMTP_PORT;
-            $mail->CharSet    = 'UTF-8';
-            
-            // Additional SMTP settings for better compatibility
-            $mail->SMTPOptions = array(
-                'ssl' => array(
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                    'allow_self_signed' => true
-                )
-            );
-            
-            // FROM: Use the support email as the sender
-            $mail->setFrom(SMTP_USERNAME, 'MiniWebsite Support');
-            
-            // TO: Send to the entered email or user's email
-            $mail->addAddress($to);
-            
-            // Add Reply-To as the customer's email
-            $mail->addReplyTo($email, $name);
-            
-            // Add CC to support_email as additional recipient
-            $mail->addCC($support_email);
-            
-            // BCC: Add the all_emails address as BCC
-            if (!empty($all_emails)) {
-                $mail->addBCC($all_emails);
-            }
-            
-            // Content
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body    = $message_content;
-            $mail->AltBody = strip_tags(str_replace('<br>', "\n", $message_content));
-            
-            // Send the email
-            if($mail->send()) {
-                $email_sent = true;
-            }
-        } catch (Exception $e) {
-            // Log the error
-            error_log("PHPMailer error: " . $e->getMessage());
-            $email_sent = false;
-            
-            // Try alternative method as backup
-            try {
-                // Set up sender information for our function
-                $sender = [
-                    'name' => $name,
-                    'email' => $email
-                ];
-                
-                // Set up additional recipients
-                $additional_recipients = [
-                    'cc' => $support_email,
-                    'bcc' => $all_emails
-                ];
-                
-                // Try our custom function as backup
-                if(send_formatted_email($to, $subject, $message_content, $sender, $additional_recipients)) {
-                    $email_sent = true;
-                }
-            } catch (Exception $e2) {
-                error_log("Backup email method failed: " . $e2->getMessage());
-            }
-        }
+<!-- Config for JS (API key, WhatsApp number, products for cart, share profile) -->
+<script>
+    window.MW_AI_API_KEY = "<?php echo htmlspecialchars(defined('GEMINI_API_KEY') ? GEMINI_API_KEY : ''); ?>";
+    window.MW_WHATSAPP_NUMBER = "<?php echo htmlspecialchars($whatsapp); ?>";
+    window.MW_PRODUCTS = <?php echo json_encode($products_for_js ?? []); ?>;
+    window.MW_SHARE_URL = <?php echo json_encode($share_url ?? ''); ?>;
+    window.MW_HERO_NAME = <?php echo json_encode($hero_name ?? ''); ?>;
+    window.MW_LOCATION = <?php echo json_encode($location ?? ''); ?>;
+    window.MW_PHONE = <?php echo json_encode($phone ?? ''); ?>;
+    window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
+    window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+</script>
+<script src="theme/js/app.js?v=11"></script>
 
-        // Display appropriate message
-        if($email_sent){
-            echo '<div class="alert success">
-                <h4 style="margin-bottom: 10px;">Message Sent Successfully!</h4>
-                <p>We have received your inquiry.<br/>We will contact you soon</p>
-            </div>';
-        } else {
-            echo '<div class="alert danger">
-                <h4 style="margin-bottom: 10px;">Message Delivery Issue</h4>
-                <p>There was an issue sending your message. Please try again later or contact us directly at '.$support_email.'</p>
-            </div>';
-            
-            // Log key information for troubleshooting
-            error_log("Failed to send contact form email. To: $to, From: $email, Subject: $subject");
-        }
-    } else {
-        // Display validation errors
-        echo '<div class="alert danger">';
-        echo '<h4 style="margin-bottom: 10px;">Please correct the following errors:</h4>';
-        echo '<ul style="margin-left: 20px;">';
-        foreach($errors as $error) {
-            echo '<li>' . $error . '</li>';
-        }
-        echo '</ul>';
-        echo '</div>';
-    }
-}
-?>	<br>
-		<br>
-
-
-
-		<br>
-
-		<a href="index.php"><div class="create_card_btn"><?php echo $_SERVER['HTTP_HOST'];?> || Create Your Miniwebsite Now || <?php echo date('Y');?></div></a>
-	<style>
-	.create_card_btn {
-		         background: linear-gradient(45deg, black, black);
-    color: white;
-    width: auto;
-    padding: 20px;
-    border-radius: 2px;
-    line-height: 0.8;
-    margin: 11px auto;
-    font-size: 9px;
-    text-align: center;
-	}
-
-
-
-#svg_down{position: fixed;
-    bottom: 0;
-    z-index: -1;
-    left: 0;}
-
-
-	</style>
-
-
-
-	<br>
-
-	<br>
-
-	<br>
-	<br>
-	<div class="menu_bottom">
-		<div class="menu_container">
-			<div class="menu_item" onclick="location.href='#home'"><i class="fa fa-home"></i> Home</div>
-			<div class="menu_item" onclick="location.href='#about_us'"><i class="fa fa-briefcase"></i>About Us</div>
-			<div class="menu_item" onclick="location.href='#product_services'"><i class="fa fa-ticket"></i>Product & Services</div>
-			<div class="menu_item" onclick="location.href='#shop_online'"><i class="fa fa-archive"></i>Shop Online</div>
-			<div class="menu_item" onclick="location.href='#gallery'"><i class="fa fa-image"></i>Gallery</div>
-			<div class="menu_item" onclick="location.href='#youtube_video'"><i class="fa fa-video-camera"></i>Youtube Videos</div>
-			<div class="menu_item" onclick="location.href='#payment'"><i class="fa fa-money"></i>Payment</div>
-			<div class="menu_item" onclick="location.href='#enquery'"><i class="fa fa-comment"></i>Enquiry</div>
-		</div>
-	</div>
-
-
-
+</body>
+</html>

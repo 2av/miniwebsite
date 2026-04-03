@@ -1,16 +1,37 @@
-ErrorDocument 404 /miniwebsite/404.php
-
+<IfModule mod_rewrite.c>
 RewriteEngine On
 
-# If the requested file or directory exists, serve it directly
+# If /card-slug gives 404 on the live server but n.php?n=card-slug works, try uncommenting
+# exactly one RewriteBase to match how this folder appears in the URL (trailing slash required):
+#   Domain root (https://miniwebsite.in/slug):  RewriteBase /
+#   Subfolder (http://localhost/miniwebsite/slug):  RewriteBase /miniwebsite/
+# RewriteBase /
+
+<IfModule mod_negotiation.c>
+Options -MultiViews
+</IfModule>
+
+# Must point to the 404 page under your domain's document root (not a hard-coded dev path).
+# Domain root (production): /404.php
+# App only under http://localhost/miniwebsite/: comment the line below and use /miniwebsite/404.php
+ErrorDocument 404 /404.php
+# ErrorDocument 404 /miniwebsite/404.php
+
+# Real files and directories: serve as usual
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Single path segment (e.g. /akhitest3) -> n.php?n=akhitest3 (clean URL)
+# Clean card URL: /your-slug -> n.php?n=your-slug (one segment, no dots — avoids *.css, *.js, etc.)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^([^/\.]+)$ n.php?n=$1 [L,QSA]
+</IfModule>
 
-# Otherwise, let PHP/front controller or 404 handle it normally
-
+# --- Nginx (no .htaccess): inside server { } for this site root, add: ---
+#   location / {
+#     try_files $uri $uri/ @mw_clean_card;
+#   }
+#   location @mw_clean_card {
+#     rewrite ^/([^/.]+)$ /n.php?n=$1 last;
+#   }

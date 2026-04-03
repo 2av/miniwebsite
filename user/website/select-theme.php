@@ -57,71 +57,11 @@ if(mysqli_num_rows($query) == 0){
     $row = mysqli_fetch_array($query);
 }
 
-// Define theme mapping - mapping theme images to actual CSS files
-// All 66 themes from panel/login/select_theme.php
+// Single theme (preview thumbnail). Live card styling is theme/css/* in n.php; d_css kept for DB/admin.
 $themes = [
-    // Themes 1-32 (template images)
-    '../../assets/images/templates/template.png'  => 'panel /card_css1.css',
     '../../assets/images/templates/template1.png' => 'panel/card_css2.css',
-    '../../assets/images/templates/template2.png' => 'panel/card_css3.css',
-    '../../assets/images/templates/template3.png' => 'panel/card_css4.css',
-    '../../assets/images/templates/template4.png' => 'panel/card_css5.css',
-    '../../assets/images/templates/template5.png' => 'panel/card_css6.css',
-    '../../assets/images/templates/template7.png' => 'panel/card_css7.css',
-    '../../assets/images/templates/template8.png' => 'panel/card_css8.css',
-    '../../assets/images/templates/template9.png' => 'panel/card_css9.css',
-    '../../assets/images/templates/template10.png' => 'panel/card_css10.css',
-    '../../assets/images/templates/template11.png' => 'panel/card_css11.css',
-    '../../assets/images/templates/template12.png' => 'panel/card_css12.css',
-    '../../assets/images/templates/template13.png' => 'panel/card_css13.css',
-    '../../assets/images/templates/template14.png' => 'panel/card_css14.css',
-    '../../assets/images/templates/template15.png' => 'panel/card_css15.css',
-    '../../assets/images/templates/template16.png' => 'panel/card_css16.css',
-    '../../assets/images/templates/template17.png' => 'panel/card_css17.css',
-    '../../assets/images/templates/template18.png' => 'panel/card_css18.css',
-    '../../assets/images/templates/template19.png' => 'panel/card_css19.css',
-    '../../assets/images/templates/template20.png' => 'panel/card_css20.css',
-    '../../assets/images/templates/template21.png' => 'panel/card_css21.css',
-    '../../assets/images/templates/template22.png' => 'panel/card_css22.css',
-    '../../assets/images/templates/template23.png' => 'panel/card_css23.css',
-    '../../assets/images/templates/template24.png' => 'panel/card_css24.css',
-    '../../assets/images/templates/template25.png' => 'panel/card_css25.css',
-    '../../assets/images/templates/template26.png' => 'panel/card_css26.css',
-    // Themes 33-67 (background images)
-    '../../assets/images/templates/bg33.jpg' => 'panel /card_css33.css',
-    '../../assets/images/templates/jay.gif'  => 'panel /card_css34.css',
-    '../../assets/images/templates/bg34.jpg' => 'panel /card_css35.css',
-    '../../assets/images/templates/bg36.jpg' => 'panel /card_css36.css',
-    '../../assets/images/templates/bg37.png' => 'panel /card_css37.css',
-    '../../assets/images/templates/bg38.png' => 'panel /card_css38.css',
-    '../../assets/images/templates/bg39.png' => 'panel /card_css39.css',
-    '../../assets/images/templates/bg40.png' => 'panel /card_css40.css',
-    '../../assets/images/templates/bg41.png' => 'panel /card_css41.css',
-    '../../assets/images/templates/bg42.jpg' => 'panel /card_css42.css',
-    '../../assets/images/templates/card43.jpg' => 'panel /card_css43.css',
-    '../../assets/images/templates/bg44.png' => 'panel /card_css44.css',
-    '../../assets/images/templates/bg45.jpg' => 'panel /card_css45.css',
-    '../../assets/images/templates/bg46.jpg' => 'panel /card_css46.css',
-    '../../assets/images/templates/bg47.jpg' => 'panel /card_css47.css',
-    '../../assets/images/templates/bg48.jpg' => 'panel /card_css48.css',
-    '../../assets/images/templates/bg49.jpg' => 'panel /card_css49.css',
-    '../../assets/images/templates/bg50.jpg' => 'panel /card_css50.css',
-    '../../assets/images/templates/bg51.jpg' => 'panel /card_css51.css',
-    '../../assets/images/templates/bg52.jpg' => 'panel /card_css52.css',
-    '../../assets/images/templates/bg53.jpg' => 'panel /card_css53.css',
-    '../../assets/images/templates/bg56.gif' => 'panel /card_css56.css',
-    '../../assets/images/templates/bg57.png' => 'panel /card_css57.css',
-    '../../assets/images/templates/bg58.jpg' => 'panel /card_css58.css',
-    '../../assets/images/templates/bg59.jpg' => 'panel /card_css59.css',
-    '../../assets/images/templates/bg60.jpg' => 'panel /card_css60.css',
-    '../../assets/images/templates/bg61.jpg' => 'panel /card_css61.css',
-    '../../assets/images/templates/bg62.jpg' => 'panel /card_css62.css',
-    '../../assets/images/templates/bg63.jpg' => 'panel /card_css63.css',
-    '../../assets/images/templates/bg64.jpg' => 'panel /card_css64.css',
-    '../../assets/images/templates/bg65.jpg' => 'panel /card_css65.css',
-    '../../assets/images/templates/bg66.jpg' => 'panel /card_css66.css',
-    '../../assets/images/templates/bg67.jpg' => 'panel /card_css67.css',
 ];
+$theme_css_value = (string) reset($themes);
 ?>
 
 <main class="Dashboard">
@@ -152,16 +92,14 @@ $themes = [
                     </div>
                 <?php endif; ?>
                 <form id="themeForm" method="POST" action="">
-                    <input type="hidden" name="d_css" id="selectedTheme" value="<?php echo htmlspecialchars($row['d_css']); ?>">
+                    <input type="hidden" name="d_css" id="selectedTheme" value="<?php echo htmlspecialchars($theme_css_value); ?>">
                     <input type="hidden" name="save_theme" value="1">
                     <div class="d-flex flex-wrap w-100 theme_section row-items-4">
                         <?php foreach($themes as $theme_image => $css_file): ?>
-                            <div class="col theme-item <?php echo ($row['d_css'] == $css_file) ? 'selected' : ''; ?>" data-theme="<?php echo htmlspecialchars($css_file); ?>">
+                            <div class="col theme-item selected" data-theme="<?php echo htmlspecialchars($css_file); ?>">
                                 <a href="javascript:void(0);" class="theme-select-link">
                                     <img class="img-fluid theme_img" src="<?php echo $theme_image; ?>" alt="Theme">
-                                    <?php if($row['d_css'] == $css_file): ?>
-                                        <div class="selected-overlay">Selected</div>
-                                    <?php endif; ?>
+                                    <div class="selected-overlay">Selected</div>
                                 </a>
                             </div>
                         <?php endforeach; ?>
