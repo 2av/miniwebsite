@@ -182,6 +182,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'original_amount' => $original_amount,
             'is_interstate' => $is_interstate
         ];
+    } elseif ($action === 'recalc_promo_for_plan') {
+        $plan_amount = isset($_POST['plan_amount']) ? (float)$_POST['plan_amount'] : 0;
+        $service_type = isset($_POST['service_type']) ? $_POST['service_type'] : 'card_payment';
+        if ($plan_amount <= 0) {
+            $response = ['success' => false, 'message' => 'Invalid plan amount'];
+        } elseif (empty($_SESSION['promo_code'])) {
+            $response = ['success' => false, 'message' => 'No promo applied'];
+        } else {
+            $validation = validateCoupon($_SESSION['promo_code'], $connect, $service_type);
+            if (!$validation['valid']) {
+                $response = ['success' => false, 'message' => $validation['message']];
+            } else {
+                $promo_discount = getCouponDiscount($plan_amount, $validation['deal']);
+                if ($promo_discount > $plan_amount) {
+                    $promo_discount = $plan_amount;
+                }
+                if ($promo_discount < 0) {
+                    $promo_discount = 0;
+                }
+                $_SESSION['promo_discount'] = $promo_discount;
+                $response = [
+                    'success' => true,
+                    'discount_amount' => $promo_discount,
+                    'plan_amount' => $plan_amount
+                ];
+            }
+        }
     }
     
     header('Content-Type: application/json');

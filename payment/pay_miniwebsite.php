@@ -98,6 +98,9 @@ $displayCurrency = 'INR';
 // Create Razorpay API instance
 $api = new Api($keyId, $keySecret);
 
+$is_referred_by_team = false;
+$use_team_500_pricing = false;
+
 // Check if this is a customer payment (with id parameter)
 if (isset($_GET['id']) && !empty($_GET['id'])) {
     // Customer payment flow - fetch digi_card details
@@ -131,7 +134,8 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
             
             // Check if referred_by is a team member
             if (!empty($referred_by)) {
-                $referrer_query = mysqli_query($connect, "SELECT role FROM user_details WHERE email='$referred_by' LIMIT 1");
+                $rb_esc = mysqli_real_escape_string($connect, $referred_by);
+                $referrer_query = mysqli_query($connect, "SELECT role FROM user_details WHERE email='$rb_esc' LIMIT 1");
                 if ($referrer_query && mysqli_num_rows($referrer_query) > 0) {
                     $referrer_row = mysqli_fetch_array($referrer_query);
                     $referrer_type = $referrer_row['role'] ?? '';
@@ -142,13 +146,28 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
             }
         }
         
-        // Determine payment amount
+        $is_team_source = isset($_GET['source']) && $_GET['source'] === 'team';
+        $use_team_500_pricing = $is_team_source || $is_referred_by_team;
+        $is_direct_customer = empty(trim((string) $referred_by));
+
+        // No auto-applied referral promo for team / team-link payments, or stale auto session for direct signups
+        if (!empty($_SESSION['auto_applied_promo']) && ($use_team_500_pricing || $is_direct_customer)) {
+            unset($_SESSION['promo_code'], $_SESSION['promo_discount'], $_SESSION['auto_applied_promo']);
+            $promo_applied = false;
+            $promo_discount = 0;
+            $is_auto_applied = false;
+            $promo_message = '';
+        }
+
+        // Determine payment amount (team / team-referred customers default to ₹500)
         if (isset($row['user_email']) && ($row['user_email'] == 'ajeetcreative93@gmail.com' || $row['user_email'] == 'akhilesh@yopmail.com')) {
             $original_amount = 3; // Test account
+        } else if ($use_team_500_pricing) {
+            $original_amount = 500;
         } else if (isset($row['d_payment_amount']) && $row['d_payment_amount'] > 0) {
             $original_amount = $row['d_payment_amount'];
         } else {
-            $original_amount = 847; // Default amount
+            $original_amount = 500; // Default: 6-month plan base (matches default selected plan)
         }
         
         // Set session variables
@@ -161,11 +180,11 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         $_SESSION['payment_card_id'] = $card_id;
         $_SESSION['payment_user_email'] = $row['user_email'];
         
-        // Check for referral auto-promo (simplified version)
+        // Check for referral auto-promo: only non-team referrers (direct signup and team-referred never auto-apply DMW001)
         $is_referral_customer = !empty($referred_by);
         $is_first_payment = ($status == "Created" || $status != "Success");
         
-        if ($is_referral_customer && $is_first_payment && !$promo_applied) {
+        if ($is_referral_customer && !$is_referred_by_team && $is_first_payment && !$promo_applied && !$is_team_source) {
             // Try to auto-apply DMW001 or mapped deal
             $auto_promo_code = 'DMW001';
             $validation = validateCoupon($auto_promo_code, $connect, 'card_payment');
@@ -454,6 +473,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                 input[type="radio"]:checked ~ span {
                     color: white !important;
                 }
+                #plan_team500:checked ~ span { color: white !important; }
                 #plan_6month:checked ~ span { color: white !important; }
                 #plan_1year:checked ~ span { color: white !important; }
                 #plan_2year:checked ~ span { color: white !important; }
@@ -461,38 +481,50 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
             </style>
             
             <div style="display: flex; flex-direction: column; gap: 12px;">
-                <?php 
-                $is_team_source = isset($_GET['source']) && $_GET['source'] === 'team';
-                $show_500_plan = $is_team_source || (isset($is_referred_by_team) && $is_referred_by_team);
-                ?>
-                
+                <?php if (!empty($use_team_500_pricing)): ?>
+                <!-- Team / team-referred: ₹500 plan only (default selected) -->
+                <label class="plan-label" id="label_team500" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
+                    <input type="radio" name="plan_choice" value="plan_team500" id="plan_team500" data-amount="500"
+                           checked
+                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
+                    <span style="color: white; flex: 1; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 15px; display: block; color: white;">Team / referral plan</strong>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 83/month approx..</small>
+                            </div>
+                            <strong style="font-size: 16px; color: white;">₹ 500</strong>
+                        </div>
+                    </span>
+                </label>
+                <?php else: ?>
                 <!-- Plan 1: 6 Months -->
                 <label class="plan-label" id="label_6month" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
-                    <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="590"
+                    <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="500"
                            checked
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong style="font-size: 15px; display: block; color: white;">6 Months</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 83/month + 18% GST</small>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 83/month approx..</small>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 590</strong>
+                            <strong style="font-size: 16px; color: white;">₹ 500</strong>
                         </div>
                     </span>
                 </label>
                 
                 <!-- Plan 2: 1 Year -->
                 <label class="plan-label" id="label_1year" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
-                    <input type="radio" name="plan_choice" value="plan_1year" id="plan_1year" data-amount="999"
+                    <input type="radio" name="plan_choice" value="plan_1year" id="plan_1year" data-amount="847"
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong style="font-size: 15px; display: block; color: white;">1 Year</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 70/month + 18% GST</small>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 71/month approx..</small>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 999</strong>
+                            <strong style="font-size: 16px; color: white;">₹ 847</strong>
                         </div>
                     </span>
                 </label>
@@ -502,23 +534,18 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                     <div style="position: absolute; top: 9px; right: 85px; background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
                         <span style="font-size: 14px;">⭐</span> BEST VALUE
                     </div>
-                    <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1770"
+                    <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1500"
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
                                 <strong style="font-size: 15px; display: block; color: #FF9800;">2 Years</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 63/month + 18% GST</small>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 63/month approx..</small>
                                 <div style="margin-top: 5px;">
-
-                                <?php if($show_500_plan): ?>
-                                    <small style="font-weight: normal; opacity: 0.8; color: #90EE90; display: block;">✓ Save 25% compared to 6 months</small>
-                                 <?php endif; ?>
-                                 
                                     <small style="font-weight: normal; opacity: 0.8; color: #90EE90; display: block;">✓ Save 11% compared to 1 year</small>
                                     </div>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 1,770</strong>
+                            <strong style="font-size: 16px; color: white;">₹ 1,500</strong>
                         </div>
                     </span>
                 </label>
@@ -528,18 +555,19 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                     <div style="position: absolute; top: 9px; right: 85px; background: #FF9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
                         <span style="font-size: 14px;">⭐</span> MAXIMUM SAVINGS
                     </div>
-                    <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2478"
+                    <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2100"
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong style="font-size: 15px; display: block; color: white;">3 Years</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">₹ 58/month + 18% GST</small>
+                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 58/month approx..</small>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 2,478</strong>
+                            <strong style="font-size: 16px; color: white;">₹ 2,100</strong>
                         </div>
                     </span>
                 </label>
+                <?php endif; ?>
                 
                 <script>
                     // Function to update border color
@@ -681,38 +709,95 @@ try {
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize with selected plan amount first (for card payment page)
+    var appliedPromoDiscount = <?php echo ($promo_applied && isset($promo_discount)) ? floatval($promo_discount) : 0; ?>;
+    var hasActivePromo = <?php echo (!empty($promo_applied) && !empty($_SESSION['promo_code'])) ? 'true' : 'false'; ?>;
+    var planPricingSeq = 0;
+    var serviceType = '<?php echo isset($_SESSION['service_type']) ? addslashes($_SESSION['service_type']) : 'card_payment'; ?>';
+
     var checkedPlan = document.querySelector('input[name="plan_choice"]:checked');
     var originalAmount = 0;
-    var currentDiscount = <?php echo isset($discount_amount) ? $discount_amount : 0; ?>;
+    var currentDiscount = 0;
+
+    function effectiveDiscountForPlan(planAmount) {
+        var d = appliedPromoDiscount;
+        if (d <= 0) return 0;
+        return Math.min(d, planAmount);
+    }
+
+    function applyPlanAndDiscountToUI(planAmount, discount) {
+        originalAmount = planAmount;
+        currentDiscount = discount;
+        updatePriceDisplay(planAmount, discount);
+        updateTaxCalculation(planAmount, discount);
+    }
+
+    /** Recalculate promo discount for new plan (fixed or % coupons) and refresh totals */
+    function refreshPricingForPlan(planAmount) {
+        if (!(planAmount > 0)) return;
+
+        var seq = ++planPricingSeq;
+
+        if (!hasActivePromo) {
+            appliedPromoDiscount = 0;
+            applyPlanAndDiscountToUI(planAmount, 0);
+            return;
+        }
+
+        applyPlanAndDiscountToUI(planAmount, effectiveDiscountForPlan(planAmount));
+
+        var fd = new FormData();
+        fd.append('action', 'recalc_promo_for_plan');
+        fd.append('plan_amount', String(planAmount));
+        fd.append('service_type', serviceType);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'apply_promo_ajax.php', true);
+        xhr.onload = function() {
+            if (seq !== planPricingSeq) return;
+            var disc = effectiveDiscountForPlan(planAmount);
+            if (xhr.status === 200) {
+                try {
+                    var res = JSON.parse(xhr.responseText);
+                    if (res.success && typeof res.discount_amount !== 'undefined') {
+                        disc = parseFloat(res.discount_amount);
+                        if (isNaN(disc) || disc < 0) disc = 0;
+                        appliedPromoDiscount = disc;
+                    }
+                } catch (e) { /* use fallback below */ }
+            }
+            applyPlanAndDiscountToUI(planAmount, disc);
+        };
+        xhr.onerror = function() {
+            if (seq !== planPricingSeq) return;
+            var disc = effectiveDiscountForPlan(planAmount);
+            applyPlanAndDiscountToUI(planAmount, disc);
+        };
+        xhr.send(fd);
+    }
     
     if (checkedPlan) {
         var selectedPlanAmount = parseFloat(checkedPlan.getAttribute('data-amount'));
         if (selectedPlanAmount > 0) {
-            originalAmount = selectedPlanAmount;
-            currentDiscount = 0;
-            updatePriceDisplay(selectedPlanAmount, 0);
-            // Call update tax calculation after a small delay to ensure DOM is ready
-            setTimeout(function() {
-                updateTaxCalculation(selectedPlanAmount, 0);
-            }, 100);
+            refreshPricingForPlan(selectedPlanAmount);
         }
     } else {
-        // Fallback to PHP original_amount if no plan is selected
-        originalAmount = <?php echo isset($original_amount) ? $original_amount : 0; ?>;
-        currentDiscount = <?php echo isset($discount_amount) ? $discount_amount : 0; ?>;
+        originalAmount = <?php echo isset($original_amount) ? floatval($original_amount) : 0; ?>;
+        currentDiscount = effectiveDiscountForPlan(originalAmount);
+        if (originalAmount > 0) {
+            if (hasActivePromo) {
+                refreshPricingForPlan(originalAmount);
+            } else {
+                applyPlanAndDiscountToUI(originalAmount, 0);
+            }
+        }
     }
     
-    // Plan selection handler
     var planRadios = document.querySelectorAll('input[name="plan_choice"]');
     planRadios.forEach(function(radio) {
         radio.addEventListener('change', function() {
             var selectedPlanAmount = parseFloat(this.getAttribute('data-amount'));
             if (selectedPlanAmount > 0) {
-                originalAmount = selectedPlanAmount;
-                currentDiscount = 0;
-                updatePriceDisplay(selectedPlanAmount, 0);
-                updateTaxCalculation(selectedPlanAmount, 0);
+                refreshPricingForPlan(selectedPlanAmount);
             }
         });
     });
@@ -802,11 +887,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Global function for inline events
+    // Global function for inline events (use selected plan + applied promo, not stale PHP original)
     window.updateTaxOnInput = function() {
-        var originalAmount = <?php echo isset($original_amount) ? $original_amount : 0; ?>;
-        var discountAmount = <?php echo isset($discount_amount) ? $discount_amount : 0; ?>;
-        updateTaxCalculation(originalAmount, discountAmount);
+        var r = document.querySelector('input[name="plan_choice"]:checked');
+        var oa = r ? parseFloat(r.getAttribute('data-amount')) : originalAmount;
+        if (!(oa > 0)) {
+            oa = <?php echo isset($original_amount) ? floatval($original_amount) : 0; ?>;
+        }
+        var disc = (typeof appliedPromoDiscount !== 'undefined' && appliedPromoDiscount > 0)
+            ? Math.min(appliedPromoDiscount, oa) : 0;
+        currentDiscount = disc;
+        originalAmount = oa;
+        updatePriceDisplay(oa, disc);
+        updateTaxCalculation(oa, disc);
     };
     
     // Add event listeners

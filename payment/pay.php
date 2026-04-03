@@ -47,6 +47,8 @@ $displayCurrency = 'INR';
 // Create Razorpay API instance
 $api = new Api($keyId, $keySecret);
 
+$is_referred_by_team = false;
+
 // Check if this is a customer payment (with id parameter)
 if (isset($_GET['id']) && !empty($_GET['id'])) {
     // Customer payment flow
@@ -76,6 +78,27 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
             $customer_row = mysqli_fetch_array($customer_query);
             $contactno = $customer_row['user_contact'] ?? '';
             $referred_by = $customer_row['referred_by'] ?? '';
+            if (!empty($referred_by)) {
+                $rb_esc = mysqli_real_escape_string($connect, $referred_by);
+                $referrer_query = mysqli_query($connect, "SELECT role FROM user_details WHERE email='$rb_esc' LIMIT 1");
+                if ($referrer_query && mysqli_num_rows($referrer_query) > 0) {
+                    $referrer_row = mysqli_fetch_array($referrer_query);
+                    if (($referrer_row['role'] ?? '') === 'TEAM') {
+                        $is_referred_by_team = true;
+                    }
+                }
+            }
+        }
+
+        $is_team_source = isset($_GET['source']) && $_GET['source'] === 'team';
+        $is_direct_customer = empty(trim((string) $referred_by));
+
+        if (!empty($_SESSION['auto_applied_promo']) && ($is_team_source || $is_referred_by_team || $is_direct_customer)) {
+            unset($_SESSION['promo_code'], $_SESSION['promo_discount'], $_SESSION['auto_applied_promo']);
+            $promo_applied = false;
+            $promo_discount = 0;
+            $is_auto_applied = false;
+            $promo_message = '';
         }
         
         // Determine payment amount
@@ -97,11 +120,11 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         $_SESSION['payment_card_id'] = $card_id;
         $_SESSION['payment_user_email'] = $row['user_email'];
         
-        // Check for referral auto-promo (simplified version)
+        // Referral auto-promo only for non-team referrers (direct signup and team-referred never auto-apply DMW001)
         $is_referral_customer = !empty($referred_by);
         $is_first_payment = ($status == "Created" || $status != "Success");
         
-        if ($is_referral_customer && $is_first_payment && !$promo_applied) {
+        if ($is_referral_customer && !$is_referred_by_team && $is_first_payment && !$promo_applied && !$is_team_source) {
             // Try to auto-apply DMW001 or mapped deal
             $auto_promo_code = 'DMW001';
             $validation = validateCoupon($auto_promo_code, $connect, 'card_payment');
