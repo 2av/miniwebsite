@@ -245,14 +245,14 @@ function mw_demo_clean_offer_date($raw) {
     return $d;
 }
 
-/** One line: formatted date (j M Y) or ''. */
-function mw_demo_format_offer_date_part($raw) {
+/** Compact date for offer row (e.g. "1 May") — matches card UI reference. */
+function mw_demo_format_offer_date_compact($raw) {
     $d = mw_demo_clean_offer_date($raw);
     if ($d === '') {
         return '';
     }
     $t = strtotime($d);
-    return $t ? date('j M Y', $t) : $d;
+    return $t ? date('j M', $t) : $d;
 }
 
 /** One line: formatted time (g:i A) or ''. */
@@ -266,33 +266,34 @@ function mw_demo_format_offer_time_part($raw) {
 }
 
 /**
- * Start = start date + start time; End = end date + end time (comma-separated when both set).
+ * Valid date range + time range for one row above CTA (plain text, not escaped).
  *
- * @return array{start: string, end: string} plain text, not escaped
+ * @return array{valid: string, time: string}
  */
-function mw_demo_offer_start_end_display($start_date, $end_date, $start_time, $end_time) {
-    $start_parts = [];
-    $ds = mw_demo_format_offer_date_part($start_date);
+function mw_demo_offer_valid_time_labels($start_date, $end_date, $start_time, $end_time) {
+    $ds = mw_demo_format_offer_date_compact($start_date);
+    $de = mw_demo_format_offer_date_compact($end_date);
+    $valid = '';
+    if ($ds !== '' && $de !== '') {
+        $valid = ($ds === $de) ? $ds : ($ds . ' – ' . $de);
+    } elseif ($ds !== '') {
+        $valid = $ds;
+    } elseif ($de !== '') {
+        $valid = $de;
+    }
+
     $ts = mw_demo_format_offer_time_part($start_time);
-    if ($ds !== '') {
-        $start_parts[] = $ds;
-    }
-    if ($ts !== '') {
-        $start_parts[] = $ts;
-    }
-    $end_parts = [];
-    $de = mw_demo_format_offer_date_part($end_date);
     $te = mw_demo_format_offer_time_part($end_time);
-    if ($de !== '') {
-        $end_parts[] = $de;
+    $time = '';
+    if ($ts !== '' && $te !== '') {
+        $time = ($ts === $te) ? $ts : ($ts . ' – ' . $te);
+    } elseif ($ts !== '') {
+        $time = $ts;
+    } elseif ($te !== '') {
+        $time = $te;
     }
-    if ($te !== '') {
-        $end_parts[] = $te;
-    }
-    return [
-        'start' => implode(', ', $start_parts),
-        'end' => implode(', ', $end_parts),
-    ];
+
+    return ['valid' => $valid, 'time' => $time];
 }
 
 // Try to load from database when card_id provided
@@ -484,7 +485,7 @@ if ($row) {
                 if (!empty($o['offer_image']) && strpos($o['offer_image'], '.') !== false) {
                     $img = '../assets/upload/websites/special-offers/' . htmlspecialchars($o['offer_image']);
                 }
-                $sched = mw_demo_offer_start_end_display(
+                $vt = mw_demo_offer_valid_time_labels(
                     $o['start_date'] ?? null,
                     $o['end_date'] ?? null,
                     $o['start_time'] ?? null,
@@ -495,15 +496,15 @@ if ($row) {
                     'desc' => htmlspecialchars($o['offer_description'] ?? ''),
                     'image' => $img,
                     'badge' => !empty($o['badge']) ? htmlspecialchars($o['badge']) : (!empty($o['discount_percentage']) ? $o['discount_percentage'] . '% OFF' : 'OFFER'),
-                    'offer_start' => $sched['start'] !== '' ? htmlspecialchars($sched['start']) : '',
-                    'offer_end' => $sched['end'] !== '' ? htmlspecialchars($sched['end']) : '',
+                    'offer_valid' => $vt['valid'] !== '' ? htmlspecialchars($vt['valid']) : '',
+                    'offer_time' => $vt['time'] !== '' ? htmlspecialchars($vt['time']) : '',
                 ];
             }
         }
     }
     if (empty($offers)) {
         $offers = [
-            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER', 'offer_start' => '', 'offer_end' => ''],
+            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER', 'offer_valid' => '', 'offer_time' => ''],
         ];
     }
 
@@ -1140,7 +1141,7 @@ if ($row) {
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $svc['name']; ?></h3>
                     <p class="mw-service-desc-preview text-sm text-textmain line-clamp-3"><?php echo !empty($svc['desc']) ? htmlspecialchars($svc['desc']) : 'Contact us for details.'; ?></p>
                     <div class="mw-service-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($svc['desc']) ? nl2br(htmlspecialchars($svc['desc'])) : 'Contact us for details.'; ?></div>
-                    <button type="button" class="mw-service-read-more text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
+                    <button type="button" class="mw-service-read-more self-start text-left text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -1158,25 +1159,21 @@ if ($row) {
                 <div class="mw-offer-image-wrap aspect-[4/3] overflow-hidden">
                     <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                 </div>
-                <div class="p-5">
+                <div class="p-5 flex flex-col min-h-0">
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $off['title']; ?></h3>
-                    <?php if (!empty($off['offer_start'] ?? '') || !empty($off['offer_end'] ?? '')): ?>
-                    <div class="flex flex-col gap-1.5 text-xs text-textmain mt-2 mb-1">
-                        <?php if (!empty($off['offer_start'] ?? '')): ?>
-                        <p class="flex items-start gap-2 leading-snug"><span class="text-primary mt-0.5 flex-shrink-0" aria-hidden="true"><i class="fas fa-calendar-plus"></i></span><span><span class="font-medium text-heading">Start: </span> <?php echo $off['offer_start']; ?></span></p>
-                        <?php endif; ?>
-                        <?php if (!empty($off['offer_end'] ?? '')): ?>
-                        <p class="flex items-start gap-2 leading-snug"><span class="text-primary mt-0.5 flex-shrink-0" aria-hidden="true"><i class="fas fa-calendar-check"></i></span><span><span class="font-medium text-heading">End: </span> <?php echo $off['offer_end']; ?></span></p>
-                        <?php endif; ?>
-                    </div>
-                    <?php endif; ?>
                     <p class="mw-offer-desc-preview text-sm text-textmain line-clamp-1"><?php echo !empty($off['desc']) ? htmlspecialchars($off['desc']) : 'Contact us for details.'; ?></p>
                     <div class="mw-offer-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($off['desc']) ? nl2br(htmlspecialchars($off['desc'])) : 'Contact us for details.'; ?></div>
-                    <button type="button" class="mw-offer-read-more text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
+                    <button type="button" class="mw-offer-read-more self-start text-left text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
+                    <?php if (!empty($off['offer_valid'] ?? '') || !empty($off['offer_time'] ?? '')): ?>
+                    <div class="mw-offer-valid-row flex flex-row justify-between items-baseline gap-3 w-full text-xs text-textmain pt-3 mt-3 border-t border-white/10">
+                        <span class="min-w-0 text-left leading-snug"><?php if (!empty($off['offer_valid'] ?? '')): ?><span class="font-medium text-heading">Valid:</span> <?php echo $off['offer_valid']; ?><?php endif; ?></span>
+                        <span class="min-w-0 text-right leading-snug shrink-0"><?php if (!empty($off['offer_time'] ?? '')): ?><span class="font-medium text-heading">Time:</span> <?php echo $off['offer_time']; ?><?php endif; ?></span>
+                    </div>
+                    <?php endif; ?>
                     <?php
                         $offer_wa_msg = "Hi 😊\nI am interested in the offer mentioned in your MiniWebsite \"" . $off['title'] . "\".\nPlease share the price & availability of this";
                         ?>
-                    <button type="button" class="mw-offer-wa-cta block w-full py-2.5 rounded-theme font-semibold transition text-center mt-4 cursor-pointer border-0" style="background: var(--mw-offer-cta-bg); color: #111;" data-phone="<?php echo htmlspecialchars((string) $whatsapp, ENT_QUOTES, 'UTF-8'); ?>" data-msg="<?php echo htmlspecialchars($offer_wa_msg, ENT_QUOTES, 'UTF-8'); ?>">Get This Offer</button>
+                    <button type="button" class="mw-offer-wa-cta block w-full py-2.5 rounded-theme font-semibold transition text-center mt-3 cursor-pointer border-0" style="background: var(--mw-offer-cta-bg); color: #111;" data-phone="<?php echo htmlspecialchars((string) $whatsapp, ENT_QUOTES, 'UTF-8'); ?>" data-msg="<?php echo htmlspecialchars($offer_wa_msg, ENT_QUOTES, 'UTF-8'); ?>">Get This Offer</button>
                 </div>
             </div>
             <?php endforeach; ?>
