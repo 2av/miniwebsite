@@ -1,82 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Login</title>
-    <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400..800&family=Baloo+Bhaina+2:wght@400..800&family=Barlow:wght@400;500;600;700;800;900&display=swap">
-    <link rel="stylesheet" href="../assets/css/font-awesome.css">
-    <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="../assets/css/layout.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <style>
-        /* Password toggle button styling */
-        .password-toggle {
-            cursor: pointer;
-            transition: all 0.3s ease;
-            padding: 0;
-            height: 100%;
-            margin: 0;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            background: transparent;
-            border: none;
-        }
-        .password-toggle i {
-            position: absolute;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            font-size: 18px;
-            color: #6c757d;
-        }
-        .password-toggle .eye-open {
-            opacity: 1;
-        }
-        .password-toggle .eye-closed {
-            opacity: 0;
-        }
-        .password-toggle.visible .eye-open {
-            opacity: 0;
-        }
-        .password-toggle.visible .eye-closed {
-            opacity: 1;
-        }
-        .password-toggle:hover i {
-            color: #007bff;
-            transform: scale(1.05);
-        }
-        .input-group-prepend {
-            display: flex;
-            position: absolute;
-            right: 0;
-            top: 0;
-            height: 100%;
-            z-index: 5;
-        }
-        .input-group-text {
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .form-control {
-            padding-right: 40px;
-            width: 100%;
-        }
-    </style>
-</head>
-<body>
 <?php
-// Use centralized database config (sessions + DB already initialized)
 require_once __DIR__ . '/../app/config/database.php';
 
 // Get base path (works for both localhost subfolder and production root)
@@ -181,6 +103,84 @@ if (!empty($login_messages)) {
     }
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Login</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400..800&family=Baloo+Bhaina+2:wght@400..800&family=Barlow:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="../assets/css/font-awesome.css">
+    <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../assets/css/layout.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <style>
+        /* Password toggle button styling */
+        .password-toggle {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+            height: 100%;
+            margin: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            background: transparent;
+            border: none;
+        }
+        .password-toggle i {
+            position: absolute;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            font-size: 18px;
+            color: #6c757d;
+        }
+        .password-toggle .eye-open {
+            opacity: 1;
+        }
+        .password-toggle .eye-closed {
+            opacity: 0;
+        }
+        .password-toggle.visible .eye-open {
+            opacity: 0;
+        }
+        .password-toggle.visible .eye-closed {
+            opacity: 1;
+        }
+        .password-toggle:hover i {
+            color: #007bff;
+            transform: scale(1.05);
+        }
+        .input-group-prepend {
+            display: flex;
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            z-index: 5;
+        }
+        .input-group-text {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .form-control {
+            padding-right: 40px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
 <div class="login-wrap">
     <div class="login-container">
         <h2 class="heading"><a href="<?php echo $base_path; ?>/"><i class="fa fa-angle-left" aria-hidden="true"></i></a>Team Login</h2>

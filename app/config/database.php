@@ -7,23 +7,21 @@
 // Set default timezone
 date_default_timezone_set("Asia/Kolkata");
 
-// Start session only if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    // Configure session parameters
+// Start session only before any output; late includes (e.g. helpers after HTML) still get DB only
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     $session_lifetime = 86400; // 24 hours in seconds
-    $secure = isset($_SERVER['HTTPS']); // Set to true if using HTTPS
-    $httponly = true; // Prevents JavaScript access to session cookie
+    $secure = isset($_SERVER['HTTPS']);
+    $httponly = true;
 
-    // Set the session cookie parameters
     session_set_cookie_params([
         'lifetime' => $session_lifetime,
         'path' => '/',
-        'domain' => '',  // Current domain
+        'domain' => '',
         'secure' => $secure,
         'httponly' => $httponly,
-        'samesite' => 'Lax'  // Allows session to persist across same-site requests
+        'samesite' => 'Lax'
     ]);
-    
+
     session_start();
 }
 
