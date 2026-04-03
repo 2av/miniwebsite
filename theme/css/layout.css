@@ -64,6 +64,43 @@ a.mw-video-external:focus-visible {
     outline-offset: 3px;
 }
 
+/* External Facebook / Instagram cards: brand tint, gradient overlay, centered play */
+a.mw-video-external.mw-video-external--facebook {
+    border-color: rgba(24, 119, 242, 0.65);
+    box-shadow: var(--mw-shadow), 0 0 0 1px rgba(24, 119, 242, 0.35), 0 8px 28px rgba(24, 119, 242, 0.2);
+}
+a.mw-video-external.mw-video-external--instagram {
+    border-color: rgba(225, 48, 108, 0.45);
+    box-shadow: var(--mw-shadow), 0 0 0 1px rgba(225, 48, 108, 0.35), 0 8px 32px rgba(131, 58, 180, 0.22);
+}
+.mw-video-platform-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+.mw-video-platform-overlay--facebook {
+    background: linear-gradient(165deg, rgba(24, 119, 242, 0.42) 0%, rgba(8, 49, 118, 0.62) 55%, rgba(66, 103, 178, 0.5) 100%);
+}
+.mw-video-platform-overlay--instagram {
+    background: linear-gradient(
+        135deg,
+        rgba(240, 148, 51, 0.45) 0%,
+        rgba(230, 104, 60, 0.42) 22%,
+        rgba(220, 39, 67, 0.48) 45%,
+        rgba(204, 35, 102, 0.45) 68%,
+        rgba(188, 24, 136, 0.5) 100%
+    );
+}
+.mw-video-platform-pill--facebook {
+    background: rgba(24, 119, 242, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.mw-video-platform-pill--instagram {
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
 /* Video Modal (play within page) */
 .mw-video-modal {
     position: fixed; inset: 0; z-index: 100;

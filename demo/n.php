@@ -245,16 +245,6 @@ function mw_demo_clean_offer_date($raw) {
     return $d;
 }
 
-/** Compact date for offer row (e.g. "1 May") — matches card UI reference. */
-function mw_demo_format_offer_date_compact($raw) {
-    $d = mw_demo_clean_offer_date($raw);
-    if ($d === '') {
-        return '';
-    }
-    $t = strtotime($d);
-    return $t ? date('j M', $t) : $d;
-}
-
 /** One line: formatted time (g:i A) or ''. */
 function mw_demo_format_offer_time_part($raw) {
     $t = trim((string) ($raw ?? ''));
@@ -265,35 +255,35 @@ function mw_demo_format_offer_time_part($raw) {
     return $dt ? $dt->format('g:i A') : $t;
 }
 
+/** One line: date + time for offer row (plain text, not escaped). */
+function mw_demo_format_offer_datetime_display($date_raw, $time_raw) {
+    $d = mw_demo_clean_offer_date($date_raw);
+    $tpart = mw_demo_format_offer_time_part($time_raw);
+    if ($d !== '' && $tpart !== '') {
+        $t = strtotime($d);
+        $date_fmt = $t ? date('j M', $t) : $d;
+        return $date_fmt . ', ' . $tpart;
+    }
+    if ($d !== '') {
+        $t = strtotime($d);
+        return $t ? date('j M', $t) : $d;
+    }
+    if ($tpart !== '') {
+        return $tpart;
+    }
+    return '';
+}
+
 /**
- * Valid date range + time range for one row above CTA (plain text, not escaped).
+ * Start Dt / End Dt strings for the card (plain text, not escaped).
  *
- * @return array{valid: string, time: string}
+ * @return array{start_dt: string, end_dt: string}
  */
-function mw_demo_offer_valid_time_labels($start_date, $end_date, $start_time, $end_time) {
-    $ds = mw_demo_format_offer_date_compact($start_date);
-    $de = mw_demo_format_offer_date_compact($end_date);
-    $valid = '';
-    if ($ds !== '' && $de !== '') {
-        $valid = ($ds === $de) ? $ds : ($ds . ' – ' . $de);
-    } elseif ($ds !== '') {
-        $valid = $ds;
-    } elseif ($de !== '') {
-        $valid = $de;
-    }
-
-    $ts = mw_demo_format_offer_time_part($start_time);
-    $te = mw_demo_format_offer_time_part($end_time);
-    $time = '';
-    if ($ts !== '' && $te !== '') {
-        $time = ($ts === $te) ? $ts : ($ts . ' – ' . $te);
-    } elseif ($ts !== '') {
-        $time = $ts;
-    } elseif ($te !== '') {
-        $time = $te;
-    }
-
-    return ['valid' => $valid, 'time' => $time];
+function mw_demo_offer_start_end_dt_labels($start_date, $end_date, $start_time, $end_time) {
+    return [
+        'start_dt' => mw_demo_format_offer_datetime_display($start_date, $start_time),
+        'end_dt' => mw_demo_format_offer_datetime_display($end_date, $end_time),
+    ];
 }
 
 // Try to load from database when card_id provided
@@ -485,7 +475,7 @@ if ($row) {
                 if (!empty($o['offer_image']) && strpos($o['offer_image'], '.') !== false) {
                     $img = '../assets/upload/websites/special-offers/' . htmlspecialchars($o['offer_image']);
                 }
-                $vt = mw_demo_offer_valid_time_labels(
+                $se = mw_demo_offer_start_end_dt_labels(
                     $o['start_date'] ?? null,
                     $o['end_date'] ?? null,
                     $o['start_time'] ?? null,
@@ -496,15 +486,15 @@ if ($row) {
                     'desc' => htmlspecialchars($o['offer_description'] ?? ''),
                     'image' => $img,
                     'badge' => !empty($o['badge']) ? htmlspecialchars($o['badge']) : (!empty($o['discount_percentage']) ? $o['discount_percentage'] . '% OFF' : 'OFFER'),
-                    'offer_valid' => $vt['valid'] !== '' ? htmlspecialchars($vt['valid']) : '',
-                    'offer_time' => $vt['time'] !== '' ? htmlspecialchars($vt['time']) : '',
+                    'offer_start_dt' => $se['start_dt'] !== '' ? htmlspecialchars($se['start_dt']) : '',
+                    'offer_end_dt' => $se['end_dt'] !== '' ? htmlspecialchars($se['end_dt']) : '',
                 ];
             }
         }
     }
     if (empty($offers)) {
         $offers = [
-            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER', 'offer_valid' => '', 'offer_time' => ''],
+            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER', 'offer_start_dt' => '', 'offer_end_dt' => ''],
         ];
     }
 
@@ -1164,10 +1154,10 @@ if ($row) {
                     <p class="mw-offer-desc-preview text-sm text-textmain line-clamp-1"><?php echo !empty($off['desc']) ? htmlspecialchars($off['desc']) : 'Contact us for details.'; ?></p>
                     <div class="mw-offer-desc-full hidden text-sm text-textmain mt-2 leading-relaxed"><?php echo !empty($off['desc']) ? nl2br(htmlspecialchars($off['desc'])) : 'Contact us for details.'; ?></div>
                     <button type="button" class="mw-offer-read-more self-start text-left text-primary text-sm font-medium mt-2 hover:underline">Read more</button>
-                    <?php if (!empty($off['offer_valid'] ?? '') || !empty($off['offer_time'] ?? '')): ?>
+                    <?php if (!empty($off['offer_start_dt'] ?? '') || !empty($off['offer_end_dt'] ?? '')): ?>
                     <div class="mw-offer-valid-row flex flex-row justify-between items-baseline gap-3 w-full text-xs text-textmain pt-3 mt-3 border-t border-white/10">
-                        <span class="min-w-0 text-left leading-snug"><?php if (!empty($off['offer_valid'] ?? '')): ?><span class="font-medium text-heading">Valid:</span> <?php echo $off['offer_valid']; ?><?php endif; ?></span>
-                        <span class="min-w-0 text-right leading-snug shrink-0"><?php if (!empty($off['offer_time'] ?? '')): ?><span class="font-medium text-heading">Time:</span> <?php echo $off['offer_time']; ?><?php endif; ?></span>
+                        <span class="min-w-0 text-left leading-snug"><?php if (!empty($off['offer_start_dt'] ?? '')): ?><span class="font-medium text-heading">Start Dt:</span> <?php echo $off['offer_start_dt']; ?><?php endif; ?></span>
+                        <span class="min-w-0 text-right leading-snug shrink-0"><?php if (!empty($off['offer_end_dt'] ?? '')): ?><span class="font-medium text-heading">End Dt:</span> <?php echo $off['offer_end_dt']; ?><?php endif; ?></span>
                     </div>
                     <?php endif; ?>
                     <?php
@@ -1294,6 +1284,8 @@ if ($row) {
             <?php else:
                 $ext_href = !empty($v['watch_url']) ? $v['watch_url'] : $v['url'];
                 $plat = $v['platform'] ?? 'other';
+                $is_fb_ig = ($plat === 'facebook' || $plat === 'instagram');
+                $ext_theme_class = $is_fb_ig ? (' mw-video-external--' . $plat) : '';
                 if ($plat === 'facebook') {
                     $ext_center_icon = 'fab fa-facebook-f';
                 } elseif ($plat === 'instagram') {
@@ -1301,11 +1293,30 @@ if ($row) {
                 } else {
                     $ext_center_icon = 'fas fa-external-link-alt ml-0.5';
                 }
+                $img_opacity = $is_fb_ig ? 'opacity-80 group-hover:opacity-95' : 'opacity-60 group-hover:opacity-80';
                 ?>
-            <a href="<?php echo htmlspecialchars($ext_href); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo $wrap_class; ?> mw-video-external no-underline text-inherit">
-                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition" alt="<?php echo htmlspecialchars($v['title']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
-                <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-primary/90 text-bgbase rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg"><i class="<?php echo htmlspecialchars($ext_center_icon); ?>"></i></div></div>
-                <div class="absolute bottom-2 left-3 right-3 text-heading text-sm font-medium drop-shadow-md truncate"><?php echo htmlspecialchars($v['title']); ?></div>
+            <a href="<?php echo htmlspecialchars($ext_href); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo $wrap_class; ?> mw-video-external<?php echo $ext_theme_class; ?> no-underline text-inherit">
+                <img src="<?php echo htmlspecialchars($v['thumb']); ?>" class="w-full h-full object-cover <?php echo $img_opacity; ?> transition" alt="<?php echo htmlspecialchars($v['title']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                <?php if ($is_fb_ig): ?>
+                <div class="mw-video-platform-overlay mw-video-platform-overlay--<?php echo htmlspecialchars($plat); ?>" aria-hidden="true"></div>
+                <div class="absolute top-2 left-2 z-[4] flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-md mw-video-platform-pill mw-video-platform-pill--<?php echo htmlspecialchars($plat); ?>">
+                    <?php if ($plat === 'facebook'): ?>
+                    <i class="fab fa-facebook-f" aria-hidden="true"></i><span>Facebook</span>
+                    <?php else: ?>
+                    <i class="fab fa-instagram" aria-hidden="true"></i><span>Instagram</span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <div class="absolute inset-0 flex items-center justify-center z-[2] pointer-events-none">
+                    <div class="<?php echo $is_fb_ig ? 'w-14 h-14 bg-white text-gray-900' : 'w-12 h-12 bg-primary/90 text-bgbase'; ?> rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition shadow-lg">
+                        <?php if ($is_fb_ig): ?>
+                        <i class="fas fa-play ml-1" aria-hidden="true"></i>
+                        <?php else: ?>
+                        <i class="<?php echo htmlspecialchars($ext_center_icon); ?>" aria-hidden="true"></i>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="absolute bottom-2 left-3 right-3 z-[3] text-sm font-medium drop-shadow-md truncate <?php echo $is_fb_ig ? 'text-white' : 'text-heading'; ?>"><?php echo htmlspecialchars($v['title']); ?></div>
             </a>
             <?php endif; ?>
             <?php endforeach; ?>

@@ -368,7 +368,7 @@ $html = '
             <div class="company-details">
                 <div class="details-title">COMPANY DETAILS</div>
                 <div>KIROVA SOLUTIONS LLP</div>
-                <div><strong>Address:</strong> plot no 535, 1st floor, block b, near madrasi mandir, sec 23, sanjay colony, Faridabad Sector 22, sector 23 police station, Faridabad, Faridabad- 121005, Haryana, India</div>
+                <div><strong>Address:</strong> plot no 535, 1st floor, block b, Faridabad Sector 22, sector 23 police station, Faridabad, Faridabad- 121005, Haryana, India</div>
                 <div><strong>Contact:</strong> +91 9429693061</div>
                 <div><strong>Email Id:</strong> support@miniwebsite.in</div>
                 <div><strong>PAN No:</strong> ABDFK4023D</div>

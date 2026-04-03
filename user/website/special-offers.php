@@ -12,6 +12,73 @@ if($is_ajax && isset($_POST['offer'])) {
 // MUST be done before any output (before including header.php)
 require_once(__DIR__ . '/../../app/config/database.php');
 
+/**
+ * Validate offer schedule: Start Dt and End Dt each need date + time together; End on or after Start.
+ *
+ * @return string Empty if OK, else plain-text message for the user.
+ */
+function mw_special_offer_validate_dt($start_date, $end_date, $start_time, $end_time) {
+    $sd = trim((string) $start_date);
+    $ed = trim((string) $end_date);
+    $st = trim((string) $start_time);
+    $et = trim((string) $end_time);
+    if ($sd === '' && $ed === '' && $st === '' && $et === '') {
+        return '';
+    }
+    if (($sd !== '') !== ($st !== '')) {
+        return 'Start Dt: enter both date and time, or leave both empty.';
+    }
+    if (($ed !== '') !== ($et !== '')) {
+        return 'End Dt: enter both date and time, or leave both empty.';
+    }
+    $start_ok = ($sd !== '' && $st !== '');
+    $end_ok = ($ed !== '' && $et !== '');
+    if ($start_ok !== $end_ok) {
+        return $start_ok
+            ? 'End Dt: enter both date and time when Start Dt is set.'
+            : 'Start Dt: enter both date and time when End Dt is set.';
+    }
+    if (!$start_ok) {
+        return '';
+    }
+    $ts_s = strtotime($sd . ' ' . $st);
+    $ts_e = strtotime($ed . ' ' . $et);
+    if ($ts_s === false || $ts_e === false) {
+        return 'Start Dt or End Dt is not a valid date or time.';
+    }
+    if ($ts_e < $ts_s) {
+        return 'End Dt must be on or after Start Dt.';
+    }
+    return '';
+}
+
+/** Table / summary cell: date + time on one line. */
+function mw_special_offer_format_dt_cell($date_raw, $time_raw) {
+    $d = trim((string) $date_raw);
+    if ($d === '' || $d === '0000-00-00' || strpos($d, '0000-00-00') === 0) {
+        $d = '';
+    }
+    $t = trim((string) $time_raw);
+    if ($d === '' && $t === '') {
+        return '-';
+    }
+    $t_disp = '';
+    if ($t !== '') {
+        $dt_obj = DateTime::createFromFormat('H:i:s', $t) ?: DateTime::createFromFormat('H:i', $t);
+        $t_disp = $dt_obj ? $dt_obj->format('g:i A') : substr($t, 0, 5);
+    }
+    if ($d !== '' && $t_disp !== '') {
+        $ts = strtotime($d);
+        $d_disp = $ts ? date('j M', $ts) : $d;
+        return $d_disp . ', ' . $t_disp;
+    }
+    if ($d !== '') {
+        $ts = strtotime($d);
+        return $ts ? date('j M', $ts) : $d;
+    }
+    return $t_disp !== '' ? $t_disp : '-';
+}
+
 // Handle AJAX image processing FIRST - before any other output
 if(isset($_POST['process_product_image_ajax']) && !empty($_FILES['product_image']['tmp_name'])){
     while(ob_get_level() > 0) {
@@ -305,6 +372,10 @@ if(isset($_POST['offer'])){
                     }
                 }
                 
+                $offer_dt_err = mw_special_offer_validate_dt($offer_start_date, $offer_end_date, $offer_start_time, $offer_end_time);
+                if ($offer_dt_err !== '') {
+                    $error_message .= '<div class="alert alert-danger">' . htmlspecialchars($offer_dt_err) . '</div>';
+                } else {
                 $verify_query = mysqli_query($connect, "SELECT id FROM card_special_offers WHERE id=$direct_offer_id AND card_id='$card_id' AND user_id=$user_id");
                 if(mysqli_num_rows($verify_query) > 0) {
                     $start_date_sql = ($offer_start_date !== '') ? "'" . mysqli_real_escape_string($connect, $offer_start_date) . "'" : "NULL";
@@ -324,6 +395,7 @@ if(isset($_POST['offer'])){
                         $error_message .= '<div class="alert alert-danger">Failed to update offer. Error: ' . mysqli_error($connect) . '</div>';
                     }
                     $processed_offer_ids[] = $direct_offer_id;
+                }
                 }
             }
         }
@@ -389,6 +461,12 @@ if(isset($_POST['offer'])){
                     if(in_array($offer_id, $processed_offer_ids)) {
                         continue;
                     }
+                }
+
+                $offer_dt_err = mw_special_offer_validate_dt($offer_start_date, $offer_end_date, $offer_start_time, $offer_end_time);
+                if ($offer_dt_err !== '') {
+                    $error_message .= '<div class="alert alert-danger">Offer ' . (int) $x . ': ' . htmlspecialchars($offer_dt_err) . '</div>';
+                    continue;
                 }
                 
                 if(!empty($_POST["processed_offer_image_data$x"])){
@@ -591,8 +669,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                 <th>Badge</th>
                                 <th>Title</th>
                                 <th>Description</th>
-                                <th>Start/End Date</th>
-                                <th>Start/End Time</th>
+                                <th>Start Dt</th>
+                                <th>End Dt</th>
                                 <th>Offer Status</th>
                                 <th>Manage</th>
                             </tr>
@@ -638,30 +716,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     <td valign="middle"><strong><?php echo $offer_title; ?></strong></td>
                                     <td valign="middle"><?php echo !empty($offer_description) ? substr($offer_description, 0, 40) . (strlen($offer_description) > 40 ? '...' : '') : '<span class="text-muted">-</span>'; ?></td>
                                     <td valign="middle">
-                                        <small>
-                                            <?php 
-                                            $date_range = '';
-                                            if($start_date !== '-' || $end_date !== '-') {
-                                                $date_range = ($start_date !== '-' ? $start_date : '...') . ' to ' . ($end_date !== '-' ? $end_date : '...');
-                                                echo $date_range;
-                                            } else {
-                                                echo '<span class="text-muted">-</span>';
-                                            }
-                                            ?>
-                                        </small>
+                                        <small><?php echo htmlspecialchars(mw_special_offer_format_dt_cell($offer['start_date'] ?? '', $offer['start_time'] ?? '')); ?></small>
                                     </td>
                                     <td valign="middle">
-                                        <small>
-                                            <?php 
-                                            $time_range = '';
-                                            if($start_time !== '-' || $end_time !== '-') {
-                                                $time_range = ($start_time !== '-' ? substr($start_time, 0, 5) : '...') . ' to ' . ($end_time !== '-' ? substr($end_time, 0, 5) : '...');
-                                                echo $time_range;
-                                            } else {
-                                                echo '<span class="text-muted">-</span>';
-                                            }
-                                            ?>
-                                        </small>
+                                        <small><?php echo htmlspecialchars(mw_special_offer_format_dt_cell($offer['end_date'] ?? '', $offer['end_time'] ?? '')); ?></small>
                                     </td>
                                     <td valign="middle">
                                         <?php 
@@ -773,14 +831,14 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="modal_offer_start_date">Start Date <span class="text-muted">(Optional)</span></label>
+                                <label for="modal_offer_start_date">Start Dt <span class="text-muted">(date)</span></label>
                                 <input type="date" class="form-control" id="modal_offer_start_date">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="modal_offer_end_date">End Date <span class="text-muted">(Optional)</span></label>
-                                <input type="date" class="form-control" id="modal_offer_end_date">
+                                <label for="modal_offer_start_time">Start Dt <span class="text-muted">(time)</span></label>
+                                <input type="time" class="form-control" id="modal_offer_start_time">
                             </div>
                         </div>
                     </div>
@@ -788,17 +846,18 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="modal_offer_start_time">Start Time <span class="text-muted">(Optional)</span></label>
-                                <input type="time" class="form-control" id="modal_offer_start_time">
+                                <label for="modal_offer_end_date">End Dt <span class="text-muted">(date)</span></label>
+                                <input type="date" class="form-control" id="modal_offer_end_date">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="modal_offer_end_time">End Time <span class="text-muted">(Optional)</span></label>
+                                <label for="modal_offer_end_time">End Dt <span class="text-muted">(time)</span></label>
                                 <input type="time" class="form-control" id="modal_offer_end_time">
                             </div>
                         </div>
                     </div>
+                    <p class="text-muted small mb-0">Start Dt and End Dt are optional. If you use them, enter <strong>both</strong> date and time for each; End Dt must be on or after Start Dt.</p>
 
                     <div class="form-group">
                         <label for="modal_offer_status">Offer Status</label>
@@ -1224,46 +1283,42 @@ function addOfferToForm() {
     var modalOfferEndTimeField = document.getElementById('modal_offer_end_time');
     var endTime = modalOfferEndTimeField ? modalOfferEndTimeField.value : '';
     
-    // Validation: If start date is provided, end date should also be provided
-    if(startDate && !endDate) {
-        alert('Please enter end date when start date is provided.');
-        return;
+    function normalizeTimeForParse(t) {
+        if(!t) return '';
+        return t.length === 5 ? t + ':00' : t;
     }
     
-    // Validation: If end date is provided, start date should also be provided
-    if(endDate && !startDate) {
-        alert('Please enter start date when end date is provided.');
+    var hasStartDate = !!startDate;
+    var hasStartTime = !!startTime;
+    var hasEndDate = !!endDate;
+    var hasEndTime = !!endTime;
+    if(hasStartDate !== hasStartTime) {
+        alert('Start Dt: enter both date and time, or leave both empty.');
         return;
     }
-    
-    // Validation: End date should be greater than or equal to start date
-    if(startDate && endDate) {
-        var startDateObj = new Date(startDate);
-        var endDateObj = new Date(endDate);
-        if(endDateObj < startDateObj) {
-            alert('End date must be greater than or equal to start date.');
+    if(hasEndDate !== hasEndTime) {
+        alert('End Dt: enter both date and time, or leave both empty.');
+        return;
+    }
+    if(hasStartDate && hasStartTime && (!hasEndDate || !hasEndTime)) {
+        alert('End Dt: enter both date and time when Start Dt is set.');
+        return;
+    }
+    if(hasEndDate && hasEndTime && (!hasStartDate || !hasStartTime)) {
+        alert('Start Dt: enter both date and time when End Dt is set.');
+        return;
+    }
+    if(hasStartDate && hasEndDate) {
+        var startIso = startDate + 'T' + normalizeTimeForParse(startTime);
+        var endIso = endDate + 'T' + normalizeTimeForParse(endTime);
+        var startMs = Date.parse(startIso);
+        var endMs = Date.parse(endIso);
+        if(isNaN(startMs) || isNaN(endMs)) {
+            alert('Start Dt or End Dt is not a valid date or time.');
             return;
         }
-    }
-    
-    // Validation: If start time is provided, end time should also be provided
-    if(startTime && !endTime) {
-        alert('Please enter end time when start time is provided.');
-        return;
-    }
-    
-    // Validation: If end time is provided, start time should also be provided
-    if(endTime && !startTime) {
-        alert('Please enter start time when end time is provided.');
-        return;
-    }
-    
-    // Validation: If both start and end times are provided on same day, end time should be after start time
-    if(startTime && endTime && startDate && endDate && startDate === endDate) {
-        var startTimeObj = new Date('2000-01-01 ' + startTime);
-        var endTimeObj = new Date('2000-01-01 ' + endTime);
-        if(endTimeObj <= startTimeObj) {
-            alert('End time must be after start time on the same day.');
+        if(endMs < startMs) {
+            alert('End Dt must be on or after Start Dt.');
             return;
         }
     }
