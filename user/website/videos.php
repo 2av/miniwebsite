@@ -132,7 +132,7 @@ include '../includes/header.php';
         <div class="card mb-4">
             <div class="card-body">
             <label class="heading2">Video Links:</label>
-            <p class="description">You can add upto 20 video links related to your business</p>
+            <p class="description">You can upload upto 20 videos </p>
                 <form action="" method="POST" id="card_form">
 
                     <?php
