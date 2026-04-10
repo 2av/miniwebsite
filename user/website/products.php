@@ -154,8 +154,9 @@ if(isset($_SESSION['card_id_inprocess']) && !empty($_SESSION['card_id_inprocess'
     if(mysqli_num_rows($query) > 0) {
         $row = mysqli_fetch_array($query);
         
-        // Store d_position_primary in a separate variable for use in modals
+        // Store selected business categories for use in product category binding
         $card_d_position_primary = isset($row['d_position_primary']) ? $row['d_position_primary'] : '';
+        $card_d_position_secondary = isset($row['d_position_secondary']) ? $row['d_position_secondary'] : '';
         
         // Get user_id directly from user_details table (unified table for all users)
         $user_email_escaped = mysqli_real_escape_string($connect, $_SESSION['user_email']);
@@ -812,32 +813,26 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <select name="modal_product_category" id="modal_product_category" class="form-control" style="flex: 1;" onchange="loadProductNames(this.value)">
                                 <option value="">Select Product Category</option>
                                 <?php
-                                // Fetch child categories based on d_position_primary from digi_card
-                                if(!empty($card_d_position_primary)) {
-                                    // d_position_primary now stores the category ID directly
-                                   
-                                    $parent_query = mysqli_query($connect, "
-                                        SELECT id, category_name FROM product_categories 
-                                        WHERE parent_id = $card_d_position_primary
-                                    ");
-                                     
-                                    if(!$parent_query) {
-                                        echo '<script>alert("SQL Error: " + "' . mysqli_error($connect) . '");</script>';
-                                    } else if(mysqli_num_rows($parent_query) > 0) {
-                                        $parent_row = mysqli_fetch_assoc($parent_query);
-                                       
-                                    }
+                                // Bind product categories from BOTH selected business categories:
+                                // primary + secondary (from company-details.php).
+                                $selected_business_category_ids = [];
+                                if(!empty($card_d_position_primary) && is_numeric($card_d_position_primary)) {
+                                    $selected_business_category_ids[] = (int)$card_d_position_primary;
                                 }
-                                
-                                // Fetch product categories from the selected business category
-                                if($card_d_position_primary !== null) {
+                                if(!empty($card_d_position_secondary) && is_numeric($card_d_position_secondary)) {
+                                    $selected_business_category_ids[] = (int)$card_d_position_secondary;
+                                }
+                                $selected_business_category_ids = array_values(array_unique($selected_business_category_ids));
+
+                                if(!empty($selected_business_category_ids)) {
+                                    $parent_ids_sql = implode(',', $selected_business_category_ids);
                                     $child_cats_query = mysqli_query($connect, "
                                         SELECT id, category_name, display_order 
                                         FROM product_categories 
-                                        WHERE parent_id = $card_d_position_primary 
+                                        WHERE parent_id IN ($parent_ids_sql)
                                         AND is_active = 1
                                         AND category_type = 'product-category'
-                                        ORDER BY display_order ASC
+                                        ORDER BY display_order ASC, category_name ASC
                                     ");
                                     
                                     while($cat = mysqli_fetch_assoc($child_cats_query)) {
@@ -879,15 +874,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     </div>
                     <div class="form-group">
                         <label for="modal_product_name">Product Name <span class="text-danger">*</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <select class="form-control" id="modal_product_name" required style="flex: 1;">
-                                <option value="">-- Select Product Name --</option>
-                            </select>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomProductNameModal()" style="min-width: 40px; padding: 0;" title="Add Custom Product Name">
-                                <i class="fa fa-plus" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        <small class="form-text text-muted">Product names are populated based on selected product category</small>
+                        <input type="text" class="form-control" id="modal_product_name" maxlength="30" required placeholder="Enter product name (max 30)">
+                        <small class="form-text text-muted">Product name is required and limited to 30 characters.</small>
                     </div>
                     <div class="form-group">
                         <label for="modal_product_mrp">MRP</label>
@@ -930,117 +918,8 @@ function updateCharCount() {
     }
 }
 
-// Product names load via inline onchange on category select (loadProductNames)
-
-function loadProductNames(categoryId, selectProductName) {
-    var productSelect = document.getElementById('modal_product_name');
-    
-    if(!categoryId) {
-        // Clear product names when no category selected
-        productSelect.innerHTML = '<option value="">Select category first</option>';
-        productSelect.disabled = true;
-        return;
-    }
-    
-    // Strip s_ or c_ prefix for API (get_product_names uses product_categories by parent_id)
-    var numericId = String(categoryId).replace(/^[sc]_/, '');
-    
-    // Disable the select and show loading state
-    productSelect.disabled = true;
-    productSelect.innerHTML = '<option value="">Loading products...</option>';
-    
-    function selectSavedProduct() {
-        if(!selectProductName || !productSelect) return;
-        var nameToMatch = String(selectProductName).trim();
-        if(!nameToMatch) return;
-        var txt = document.createElement('textarea');
-        txt.innerHTML = nameToMatch;
-        nameToMatch = txt.value.trim();
-        for(var i = 0; i < productSelect.options.length; i++) {
-            var opt = productSelect.options[i];
-            var optText = (opt.textContent || opt.text || '').replace('[Custom] ', '').trim();
-            if(optText === nameToMatch || (opt.textContent || '').trim() === nameToMatch) {
-                productSelect.value = opt.value;
-                break;
-            }
-        }
-    }
-    
-    // Fetch product names via AJAX (use numeric id for product_categories lookup)
-    fetch('?action=get_product_names&category_id=' + encodeURIComponent(numericId), {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        productSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
-        
-        if(data.success && data.products.length > 0) {
-            data.products.forEach(product => {
-                var option = document.createElement('option');
-                option.value = product.id;
-                option.textContent = product.name;
-                productSelect.appendChild(option);
-            });
-        }
-        
-        // Load custom product names
-        fetch('../../user/ajax/custom_categories.php?action=get_custom&type=product-name', {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(customData => {
-            if(customData.success && customData.categories.length > 0) {
-                var optgroup = document.createElement('optgroup');
-                optgroup.label = 'My Custom Product Names';
-                
-                customData.categories.forEach(category => {
-                    var option = document.createElement('option');
-                    option.value = category.id;
-                    option.textContent = '[Custom] ' + category.name;
-                    optgroup.appendChild(option);
-                });
-                
-                productSelect.appendChild(optgroup);
-            }
-            
-            // Check if we have any products
-            if((data.success && data.products.length > 0) || (customData.success && customData.categories.length > 0)) {
-                productSelect.disabled = false;
-            } else {
-                var option = document.createElement('option');
-                option.disabled = true;
-                option.textContent = 'No products available';
-                productSelect.appendChild(option);
-                productSelect.disabled = true;
-            }
-            selectSavedProduct();
-        })
-        .catch(error => {
-            console.error('Error loading custom products:', error);
-            if(data.success && data.products.length > 0) {
-                productSelect.disabled = false;
-            } else {
-                productSelect.disabled = true;
-            }
-            selectSavedProduct();
-        });
-    })
-    .catch(error => {
-        console.error('Error loading products:', error);
-        productSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
-        var option = document.createElement('option');
-        option.disabled = true;
-        option.textContent = 'No products available';
-        productSelect.appendChild(option);
-        productSelect.disabled = true;
-    });
-}
+// Product name is now a mandatory textbox (max 30 chars).
+function loadProductNames() {}
 
 var MAX_PRODUCTS = 60;
 function updateAddProductButtonState() {
@@ -1067,16 +946,11 @@ function openProductModal() {
     
     try {
         // Reset form fields (skip file input - clearing can throw in some browsers)
-        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_category', 'modal_product_mrp', 'modal_product_price', 'modal_product_description'];
+        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_category', 'modal_product_name', 'modal_product_mrp', 'modal_product_price', 'modal_product_description'];
         fieldIds.forEach(function(fieldId) {
             var field = document.getElementById(fieldId);
             if(field) field.value = '';
         });
-        var productNameSelect = document.getElementById('modal_product_name');
-        if(productNameSelect) {
-            productNameSelect.innerHTML = '<option value="">-- Select Product Name --</option>';
-            productNameSelect.disabled = true;
-        }
         var fileInput = document.getElementById('modal_product_image');
         if(fileInput) {
             try { fileInput.value = ''; } catch(e) { /* file inputs may throw on reset */ }
@@ -1151,11 +1025,7 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
     if(modalProductPriceField) modalProductPriceField.value = price || '';
     if(modalProductDescField) modalProductDescField.value = productDescription || '';
     
-    // Clear the product name dropdown first
-    if(modalProductNameField) {
-        modalProductNameField.innerHTML = '<option value="">-- Select Product Name --</option>';
-        modalProductNameField.disabled = true;
-    }
+    if(modalProductNameField) modalProductNameField.value = productName || '';
     
     // Set category dropdown - use prefixed value (s_X or c_X) so correct option is selected
     var categoryValue = '';
@@ -1164,10 +1034,6 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
     }
     if(modalProductCategoryField) {
         modalProductCategoryField.value = categoryValue;
-    }
-    
-    if(productCategoryId) {
-        loadProductNames(categoryValue || productCategoryId, productName);
     }
     
     // Get and set product image preview
@@ -1260,23 +1126,14 @@ function handleProductImageUpload(input) {
 
 function addProductToForm() {
     var modalProductNameField = document.getElementById('modal_product_name');
-    var productNameValue = modalProductNameField ? modalProductNameField.value : '';
+    var productNameValue = modalProductNameField ? modalProductNameField.value.trim() : '';
     
     if(!productNameValue) {
         alert('Please enter product name.');
         return;
     }
     
-    // Get the product name text (not just the ID)
     var productNameText = productNameValue;
-    if(modalProductNameField && modalProductNameField.selectedIndex > -1) {
-        var selectedOption = modalProductNameField.options[modalProductNameField.selectedIndex];
-        if(selectedOption) {
-            productNameText = selectedOption.text;
-            // Remove [Custom] prefix if present for storage
-            productNameText = productNameText.replace('[Custom] ', '').trim();
-        }
-    }
     if(productNameText.length > 30) {
         productNameText = productNameText.substring(0, 30);
     }
@@ -1542,7 +1399,6 @@ function addCustomProductCategoryToSelect(categoryId, categoryName) {
     for (i = 0; i < sel.options.length; i++) {
         if (sel.options[i].value === val) {
             sel.value = val;
-            if (typeof loadProductNames === 'function') loadProductNames(val);
             return;
         }
     }
@@ -1564,7 +1420,6 @@ function addCustomProductCategoryToSelect(categoryId, categoryName) {
     opt.textContent = displayLabel;
     optgroup.appendChild(opt);
     sel.value = val;
-    if (typeof loadProductNames === 'function') loadProductNames(val);
 }
 
 function saveCustomProductCategory() {
@@ -1630,129 +1485,6 @@ function saveCustomProductCategory() {
     });
 }
 
-function openCustomProductNameModal() {
-    var nameField = document.getElementById('custom_product_name');
-    if(nameField) nameField.value = '';
-    
-    var errorElement = document.getElementById('customProductNameError');
-    var successElement = document.getElementById('customProductNameSuccess');
-    
-    if(errorElement) errorElement.style.display = 'none';
-    if(successElement) successElement.style.display = 'none';
-    
-    var modalElement = document.getElementById('customProductNameModal');
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery(modalElement).modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
-    } else {
-        modalElement.style.display = 'block';
-        modalElement.classList.add('show');
-        document.body.classList.add('modal-open');
-        var backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop fade show';
-        document.body.appendChild(backdrop);
-    }
-}
-
-function closeCustomProductNameModal() {
-    var modalElement = document.getElementById('customProductNameModal');
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery(modalElement).modal('hide');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modal = bootstrap.Modal.getInstance(modalElement);
-        if(modal) modal.hide();
-        else {
-            modalElement.classList.remove('show');
-            modalElement.style.display = 'none';
-            modalElement.setAttribute('aria-hidden', 'true');
-            var bds = document.querySelectorAll('.modal-backdrop');
-            if (bds.length) bds[bds.length - 1].remove();
-            if (!document.querySelector('.modal.show')) {
-                document.body.classList.remove('modal-open');
-                document.body.style.paddingRight = '';
-            }
-        }
-    } else {
-        modalElement.style.display = 'none';
-        modalElement.classList.remove('show');
-        var bds = document.querySelectorAll('.modal-backdrop');
-        if (bds.length) bds[bds.length - 1].remove();
-        if (!document.querySelector('.modal.show')) {
-            document.body.classList.remove('modal-open');
-        }
-    }
-}
-
-function saveCustomProductName() {
-    var productName = document.getElementById('custom_product_name').value.trim();
-    var errorElement = document.getElementById('customProductNameError');
-    var successElement = document.getElementById('customProductNameSuccess');
-    
-    if (!productName) {
-        errorElement.textContent = 'Product name is required.';
-        errorElement.style.display = 'block';
-        return;
-    }
-    if (productName.length > 30) {
-        errorElement.textContent = 'Product name must be 30 characters or less.';
-        errorElement.style.display = 'block';
-        return;
-    }
-    
-    errorElement.style.display = 'none';
-    successElement.style.display = 'none';
-    successElement.textContent = 'Creating product name...';
-    successElement.style.display = 'block';
-    
-    var formData = new FormData();
-    formData.append('category_name', productName);
-    formData.append('category_type', 'product-name');
-    
-    fetch('../../user/ajax/custom_categories.php?action=create', {
-        method: 'POST',
-        body: formData,
-        headers: {'X-Requested-With': 'XMLHttpRequest'}
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('HTTP error, status = ' + response.status);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            successElement.textContent = 'Product name added! Adding to dropdown...';
-            successElement.style.display = 'block';
-            errorElement.style.display = 'none';
-            
-            // Add to the product name dropdown
-            var productNameSelect = document.getElementById('modal_product_name');
-            var option = document.createElement('option');
-            option.value = data.category_id;
-            option.textContent = productName;
-            productNameSelect.appendChild(option);
-            productNameSelect.value = data.category_id;
-            
-            setTimeout(function() {
-                closeCustomProductNameModal();
-            }, 500);
-        } else {
-            errorElement.textContent = data.message || 'Error creating product name.';
-            errorElement.style.display = 'block';
-            successElement.style.display = 'none';
-            console.error('API Error:', data);
-        }
-    })
-    .catch(error => {
-        console.error('Fetch error:', error);
-        errorElement.textContent = 'Network error. Please check your connection and try again.';
-        errorElement.style.display = 'block';
-        successElement.style.display = 'none';
-    });
-}
 </script>
 <style>
     .Product-ServicesBtn{
@@ -1850,8 +1582,7 @@ function saveCustomProductName() {
         background-color: #e9ecef !important;
     }
 
-    #modal_product_category,
-    #modal_product_name {
+    #modal_product_category {
         appearance: none !important;
         -webkit-appearance: none !important;
         -moz-appearance: none !important;
@@ -1865,8 +1596,7 @@ function saveCustomProductName() {
         cursor: pointer !important;
     }
 
-    #modal_product_category:disabled,
-    #modal_product_name:disabled {
+    #modal_product_category:disabled {
         background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
         background-color: #e9ecef !important;
         color: #6c757d !important;
@@ -1917,29 +1647,6 @@ function saveCustomProductName() {
     </div>
 </div>
 
-<!-- Custom Product Name Modal -->
-<div class="modal fade website-step-modal" id="customProductNameModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content website-step-modal-content">
-            <button type="button" class="website-step-modal-close close" onclick="closeCustomProductNameModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <div class="modal-body">
-                <form id="customProductNameForm">
-                    <div class="form-group">
-                        <label for="custom_product_name">Product Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="custom_product_name" placeholder="Enter product name (max 30)" maxlength="30" required>
-                        <small class="form-text text-muted">Max 30 characters. This product name will only be visible to you.</small>
-                    </div>
-                    <div id="customProductNameError" class="alert alert-danger" style="display: none;"></div>
-                    <div id="customProductNameSuccess" class="alert alert-success" style="display: none;"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeCustomProductNameModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveCustomProductName()">Add Product Name</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <?php include '../includes/footer.php'; ?>
 

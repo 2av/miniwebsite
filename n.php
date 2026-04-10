@@ -792,7 +792,6 @@ if ($row) {
         $adr_street = $ext;
     }
     $wa_digits = preg_replace('/\D+/', '', $tel_wa);
-    $raw_title = trim((string) ($row['d_position'] ?? ''));
     $logo_relative = '';
     if (!empty($row['d_logo_location'])) {
         $logo_path = trim((string) $row['d_logo_location']);
@@ -854,7 +853,6 @@ if ($row) {
     $mw_vcard = [
         'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
         'org' => $raw_org,
-        'title' => $raw_title,
         'businessCategory' => $business_category,
         'telCell' => $tel_cell,
         'telWhatsapp' => $tel_wa,
@@ -882,7 +880,6 @@ if ($row) {
     $mw_vcard = [
         'fn' => 'Olivia Murray',
         'org' => 'Olivia Culinary',
-        'title' => 'Executive Chef',
         'businessCategory' => '',
         'telCell' => preg_replace('/[^0-9+]/', '', $phone),
         'telWhatsapp' => preg_replace('/[^0-9+]/', '', $whatsapp),
@@ -1591,7 +1588,7 @@ if ($row) {
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="theme/js/app.js?v=12"></script>
+<script src="theme/js/app.js?v=13"></script>
 
 </body>
 </html>

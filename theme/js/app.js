@@ -577,7 +577,6 @@ Thanks a lot for your support \u{1F64F}`;
         const e = escapeVcardValue;
         const fn = e(v.fn || '');
         const org = e(v.org || '');
-        const title = e(String(v.title || '').trim());
         const businessCategory = e(String(v.businessCategory || '').trim());
         const cell = String(v.telCell || '').replace(/\s/g, '');
         const wa = String(v.telWhatsapp || '').replace(/\s/g, '');
@@ -614,7 +613,6 @@ Thanks a lot for your support \u{1F64F}`;
         }
         lines.push(`FN:${fn}`);
         if (org) lines.push(`ORG:${org}`);
-        if (title) lines.push(`TITLE:${title}`);
         if (businessCategory) {
             lines.push(`ROLE:${businessCategory}`);
         }

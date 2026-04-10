@@ -239,6 +239,17 @@ if(mysqli_num_rows($query) == 0){
     $cardRow = mysqli_fetch_array($query);
 }
 
+// Read overflow/meta fields from digi_card_previous_slug when present (avoids wide digi_card row limit)
+$metaQuery = @mysqli_query($connect, 'SELECT d_business_type, d_business_operation_area, d_business_operation_locations FROM digi_card_previous_slug WHERE digi_card_id="'.intval($_SESSION['card_id_inprocess']).'" LIMIT 1');
+if ($metaQuery && mysqli_num_rows($metaQuery) > 0) {
+    $metaRow = mysqli_fetch_assoc($metaQuery);
+    if (is_array($metaRow)) {
+        $cardRow['d_business_type'] = isset($metaRow['d_business_type']) ? $metaRow['d_business_type'] : (isset($cardRow['d_business_type']) ? $cardRow['d_business_type'] : '');
+        $cardRow['d_business_operation_area'] = isset($metaRow['d_business_operation_area']) ? $metaRow['d_business_operation_area'] : (isset($cardRow['d_business_operation_area']) ? $cardRow['d_business_operation_area'] : '');
+        $cardRow['d_business_operation_locations'] = isset($metaRow['d_business_operation_locations']) ? $metaRow['d_business_operation_locations'] : (isset($cardRow['d_business_operation_locations']) ? $cardRow['d_business_operation_locations'] : '');
+    }
+}
+
 // Handle form submission
 if(isset($_POST['process2'])){
     $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'"');
@@ -449,6 +460,11 @@ if(isset($_POST['process2'])){
                 @mysqli_query($connect, "ALTER TABLE `{$table}` ADD `{$column}` {$definition}");
             }
         }
+        function ensurePreviousSlugMetaColumns($connect){
+            ensureColumnExists($connect, 'digi_card_previous_slug', 'd_business_type', "VARCHAR(32) NOT NULL DEFAULT ''");
+            ensureColumnExists($connect, 'digi_card_previous_slug', 'd_business_operation_area', "VARCHAR(32) NOT NULL DEFAULT ''");
+            ensureColumnExists($connect, 'digi_card_previous_slug', 'd_business_operation_locations', "TEXT NULL");
+        }
         
         // Helper to convert position columns from VARCHAR to INT (for storing category IDs)
         function convertPositionColumnsToInt($connect, $table, $column) {
@@ -482,6 +498,7 @@ if(isset($_POST['process2'])){
         ensureColumnExists($connect, 'digi_card', 'd_country', "VARCHAR(200) DEFAULT ''");
         ensureColumnExists($connect, 'digi_card', 'd_business_hours', "TEXT NULL");
         ensureColumnExists($connect, 'digi_card', 'd_hero_image_location', "VARCHAR(500) DEFAULT ''");
+        ensurePreviousSlugMetaColumns($connect);
 
         // Sanitize new fields (fall back to empty string when not provided) - now storing as ID
         $d_position_primary = isset($_POST['d_position_primary']) && !empty($_POST['d_position_primary']) ? intval($_POST['d_position_primary']) : '';
@@ -491,6 +508,47 @@ if(isset($_POST['process2'])){
         $d_pincode = isset($_POST['d_pincode']) ? mysqli_real_escape_string($connect, $_POST['d_pincode']) : '';
         $d_country = isset($_POST['d_country']) ? mysqli_real_escape_string($connect, $_POST['d_country']) : '';
         $d_gst_number = isset($_POST['d_gst_number']) ? mysqli_real_escape_string($connect, $_POST['d_gst_number']) : '';
+
+        $d_business_type = isset($_POST['d_business_type']) ? trim($_POST['d_business_type']) : '';
+        $allowed_business_types = ['product', 'service', 'hybrid'];
+        if ($d_business_type !== '' && !in_array($d_business_type, $allowed_business_types, true)) {
+            $d_business_type = '';
+        }
+        $d_business_operation_area = isset($_POST['d_business_operation_area']) ? trim($_POST['d_business_operation_area']) : '';
+        $allowed_operation_areas = ['local', 'pan_india', 'selected'];
+        if ($d_business_operation_area !== '' && !in_array($d_business_operation_area, $allowed_operation_areas, true)) {
+            $d_business_operation_area = '';
+        }
+        $d_business_operation_locations_raw = isset($_POST['d_business_operation_locations']) ? $_POST['d_business_operation_locations'] : '';
+        $d_business_operation_locations = str_replace(
+            array("'", '"', ';', '(', ')', '"', '"', ':', '%', '`', '[', ']'),
+            array("\'", '\"', '\;', '\(', '\)', '\"', '\"', '\:', '\%', '\`', '\[', '\]'),
+            $d_business_operation_locations_raw
+        );
+        if ($d_business_operation_area !== 'selected') {
+            $d_business_operation_locations = '';
+        }
+
+        $form_validation_error = '';
+        if ($d_business_operation_area === 'selected') {
+            if (trim($d_business_operation_locations_raw) === '') {
+                $form_validation_error = 'Please list the cities or states you serve when "Selected Cities / States" is chosen.';
+            } else {
+                $country_trim = isset($_POST['d_country']) ? trim($_POST['d_country']) : '';
+                if ($country_trim !== '' && strcasecmp($country_trim, 'India') === 0) {
+                    $india_states_path = __DIR__ . '/../../includes/india_states_ut.php';
+                    if (file_exists($india_states_path)) {
+                        require_once $india_states_path;
+                        if (function_exists('mw_validate_operation_locations_for_india')) {
+                            $loc_check = mw_validate_operation_locations_for_india($d_business_operation_locations_raw);
+                            if (!$loc_check['ok']) {
+                                $form_validation_error = $loc_check['message'];
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // Business hours: array of {days, hours}, stored as JSON
         $business_hours_arr = [];
@@ -505,7 +563,14 @@ if(isset($_POST['process2'])){
         }
         $d_business_hours = mysqli_real_escape_string($connect, json_encode($business_hours_arr));
 
-        $update = mysqli_query($connect, 'UPDATE digi_card SET 
+        $d_business_type_sql = mysqli_real_escape_string($connect, $d_business_type);
+        $d_business_operation_area_sql = mysqli_real_escape_string($connect, $d_business_operation_area);
+
+        if ($form_validation_error !== '') {
+            $error_message = '<div class="alert alert-danger">' . htmlspecialchars($form_validation_error) . '</div>';
+            $update = false;
+        } else {
+            $update = mysqli_query($connect, 'UPDATE digi_card SET 
         d_f_name="'.mysqli_real_escape_string($connect, $_POST['d_f_name']).'",
         d_l_name="'.mysqli_real_escape_string($connect, $_POST['d_l_name']).'",
         d_position_primary="'.$d_position_primary.'",
@@ -528,20 +593,40 @@ if(isset($_POST['process2'])){
         d_about_us="'.$d_about_us.'",
         d_business_hours="'.$d_business_hours.'"
         WHERE id="'.$_SESSION['card_id_inprocess'].'"');
+        }
         
         if($update){
+            // Save overflow/meta fields in digi_card_previous_slug table
+            $cid = intval($_SESSION['card_id_inprocess']);
+            $prevSlugRes = @mysqli_query($connect, 'SELECT previous_slug FROM digi_card_previous_slug WHERE digi_card_id="'.$cid.'" LIMIT 1');
+            if ($prevSlugRes && mysqli_num_rows($prevSlugRes) > 0) {
+                @mysqli_query($connect, 'UPDATE digi_card_previous_slug SET d_business_type="'.$d_business_type_sql.'", d_business_operation_area="'.$d_business_operation_area_sql.'", d_business_operation_locations="'.mysqli_real_escape_string($connect, $d_business_operation_locations).'" WHERE digi_card_id="'.$cid.'"');
+            } else {
+                // Keep unique key valid; placeholder uses current active slug when no previous slug exists yet
+                $currSlug = isset($cardRow['card_id']) ? mysqli_real_escape_string($connect, (string) $cardRow['card_id']) : ('card-'.$cid);
+                @mysqli_query($connect, 'INSERT INTO digi_card_previous_slug (digi_card_id, previous_slug, d_business_type, d_business_operation_area, d_business_operation_locations) VALUES ("'.$cid.'", "'.$currSlug.'", "'.$d_business_type_sql.'", "'.$d_business_operation_area_sql.'", "'.mysqli_real_escape_string($connect, $d_business_operation_locations).'")');
+            }
             $_SESSION['save_success'] = "Details Updated Successfully!";
             // Re-fetch updated record so fields show latest saved values
             $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
             if($query && mysqli_num_rows($query) > 0){
                 $cardRow = mysqli_fetch_array($query);
             }
+            $metaQuery = @mysqli_query($connect, 'SELECT d_business_type, d_business_operation_area, d_business_operation_locations FROM digi_card_previous_slug WHERE digi_card_id="'.intval($_SESSION['card_id_inprocess']).'" LIMIT 1');
+            if ($metaQuery && mysqli_num_rows($metaQuery) > 0) {
+                $metaRow = mysqli_fetch_assoc($metaQuery);
+                if (is_array($metaRow)) {
+                    $cardRow['d_business_type'] = isset($metaRow['d_business_type']) ? $metaRow['d_business_type'] : '';
+                    $cardRow['d_business_operation_area'] = isset($metaRow['d_business_operation_area']) ? $metaRow['d_business_operation_area'] : '';
+                    $cardRow['d_business_operation_locations'] = isset($metaRow['d_business_operation_locations']) ? $metaRow['d_business_operation_locations'] : '';
+                }
+            }
             // Redirect if possible (prevents form resubmission on refresh)
             if (!headers_sent()) {
                 header('Location: company-details.php?card_number='.$_SESSION['card_id_inprocess']);
                 exit;
             }
-        } else {
+        } elseif ($form_validation_error === '') {
             $_SESSION['save_error'] = "Error! Try Again.";
             // If headers already sent, fall through and show page with existing $row
             if (!headers_sent()) {
@@ -549,6 +634,7 @@ if(isset($_POST['process2'])){
                 exit;
             }
         }
+        // Validation failure: $error_message is set; stay on page (no redirect)
     } else {
         $_SESSION['save_error'] = "Detail Not Available. Try Again.";
         header('Location: company-details.php?card_number='.$_SESSION['card_id_inprocess']);
@@ -803,6 +889,40 @@ include '../includes/header.php';
                                             <i class="fa fa-plus" aria-hidden="true"></i>
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="d_business_type">Business Type</label>
+                                    <select name="d_business_type" id="d_business_type" class="form-control">
+                                        <option value="">-- Select Business Type --</option>
+                                        <option value="product" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'product') ? 'selected' : ''; ?>>Product</option>
+                                        <option value="service" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'service') ? 'selected' : ''; ?>>Service</option>
+                                        <option value="hybrid" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'hybrid') ? 'selected' : ''; ?>>Hybrid (Product + Service)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="d_business_operation_area">Business Operation Area</label>
+                                    <select name="d_business_operation_area" id="d_business_operation_area" class="form-control">
+                                        <option value="">-- Select Operation Area --</option>
+                                        <option value="local" <?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'local') ? 'selected' : ''; ?>>Local Area (Within City)</option>
+                                        <option value="pan_india" <?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'pan_india') ? 'selected' : ''; ?>>Across India (Pan India Service)</option>
+                                        <option value="selected" <?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? 'selected' : ''; ?>>Selected Cities / States</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" id="business_operation_locations_row" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label for="d_business_operation_locations">Cities / States you serve <span class="text-danger" id="business_operation_locations_required_mark" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">*</span></label>
+                                    <input type="text" name="d_business_operation_locations" id="d_business_operation_locations" class="form-control" maxlength="2000" placeholder="Type and choose from suggestions, comma-separated..." autocomplete="off" value="<?php echo isset($cardRow['d_business_operation_locations']) && $cardRow['d_business_operation_locations'] !== '' ? htmlspecialchars($cardRow['d_business_operation_locations']) : ''; ?>">
+                                    <div id="operation-location-suggestions" class="operation-location-suggestions" style="display:none;"></div>
+                                    <small class="form-text text-muted">If country is India, use state/UT names or <strong>City, State</strong> per entry. Single city names are accepted without verification.</small>
                                 </div>
                             </div>
                         </div>
@@ -1083,8 +1203,37 @@ include '../includes/header.php';
 
 <script>
 (function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        var area = document.getElementById('d_business_operation_area');
+        var row = document.getElementById('business_operation_locations_row');
+        var ta = document.getElementById('d_business_operation_locations');
+        var mark = document.getElementById('business_operation_locations_required_mark');
+        function syncOperationLocationsRow() {
+            if (!area || !row || !ta) return;
+            if (area.value === 'selected') {
+                row.style.display = '';
+                ta.setAttribute('required', 'required');
+                if (mark) mark.style.display = '';
+            } else {
+                row.style.display = 'none';
+                ta.removeAttribute('required');
+                if (mark) mark.style.display = 'none';
+            }
+        }
+        if (area) {
+            area.addEventListener('change', syncOperationLocationsRow);
+            syncOperationLocationsRow();
+        }
+    });
+})();
+</script>
+
+<script>
+(function() {
     const API_BASE = 'https://countriesnow.space/api/v0.1/countries';
     let countriesData = [];
+    let currentStates = [];
+    let currentCities = [];
     
     // Get saved values from database (if any)
     const savedCountry = document.getElementById('d_country').getAttribute('data-saved') || '';
@@ -1138,6 +1287,7 @@ include '../includes/header.php';
     async function fetchStates(country) {
         try {
             showLoading('d_state');
+            currentStates = [];
             
             const response = await fetch(API_BASE + '/states', {
                 method: 'POST',
@@ -1159,6 +1309,7 @@ include '../includes/header.php';
                     option.textContent = state.name;
                     stateSelect.appendChild(option);
                 });
+                currentStates = data.data.states.map(function(state) { return state.name; });
                 
                 stateSelect.disabled = false;
                 
@@ -1170,19 +1321,23 @@ include '../includes/header.php';
                     // Reset city dropdown when country changes
                     document.getElementById('d_city').innerHTML = '<option value="">Select City</option>';
                     document.getElementById('d_city').disabled = true;
+                    currentCities = [];
                 }
             } else {
                 showError('d_state');
+                currentStates = [];
             }
         } catch (error) {
             console.error('Error fetching states:', error);
             showError('d_state');
+            currentStates = [];
         }
     }
     
     async function fetchCities(country, state) {
         try {
             showLoading('d_city');
+            currentCities = [];
             
             const response = await fetch(API_BASE + '/state/cities', {
                 method: 'POST',
@@ -1207,6 +1362,7 @@ include '../includes/header.php';
                     option.textContent = city;
                     citySelect.appendChild(option);
                 });
+                currentCities = data.data.slice();
                 
                 citySelect.disabled = false;
                 
@@ -1216,16 +1372,92 @@ include '../includes/header.php';
                 }
             } else {
                 showError('d_city');
+                currentCities = [];
             }
         } catch (error) {
             console.error('Error fetching cities:', error);
             showError('d_city');
+            currentCities = [];
         }
+    }
+
+    function getOperationSuggestions(term) {
+        const q = (term || '').trim().toLowerCase();
+        if (!q) return [];
+        const merged = [];
+        const seen = {};
+        currentStates.forEach(function(s) {
+            if (!seen[s]) {
+                seen[s] = true;
+                merged.push({ label: s + ' (State)', value: s });
+            }
+        });
+        currentCities.forEach(function(c) {
+            if (!seen[c]) {
+                seen[c] = true;
+                merged.push({ label: c + ' (City)', value: c });
+            }
+        });
+        return merged.filter(function(item) {
+            return item.value.toLowerCase().indexOf(q) !== -1;
+        }).slice(0, 12);
+    }
+
+    function initOperationLocationAutocomplete() {
+        const input = document.getElementById('d_business_operation_locations');
+        const box = document.getElementById('operation-location-suggestions');
+        if (!input || !box) return;
+
+        function hideBox() {
+            box.style.display = 'none';
+            box.innerHTML = '';
+        }
+
+        function applySuggestion(text) {
+            const parts = input.value.split(',');
+            parts[parts.length - 1] = ' ' + text;
+            input.value = parts.join(',').replace(/^ /, '');
+            hideBox();
+            input.focus();
+        }
+
+        function renderSuggestions() {
+            const parts = input.value.split(',');
+            const activeTerm = parts[parts.length - 1] || '';
+            const list = getOperationSuggestions(activeTerm);
+            if (!list.length) {
+                hideBox();
+                return;
+            }
+            box.innerHTML = '';
+            list.forEach(function(item) {
+                const opt = document.createElement('button');
+                opt.type = 'button';
+                opt.className = 'operation-location-option';
+                opt.textContent = item.label;
+                opt.setAttribute('data-value', item.value);
+                opt.addEventListener('click', function() {
+                    applySuggestion(item.value);
+                });
+                box.appendChild(opt);
+            });
+            box.style.display = 'block';
+        }
+
+        input.addEventListener('input', renderSuggestions);
+        input.addEventListener('focus', renderSuggestions);
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') hideBox();
+        });
+        document.addEventListener('click', function(e) {
+            if (!box.contains(e.target) && e.target !== input) hideBox();
+        });
     }
     
     document.addEventListener('DOMContentLoaded', function() {
         // Fetch countries on page load
         fetchCountries();
+        initOperationLocationAutocomplete();
         
         // Handle country selection change
         const countrySelect = document.getElementById('d_country');
@@ -1238,6 +1470,8 @@ include '../includes/header.php';
                     document.getElementById('d_state').disabled = true;
                     document.getElementById('d_city').innerHTML = '<option value="">Select City</option>';
                     document.getElementById('d_city').disabled = true;
+                    currentStates = [];
+                    currentCities = [];
                 }
             });
         }
@@ -1252,6 +1486,7 @@ include '../includes/header.php';
                 } else {
                     document.getElementById('d_city').innerHTML = '<option value="">Select City</option>';
                     document.getElementById('d_city').disabled = true;
+                    currentCities = [];
                 }
             });
         }
@@ -1618,6 +1853,31 @@ padding-bottom:0px;
     }
     .business-hours-row .business-hours-fields.col {
         min-width: 0;
+    }
+
+    .operation-location-suggestions {
+        position: relative;
+        z-index: 20;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        margin-top: 6px;
+        max-height: 220px;
+        overflow-y: auto;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+    .operation-location-option {
+        display: block;
+        width: 100%;
+        border: 0;
+        text-align: left;
+        padding: 8px 12px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .operation-location-option:hover {
+        background: #f5f7ff;
     }
     /* Stacked mobile: small gap between the two inputs; delete stays in col-auto to the right */
     @media screen and (max-width: 575.98px) {

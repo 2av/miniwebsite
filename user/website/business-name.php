@@ -183,9 +183,21 @@ if(isset($_POST['process2'])){
         $old_card_id = mysqli_real_escape_string($connect, isset($current_row['card_id']) ? (string) $current_row['card_id'] : '');
         $update = mysqli_query($connect, 'UPDATE digi_card SET d_comp_name="'.$comp_name.'", d_display_name="'.$display_name.'", card_id="'.$card_id_esc.'", d_name_change_count = d_name_change_count + 1 WHERE id="'.$_SESSION['card_id_inprocess'].'"');
         if($update){
+            // Preserve overflow/meta columns stored on digi_card_previous_slug when slug row is rotated
+            $meta_btype = '';
+            $meta_barea = '';
+            $meta_blocs = '';
+            $meta_res = @mysqli_query($connect, 'SELECT d_business_type, d_business_operation_area, d_business_operation_locations FROM digi_card_previous_slug WHERE digi_card_id='.$cid.' LIMIT 1');
+            if ($meta_res && mysqli_num_rows($meta_res) > 0) {
+                $meta_row = mysqli_fetch_assoc($meta_res);
+                $meta_btype = isset($meta_row['d_business_type']) ? mysqli_real_escape_string($connect, $meta_row['d_business_type']) : '';
+                $meta_barea = isset($meta_row['d_business_operation_area']) ? mysqli_real_escape_string($connect, $meta_row['d_business_operation_area']) : '';
+                $meta_blocs = isset($meta_row['d_business_operation_locations']) ? mysqli_real_escape_string($connect, $meta_row['d_business_operation_locations']) : '';
+            }
+
             mysqli_query($connect, 'DELETE FROM digi_card_previous_slug WHERE digi_card_id='.$cid);
             if ($old_card_id !== '') {
-                mysqli_query($connect, 'INSERT INTO digi_card_previous_slug (digi_card_id, previous_slug) VALUES ('.$cid.', "'.$old_card_id.'")');
+                mysqli_query($connect, 'INSERT INTO digi_card_previous_slug (digi_card_id, previous_slug, d_business_type, d_business_operation_area, d_business_operation_locations) VALUES ('.$cid.', "'.$old_card_id.'", "'.$meta_btype.'", "'.$meta_barea.'", "'.$meta_blocs.'")');
             }
             $_SESSION['save_success'] = "Company Name Updated Successfully";
             header('Location: business-name.php?card_number='.$_SESSION['card_id_inprocess']);
