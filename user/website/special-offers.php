@@ -815,9 +815,39 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     </div>
 
                     <div class="form-group">
-                        <label for="modal_offer_badge">Badge <span class="text-muted">(Optional)</span></label>
-                        <input type="text" class="form-control" id="modal_offer_badge" placeholder="e.g., Hot Deal" maxlength="20">
-                        <small class="form-text text-muted"><strong id="badge_char_counter">0</strong>/20 characters</small>
+                        <label for="modal_offer_badge_select">Offer Badge <span class="text-muted">(Optional)</span></label>
+                        <select class="form-control mb-2" id="modal_offer_badge_select">
+                            <option value="">Select badge</option>
+                            <option value="Flat 10% Off">Flat 10% Off</option>
+                            <option value="Upto 50% Off">Upto 50% Off</option>
+                            <option value="Starting @ &#8377;99">Starting @ &#8377;99</option>
+                            <option value="Starting @ &#8377;199">Starting @ &#8377;199</option>
+                            <option value="Under &#8377;499">Under &#8377;499</option>
+                            <option value="Under &#8377;999">Under &#8377;999</option>
+                            <option value="Lowest Price">Lowest Price</option>
+                            <option value="Special Offer">Special Offer</option>
+                            <option value="Limited Time Offer">Limited Time Offer</option>
+                            <option value="Mega Deal">Mega Deal</option>
+                            <option value="Best Deal">Best Deal</option>
+                            <option value="Combo Offer">Combo Offer</option>
+                            <option value="Buy 1 Get 1">Buy 1 Get 1</option>
+                            <option value="Buy 2 Get 1">Buy 2 Get 1</option>
+                            <option value="Bundle Offer">Bundle Offer</option>
+                            <option value="Limited Stock">Limited Stock</option>
+                            <option value="New Arrival">New Arrival</option>
+                            <option value="Just Launched">Just Launched</option>
+                            <option value="Trending">Trending</option>
+                            <option value="Popular">Popular</option>
+                            <option value="Bestseller">Bestseller</option>
+                            <option value="Summer Offer">Summer Offer</option>
+                            <option value="Winter Sale">Winter Sale</option>
+                            <option value="New Year Offer">New Year Offer</option>
+                            <option value="Festive Offer">Festive Offer</option>
+                            <option value="Wedding Special">Wedding Special</option>
+                            <option value="__custom__">Customize...</option>
+                        </select>
+                        <input type="text" class="form-control" id="modal_offer_badge" placeholder="Enter custom badge" maxlength="20" style="display:none;">
+                        <small class="form-text text-muted" id="badge_char_counter_wrap" style="display:none;"><strong id="badge_char_counter">0</strong>/20 characters</small>
                     </div>
 
                     <div class="form-group">
@@ -982,6 +1012,14 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 <script>
 var currentOfferId = null;
 var processedOfferImageData = null;
+var EDITABLE_BADGE_PRESETS = [
+    'Flat 10% Off',
+    'Upto 50% Off',
+    'Starting @ ₹99',
+    'Starting @ ₹199',
+    'Under ₹499',
+    'Under ₹999'
+];
 
 function updateCharCount() {
     var textarea = document.getElementById('modal_offer_description');
@@ -1013,8 +1051,72 @@ document.addEventListener('DOMContentLoaded', function() {
         badgeInput.addEventListener('input', updateBadgeCharCount);
         badgeInput.addEventListener('keyup', updateBadgeCharCount);
         badgeInput.addEventListener('change', updateBadgeCharCount);
+        badgeInput.addEventListener('input', syncBadgeSelectFromInput);
+    }
+    var badgeSelect = document.getElementById('modal_offer_badge_select');
+    if(badgeSelect) {
+        badgeSelect.addEventListener('change', onBadgeSelectChange);
     }
 });
+
+function onBadgeSelectChange() {
+    var badgeSelect = document.getElementById('modal_offer_badge_select');
+    var badgeInput = document.getElementById('modal_offer_badge');
+    if(!badgeSelect || !badgeInput) return;
+
+    var selectedValue = badgeSelect.value || '';
+    var shouldShowInput = shouldShowBadgeInput(selectedValue);
+
+    if(selectedValue === '__custom__') {
+        if(!badgeInput.value) badgeInput.value = '';
+    } else {
+        badgeInput.value = selectedValue;
+    }
+
+    updateBadgeInputVisibility(shouldShowInput);
+    if(shouldShowInput) {
+        badgeInput.focus();
+    }
+    updateBadgeCharCount();
+}
+
+function syncBadgeSelectFromInput() {
+    var badgeSelect = document.getElementById('modal_offer_badge_select');
+    var badgeInput = document.getElementById('modal_offer_badge');
+    if(!badgeSelect || !badgeInput) return;
+    var inputValue = (badgeInput.value || '').trim();
+    if(!inputValue) {
+        badgeSelect.value = '';
+        updateBadgeInputVisibility(false);
+        return;
+    }
+    var matchedOption = Array.prototype.find.call(badgeSelect.options, function(opt) {
+        return opt.value === inputValue;
+    });
+    if(matchedOption) {
+        badgeSelect.value = inputValue;
+        updateBadgeInputVisibility(shouldShowBadgeInput(inputValue));
+    } else {
+        badgeSelect.value = '__custom__';
+        updateBadgeInputVisibility(true);
+    }
+}
+
+function shouldShowBadgeInput(selectedValue) {
+    if(!selectedValue) return false;
+    return selectedValue === '__custom__' || EDITABLE_BADGE_PRESETS.indexOf(selectedValue) !== -1;
+}
+
+function updateBadgeInputVisibility(showCustomInput) {
+    var badgeInput = document.getElementById('modal_offer_badge');
+    var badgeCounterWrap = document.getElementById('badge_char_counter_wrap');
+    if(badgeInput) {
+        badgeInput.style.display = showCustomInput ? 'block' : 'none';
+    }
+    if(badgeCounterWrap) {
+        badgeCounterWrap.style.display = showCustomInput ? 'block' : 'none';
+    }
+}
 
 var MAX_OFFERS = 5;
 function updateAddOfferButtonState() {
@@ -1042,6 +1144,7 @@ function openOfferModal() {
     var fields = [
         'modal_offer_id',
         'modal_offer_title',
+        'modal_offer_badge_select',
         'modal_offer_badge',
         'modal_offer_discount',
         'modal_offer_description',
@@ -1058,6 +1161,8 @@ function openOfferModal() {
         if(field) {
             if(fieldId === 'modal_offer_status') {
                 field.value = 'Active';
+            } else if(fieldId === 'modal_offer_badge_select') {
+                field.value = '';
             } else if(fieldId === 'modal_offer_discount') {
                 field.value = '0';
             } else {
@@ -1083,6 +1188,7 @@ function openOfferModal() {
     
     updateCharCount();
     updateBadgeCharCount();
+    updateBadgeInputVisibility(false);
     
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery('#offerModal').modal('show');
@@ -1135,6 +1241,7 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
         if(badgeVal.length > 20) badgeVal = badgeVal.substring(0, 20);
         modalOfferBadgeField.value = badgeVal;
     }
+    syncBadgeSelectFromInput();
     if(modalOfferDiscountField) modalOfferDiscountField.value = offerDiscount || '';
     if(modalOfferDescField) modalOfferDescField.value = offerDescription || '';
     if(modalOfferStartDateField) modalOfferStartDateField.value = (startDate && startDate !== '-') ? startDate : '';
@@ -1167,6 +1274,7 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
     
     updateCharCount();
     updateBadgeCharCount();
+    syncBadgeSelectFromInput();
     
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
         jQuery('#offerModal').modal('show');
