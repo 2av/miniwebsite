@@ -577,13 +577,26 @@ Thanks a lot for your support \u{1F64F}`;
         const e = escapeVcardValue;
         const fn = e(v.fn || '');
         const org = e(v.org || '');
+        const title = e(String(v.title || '').trim());
+        const businessCategory = e(String(v.businessCategory || '').trim());
         const cell = String(v.telCell || '').replace(/\s/g, '');
         const wa = String(v.telWhatsapp || '').replace(/\s/g, '');
         const primary = cell || wa;
         const em = v.email || '';
         const urlProf = v.urlProfile || shareUrl || '';
         const urlWeb = String(v.urlWebsite || '').trim();
+        const mapUrl = String(v.mapUrl || '').trim();
         const waMe = String(v.waMe || '').trim();
+        const logoUrl = String(v.logoUrl || '').trim();
+        const social = v.social && typeof v.social === 'object' ? v.social : {};
+        const socialMap = [
+            { key: 'facebook', type: 'facebook' },
+            { key: 'instagram', type: 'instagram' },
+            { key: 'linkedin', type: 'linkedin' },
+            { key: 'twitter', type: 'x-twitter' },
+            { key: 'youtube', type: 'youtube' },
+            { key: 'pinterest', type: 'pinterest' }
+        ];
         const nFam = e(v.nFamily || '');
         const nGiv = e(v.nGiven || '');
         const adr = v.adr && typeof v.adr === 'object' ? v.adr : {};
@@ -601,6 +614,10 @@ Thanks a lot for your support \u{1F64F}`;
         }
         lines.push(`FN:${fn}`);
         if (org) lines.push(`ORG:${org}`);
+        if (title) lines.push(`TITLE:${title}`);
+        if (businessCategory) {
+            lines.push(`ROLE:${businessCategory}`);
+        }
         if (primary) {
             lines.push(`TEL;TYPE=WORK,VOICE:${primary}`);
         }
@@ -617,15 +634,30 @@ Thanks a lot for your support \u{1F64F}`;
             const full = /^https?:\/\//i.test(urlWeb) ? urlWeb : `https://${urlWeb}`;
             lines.push(`URL:${e(full)}`);
         }
+        if (mapUrl) {
+            const fullMap = /^https?:\/\//i.test(mapUrl) ? mapUrl : `https://${mapUrl}`;
+            lines.push(`URL;TYPE=MAP:${e(fullMap)}`);
+            lines.push(`item7.URL;type=pref:${e(fullMap)}`);
+            lines.push('item7.X-ABLabel:Google Maps');
+        }
         if (street || locality || region || postal || country) {
             lines.push(`ADR;TYPE=WORK:;;${street};${locality};${region};${postal};${country}`);
         }
-        const noteTail = `Visit my MiniWebsite for products & offers: ${urlProf}`;
-        const noteRaw = v.note ? `${String(v.note)}\n\n${noteTail}` : noteTail;
+        const noteRaw = String(v.note || '').trim();
         lines.push(`NOTE:${e(noteRaw)}`);
+        if (logoUrl) {
+            const fullLogo = /^https?:\/\//i.test(logoUrl) ? logoUrl : `https://${logoUrl}`;
+            lines.push(`PHOTO;VALUE=URI:${e(fullLogo)}`);
+        }
         if (waMe) {
             lines.push(`X-SOCIALPROFILE;TYPE=whatsapp:${e(waMe)}`);
         }
+        socialMap.forEach(({ key, type }) => {
+            const raw = String(social[key] || '').trim();
+            if (!raw) return;
+            const full = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+            lines.push(`X-SOCIALPROFILE;TYPE=${type}:${e(full)}`);
+        });
         lines.push('END:VCARD');
         return lines;
     }

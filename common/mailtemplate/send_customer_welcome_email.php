@@ -37,16 +37,7 @@ function sendCustomerWelcomeEmail($customer_name, $customer_email, $customer_pas
             <li><strong>Status:</strong> Active</li>
         </ul>
 
-        <h3 style="color: #d32f2f; background: #ffebee; padding: 10px; border-left: 4px solid #d32f2f; margin: 20px 0;">⚠️ IMPORTANT: Bank Account Details Required</h3>
-        <p><strong>It is mandatory to update your bank account details from your dashboard.</strong></p>
-        <p>To receive payments and commissions, you must add your bank account information:</p>
-        <ul>
-            <li>Account Holder Name</li>
-            <li>Bank Name</li>
-            <li>Account Number</li>
-            <li>IFSC Code</li>
-            <li>Account Type</li>
-        </ul>
+        
         <p>Please log in to your account and update your bank details immediately to ensure smooth transactions.</p>
 
         <strong>SECURITY REMINDER:</strong>
@@ -264,19 +255,7 @@ function sendCustomerWelcomeEmailWithPHPMailer($customer_name, $customer_email, 
             <li><strong>Status:</strong> Active</li>
         </ul>
         
-        <div style="background: #ffebee; border: 1px solid #d32f2f; border-radius: 5px; padding: 15px; margin: 20px 0;">
-            <h3 style="color: #d32f2f; margin: 0 0 10px 0;">⚠️ IMPORTANT: Bank Account Details Required</h3>
-            <p style="margin: 5px 0;"><strong>It is mandatory to update your bank account details from your dashboard.</strong></p>
-            <p style="margin: 5px 0;">To receive payments and commissions, you must add your bank account information:</p>
-            <ul style="margin: 10px 0;">
-                <li>Account Holder Name</li>
-                <li>Bank Name</li>
-                <li>Account Number</li>
-                <li>IFSC Code</li>
-                <li>Account Type</li>
-            </ul>
-            <p style="margin: 5px 0;">Please log in to your account and update your bank details immediately to ensure smooth transactions.</p>
-        </div>
+       
         
         <p><a href="' . htmlspecialchars($login_url) . '" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Access Your Account</a></p>
         

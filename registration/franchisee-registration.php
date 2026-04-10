@@ -2,8 +2,8 @@
 require('login-connect.php');
 
 // Include PHPMailer and email configuration
-require_once __DIR__ . '/../../vendor/autoload.php';
-require_once __DIR__ . '/../../common/email_config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../common/email_config.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;

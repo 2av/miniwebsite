@@ -106,6 +106,7 @@ $use_team_500_pricing = false;
 
 // Check if this is a customer payment (with id parameter)
 if (isset($_GET['id']) && !empty($_GET['id'])) {
+    $_SESSION['miniwebsite_team_plan_eligible'] = false;
     // Customer payment flow - fetch digi_card details
     $card_id = mysqli_real_escape_string($connect, $_GET['id']);
     $query = mysqli_query($connect, "SELECT * FROM digi_card WHERE id='$card_id' LIMIT 1");
@@ -151,6 +152,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         
         $is_team_source = isset($_GET['source']) && $_GET['source'] === 'team';
         $use_team_500_pricing = $is_team_source || $is_referred_by_team;
+        $_SESSION['miniwebsite_team_plan_eligible'] = $use_team_500_pricing;
         $is_direct_customer = empty(trim((string) $referred_by));
 
         // No auto-applied referral promo for team / team-link payments, or stale auto session for direct signups
@@ -168,9 +170,11 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         } else if ($use_team_500_pricing) {
             $original_amount = 500;
         } else if (isset($row['d_payment_amount']) && $row['d_payment_amount'] > 0) {
-            $original_amount = $row['d_payment_amount'];
+            $stored_amt = (float) $row['d_payment_amount'];
+            // ₹500 / 6-month plan is team-only; normal users minimum is 1-year
+            $original_amount = ($stored_amt == 500) ? 847 : $stored_amt;
         } else {
-            $original_amount = 500; // Default: 6-month plan base (matches default selected plan)
+            $original_amount = 847; // Default: 1-year plan for normal users
         }
         
         // Set session variables
@@ -501,7 +505,9 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                     color: white !important;
                 }
                 #plan_team500:checked ~ span { color: white !important; }
+                <?php if (!isset($_GET['id'])): ?>
                 #plan_6month:checked ~ span { color: white !important; }
+                <?php endif; ?>
                 #plan_1year:checked ~ span { color: white !important; }
                 #plan_2year:checked ~ span { color: white !important; }
                 #plan_3year:checked ~ span { color: white !important; }
@@ -509,10 +515,10 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
             
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <?php if (!empty($use_team_500_pricing)): ?>
-                <!-- Team / team-referred: ₹500 plan only (default selected) -->
+                <!-- Team / referral users can access ₹500 plan -->
                 <label class="plan-label" id="label_team500" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
                     <input type="radio" name="plan_choice" value="plan_team500" id="plan_team500" data-amount="500"
-                           checked
+                           <?php echo isset($_GET['id']) ? 'checked' : ''; ?>
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -524,8 +530,8 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                         </div>
                     </span>
                 </label>
-                <?php else: ?>
-                <!-- Plan 1: 6 Months -->
+                <?php elseif (!isset($_GET['id'])): ?>
+                <!-- Franchise / non-card flow: keep legacy 6-month option -->
                 <label class="plan-label" id="label_6month" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
                     <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="500"
                            checked
@@ -540,10 +546,11 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                         </div>
                     </span>
                 </label>
-                
-                <!-- Plan 2: 1 Year -->
+                <?php endif; ?>
+                <!-- Customer mini-website: 1 Year first (₹500 shown only when eligible above) -->
                 <label class="plan-label" id="label_1year" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
                     <input type="radio" name="plan_choice" value="plan_1year" id="plan_1year" data-amount="847"
+                           <?php echo (isset($_GET['id']) && empty($use_team_500_pricing)) ? 'checked' : ''; ?>
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -556,7 +563,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                     </span>
                 </label>
                 
-                <!-- Plan 3: 2 Years (BEST VALUE) -->
+                <!-- 2 Years (BEST VALUE) -->
                 <label class="plan-label" id="label_2year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; cursor: pointer;">
                     <div style="position: absolute; top: 9px; right: 85px; background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
                         <span style="font-size: 14px;">⭐</span> BEST VALUE
@@ -577,7 +584,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                     </span>
                 </label>
                 
-                <!-- Plan 4: 3 Years (MAXIMUM SAVINGS) -->
+                <!-- Plan 3: 3 Years (MAXIMUM SAVINGS) -->
                 <label class="plan-label" id="label_3year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; cursor: pointer;">
                     <div style="position: absolute; top: 9px; right: 85px; background: #FF9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
                         <span style="font-size: 14px;">⭐</span> MAXIMUM SAVINGS
@@ -594,8 +601,6 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                         </div>
                     </span>
                 </label>
-                <?php endif; ?>
-                
                 <script>
                     // Function to update border color
                     function updatePlanBorderColor() {

@@ -168,6 +168,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
         $user_email = mysqli_real_escape_string($connect, $user_data['user_email']);
         $user_contact = mysqli_real_escape_string($connect, $user_data['user_contact']);
         $hashed_password = $user_data['hashed_password'];
+        $plain_password = $user_data['plain_password'] ?? '';
         $referrer_email = !empty($user_data['referrer_email']) ? mysqli_real_escape_string($connect, trim($user_data['referrer_email'])) : '';
 
         // Final check: Verify email and mobile are still available (safety check) in unified table
@@ -276,23 +277,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
                 <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0;">
                     <h3 style="color: #333; font-size: 18px; margin-top: 0; margin-bottom: 15px;">🔐 Your Login Details:</h3>
                     <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;"><strong>Email ID:</strong> ' . htmlspecialchars($user_email) . '</p>
-                    <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;"><strong>Password:</strong> ' . htmlspecialchars($user_password) . '</p>
-                    <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;">👉 <a href="https://' . $_SERVER['HTTP_HOST'] . '/customer/dashboard/index.php" style="color: #007bff; text-decoration: none;">Click here to access your dashboard</a></p>
+                    <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;"><strong>Password:</strong> ' . htmlspecialchars($plain_password) . '</p>
+                    <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;">👉 <a href="https://' . $_SERVER['HTTP_HOST'] . '/user/dashboard" style="color: #007bff; text-decoration: none;">Click here to access your dashboard</a></p>
                 </div>
                 
-                <div style="background: #ffebee; border: 1px solid #d32f2f; border-radius: 5px; padding: 15px; margin: 20px 0;">
-                    <h3 style="color: #d32f2f; margin: 0 0 10px 0;">⚠️ IMPORTANT: Bank Account Details Required</h3>
-                    <p style="margin: 5px 0;"><strong>It is mandatory to update your bank account details from your dashboard.</strong></p>
-                    <p style="margin: 5px 0;">To receive payments and commissions, you must add your bank account information:</p>
-                    <ul style="margin: 10px 0;">
-                        <li>Account Holder Name</li>
-                        <li>Bank Name</li>
-                        <li>Account Number</li>
-                        <li>IFSC Code</li>
-                        <li>Account Type</li>
-                    </ul>
-                    <p style="margin: 5px 0;">Please log in to your account and update your bank details immediately to ensure smooth transactions.</p>
-                </div>
+                
                 
                 <p style="color: #333; font-size: 16px; line-height: 1.6;">You can now start creating your Mini Website from your dashboard.</p>
                 
@@ -411,6 +400,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
                 'user_email' => $user_email,
                 'user_contact' => $user_contact,
                 'hashed_password' => $hashed_password,
+                'plain_password' => $user_password,
                 'referrer_email' => $referrer_email
             ];
             $_SESSION['registration_otp_time'] = time();

@@ -740,13 +740,41 @@ if (!empty($products_flat)) {
     }
 }
 
+/**
+ * Resolve business category label from digi_card d_position_primary / d_position_secondary (IDs).
+ */
+function mw_vcard_resolve_business_category_name($connect, $category_id, $user_id) {
+    $category_id = intval($category_id);
+    if ($category_id <= 0 || !$connect) {
+        return '';
+    }
+    $id_esc = mysqli_real_escape_string($connect, (string) $category_id);
+    $q = @mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id='$id_esc' AND category_type='business-category' AND is_active=1 LIMIT 1");
+    if ($q && ($r = mysqli_fetch_assoc($q))) {
+        $name = trim((string) ($r['category_name'] ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+    }
+    $uid = intval($user_id);
+    if ($uid <= 0) {
+        return '';
+    }
+    $uid_esc = mysqli_real_escape_string($connect, (string) $uid);
+    $q2 = @mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id='$id_esc' AND user_id='$uid_esc' AND category_type='business-category' AND is_active=1 LIMIT 1");
+    if ($q2 && ($r2 = mysqli_fetch_assoc($q2))) {
+        return trim((string) ($r2['category_name'] ?? ''));
+    }
+    return '';
+}
+
 // vCard payload: raw UTF-8 strings (no HTML entities) for Save Contact / .vcf
 $mw_vcard = [];
+$mw_vcard_note_text = 'Trusted local grocery store offering grains, packaged foods and daily essentials. We provide chips, biscuits, Dal, Rice & all other essential items at discounted prices.';
 if ($row) {
     $raw_owner = trim(trim($row['d_f_name'] ?? '') . ' ' . trim($row['d_l_name'] ?? ''));
     $raw_org = trim($row['d_comp_name'] ?? '');
     $raw_email = trim($row['d_email'] ?? '');
-    $raw_about = isset($row['d_about_us']) ? trim((string) $row['d_about_us']) : '';
     $raw_website = trim($row['d_website'] ?? '');
     $tel_cell = preg_replace('/[^0-9+]/', '', (string) ($row['d_contact'] ?? ''));
     $tel_wa = preg_replace('/[^0-9+]/', '', (string) ($row['d_whatsapp'] ?? ''));
@@ -762,14 +790,76 @@ if ($row) {
         $adr_street = $ext;
     }
     $wa_digits = preg_replace('/\D+/', '', $tel_wa);
+    $raw_title = trim((string) ($row['d_position'] ?? ''));
+    $logo_relative = '';
+    if (!empty($row['d_logo_location'])) {
+        $logo_path = trim((string) $row['d_logo_location']);
+        if (strpos($logo_path, '/') === false) {
+            $logo_path = 'assets/upload/websites/company_details/' . $logo_path;
+        }
+        $logo_relative = ltrim(preg_replace('#^\.\./+#', '', $logo_path), '/');
+    }
+    $logo_url = '';
+    if ($logo_relative !== '') {
+        $logo_url = rtrim($base_url, '/') . '/' . $logo_relative;
+    }
+    $raw_map = trim((string) ($row['d_location'] ?? ''));
+    if ($raw_map === '') {
+        $addr_query_parts = array_filter([
+            $adr_street,
+            trim((string) ($row['d_city'] ?? '')),
+            trim((string) ($row['d_state'] ?? '')),
+            trim((string) ($row['d_pincode'] ?? '')),
+            trim((string) ($row['d_country'] ?? '')),
+        ], static function ($p) {
+            return $p !== null && $p !== '';
+        });
+        if (!empty($addr_query_parts)) {
+            $raw_map = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode(implode(', ', $addr_query_parts));
+        }
+    }
+    if ($raw_map !== '' && !preg_match('#^https?://#i', $raw_map)) {
+        $raw_map = 'https://' . $raw_map;
+    }
+    $social = [
+        'facebook' => trim((string) ($row['d_fb'] ?? '')),
+        'instagram' => trim((string) ($row['d_instagram'] ?? '')),
+        'linkedin' => trim((string) ($row['d_linkedin'] ?? '')),
+        'twitter' => trim((string) ($row['d_twitter'] ?? '')),
+        'youtube' => trim((string) ($row['d_youtube'] ?? '')),
+        'pinterest' => trim((string) ($row['d_pinterest'] ?? '')),
+    ];
+    $mw_card_user_id = 0;
+    if (!empty($row['user_id'])) {
+        $mw_card_user_id = intval($row['user_id']);
+    } elseif (!empty($row['user_email']) && isset($connect) && $connect) {
+        $em_lookup = mysqli_real_escape_string($connect, strtolower(trim((string) $row['user_email'])));
+        $uq = @mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = '$em_lookup' LIMIT 1");
+        if ($uq && ($ur = mysqli_fetch_assoc($uq))) {
+            $mw_card_user_id = intval($ur['id'] ?? 0);
+        }
+    }
+    $bc_parts = [];
+    $bc_pri = mw_vcard_resolve_business_category_name($connect, $row['d_position_primary'] ?? 0, $mw_card_user_id);
+    if ($bc_pri !== '') {
+        $bc_parts[] = $bc_pri;
+    }
+    $bc_sec = mw_vcard_resolve_business_category_name($connect, $row['d_position_secondary'] ?? 0, $mw_card_user_id);
+    if ($bc_sec !== '' && $bc_sec !== $bc_pri) {
+        $bc_parts[] = $bc_sec;
+    }
+    $business_category = implode(', ', $bc_parts);
     $mw_vcard = [
         'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
         'org' => $raw_org,
+        'title' => $raw_title,
+        'businessCategory' => $business_category,
         'telCell' => $tel_cell,
         'telWhatsapp' => $tel_wa,
         'email' => $raw_email !== '' ? $raw_email : 'contact@example.com',
         'urlProfile' => $share_url,
         'urlWebsite' => $raw_website,
+        'mapUrl' => $raw_map,
         'adr' => [
             'street' => $adr_street,
             'locality' => trim((string) ($row['d_city'] ?? '')),
@@ -777,8 +867,10 @@ if ($row) {
             'postal' => trim((string) ($row['d_pincode'] ?? '')),
             'country' => trim((string) ($row['d_country'] ?? '')),
         ],
-        'note' => $raw_about,
+        'note' => $mw_vcard_note_text,
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
+        'logoUrl' => $logo_url,
+        'social' => $social,
     ];
     $parts = explode(' ', $raw_owner, 2);
     $mw_vcard['nFamily'] = count($parts) > 1 ? $parts[1] : '';
@@ -788,11 +880,14 @@ if ($row) {
     $mw_vcard = [
         'fn' => 'Olivia Murray',
         'org' => 'Olivia Culinary',
+        'title' => 'Executive Chef',
+        'businessCategory' => '',
         'telCell' => preg_replace('/[^0-9+]/', '', $phone),
         'telWhatsapp' => preg_replace('/[^0-9+]/', '', $whatsapp),
         'email' => $email,
         'urlProfile' => $share_url,
         'urlWebsite' => $website,
+        'mapUrl' => '',
         'adr' => [
             'street' => 'Sample Street 1',
             'locality' => 'Berlin',
@@ -800,8 +895,10 @@ if ($row) {
             'postal' => '10115',
             'country' => 'Germany',
         ],
-        'note' => 'Passionately crafting exceptional culinary experiences.',
+        'note' => $mw_vcard_note_text,
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
+        'logoUrl' => '',
+        'social' => [],
         'nFamily' => 'Murray',
         'nGiven' => 'Olivia',
     ];
@@ -1492,7 +1589,7 @@ if ($row) {
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="js/app.js?v=11"></script>
+<script src="js/app.js?v=12"></script>
 
 </body>
 </html>

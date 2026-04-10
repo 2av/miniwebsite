@@ -33,6 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the selected plan amount from JavaScript (for card payment page)
     // If not provided, use session original_amount (for franchise registration)
     $plan_amount = isset($_POST['plan_amount']) ? floatval($_POST['plan_amount']) : 0;
+
+    // Mini-website: ₹500 / 6-month plan only for team link or team-referred (set on pay page)
+    if (!empty($card_id) && abs($plan_amount - 500) < 0.01) {
+        $team_ok = !empty($_SESSION['miniwebsite_team_plan_eligible']);
+        if (!$team_ok) {
+            ob_end_clean();
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'This plan is not available for your account. Please choose 1 year or longer.']);
+            exit;
+        }
+    }
     
     // Recalculate tax based on billing details
     $original_amount = ($plan_amount > 0) ? $plan_amount : (isset($_SESSION['original_amount']) ? $_SESSION['original_amount'] : 0);
