@@ -29,6 +29,14 @@
       "always_visible": true
     },
     {
+      "id": "customer_tracker_customer",
+      "label": "Customer Tracker",
+      "icon": "Customertracker.png",
+      "url": "/customer-tracker-customer",
+      "roles": ["CUSTOMER"],
+      "always_visible": true
+    },
+    {
       "id": "collaboration",
       "label": "Collaboration Details",
       "icon": "collaboration.png",

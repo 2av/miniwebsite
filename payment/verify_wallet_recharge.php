@@ -116,7 +116,7 @@ if (empty($razorpay_payment_id) || empty($razorpay_order_id) || empty($razorpay_
                         '" . $final_amount . "',
                         '" . $recharge_amount . "',
                         '" . $igst . "',
-                        'IGST',
+                        'NO_GST',
                         'Wallet Recharge',
                         NOW()
                     )";

@@ -124,8 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const raw = (p.desc != null ? String(p.desc) : '') || 'Contact us for details.';
             productExpandedDesc.textContent = raw.length > 400 ? raw.slice(0, 400) : raw;
         }
+        const priceOnRequest = p.price_on_request === true || !(Number(p.price) > 0);
         if (productExpandedMrp) {
-            if (p.mrp && p.mrp > p.price) {
+            if (!priceOnRequest && p.mrp && p.mrp > p.price) {
                 productExpandedMrp.textContent = '₹' + (p.mrp || 0).toLocaleString();
                 productExpandedMrp.classList.remove('mw-product-expanded-mrp--empty');
             } else {
@@ -133,8 +134,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 productExpandedMrp.classList.add('mw-product-expanded-mrp--empty');
             }
         }
-        if (productExpandedPrice) productExpandedPrice.textContent = '₹' + (p.price || 0).toLocaleString();
-        if (productExpandedOfferLine) productExpandedOfferLine.textContent = '₹' + (p.price || 0).toLocaleString();
+        if (productExpandedPrice) {
+            productExpandedPrice.textContent = priceOnRequest ? 'Call for price' : ('₹' + (Number(p.price) || 0).toLocaleString());
+        }
+        if (productExpandedOfferLine) {
+            productExpandedOfferLine.textContent = priceOnRequest ? 'Call for price' : ('₹' + (Number(p.price) || 0).toLocaleString());
+        }
         if (productExpandedBadge) {
             const cat = (p.category != null ? String(p.category) : '').trim();
             if (cat) {
@@ -148,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (productExpandedSavings) {
             const m = Number(p.mrp) || 0;
             const sale = Number(p.price) || 0;
-            const save = m > sale ? m - sale : 0;
+            const save = !priceOnRequest && m > sale ? m - sale : 0;
             if (save > 0) {
                 productExpandedSavings.textContent = '✓ You Save ₹' + save.toLocaleString();
                 productExpandedSavings.classList.remove('hidden');
@@ -443,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cartShareBtn = document.getElementById('mw-cart-share-wa');
     const floatingWaBtn = document.getElementById('mw-floating-wa-btn');
 
-    const cart = []; // { index, name, price, qty }
+    const cart = []; // { index, name, price, qty, price_on_request? }
 
     function isInCart(idx) {
         return cart.some(c => c.index === idx);
@@ -477,7 +482,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const p = products[idx];
         const existing = cart.find(c => c.index === idx);
         if (existing) existing.qty += 1;
-        else cart.push({ index: idx, name: p.name, price: p.price, qty: 1 });
+        else {
+            cart.push({
+                index: idx,
+                name: p.name,
+                price: p.price,
+                qty: 1,
+                price_on_request: p.price_on_request === true || !(Number(p.price) > 0),
+            });
+        }
         updateCartUI();
     }
 
@@ -507,11 +520,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cart.length === 0) return;
             let msg = 'Hi! I want to order:\n\n';
             let total = 0;
+            let anyOnRequest = false;
             cart.forEach(item => {
-                msg += `• ${item.name} x ${item.qty} = ₹${(item.price * item.qty).toLocaleString()}\n`;
-                total += item.price * item.qty;
+                const onReq = item.price_on_request === true || !(Number(item.price) > 0);
+                if (onReq) {
+                    anyOnRequest = true;
+                    msg += `• ${item.name} x ${item.qty} — Call for price\n`;
+                } else {
+                    msg += `• ${item.name} x ${item.qty} = ₹${(item.price * item.qty).toLocaleString()}\n`;
+                    total += item.price * item.qty;
+                }
             });
-            msg += `\nTotal: ₹${total.toLocaleString()}`;
+            if (total > 0) {
+                msg += `\nTotal: ₹${total.toLocaleString()}`;
+            }
+            if (anyOnRequest) {
+                msg += total > 0 ? '\n\nPlease share prices for the items marked “Call for price”.' : '\nPlease share prices for these items.';
+            }
             mwOpenWhatsAppShare(whatsappNum, msg);
         });
     }

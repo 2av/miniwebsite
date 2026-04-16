@@ -239,6 +239,127 @@ if ($connect) {
             outline: none;
             box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
         }
+
+        .payment-layout {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 992px) {
+            .payment-layout {
+                flex-wrap: nowrap;
+                width: fit-content;
+                max-width: none;
+                gap: 8px;
+            }
+        }
+
+        .plan-panel {
+            width: 320px;
+            max-width: 100%;
+        }
+
+        .plan-card {
+            border-radius: 14px;
+            background: #ffffff;
+            border: 2px solid #d5dbe7;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 14px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .plan-card.active {
+            border-color: #002169;
+            box-shadow: 0 0 0 3px rgba(0, 33, 105, 0.15);
+        }
+
+        .plan-card-header {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            padding: 12px 10px;
+        }
+
+        .plan-card-header.blue {
+            background: #1b4fa8;
+        }
+
+        .plan-card-header.yellow {
+            background: #ffc107;
+            color: #222;
+        }
+
+        .plan-card-body {
+            padding: 12px 15px 14px 15px;
+        }
+
+        .plan-price {
+            text-align: center;
+            font-size: 50px;
+            font-weight: 800;
+            margin: 8px 0 4px 0;
+            color: #111;
+            line-height: 1;
+        }
+
+        .plan-subtext {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin: 0 0 12px 0;
+            padding: 0;
+        }
+
+        .plan-features li {
+            font-size: 14px;
+            margin: 8px 0;
+            color: #202124;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .plan-features li::before {
+            content: "✓";
+            color: #1b4fa8;
+            font-weight: 700;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .plan-select-btn {
+            width: 100%;
+            border: none;
+            border-radius: 8px;
+            padding: 11px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .plan-select-btn.green {
+            background: #1e9a5f;
+            color: #fff;
+        }
+
+        .plan-select-btn.yellow {
+            background: #ffc107;
+            color: #111;
+        }
  
     </style>
 </head>
@@ -268,13 +389,42 @@ if ($connect) {
 <!-- Payment Form (Initially Hidden) -->
 <div id="paymentSection" style="display: none; margin-top: 40px; padding: 30px 20px; background: #f8f9fa; border-radius: 15px;">
     <h3 style="text-align: center; color: #002169; margin-bottom: 15px; font-size: 24px; font-weight: 600;">Franchise Registration Payment</h3>    
+    <div class="payment-layout">
+    <div class="plan-panel">
+        <div class="plan-card" id="starterPlanCard" data-plan="starter">
+            <div class="plan-card-header blue">Starter Franchise Plan</div>
+            <div class="plan-card-body">
+                <div class="plan-price">₹6,000</div>
+                <div class="plan-subtext">for 4 Months</div>
+                <ul class="plan-features">
+                    <li>Trial Franchise of 4 Months</li>
+                    <li>100% Commission Earning for 4 Months</li>
+                    <li>₹413/website creation from wallet</li>
+                </ul>
+                <button type="button" class="plan-select-btn green" data-plan="starter">SELECT ₹6,000</button>
+            </div>
+        </div>
+        <div class="plan-card active" id="fullPlanCard" data-plan="full">
+            <div class="plan-card-header yellow">Full Franchise Plan</div>
+            <div class="plan-card-body">
+                <div class="plan-price">₹30,000</div>
+                <div class="plan-subtext">(One-time Fees)</div>
+                <ul class="plan-features">
+                    <li>Lifetime Unlimited MiniWebsite rights</li>
+                    <li>100% Commission Earning Lifelong</li>
+                    <li>₹413/website creation from wallet</li>
+                </ul>
+                <button type="button" class="plan-select-btn yellow" data-plan="full">SELECT ₹30,000</button>
+            </div>
+        </div>
+    </div>
     <div style="max-width: 450px; margin: 0 auto; background: #002169; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
         <h4 style="color: white; text-align: center; margin-bottom: 10px; font-size: 20px; font-weight: 600;">Billing/GST Details</h4>
         
         <!-- Add the line below header -->
         <div style="width: 35%; height: 2px; background: #ffc107; margin: 0 auto 25px auto; border-radius: 1px;"></div>
         
-        <form id="franchisePaymentForm" action="payment_page/pay.php" method="POST">
+        <form id="franchisePaymentForm" action="payment/pay.php" method="POST">
             <input type="text" name="gst_number" placeholder="Enter GST Number (Optional)" style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; text-transform: uppercase;">
             
             <input type="text" name="name" placeholder="Name" required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
@@ -315,8 +465,8 @@ if ($connect) {
                         // Calculate proper GST amounts with decimal precision
                         $subtotal = 30000 - $promo_discount;
                         
-                        // Determine if interstate transaction (for now, assume intrastate for franchise)
-                        $is_interstate = false; // Franchise registration is typically intrastate
+                        // Determine if interstate transaction (default intrastate on first load)
+                        $is_interstate = false;
                         
                         if ($is_interstate) {
                             // IGST (18%) for interstate
@@ -324,7 +474,7 @@ if ($connect) {
                             $cgst_amount = 0;
                             $sgst_amount = 0;
                         } else {
-                            // CGST + SGST (9% each) for intrastate - split equally
+                            // CGST + SGST (9% each) for intrastate
                             $cgst_amount = round($subtotal * 0.09, 2);
                             $sgst_amount = round($subtotal * 0.09, 2);
                             $igst_amount = 0;
@@ -393,7 +543,9 @@ if ($connect) {
                 </div>
             </div>
             
-                                     <input type="hidden" name="amount" value="<?php echo $final_total; ?>">
+            <input type="hidden" name="selected_plan" id="selected_plan_hidden" value="full">
+            <input type="hidden" name="plan_total_with_gst" id="plan_total_with_gst_hidden" value="30000">
+            <input type="hidden" name="amount" value="<?php echo $final_total; ?>">
             <input type="hidden" name="original_amount" value="30000">
             <input type="hidden" name="discount_amount" id="discount_amount_hidden" value="<?php echo $promo_discount; ?>">
             <input type="hidden" name="subtotal_amount" id="subtotal_amount_hidden" value="<?php echo $subtotal; ?>">
@@ -404,12 +556,14 @@ if ($connect) {
             <input type="hidden" name="promo_code" id="promo_code_hidden" value="<?php echo isset($_SESSION['promo_code']) ? $_SESSION['promo_code'] : ''; ?>">
             <input type="hidden" name="promo_discount" id="promo_discount_hidden" value="<?php echo $promo_discount; ?>">
             <input type="hidden" name="service_type" value="franchise_registration">
+            <input type="hidden" name="auto_start_payment" value="1">
             
             <button type="submit" style="width: 100%; background: #ffc107; color: #000; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px;">
                 PROCEED TO PAY
             </button>
         </form>
     </div>
+</div>
 </div>
 
 
@@ -532,7 +686,12 @@ document.getElementById('agreeButton').addEventListener('click', function() {
     
          // Promo code functionality
      function initializePromoCode() {
-const originalAmount = 30000; // Rs 30000 + 18% GST
+const planConfig = {
+    starter: { label: 'Starter Franchise Plan', baseAmount: 6000, totalWithGst: 6000 },
+    full: { label: 'Full Franchise Plan', baseAmount: 30000, totalWithGst: 30000 }
+};
+let selectedPlan = 'full';
+let originalAmount = planConfig[selectedPlan].baseAmount;
         let currentDiscount = <?php echo $promo_discount; ?>; // Initialize with auto-applied discount
         let currentPromoCode = '<?php echo isset($_SESSION['promo_code']) ? $_SESSION['promo_code'] : ''; ?>'; // Initialize with auto-applied promo code
         
@@ -558,10 +717,11 @@ const originalAmount = 30000; // Rs 30000 + 18% GST
             formData.append('promo_code', promoCode);
             formData.append('original_amount', originalAmount);
             formData.append('service_type', 'franchise_registration');
+            formData.append('selected_plan', selectedPlan);
             
             // Send AJAX request
             
-            fetch('panel/login/payment_page/apply_promo_ajax.php', {
+            fetch('payment/apply_promo_ajax.php', {
                 method: 'POST',
                 body: formData
             })
@@ -569,7 +729,7 @@ const originalAmount = 30000; // Rs 30000 + 18% GST
             .then(data => {
                 if (data.success) {
                     const discountAmount = parseFloat(data.discount_amount) || 0;
-                    const originalAmount = 30000;
+                    const originalAmount = parseFloat(planConfig[selectedPlan].baseAmount) || 0;
                     
                     // Validate that discount amount is not greater than original amount
                     if (discountAmount > originalAmount) {
@@ -617,7 +777,6 @@ const originalAmount = 30000; // Rs 30000 + 18% GST
             
             currentDiscount = 0;
             currentPromoCode = '';
-            updateAmountDisplay();
             showMessage('Promo code removed', 'info');
             document.getElementById('promo-section').style.display = 'block';
             document.getElementById('discount-section').style.display = 'none';
@@ -627,62 +786,48 @@ const originalAmount = 30000; // Rs 30000 + 18% GST
             document.getElementById('promo_code_hidden').value = '';
             document.getElementById('promo_discount_hidden').value = '0';
             document.getElementById('discount_amount_hidden').value = '0';
-            document.getElementById('subtotal_amount_hidden').value = '30000';
-            document.getElementById('cgst_amount_hidden').value = '2700';
-            document.getElementById('sgst_amount_hidden').value = '2700';
-            document.getElementById('igst_amount_hidden').value = '0';
-            document.getElementById('final_total_hidden').value = '35400';
-            document.querySelector('input[name="amount"]').value = 35400; // Reset to original total with GST
+
+            // Recalculate totals from active plan + current GST rules
+            updateAmountDisplay();
         }
         
         // Update amount display
         function updateAmountDisplay() {
             // Ensure currentDiscount is a number
             const discountValue = parseFloat(currentDiscount) || 0;
-            const subtotal = 30000 - discountValue;
+            const subtotal = originalAmount - discountValue;
             
             // Get GST number and state to determine interstate/intrastate
             const gstNumber = document.querySelector('input[name="gst_number"]').value.trim();
             const state = document.querySelector('input[name="state"]').value.trim().toLowerCase();
-            const companyStateCode = '06'; // Haryana state code
-            
-            // Show calculation is updating
+            const companyStateCode = '06'; // Haryana
             
             let isInterstate = false;
             let cgst = 0, sgst = 0, igst = 0;
             
             // Determine if interstate transaction
-            if (gstNumber && gstNumber.length === 15 && /^\d{15}$/.test(gstNumber)) {
-                // Extract state code from GST number (positions 1-2)
+            if (gstNumber && gstNumber.length === 15) {
                 const customerStateCode = gstNumber.substring(0, 2);
                 isInterstate = (customerStateCode !== companyStateCode);
-                console.log('GST Number detected:', gstNumber, 'State Code:', customerStateCode, 'Is Interstate:', isInterstate);
-            } else {
-                // GST not filled or invalid: use state field instead
+            } else if (state) {
                 isInterstate = (state !== 'haryana');
-                console.log('Using state field:', state, 'Is Interstate:', isInterstate);
             }
-            
+
             // Calculate GST based on interstate/intrastate
             if (isInterstate) {
-                // IGST (18%) for interstate
                 igst = Math.round((subtotal * 0.18) * 100) / 100;
-                cgst = 0;
-                sgst = 0;
             } else {
-                // CGST + SGST (9% each) for intrastate - split equally
                 cgst = Math.round((subtotal * 0.09) * 100) / 100;
                 sgst = Math.round((subtotal * 0.09) * 100) / 100;
-                igst = 0;
             }
-            
+
             const finalAmount = Math.round((subtotal + cgst + sgst + igst) * 100) / 100;
             
             // Update the calculation display (table structure - only update the right column values)
+            document.querySelectorAll('.calculation-display .original-price')[1].textContent = '₹ ' + originalAmount.toFixed(2);
             document.querySelectorAll('.calculation-display .discount')[1].textContent = '₹ ' + discountValue.toFixed(2);
             document.querySelectorAll('.calculation-display .subtotal')[1].textContent = '₹ ' + subtotal.toFixed(2);
             
-            // Show only relevant GST components
             if (isInterstate) {
                 document.querySelectorAll('.calculation-display .cgst')[1].textContent = '₹ 0.00';
                 document.querySelectorAll('.calculation-display .sgst')[1].textContent = '₹ 0.00';
@@ -706,6 +851,38 @@ const originalAmount = 30000; // Rs 30000 + 18% GST
             document.getElementById('sgst_amount_hidden').value = sgst;
             document.getElementById('igst_amount_hidden').value = igst;
             document.getElementById('final_total_hidden').value = finalAmount;
+            document.getElementById('plan_total_with_gst_hidden').value = finalAmount;
+            document.getElementById('selected_plan_hidden').value = selectedPlan;
+            document.querySelector('input[name="original_amount"]').value = originalAmount;
+            document.querySelector('input[name="amount"]').value = finalAmount;
+        }
+
+        function updatePlanCardsUi() {
+            const starterCard = document.getElementById('starterPlanCard');
+            const fullCard = document.getElementById('fullPlanCard');
+
+            if (!starterCard || !fullCard) return;
+
+            starterCard.classList.toggle('active', selectedPlan === 'starter');
+            fullCard.classList.toggle('active', selectedPlan === 'full');
+        }
+
+        function selectPlan(planKey) {
+            if (!planConfig[planKey]) return;
+
+            selectedPlan = planKey;
+            originalAmount = planConfig[selectedPlan].baseAmount;
+
+            // Starter plan does not support higher old discounts from full plan
+            if (currentDiscount > originalAmount) {
+                currentDiscount = 0;
+                currentPromoCode = '';
+                document.getElementById('promo_code_hidden').value = '';
+                document.getElementById('promo_discount_hidden').value = '0';
+            }
+
+            updatePlanCardsUi();
+            updateAmountDisplay();
         }
         
         // Show message function
@@ -745,6 +922,21 @@ const originalAmount = 30000; // Rs 30000 + 18% GST
                 }
             });
         }
+
+        document.querySelectorAll('.plan-select-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const plan = this.getAttribute('data-plan');
+                selectPlan(plan);
+            });
+        });
+
+        document.querySelectorAll('.plan-card').forEach(function(card) {
+            card.addEventListener('click', function(e) {
+                if (e.target.classList.contains('plan-select-btn')) return;
+                const plan = this.getAttribute('data-plan');
+                selectPlan(plan);
+            });
+        });
         
         // Add event listeners to GST number and state fields for automatic calculation update
         const gstInput = document.querySelector('input[name="gst_number"]');
@@ -767,7 +959,133 @@ const originalAmount = 30000; // Rs 30000 + 18% GST
             stateInput.addEventListener('blur', updateAmountDisplay);
             stateInput.addEventListener('change', updateAmountDisplay);
         }
+
+        updatePlanCardsUi();
     }
+</script>
+<form action="payment/verify_miniwebsite.php" method="POST" name="franchiseRazorpayForm" style="display:none;">
+    <input type="hidden" name="razorpay_payment_id" id="franchise_razorpay_payment_id">
+    <input type="hidden" name="razorpay_signature" id="franchise_razorpay_signature">
+    <input type="hidden" name="razorpay_order_id" id="franchise_razorpay_order_id">
+    <input type="hidden" name="shopping_order_id" id="franchise_shopping_order_id" value="<?php echo 'FRAN' . date('dmYHis'); ?>">
+</form>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('franchisePaymentForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        var payBtn = form.querySelector('button[type="submit"]');
+        if (!payBtn) return;
+
+        payBtn.disabled = true;
+        payBtn.textContent = 'Processing...';
+
+        // Step 1: initialize payment/franchise session (same as redirect flow)
+        var initData = new FormData(form);
+        fetch('payment/pay.php', {
+            method: 'POST',
+            body: initData,
+            credentials: 'same-origin'
+        })
+        .then(function() {
+            // Step 2: persist billing details + server-side tax recomputation
+            var billingData = new FormData();
+            billingData.append('card_id', '');
+            billingData.append('gst_number', form.querySelector('input[name="gst_number"]').value || '');
+            billingData.append('gst_name', form.querySelector('input[name="name"]').value || '');
+            billingData.append('gst_email', form.querySelector('input[name="email"]').value || '');
+            billingData.append('gst_contact', form.querySelector('input[name="contact"]').value || '');
+            billingData.append('gst_address', form.querySelector('input[name="address"]').value || '');
+            billingData.append('gst_state', form.querySelector('input[name="state"]').value || '');
+            billingData.append('gst_city', form.querySelector('input[name="city"]').value || '');
+            billingData.append('gst_pincode', form.querySelector('input[name="pincode"]').value || '');
+            billingData.append('plan_amount', form.querySelector('input[name="original_amount"]').value || '30000');
+            return fetch('payment/save_billing_details.php', {
+                method: 'POST',
+                body: billingData,
+                credentials: 'same-origin'
+            });
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(saveResult) {
+            if (!saveResult.success) {
+                throw new Error(saveResult.message || 'Unable to save billing details');
+            }
+
+            // Keep hidden totals synced with server
+            if (typeof saveResult.final_amount !== 'undefined') {
+                var finalAmountInput = form.querySelector('#final_total_hidden');
+                var amountInput = form.querySelector('input[name="amount"]');
+                if (finalAmountInput) finalAmountInput.value = saveResult.final_amount;
+                if (amountInput) amountInput.value = saveResult.final_amount;
+            }
+
+            // Step 3: create Razorpay order
+            var orderData = new FormData();
+            orderData.append('amount', form.querySelector('#final_total_hidden').value || form.querySelector('input[name="amount"]').value || '0');
+            return fetch('payment/create_razorpay_order.php', {
+                method: 'POST',
+                body: orderData,
+                credentials: 'same-origin'
+            });
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(orderResult) {
+            if (!orderResult.success) {
+                throw new Error(orderResult.message || 'Unable to create payment order');
+            }
+
+            var options = {
+                key: 'rzp_live_xU57a1JhH7To1G',
+                amount: Math.round((parseFloat(orderResult.amount) || 0) * 100),
+                name: 'KIROVA SOLUTIONS LLP',
+                description: 'Franchise Registration',
+                order_id: orderResult.order_id,
+                prefill: {
+                    name: form.querySelector('input[name="name"]').value || '',
+                    email: form.querySelector('input[name="email"]').value || '',
+                    contact: form.querySelector('input[name="contact"]').value || ''
+                },
+                theme: { color: '#002169' },
+                handler: function (response) {
+                    document.getElementById('franchise_razorpay_payment_id').value = response.razorpay_payment_id;
+                    document.getElementById('franchise_razorpay_signature').value = response.razorpay_signature;
+                    document.getElementById('franchise_razorpay_order_id').value = orderResult.order_id;
+                    document.getElementById('franchise_shopping_order_id').value = 'FRAN' + Date.now();
+                    document.forms['franchiseRazorpayForm'].submit();
+                },
+                modal: {
+                    ondismiss: function() {
+                        payBtn.disabled = false;
+                        payBtn.textContent = 'PROCEED TO PAY';
+                    }
+                }
+            };
+
+            var rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                alert('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'Please try again.'));
+                payBtn.disabled = false;
+                payBtn.textContent = 'PROCEED TO PAY';
+            });
+            rzp.open();
+        })
+        .catch(function(error) {
+            alert(error && error.message ? error.message : 'Unable to initiate payment. Please try again.');
+            payBtn.disabled = false;
+            payBtn.textContent = 'PROCEED TO PAY';
+        });
+    });
+});
 </script>
     </div>
 </body>

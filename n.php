@@ -426,16 +426,14 @@ if ($row) {
     $share_card_key = (string) ($row['card_id'] ?? $card_id_slug);
     $share_url = mw_miniwebsite_profile_url($base_url, $share_card_key);
 
-    // Social share links (share profile URL to each platform)
-    // Note: Instagram & YouTube have no web share URLs - only link when profile/channel URL exists
-    $social_links = [
-        ['icon' => 'facebook-f', 'url' => 'https://www.facebook.com/sharer/sharer.php?u=' . urlencode($share_url)],
-    ];
+    // Social profile links: show only when user has added that social URL.
+    $social_links = [];
+    if (!empty(trim($row['d_fb'] ?? ''))) $social_links[] = ['icon' => 'facebook-f', 'url' => trim($row['d_fb'])];
     if (!empty(trim($row['d_instagram'] ?? ''))) $social_links[] = ['icon' => 'instagram', 'url' => trim($row['d_instagram'])];
-    $social_links[] = ['icon' => 'linkedin-in', 'url' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . urlencode($share_url)];
+    if (!empty(trim($row['d_linkedin'] ?? ''))) $social_links[] = ['icon' => 'linkedin-in', 'url' => trim($row['d_linkedin'])];
+    if (!empty(trim($row['d_twitter'] ?? ''))) $social_links[] = ['icon' => 'x-twitter', 'url' => trim($row['d_twitter'])];
     if (!empty(trim($row['d_youtube'] ?? ''))) $social_links[] = ['icon' => 'youtube', 'url' => trim($row['d_youtube'])];
-    $social_links[] = ['icon' => 'x-twitter', 'url' => 'https://twitter.com/intent/tweet?url=' . urlencode($share_url) . '&text=' . urlencode($hero_name)];
-    $social_links[] = ['icon' => 'pinterest', 'url' => 'https://pinterest.com/pin/create/button/?url=' . urlencode($share_url) . '&description=' . urlencode($hero_name)];
+    if (!empty(trim($row['d_pinterest'] ?? ''))) $social_links[] = ['icon' => 'pinterest', 'url' => trim($row['d_pinterest'])];
 
     // Services from card_products_services (products & services)
     $services = [];
@@ -459,14 +457,6 @@ if ($row) {
             }
         }
     }
-    if (empty($services)) {
-        $services = [
-            ['name' => 'Private Dining', 'desc' => 'Exclusive dining experiences tailored to your preferences.', 'image' => $default_image],
-            ['name' => 'Event Catering', 'desc' => 'Full-service catering for weddings, corporate events & more.', 'image' => $default_image],
-            ['name' => 'Masterclasses', 'desc' => 'Hands-on cooking classes for all skill levels.', 'image' => $default_image],
-        ];
-    }
-
     // Special offers from card_special_offers
     $offers = [];
     $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge, start_date, end_date, start_time, end_time FROM card_special_offers WHERE card_id='$card_db_id' AND status='Active' ORDER BY display_order ASC");
@@ -494,12 +484,6 @@ if ($row) {
             }
         }
     }
-    if (empty($offers)) {
-        $offers = [
-            ['title' => 'Special Offer', 'desc' => 'Contact us for details.', 'image' => $default_image, 'badge' => 'OFFER', 'offer_start_dt' => '', 'offer_end_dt' => ''],
-        ];
-    }
-
     // Products from card_product_pricing (grouped by category for Blinkit UI)
     // category_name: from product_categories OR user_custom_categories (use category_source to avoid ID collision)
     $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE 'category_source'");
@@ -536,7 +520,10 @@ if ($row) {
                     : $default_image;
                 $mrp = floatval($p['mrp'] ?? 0);
                 $price = floatval($p['selling_price'] ?? 0);
-                if ($mrp <= 0) $mrp = $price;
+                $price_on_request = ($price <= 0);
+                if ($mrp <= 0) {
+                    $mrp = $price;
+                }
                 $products_by_cat[$cat][] = [
                     'name' => htmlspecialchars($p['product_name']),
                     'cat_key' => $cat,
@@ -544,6 +531,7 @@ if ($row) {
                     'image' => $img,
                     'mrp' => $mrp,
                     'price' => $price,
+                    'price_on_request' => $price_on_request,
                     'desc' => htmlspecialchars($p['product_description'] ?? ''),
                 ];
             }
@@ -577,10 +565,6 @@ if ($row) {
             }
         }
     }
-    if (empty($gallery)) {
-        $gallery = [$default_image];
-    }
-
     // Videos from d_youtube1..d_youtube20 (YouTube, Shorts, Instagram, Facebook, etc.)
     $videos = [];
     $default_thumb = $default_image;
@@ -688,7 +672,10 @@ if ($row) {
                             : $default_image;
                         $mrp = floatval($p['mrp'] ?? 0);
                         $price = floatval($p['selling_price'] ?? 0);
-                        if ($mrp <= 0) $mrp = $price;
+                        $price_on_request = ($price <= 0);
+                        if ($mrp <= 0) {
+                            $mrp = $price;
+                        }
                         $products_by_cat[$cat][] = [
                             'name' => htmlspecialchars($p['product_name']),
                             'cat_key' => $cat,
@@ -696,6 +683,7 @@ if ($row) {
                             'image' => $img,
                             'mrp' => $mrp,
                             'price' => $price,
+                            'price_on_request' => $price_on_request,
                             'desc' => htmlspecialchars($p['product_description'] ?? ''),
                         ];
                     }
@@ -710,7 +698,7 @@ if ($row) {
         ['days' => 'Sunday', 'hours' => 'Closed'],
     ];
 
-    $gallery = [$default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image, $default_image];
+    $gallery = [];
     $videos = []; // Demo fallback: no videos when no card loaded
 }
 $cat_order = !empty($products_by_cat) ? array_keys($products_by_cat) : ['mains', 'starters', 'desserts', 'drinks'];
@@ -977,11 +965,13 @@ if ($row) {
     </section>
 
     <!-- 2. Social Links -->
+    <?php if (!empty($social_links)): ?>
     <section class="mw-social-links pb-6 flex justify-center gap-5">
         <?php foreach ($social_links as $s): ?>
         <a href="<?php echo htmlspecialchars($s['url']); ?>" target="_blank" rel="noopener" class="w-10 h-10 rounded-full bg-cardbg flex items-center justify-center text-primary hover:bg-primary hover:text-bgbase transition"><i class="fab fa-<?php echo $s['icon']; ?>"></i></a>
         <?php endforeach; ?>
     </section>
+    <?php endif; ?>
 
     <!-- 3. Business Intro -->
     <section class="mw-business-intro mw-section-padding text-center">
@@ -1213,6 +1203,7 @@ if ($row) {
     </script>
 
     <!-- 6. Services Section -->
+    <?php if (!empty($services)): ?>
     <section id="mw-services" class="mw-services mw-section-padding bg-cardbg/30">
         <h2 class="mw-section-title">Our Services</h2>
 
@@ -1233,9 +1224,11 @@ if ($row) {
             <?php endforeach; ?>
         </div>
     </section>
+    <?php endif; ?>
 
 
     <!-- 7. Special Offers Section -->
+    <?php if (!empty($offers)): ?>
     <section id="mw-offers" class="mw-special-offers mw-section-padding bg-cardbg/30">
         <h2 class="mw-section-title">Special Offers</h2>
         <div class="mw-grid-offers">
@@ -1265,6 +1258,7 @@ if ($row) {
             <?php endforeach; ?>
         </div>
     </section>
+    <?php endif; ?>
 
     <!-- 8. Products Section (Blinkit Style) -->
     <?php if (!empty($products_by_cat)): ?>
@@ -1303,13 +1297,18 @@ if ($row) {
                             <div class="mw-product-desc-full hidden text-xs text-gray-500 mt-2 leading-relaxed"><?php echo !empty($prod['desc']) ? nl2br(htmlspecialchars($prod['desc'])) : 'Contact us for details.'; ?></div>
                             <button type="button" class="mw-product-read-more text-primary text-xs font-medium mt-1 hover:underline">Read more</button>
                             <?php
-                            $mw_has_prod_discount = isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
+                            $mw_price_on_request = !empty($prod['price_on_request']);
+                            $mw_has_prod_discount = !$mw_price_on_request && isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
                             ?>
                             <div class="mw-product-card-prices flex flex-col items-start gap-0.5 mt-2 md:flex-row md:items-center md:gap-2 <?php echo $mw_has_prod_discount ? 'md:justify-between' : ''; ?>">
                                 <?php if ($mw_has_prod_discount): ?>
                                 <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
                                 <?php endif; ?>
+                                <?php if ($mw_price_on_request): ?>
+                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">Call for price</span>
+                                <?php else: ?>
                                 <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">₹<?php echo number_format($prod['price']); ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -1436,6 +1435,7 @@ if ($row) {
     <?php endif; ?>
 
     <!-- 10. Image Gallery -->
+    <?php if (!empty($gallery)): ?>
     <section id="mw-gallery" class="mw-image-gallery mw-section-padding">
         <h2 class="mw-section-title">Image Gallery</h2>
         <div class="mw-grid-gallery">
@@ -1446,8 +1446,10 @@ if ($row) {
             <?php endforeach; ?>
         </div>
     </section>
+    <?php endif; ?>
 
     <!-- Gallery lightbox: centered on screen, content width matches app section (max 1200px) -->
+    <?php if (!empty($gallery)): ?>
     <div id="mw-gallery-modal" class="mw-gallery-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Gallery" data-default-src="<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>">
         <button type="button" class="mw-gallery-modal-backdrop" aria-label="Close gallery"></button>
         <div class="mw-gallery-modal-panel">
@@ -1460,6 +1462,7 @@ if ($row) {
             <div id="mw-gallery-modal-counter" class="mw-gallery-modal-counter"></div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- 11. Payment QR Section - Show all uploaded QR codes -->
     <?php
@@ -1469,10 +1472,11 @@ if ($row) {
         if (!empty($row['d_qr_google_pay'])) $payment_qrs[] = ['label' => 'Google Pay', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_google_pay']), 'upi' => trim($row['d_google_pay'] ?? '')];
         if (!empty($row['d_qr_phone_pay'])) $payment_qrs[] = ['label' => 'PhonePe', 'img' => 'data:image/*;base64,' . base64_encode($row['d_qr_phone_pay']), 'upi' => trim($row['d_phone_pay'] ?? '')];
     }
-    if (empty($payment_qrs)) {
+    if (empty($payment_qrs) && !$row) {
         $payment_qrs = [['label' => 'Scan & Pay', 'img' => 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UPI://pay?pa=chef@upi&pn=Olivia', 'upi' => 'chef@upi']];
     }
     ?>
+    <?php if (!empty($payment_qrs)): ?>
     <section id="mw-pay" class="mw-payment-qr mw-section-padding">
         <h2 class="mw-section-title">QR Code</h2>
         <div class="max-w-2xl mx-auto">
@@ -1491,6 +1495,7 @@ if ($row) {
             </div>
         </div>
     </section>
+    <?php endif; ?>
 
     <!-- 12. Business Information (Hierarchical Format) -->
     <section class="mw-business-info mw-section-padding bg-cardbg/20">
@@ -1564,11 +1569,11 @@ if ($row) {
 <!-- 14. Sticky Bottom Navigation -->
 <nav class="mw-sticky-nav">
     <a href="#mw-hero" class="mw-nav-item active" data-section="mw-hero"><i class="fas fa-home mw-nav-icon"></i><span>Home</span></a>
-    <a href="#mw-services" class="mw-nav-item" data-section="mw-services"><i class="fas fa-concierge-bell mw-nav-icon"></i><span>Serv</span></a>
-    <a href="#mw-offers" class="mw-nav-item" data-section="mw-offers"><i class="fas fa-tags mw-nav-icon"></i><span>Offers</span></a>
+    <a href="#mw-services" class="mw-nav-item <?php echo empty($services) ? 'hidden' : ''; ?>" data-section="mw-services"><i class="fas fa-concierge-bell mw-nav-icon"></i><span>Serv</span></a>
+    <a href="#mw-offers" class="mw-nav-item <?php echo empty($offers) ? 'hidden' : ''; ?>" data-section="mw-offers"><i class="fas fa-tags mw-nav-icon"></i><span>Offers</span></a>
     <a href="#mw-products" class="mw-nav-item <?php echo empty($products_by_cat) ? 'hidden' : ''; ?>" data-section="mw-products"><i class="fas fa-store mw-nav-icon"></i><span>Shop</span></a>
-    <a href="#mw-gallery" class="mw-nav-item" data-section="mw-gallery"><i class="fas fa-images mw-nav-icon"></i><span>Gallery</span></a>
-    <a href="#mw-pay" class="mw-nav-item hidden sm:flex" data-section="mw-pay"><i class="fas fa-qrcode mw-nav-icon"></i><span>Pay</span></a>
+    <a href="#mw-gallery" class="mw-nav-item <?php echo empty($gallery) ? 'hidden' : ''; ?>" data-section="mw-gallery"><i class="fas fa-images mw-nav-icon"></i><span>Gallery</span></a>
+    <a href="#mw-pay" class="mw-nav-item hidden sm:flex <?php echo empty($payment_qrs) ? 'hidden' : ''; ?>" data-section="mw-pay"><i class="fas fa-qrcode mw-nav-icon"></i><span>Pay</span></a>
 </nav>
 
 <!-- 15. Floating WhatsApp Button (hidden when cart bar is visible) -->
@@ -1588,7 +1593,7 @@ if ($row) {
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="theme/js/app.js?v=13"></script>
+<script src="theme/js/app.js?v=14"></script>
 
 </body>
 </html>

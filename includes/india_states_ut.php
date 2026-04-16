@@ -51,6 +51,18 @@ if (!function_exists('mw_india_state_lookup')) {
         }
         $lookup = mw_india_state_lookup();
         $parts = preg_split('/\s*,\s*/u', $text);
+        $non_empty_count = 0;
+        foreach ($parts as $p) {
+            if (trim($p) !== '') {
+                $non_empty_count++;
+            }
+        }
+        if ($non_empty_count > 6) {
+            return [
+                'ok' => false,
+                'message' => 'You can choose up to 6 cities or states of India where you serve.',
+            ];
+        }
         $invalid = [];
         foreach ($parts as $p) {
             $p = trim($p);

@@ -653,9 +653,10 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                                 </div>
                                             <?php } else { ?>
                                                  <div class="d-flex align-items-center">
-                                                 <span class="download"><a target="_blank" href="download_invoice_new.php?id=<?php echo $row['id']; ?>" title="Download Invoice">
-                                                    <span class="download_icon_style"><i class="fa-solid fa-arrow-down"></i></span>
-                                                </a></span>  </div>
+                                                    <span class="download" title="Invoice will be available after payment verification">
+                                                        <span class="download_icon_style" style="filter: grayscale(100%); opacity: 0.5;"><i class="fa-solid fa-arrow-down"></i></span>
+                                                    </span>
+                                                 </div>
                                              <?php } ?>
                                         <?php } else { ?>
                                             <div class="d-flex  align-items-center">
@@ -943,6 +944,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 .FranchiseeDashboard-head .row-items-3 {
     justify-content: center;
     align-items: center;
+    gap: 14px;
 }
 
 .FranchiseeDashboard-head a {
@@ -953,42 +955,50 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 .FranchiseeDashboard-head .card {
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
     align-items: center;
     background: #eff3f7;
     border: none;
-    padding: 20px;
+    border-radius: 8px;
+    padding: 16px 18px;
     font-weight: 600;
-    margin: 30px auto;
+    margin: 10px 0;
+    min-height: 112px;
 }
 
 .FranchiseeDashboard-head .card .img img {
-    min-width: 70px;
+    min-width: 56px;
+    max-width: 66px;
 }
 
 .FranchiseeDashboard-head .card_area .img img {
-    width: 80%;
+    width: 100%;
 }
 
 .FranchiseeDashboard-head .card .content {
-    padding-left: 20px;
+    padding-left: 16px;
 }
 
 .FranchiseeDashboard-head .card .content p {
-    font-size: 32px;
-    line-height: 37px;
-    text-align: center;
+    font-size: 18px;
+    line-height: 1.25;
+    text-align: left;
     margin: 0;
 }
 
 .FranchiseeDashboard-head .card .content h4 {
-    font-size: 30px;
-    line-height: 0px;
-    margin: 0;
+    font-size: 32px;
+    line-height: 1;
+    margin: 6px 0 0;
 }
 
 .FranchiseeDashboard-head .card .content h4.marginbottom5 {
-    margin-bottom: 5px;
+    margin-bottom: 0;
+}
+
+.FranchiseeDashboard-head .card_area {
+    flex: 1 1 280px;
+    max-width: 360px;
 }
 
 .low_balance_title {
@@ -1006,33 +1016,43 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 @media (max-width: 768px) {
     .FranchiseeDashboard-head .row-items-3 {
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
         align-items: center;
+        gap: 10px;
     }
     .FranchiseeDashboard-head .card {
-        width: 31rem !important;
+        width: 100% !important;
+        max-width: 520px;
         margin: 10px auto !important;
         padding: 10px 15px;
-        height: 16vh;
+        min-height: 90px;
+        height: auto;
         display: flex;
         flex-direction: row;
         align-items: center;
-        justify-content: space-evenly;
-        gap: 3px;
+        justify-content: flex-start;
+        gap: 10px;
     }
     .FranchiseeDashboard-head .card .img img {
-        min-width: 53px;
-        max-width: 50px;
+        min-width: 44px;
+        max-width: 52px;
     }
     .FranchiseeDashboard-head .card .content {
-        padding-left: 0px;
-        padding-top: 10px;
-        width: 20rem;
+        padding-left: 4px;
+        padding-top: 0;
+        width: auto;
+    }
+    .FranchiseeDashboard-head .card .content p {
+        font-size: 17px;
+        line-height: 1.2;
+    }
+    .FranchiseeDashboard-head .card .content h4 {
+        font-size: 28px;
     }
     .low_balance_title {
         color: #ff6b6b;
-        font-size: 15px;
-        margin: 2px auto;
+        font-size: 13px;
+        margin: 4px auto 0;
     }
 }
 </style>

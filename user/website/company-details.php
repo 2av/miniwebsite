@@ -919,10 +919,15 @@ include '../includes/header.php';
                         <div class="row" id="business_operation_locations_row" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">
                             <div class="col-sm-12">
                                 <div class="form-group">
-                                    <label for="d_business_operation_locations">Cities / States you serve <span class="text-danger" id="business_operation_locations_required_mark" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">*</span></label>
-                                    <input type="text" name="d_business_operation_locations" id="d_business_operation_locations" class="form-control" maxlength="2000" placeholder="Type and choose from suggestions, comma-separated..." autocomplete="off" value="<?php echo isset($cardRow['d_business_operation_locations']) && $cardRow['d_business_operation_locations'] !== '' ? htmlspecialchars($cardRow['d_business_operation_locations']) : ''; ?>">
+                                    <label for="operation_locations_tag_input">Cities / States you serve <span class="text-danger" id="business_operation_locations_required_mark" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">*</span></label>
+                                    <div class="operation-locations-chips-field form-control" id="operation_locations_chips_field">
+                                        <div id="operation_locations_chips" class="operation-locations-chips-inner"></div>
+                                        <input type="text" id="operation_locations_tag_input" class="operation-locations-tag-input" maxlength="200" placeholder="Type your area of operations." autocomplete="off" aria-describedby="operation_locations_help">
+                                    </div>
+                                    <input type="hidden" name="d_business_operation_locations" id="d_business_operation_locations" maxlength="2000" value="<?php echo isset($cardRow['d_business_operation_locations']) && $cardRow['d_business_operation_locations'] !== '' ? htmlspecialchars($cardRow['d_business_operation_locations']) : ''; ?>">
                                     <div id="operation-location-suggestions" class="operation-location-suggestions" style="display:none;"></div>
-                                    <small class="form-text text-muted">If country is India, use state/UT names or <strong>City, State</strong> per entry. Single city names are accepted without verification.</small>
+                                    <small id="operation_locations_help" class="form-text text-muted">You can choose up to 6 Cities or States of India where you serve. Press comma or Enter after each entry. When country is India, use a state/UT name or <strong>City, State</strong> with a recognised state (e.g. Mumbai, Maharashtra). Combinations with an invalid state name are not accepted.</small>
+                                    <div id="operation_locations_client_error" class="text-danger small mt-1" style="display:none;" role="alert"></div>
                                 </div>
                             </div>
                         </div>
@@ -1227,7 +1232,17 @@ include '../includes/header.php';
     });
 })();
 </script>
-
+<?php
+$mw_india_states_js = [];
+$mw_isp_path = __DIR__ . '/../../includes/india_states_ut.php';
+if (file_exists($mw_isp_path)) {
+    require_once $mw_isp_path;
+    if (function_exists('mw_india_state_names')) {
+        $mw_india_states_js = mw_india_state_names();
+    }
+}
+?>
+<script>window.MW_INDIA_STATE_NAMES = <?php echo json_encode($mw_india_states_js, JSON_UNESCAPED_UNICODE); ?>;</script>
 <script>
 (function() {
     const API_BASE = 'https://countriesnow.space/api/v0.1/countries';
@@ -1381,6 +1396,59 @@ include '../includes/header.php';
         }
     }
 
+    function buildIndiaOperationLookup(names) {
+        const lookup = {};
+        (names || []).forEach(function(n) {
+            if (n) {
+                lookup[String(n).toLowerCase()] = true;
+            }
+        });
+        const aliases = {
+            orissa: true,
+            'daman and diu': true,
+            'dadra and nagar haveli': true,
+            'jammu & kashmir': true,
+            pondicherry: true
+        };
+        Object.keys(aliases).forEach(function(k) {
+            lookup[k] = true;
+        });
+        return lookup;
+    }
+
+    const indiaStateLookup = buildIndiaOperationLookup(window.MW_INDIA_STATE_NAMES || []);
+
+    function isIndiaSelected() {
+        const c = document.getElementById('d_country');
+        return c && c.value && String(c.value).toLowerCase() === 'india';
+    }
+
+    function validateOperationLocationToken(token) {
+        const p = String(token || '').trim();
+        if (!p) {
+            return { ok: false, message: '' };
+        }
+        if (!isIndiaSelected()) {
+            return { ok: true };
+        }
+        const lookup = indiaStateLookup;
+        if (lookup[p.toLowerCase()]) {
+            return { ok: true };
+        }
+        const m = p.match(/^(.+?)\s*[,\-]\s*(.+)$/);
+        if (m) {
+            const st = m[2].trim().toLowerCase();
+            if (lookup[st]) {
+                return { ok: true };
+            }
+            return {
+                ok: false,
+                message: 'Use a recognised Indian state or UT after the comma (e.g. Mumbai, Maharashtra), or enter a state/UT name alone.'
+            };
+        }
+        return { ok: true };
+    }
+
     function getOperationSuggestions(term) {
         const q = (term || '').trim().toLowerCase();
         if (!q) return [];
@@ -1404,26 +1472,114 @@ include '../includes/header.php';
     }
 
     function initOperationLocationAutocomplete() {
-        const input = document.getElementById('d_business_operation_locations');
+        const hidden = document.getElementById('d_business_operation_locations');
+        const tagInput = document.getElementById('operation_locations_tag_input');
+        const chipsWrap = document.getElementById('operation_locations_chips');
+        const chipsField = document.getElementById('operation_locations_chips_field');
         const box = document.getElementById('operation-location-suggestions');
-        if (!input || !box) return;
+        const errEl = document.getElementById('operation_locations_client_error');
+        if (!hidden || !tagInput || !chipsWrap || !box) return;
+
+        const MAX_TAGS = 6;
+
+        function hideError() {
+            if (errEl) {
+                errEl.style.display = 'none';
+                errEl.textContent = '';
+            }
+        }
+
+        function showError(msg) {
+            if (!errEl) return;
+            errEl.textContent = msg;
+            errEl.style.display = '';
+        }
+
+        let tags = [];
+
+        function parseHiddenToTags() {
+            const raw = (hidden.value || '').trim();
+            if (!raw) return [];
+            return raw.split(/\s*,\s*/).map(function(t) {
+                return t.trim();
+            }).filter(function(t) {
+                return t !== '';
+            });
+        }
+
+        function syncHidden() {
+            hidden.value = tags.join(', ');
+        }
+
+        function tagKey(t) {
+            return t.trim().toLowerCase();
+        }
 
         function hideBox() {
             box.style.display = 'none';
             box.innerHTML = '';
         }
 
-        function applySuggestion(text) {
-            const parts = input.value.split(',');
-            parts[parts.length - 1] = ' ' + text;
-            input.value = parts.join(',').replace(/^ /, '');
+        function renderChips() {
+            chipsWrap.innerHTML = '';
+            tags.forEach(function(text) {
+                const span = document.createElement('span');
+                span.className = 'operation-location-chip';
+                span.appendChild(document.createTextNode(text));
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'operation-location-chip-remove';
+                btn.setAttribute('aria-label', 'Remove ' + text);
+                btn.innerHTML = '\u00d7';
+                (function(tVal) {
+                    btn.addEventListener('click', function() {
+                        tags = tags.filter(function(x) {
+                            return x !== tVal;
+                        });
+                        renderChips();
+                        syncHidden();
+                        hideError();
+                    });
+                })(text);
+                span.appendChild(btn);
+                chipsWrap.appendChild(span);
+            });
+        }
+
+        function commitPendingToken() {
+            hideError();
+            let token = tagInput.value.trim().replace(/,\s*$/, '').trim();
+            if (!token) {
+                tagInput.value = '';
+                return true;
+            }
+            if (tags.length >= MAX_TAGS) {
+                showError('You can choose up to 6 cities or states.');
+                return false;
+            }
+            const k = tagKey(token);
+            for (let i = 0; i < tags.length; i++) {
+                if (tagKey(tags[i]) === k) {
+                    tagInput.value = '';
+                    hideBox();
+                    return true;
+                }
+            }
+            const v = validateOperationLocationToken(token);
+            if (!v.ok) {
+                showError(v.message || 'This entry is not accepted.');
+                return false;
+            }
+            tags.push(token);
+            tagInput.value = '';
+            renderChips();
+            syncHidden();
             hideBox();
-            input.focus();
+            return true;
         }
 
         function renderSuggestions() {
-            const parts = input.value.split(',');
-            const activeTerm = parts[parts.length - 1] || '';
+            const activeTerm = (tagInput.value || '').trim();
             const list = getOperationSuggestions(activeTerm);
             if (!list.length) {
                 hideBox();
@@ -1435,23 +1591,106 @@ include '../includes/header.php';
                 opt.type = 'button';
                 opt.className = 'operation-location-option';
                 opt.textContent = item.label;
-                opt.setAttribute('data-value', item.value);
                 opt.addEventListener('click', function() {
-                    applySuggestion(item.value);
+                    hideError();
+                    if (tags.length >= MAX_TAGS) {
+                        showError('You can choose up to 6 cities or states.');
+                        return;
+                    }
+                    const v = validateOperationLocationToken(item.value);
+                    if (!v.ok) {
+                        showError(v.message || 'This entry is not accepted.');
+                        return;
+                    }
+                    const k = tagKey(item.value);
+                    let dup = false;
+                    tags.forEach(function(t) {
+                        if (tagKey(t) === k) dup = true;
+                    });
+                    if (!dup) {
+                        tags.push(item.value);
+                        renderChips();
+                        syncHidden();
+                    }
+                    tagInput.value = '';
+                    hideBox();
+                    tagInput.focus();
                 });
                 box.appendChild(opt);
             });
             box.style.display = 'block';
         }
 
-        input.addEventListener('input', renderSuggestions);
-        input.addEventListener('focus', renderSuggestions);
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') hideBox();
+        tags = parseHiddenToTags();
+        if (tags.length > MAX_TAGS) {
+            tags = tags.slice(0, MAX_TAGS);
+            syncHidden();
+        }
+        renderChips();
+        syncHidden();
+
+        const form = hidden.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(ev) {
+                const areaEl = document.getElementById('d_business_operation_area');
+                if (!areaEl || areaEl.value !== 'selected') return;
+                const pending = tagInput.value.trim().replace(/,\s*$/, '').trim();
+                if (!pending) return;
+                if (!commitPendingToken()) {
+                    ev.preventDefault();
+                }
+            });
+        }
+
+        tagInput.addEventListener('input', renderSuggestions);
+        tagInput.addEventListener('focus', renderSuggestions);
+        tagInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideBox();
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                commitPendingToken();
+                return;
+            }
+            if (e.key === ',') {
+                e.preventDefault();
+                commitPendingToken();
+                return;
+            }
+            if (e.key === 'Backspace' && tagInput.value === '' && tags.length) {
+                tags.pop();
+                renderChips();
+                syncHidden();
+                hideError();
+            }
         });
+        tagInput.addEventListener('blur', function() {
+            setTimeout(hideBox, 150);
+        });
+
         document.addEventListener('click', function(e) {
-            if (!box.contains(e.target) && e.target !== input) hideBox();
+            const inside = (chipsField && chipsField.contains(e.target)) || e.target === tagInput;
+            if (!box.contains(e.target) && !inside) {
+                hideBox();
+            }
         });
+
+        const countrySel = document.getElementById('d_country');
+        if (countrySel) {
+            countrySel.addEventListener('change', function() {
+                hideError();
+                if (!isIndiaSelected()) return;
+                for (let i = 0; i < tags.length; i++) {
+                    const v = validateOperationLocationToken(tags[i]);
+                    if (!v.ok) {
+                        showError(v.message || 'One or more locations are not valid for India. Remove or edit them.');
+                        return;
+                    }
+                }
+            });
+        }
     }
     
     document.addEventListener('DOMContentLoaded', function() {
@@ -1855,6 +2094,57 @@ padding-bottom:0px;
         min-width: 0;
     }
 
+    .operation-locations-chips-field {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        min-height: 38px;
+        height: auto;
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+    .operation-locations-chips-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+    .operation-locations-tag-input {
+        flex: 1 1 140px;
+        min-width: 140px;
+        border: 0 !important;
+        outline: none !important;
+        box-shadow: none !important;
+        padding: 4px 2px;
+        margin: 0;
+        background: transparent;
+    }
+    .operation-location-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 6px 4px 10px;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.2;
+        max-width: 100%;
+    }
+    .operation-location-chip-remove {
+        border: 0;
+        background: transparent;
+        color: #64748b;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0 2px;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .operation-location-chip-remove:hover {
+        color: #b91c1c;
+    }
     .operation-location-suggestions {
         position: relative;
         z-index: 20;

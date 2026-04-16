@@ -818,12 +818,12 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         <label for="modal_offer_badge_select">Offer Badge <span class="text-muted">(Optional)</span></label>
                         <select class="form-control mb-2" id="modal_offer_badge_select">
                             <option value="">Select badge</option>
-                            <option value="Flat 10% Off">Flat 10% Off</option>
-                            <option value="Upto 50% Off">Upto 50% Off</option>
-                            <option value="Starting @ &#8377;99">Starting @ &#8377;99</option>
-                            <option value="Starting @ &#8377;199">Starting @ &#8377;199</option>
-                            <option value="Under &#8377;499">Under &#8377;499</option>
-                            <option value="Under &#8377;999">Under &#8377;999</option>
+                            <option value="Flat 10% Off">Flat 10% Off [Editable]</option>
+                            <option value="Upto 50% Off">Upto 50% Off [Editable]</option>
+                            <option value="Starting @ &#8377;99">Starting @ &#8377;99 [Editable]</option>
+                            <option value="Starting @ &#8377;199">Starting @ &#8377;199 [Editable]</option>
+                            <option value="Under &#8377;499">Under &#8377;499 [Editable]</option>
+                            <option value="Under &#8377;999">Under &#8377;999 [Editable]</option>
                             <option value="Lowest Price">Lowest Price</option>
                             <option value="Special Offer">Special Offer</option>
                             <option value="Limited Time Offer">Limited Time Offer</option>
@@ -846,7 +846,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <option value="Wedding Special">Wedding Special</option>
                             <option value="__custom__">Customize...</option>
                         </select>
-                        <input type="text" class="form-control" id="modal_offer_badge" placeholder="Enter custom badge" maxlength="20" style="display:none;">
+                        <input type="text" class="form-control" id="modal_offer_badge" placeholder="Edit badge text (max 20 characters)" maxlength="20" style="display:none;">
                         <small class="form-text text-muted" id="badge_char_counter_wrap" style="display:none;"><strong id="badge_char_counter">0</strong>/20 characters</small>
                     </div>
 

@@ -37,9 +37,9 @@ $_SESSION['billing_gst_city'] = $gst_city;
 $_SESSION['billing_gst_pincode'] = $gst_pincode;
 $_SESSION['original_amount'] = $recharge_amount;
 
-// Calculate GST (18% for wallet recharge)
+// Wallet recharge is non-taxable (no GST)
 $subtotal = $recharge_amount;
-$igst = round($subtotal * 0.18, 2);
+$igst = 0;
 $final_amount = $subtotal + $igst;
 
 // Update session with calculated amounts

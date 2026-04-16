@@ -260,6 +260,20 @@ if ($is_ajax && (isset($_GET['check_business_name']) || isset($_POST['check_busi
 }
 
 include '../includes/header.php';
+
+$default_business_name = '';
+if (!isset($_GET['card_number']) || empty($_GET['card_number'])) {
+    $default_business_name = trim((string)($_SESSION['user_name'] ?? ''));
+    if ($default_business_name === '' && !empty($_SESSION['user_email'])) {
+        $safe_user_email = mysqli_real_escape_string($connect, (string)$_SESSION['user_email']);
+        $name_query = mysqli_query($connect, "SELECT name FROM user_details WHERE role = 'CUSTOMER' AND email = '$safe_user_email' LIMIT 1");
+        if ($name_query && mysqli_num_rows($name_query) > 0) {
+            $name_row = mysqli_fetch_array($name_query);
+            $default_business_name = trim((string)($name_row['name'] ?? ''));
+        }
+    }
+    $default_business_name = preg_replace('/\s+/', ' ', $default_business_name);
+}
 ?>
 
 <main class="Dashboard">
@@ -388,11 +402,11 @@ include '../includes/header.php';
                     <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="">
                         <div class="form-group top_header_section">
                             <label for="d_display_name">Business Name: <span class="text-danger">*</span></label>
-                            <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" placeholder="Enter Business Name*" required>
+                            <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" placeholder="Enter Business Name*" value="<?php echo htmlspecialchars($default_business_name); ?>" required>
                         </div>
                         <div class="form-group top_header_section">
                             <label for="d_comp_name">Business URL: <span class="text-danger">*</span></label>
-                            <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business URL*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
+                            <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business URL*" value="<?php echo htmlspecialchars($default_business_name); ?>" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                             <div class="business_name_preview mt-2 d-none" aria-live="polite">
                                 <strong>Preview:</strong> <span class="preview_url_text">—</span>
                             </div>

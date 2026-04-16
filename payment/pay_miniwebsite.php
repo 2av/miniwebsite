@@ -523,7 +523,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                     <span style="color: white; flex: 1; font-size: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <strong style="font-size: 15px; display: block; color: white;">Team / referral plan</strong>
+                                <strong style="font-size: 15px; display: block; color: white;">6 Months</strong>
                                 <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 83/month approx..</small>
                             </div>
                             <strong style="font-size: 16px; color: white;">₹ 500</strong>

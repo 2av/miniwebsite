@@ -534,7 +534,10 @@ if ($row) {
                     : $default_image;
                 $mrp = floatval($p['mrp'] ?? 0);
                 $price = floatval($p['selling_price'] ?? 0);
-                if ($mrp <= 0) $mrp = $price;
+                $price_on_request = ($price <= 0);
+                if ($mrp <= 0) {
+                    $mrp = $price;
+                }
                 $products_by_cat[$cat][] = [
                     'name' => htmlspecialchars($p['product_name']),
                     'cat_key' => $cat,
@@ -542,6 +545,7 @@ if ($row) {
                     'image' => $img,
                     'mrp' => $mrp,
                     'price' => $price,
+                    'price_on_request' => $price_on_request,
                     'desc' => htmlspecialchars($p['product_description'] ?? ''),
                 ];
             }
@@ -686,7 +690,10 @@ if ($row) {
                             : $default_image;
                         $mrp = floatval($p['mrp'] ?? 0);
                         $price = floatval($p['selling_price'] ?? 0);
-                        if ($mrp <= 0) $mrp = $price;
+                        $price_on_request = ($price <= 0);
+                        if ($mrp <= 0) {
+                            $mrp = $price;
+                        }
                         $products_by_cat[$cat][] = [
                             'name' => htmlspecialchars($p['product_name']),
                             'cat_key' => $cat,
@@ -694,6 +701,7 @@ if ($row) {
                             'image' => $img,
                             'mrp' => $mrp,
                             'price' => $price,
+                            'price_on_request' => $price_on_request,
                             'desc' => htmlspecialchars($p['product_description'] ?? ''),
                         ];
                     }
@@ -1301,13 +1309,18 @@ if ($row) {
                             <div class="mw-product-desc-full hidden text-xs text-gray-500 mt-2 leading-relaxed"><?php echo !empty($prod['desc']) ? nl2br(htmlspecialchars($prod['desc'])) : 'Contact us for details.'; ?></div>
                             <button type="button" class="mw-product-read-more text-primary text-xs font-medium mt-1 hover:underline">Read more</button>
                             <?php
-                            $mw_has_prod_discount = isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
+                            $mw_price_on_request = !empty($prod['price_on_request']);
+                            $mw_has_prod_discount = !$mw_price_on_request && isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
                             ?>
                             <div class="mw-product-card-prices flex flex-col items-start gap-0.5 mt-2 md:flex-row md:items-center md:gap-2 <?php echo $mw_has_prod_discount ? 'md:justify-between' : ''; ?>">
                                 <?php if ($mw_has_prod_discount): ?>
                                 <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
                                 <?php endif; ?>
+                                <?php if ($mw_price_on_request): ?>
+                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">Call for price</span>
+                                <?php else: ?>
                                 <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">₹<?php echo number_format($prod['price']); ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -1586,7 +1599,7 @@ if ($row) {
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="js/app.js?v=13"></script>
+<script src="js/app.js?v=14"></script>
 
 </body>
 </html>
