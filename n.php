@@ -787,10 +787,18 @@ if ($row) {
             $logo_path = 'assets/upload/websites/company_details/' . $logo_path;
         }
         $logo_relative = ltrim(preg_replace('#^\.\./+#', '', $logo_path), '/');
+    } elseif (!empty($row['d_profile_image'])) {
+        $logo_relative = ltrim(preg_replace('#^\.\./+#', '', (string) $row['d_profile_image']), '/');
+    } elseif (!empty($hero_logo) && strpos((string) $hero_logo, 'data:') !== 0) {
+        $logo_relative = ltrim(preg_replace('#^\.\./+#', '', (string) $hero_logo), '/');
     }
     $logo_url = '';
     if ($logo_relative !== '') {
-        $logo_url = rtrim($base_url, '/') . '/' . $logo_relative;
+        if (preg_match('#^https?://#i', $logo_relative)) {
+            $logo_url = $logo_relative;
+        } else {
+            $logo_url = rtrim($base_url, '/') . '/' . $logo_relative;
+        }
     }
     $raw_map = trim((string) ($row['d_location'] ?? ''));
     if ($raw_map === '') {
