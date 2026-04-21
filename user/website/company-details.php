@@ -501,8 +501,8 @@ if(isset($_POST['process2'])){
         ensurePreviousSlugMetaColumns($connect);
 
         // Sanitize new fields (fall back to empty string when not provided) - now storing as ID
-        $d_position_primary = isset($_POST['d_position_primary']) && !empty($_POST['d_position_primary']) ? intval($_POST['d_position_primary']) : '';
-        $d_position_secondary = isset($_POST['d_position_secondary']) && !empty($_POST['d_position_secondary']) ? intval($_POST['d_position_secondary']) : '';
+        $d_position_primary = (isset($_POST['d_position_primary']) && $_POST['d_position_primary'] !== '') ? intval($_POST['d_position_primary']) : null;
+        $d_position_secondary = (isset($_POST['d_position_secondary']) && $_POST['d_position_secondary'] !== '') ? intval($_POST['d_position_secondary']) : null;
         $d_city = isset($_POST['d_city']) ? mysqli_real_escape_string($connect, $_POST['d_city']) : '';
         $d_state = isset($_POST['d_state']) ? mysqli_real_escape_string($connect, $_POST['d_state']) : '';
         $d_pincode = isset($_POST['d_pincode']) ? mysqli_real_escape_string($connect, $_POST['d_pincode']) : '';
@@ -570,11 +570,13 @@ if(isset($_POST['process2'])){
             $error_message = '<div class="alert alert-danger">' . htmlspecialchars($form_validation_error) . '</div>';
             $update = false;
         } else {
+            $d_position_primary_sql = ($d_position_primary === null) ? 'NULL' : (string)$d_position_primary;
+            $d_position_secondary_sql = ($d_position_secondary === null) ? 'NULL' : (string)$d_position_secondary;
             $update = mysqli_query($connect, 'UPDATE digi_card SET 
         d_f_name="'.mysqli_real_escape_string($connect, $_POST['d_f_name']).'",
         d_l_name="'.mysqli_real_escape_string($connect, $_POST['d_l_name']).'",
-        d_position_primary="'.$d_position_primary.'",
-        d_position_secondary="'.$d_position_secondary.'",
+        d_position_primary='.$d_position_primary_sql.',
+        d_position_secondary='.$d_position_secondary_sql.',
         d_position="'.(isset($_POST['d_position']) ? mysqli_real_escape_string($connect, $_POST['d_position']) : $d_position_primary).'",
         d_contact="'.mysqli_real_escape_string($connect, $_POST['d_contact']).'",
         d_contact2="'.mysqli_real_escape_string($connect, $_POST['d_contact2']).'",
@@ -627,7 +629,7 @@ if(isset($_POST['process2'])){
                 exit;
             }
         } elseif ($form_validation_error === '') {
-            $_SESSION['save_error'] = "Error! Try Again.";
+            $_SESSION['save_error'] = "Error! Try Again. " . mysqli_error($connect);
             // If headers already sent, fall through and show page with existing $row
             if (!headers_sent()) {
                 header('Location: company-details.php?card_number='.$_SESSION['card_id_inprocess']);
@@ -926,7 +928,7 @@ include '../includes/header.php';
                                     </div>
                                     <input type="hidden" name="d_business_operation_locations" id="d_business_operation_locations" maxlength="2000" value="<?php echo isset($cardRow['d_business_operation_locations']) && $cardRow['d_business_operation_locations'] !== '' ? htmlspecialchars($cardRow['d_business_operation_locations']) : ''; ?>">
                                     <div id="operation-location-suggestions" class="operation-location-suggestions" style="display:none;"></div>
-                                    <small id="operation_locations_help" class="form-text text-muted">You can choose up to 6 Cities or States of India where you serve. Press comma or Enter after each entry. When country is India, use a state/UT name or <strong>City, State</strong> with a recognised state (e.g. Mumbai, Maharashtra). Combinations with an invalid state name are not accepted.</small>
+                                    <small id="operation_locations_help" class="form-text text-muted">You can choose up to 6 Cities or States of India where you serve. Select entries only from the suggestions list. When country is India, use a state/UT name or <strong>City, State</strong> with a recognised state (e.g. Mumbai, Maharashtra). Combinations with an invalid state name are not accepted.</small>
                                     <div id="operation_locations_client_error" class="text-danger small mt-1" style="display:none;" role="alert"></div>
                                 </div>
                             </div>
@@ -1009,9 +1011,10 @@ include '../includes/header.php';
                             <div class="col-sm-3">
                                 <div class="form-group">
                                     <label for="d_country">Country <span class="text-danger">*</span></label>
-                                    <select name="d_country" id="d_country" class="form-control" required data-saved="<?php echo !empty($cardRow['d_country']) ? htmlspecialchars($cardRow['d_country']) : ''; ?>">
-                                        <option value="">Select Country</option>
+                                    <select id="d_country" class="form-control" required data-saved="India" disabled>
+                                        <option value="India" selected>India</option>
                                     </select>
+                                    <input type="hidden" name="d_country" id="d_country_hidden" value="India">
                                 </div>
                             </div>
                             <div class="col-sm-3">
@@ -1249,9 +1252,10 @@ if (file_exists($mw_isp_path)) {
     let countriesData = [];
     let currentStates = [];
     let currentCities = [];
+    let allIndiaCities = [];
     
     // Get saved values from database (if any)
-    const savedCountry = document.getElementById('d_country').getAttribute('data-saved') || '';
+    const savedCountry = 'India';
     const savedState = document.getElementById('d_state').getAttribute('data-saved') || '';
     const savedCity = document.getElementById('d_city').getAttribute('data-saved') || '';
     
@@ -1267,35 +1271,23 @@ if (file_exists($mw_isp_path)) {
     
     async function fetchCountries() {
         try {
-            showLoading('d_country');
-            const response = await fetch(API_BASE);
-            const result = await response.json();
-            
-            if (result && result.data && Array.isArray(result.data) && result.data.length > 0) {
-                countriesData = result.data;
-                const countrySelect = document.getElementById('d_country');
-                countrySelect.innerHTML = '<option value="">Select Country</option>';
-                
-                result.data.forEach(country => {
-                    const option = document.createElement('option');
-                    option.value = country.country;
-                    option.textContent = country.country;
-                    countrySelect.appendChild(option);
-                });
-                
-                countrySelect.disabled = false;
-                
-                // Auto-select saved country if exists
-                if (savedCountry) {
-                    countrySelect.value = savedCountry;
-                    await fetchStates(savedCountry);
-                }
-            } else {
-                showError('d_country');
-            }
+            const countrySelect = document.getElementById('d_country');
+            countrySelect.innerHTML = '<option value="India" selected>India</option>';
+            countrySelect.value = 'India';
+            countrySelect.disabled = true;
+            const countryHidden = document.getElementById('d_country_hidden');
+            if (countryHidden) countryHidden.value = 'India';
+            countriesData = [{ country: 'India' }];
+            await fetchStates('India');
         } catch (error) {
             console.error('Error fetching countries:', error);
-            showError('d_country');
+            const countrySelect = document.getElementById('d_country');
+            countrySelect.innerHTML = '<option value="India" selected>India</option>';
+            countrySelect.value = 'India';
+            countrySelect.disabled = true;
+            const countryHidden = document.getElementById('d_country_hidden');
+            if (countryHidden) countryHidden.value = 'India';
+            await fetchStates('India');
         }
     }
     
@@ -1396,6 +1388,49 @@ if (file_exists($mw_isp_path)) {
         }
     }
 
+    async function fetchAllIndiaCities() {
+        try {
+            const response = await fetch(API_BASE + '/cities', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ country: 'India' })
+            });
+            const data = await response.json();
+            if (data && Array.isArray(data.data)) {
+                allIndiaCities = data.data.map(function(item) {
+                    if (typeof item === 'string') return item;
+                    if (item && typeof item.city === 'string') return item.city;
+                    if (item && typeof item.name === 'string') return item.name;
+                    return '';
+                }).filter(function(city) {
+                    return city && city.trim() !== '';
+                });
+            } else {
+                allIndiaCities = [];
+            }
+        } catch (error) {
+            console.error('Error fetching all India cities:', error);
+            allIndiaCities = [];
+        }
+    }
+
+    const DEFAULT_INDIA_STATE_NAMES = [
+        'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
+        'Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh',
+        'Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan',
+        'Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
+        'Andaman and Nicobar Islands','Chandigarh','Dadra and Nagar Haveli and Daman and Diu',
+        'Delhi','Jammu and Kashmir','Ladakh','Lakshadweep','Puducherry'
+    ];
+
+    function getIndiaStateNamesForSuggestions() {
+        const fromWindow = Array.isArray(window.MW_INDIA_STATE_NAMES) ? window.MW_INDIA_STATE_NAMES : [];
+        if (fromWindow.length) return fromWindow;
+        return DEFAULT_INDIA_STATE_NAMES;
+    }
+
     function buildIndiaOperationLookup(names) {
         const lookup = {};
         (names || []).forEach(function(n) {
@@ -1416,7 +1451,8 @@ if (file_exists($mw_isp_path)) {
         return lookup;
     }
 
-    const indiaStateLookup = buildIndiaOperationLookup(window.MW_INDIA_STATE_NAMES || []);
+    const indiaStateNames = getIndiaStateNamesForSuggestions();
+    const indiaStateLookup = buildIndiaOperationLookup(indiaStateNames);
 
     function isIndiaSelected() {
         const c = document.getElementById('d_country');
@@ -1451,7 +1487,6 @@ if (file_exists($mw_isp_path)) {
 
     function getOperationSuggestions(term) {
         const q = (term || '').trim().toLowerCase();
-        if (!q) return [];
         const merged = [];
         const seen = {};
         currentStates.forEach(function(s) {
@@ -1466,6 +1501,21 @@ if (file_exists($mw_isp_path)) {
                 merged.push({ label: c + ' (City)', value: c });
             }
         });
+        allIndiaCities.forEach(function(c) {
+            if (!seen[c]) {
+                seen[c] = true;
+                merged.push({ label: c + ' (City)', value: c });
+            }
+        });
+        if (isIndiaSelected()) {
+            indiaStateNames.forEach(function(s) {
+                if (!seen[s]) {
+                    seen[s] = true;
+                    merged.push({ label: s + ' (State)', value: s });
+                }
+            });
+        }
+        if (!q) return merged.slice(0, 12);
         return merged.filter(function(item) {
             return item.value.toLowerCase().indexOf(q) !== -1;
         }).slice(0, 12);
@@ -1496,6 +1546,7 @@ if (file_exists($mw_isp_path)) {
         }
 
         let tags = [];
+        let selectedSuggestionValue = '';
 
         function parseHiddenToTags() {
             const raw = (hidden.value || '').trim();
@@ -1565,6 +1616,10 @@ if (file_exists($mw_isp_path)) {
                     return true;
                 }
             }
+            if (selectedSuggestionValue !== token) {
+                showError('Please select a city/state from the suggestions only.');
+                return false;
+            }
             const v = validateOperationLocationToken(token);
             if (!v.ok) {
                 showError(v.message || 'This entry is not accepted.');
@@ -1572,6 +1627,7 @@ if (file_exists($mw_isp_path)) {
             }
             tags.push(token);
             tagInput.value = '';
+            selectedSuggestionValue = '';
             renderChips();
             syncHidden();
             hideBox();
@@ -1613,6 +1669,7 @@ if (file_exists($mw_isp_path)) {
                         syncHidden();
                     }
                     tagInput.value = '';
+                    selectedSuggestionValue = '';
                     hideBox();
                     tagInput.focus();
                 });
@@ -1644,6 +1701,9 @@ if (file_exists($mw_isp_path)) {
 
         tagInput.addEventListener('input', renderSuggestions);
         tagInput.addEventListener('focus', renderSuggestions);
+        tagInput.addEventListener('input', function() {
+            selectedSuggestionValue = '';
+        });
         tagInput.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 hideBox();
@@ -1668,6 +1728,16 @@ if (file_exists($mw_isp_path)) {
         });
         tagInput.addEventListener('blur', function() {
             setTimeout(hideBox, 150);
+        });
+
+        box.addEventListener('mousedown', function(e) {
+            const target = e.target.closest('.operation-location-option');
+            if (!target) return;
+            const text = (target.textContent || '').trim();
+            const idx = text.lastIndexOf(' (');
+            const value = idx > -1 ? text.substring(0, idx).trim() : text;
+            selectedSuggestionValue = value;
+            tagInput.value = value;
         });
 
         document.addEventListener('click', function(e) {
@@ -1696,6 +1766,7 @@ if (file_exists($mw_isp_path)) {
     document.addEventListener('DOMContentLoaded', function() {
         // Fetch countries on page load
         fetchCountries();
+        fetchAllIndiaCities();
         initOperationLocationAutocomplete();
         
         // Handle country selection change

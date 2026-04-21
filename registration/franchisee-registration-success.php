@@ -51,7 +51,7 @@ unset($_SESSION['registration_success']);
         <p>You can now log in with your email and password.</p>
         <div class="countdown" id="countdown">3</div>
         <p>Redirecting to franchisee login page...</p>
-        <a href="../franchisee-login/login.php" class="btn btn-primary">Go to Franchisee Login Now</a>
+        <a href="../login/franchisee.php" class="btn btn-primary">Go to Franchisee Login Now</a>
     </div>
 
     <script>
@@ -65,7 +65,22 @@ unset($_SESSION['registration_success']);
             
             if (seconds <= 0) {
                 clearInterval(countdownTimer);
-                window.location.href = '../franchisee-login/login.php';
+                $base_path = get_base_path();
+            
+            // Build absolute URL for redirect - using /user/dashboard as that's the actual path
+            // If /customer/dashboard is needed, create a symlink or .htaccess rewrite
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'];
+            $redirect_url = $protocol . $host . $base_path . '/login/franchisee.php';
+            
+            // Clear all output buffers and redirect
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            
+            // Redirect to customer dashboard
+            header('Location: ' . $redirect_url);
+            exit();
             }
         }, 1000);
     </script>

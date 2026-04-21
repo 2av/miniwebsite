@@ -3,7 +3,8 @@ include_once('header.php');
 
 // Include PHPMailer and email configuration
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once(__DIR__ . '/../app/config/email.php');';
+require_once(__DIR__ . '/../app/config/email.php');
+require_once __DIR__ . '/../common/mailtemplate/franchisee_email_templates.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -27,30 +28,9 @@ function sendVerificationEmail($user_email, $action, $remarks = '') {
         // Use default name if query fails
     }
     
-    $subject = "MiniWebsite.in – Document verification";
-    
-    if($action == 'approve') {
-        // Approved email template
-        $message = "Hi " . $franchisee_name . ",<br><br>";
-        $message .= "Thank you for registering as a franchisee with MiniWebsite.in.<br><br>";
-        $message .= "Congratulation! The verification documents are approved by Miniwebsite Team.<br>";
-        $message .= "You can access your Franchisee Kit from your Dashboard and start your business immediately.<br><br>";
-        $message .= "If you have any questions or need assistance, feel free to reach out to our support team.<br><br>";
-        $message .= "Best regards,<br>";
-        $message .= "Team MiniWebsite.in<br>";
-        $message .= "www.miniwebsite.in";
-    } else {
-        // Rejected email template
-        $message = "Hi " . $franchisee_name . ",<br><br>";
-        $message .= "Thank you for registering as a franchisee with MiniWebsite.in.<br><br>";
-        $message .= "The documents uploaded for verification is not approved by Miniwebsite Team.<br><br>";
-        $message .= "Please check the reason:<br>";
-        $message .= (!empty($remarks) ? $remarks : "Please upload clear and valid documents.") . "<br><br>";
-        $message .= "If you have any questions or need assistance, feel free to reach out to our support team.<br><br>";
-        $message .= "Best regards,<br>";
-        $message .= "Team MiniWebsite.in<br>";
-        $message .= "www.miniwebsite.in";
-    }
+    $email_template = buildFranchiseeVerificationEmail($franchisee_name, $action, $remarks);
+    $subject = $email_template['subject'];
+    $message = $email_template['message'];
     
     try {
         // Create a new PHPMailer instance

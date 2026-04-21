@@ -21,6 +21,7 @@ foreach ($autoloadCandidates as $autoloadPath) {
     }
 }
 require_once(__DIR__ . '/../app/config/email.php');
+require_once(__DIR__ . '/../common/mailtemplate/franchisee_email_templates.php');
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -229,41 +230,12 @@ if(isset($_POST['process1'])){
 				$user_email = $_POST['f_user_email'];
 				$user_name = $_POST['f_user_email']; // Using email as name since name is not collected in this form
 				
-				$subject = "Welcome to MiniWebsite.in – Your Franchisee Account is Ready!";
-				$message = '
-					<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-						<p style="color: #333; font-size: 16px; line-height: 1.6;">Hi <strong>' . htmlspecialchars($user_name) . '</strong>,</p>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;">Thank you for registering as a franchisee with MiniWebsite.in.</p>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;">We are excited to have you on board! Your franchisee account has been successfully created. You can now log in using your email and password at the link below:</p>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;">👉 <a href="https://' . $_SERVER['HTTP_HOST'] . '/panel/franchisee-login/login.php" style="color: #007bff; text-decoration: none;">(Franchisee Login details)</a></p>
-						
-						<br><br>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>Follow these simple steps to activate your franchise:</strong></p>
-                
-						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>1. Pay the One-Time Franchise Fee (Non-Refundable)</strong><br>
-						Amount: ₹30,000 + 18% GST = ₹35,400<br>
-						<a href="https://' . $_SERVER['HTTP_HOST'] . '/franchise_agreement.php?email=' . urlencode($user_email) . '" style="color: #007bff; text-decoration: none;">(Click to Pay)</a></p>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>2. After payment, complete your document Verification from your Dashboard.</strong></p>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;"><strong>3. After the documents get verified, you can access your Marketing Kit and Onboarding Material from your dashboard only.</strong></p>
-						
-						<br>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;">That\'s it! Once these steps are completed, you are officially part of the MiniWebsite.in franchise network. You can begin building your business and start earning right away.</p>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;">If you have any questions or need assistance, feel free to reach out to our support team.</p>
-						
-						<br>
-						
-						<p style="color: #333; font-size: 16px; line-height: 1.6;">Best regards,<br>
-						Team MiniWebsite.in<br>
-						www.miniwebsite.in</p>
-					</div>';
+				$email_template = buildFranchiseeWelcomeEmail($user_name, $user_email, $f_user_password_raw, [
+					'include_payment_step' => true,
+					'compact_login_block' => true,
+				]);
+				$subject = $email_template['subject'];
+				$message = $email_template['message'];
 
 					$email_sent = sendEmail($user_email, $subject, $message, $user_name);
 					

@@ -240,6 +240,20 @@ if ($connect) {
             box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
         }
 
+        .billing-input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .billing-input-uppercase {
+            text-transform: uppercase;
+        }
+
         .payment-layout {
             display: flex;
             gap: 12px;
@@ -270,7 +284,7 @@ if ($connect) {
             border: 2px solid #d5dbe7;
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            margin-bottom: 14px;
+            margin-bottom: 35px;
             transition: all 0.2s ease;
             cursor: pointer;
         }
@@ -281,7 +295,7 @@ if ($connect) {
         }
 
         .plan-card-header {
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 700;
             color: #ffffff;
             text-align: center;
@@ -303,18 +317,18 @@ if ($connect) {
 
         .plan-price {
             text-align: center;
-            font-size: 50px;
-            font-weight: 800;
-            margin: 8px 0 4px 0;
-            color: #111;
-            line-height: 1;
+    font-size: 35px;
+    font-weight: 600;
+    margin: 8px 0 4px 0;
+    color: #111;
+    line-height: 1;
         }
 
         .plan-subtext {
             text-align: center;
             color: #333;
             margin-bottom: 10px;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .plan-features {
@@ -324,7 +338,7 @@ if ($connect) {
         }
 
         .plan-features li {
-            font-size: 14px;
+            font-size: 16px;
             margin: 8px 0;
             color: #202124;
             position: relative;
@@ -345,7 +359,7 @@ if ($connect) {
             border: none;
             border-radius: 8px;
             padding: 11px;
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -418,35 +432,45 @@ if ($connect) {
             </div>
         </div>
     </div>
-    <div style="max-width: 450px; margin: 0 auto; background: #002169; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <div style="    max-width: 350px;
+    margin: 0 auto;
+    background: #002169;
+    padding: 20px;
+    padding-top: 0px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);">
         <h4 style="color: white; text-align: center; margin-bottom: 10px; font-size: 20px; font-weight: 600;">Billing/GST Details</h4>
         
-        <!-- Add the line below header -->
-        <div style="width: 35%; height: 2px; background: #ffc107; margin: 0 auto 25px auto; border-radius: 1px;"></div>
-        
+         
         <form id="franchisePaymentForm" action="payment/pay.php" method="POST">
-            <input type="text" name="gst_number" placeholder="Enter GST Number (Optional)" style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; text-transform: uppercase;">
+            <input type="text" name="gst_number" placeholder="Enter GST Number (Optional)" class="billing-input billing-input-uppercase">
+            <input type="text" name="name" placeholder="Name" required class="billing-input">
             
-            <input type="text" name="name" placeholder="Name" required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            
+            <div style="display: flex; gap: 15px;">
+           
             <input type="email" name="email" placeholder="Email Address" 
                    value="<?php echo !empty($prefill_email) ? htmlspecialchars($prefill_email) : ''; ?>" 
                    <?php echo !empty($prefill_email) ? 'readonly' : ''; ?> 
-                   required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                  required class="billing-input">
+                  <input type="tel" name="contact" placeholder="Contact Number" required class="billing-input">
             
-            <input type="tel" name="contact" placeholder="Contact Number" required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <input type="text" name="address" placeholder="Address" required class="billing-input">
+                <input type="text" name="city" placeholder="City" required class="billing-input">
             
-            <input type="text" name="address" placeholder="Address" required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            
-            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                <input type="text" name="state" placeholder="State" required style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-                <input type="text" name="city" placeholder="City" required style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
             </div>
             
-            <input type="text" name="pincode" placeholder="Pin Code" required style="width: 100%; padding: 12px 15px; margin-bottom: 25px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
             
+            <div style="display: flex; gap: 15px;">
+                <input type="text" name="state" placeholder="State" required class="billing-input">
+                <input type="text" name="pincode" placeholder="Pin Code" required class="billing-input">
+                
+            </div>
+            
+             
                          <!-- Promo Code Section -->
-             <div style="margin: 20px 0; color: white; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+             <div style="color: white; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
                 <div class="calculation-display" style="margin-bottom: 10px;">
                     <table style="width: 100%; color: white; font-size: 16px;">
                         <tr>
