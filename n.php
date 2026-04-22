@@ -387,6 +387,64 @@ if ($mw_card_not_found) {
     exit;
 }
 
+/** Card expiry check (based on digi_card.validity_date). */
+$mw_card_expired = false;
+$mw_card_expiry_text = '';
+if ($row) {
+    $mw_validity_raw = trim((string) ($row['validity_date'] ?? ''));
+    if ($mw_validity_raw !== '' && $mw_validity_raw !== '0000-00-00 00:00:00' && $mw_validity_raw !== '0000-00-00') {
+        $mw_validity_ts = strtotime($mw_validity_raw);
+        if ($mw_validity_ts !== false && $mw_validity_ts < time()) {
+            $mw_card_expired = true;
+            $mw_card_expiry_text = date('d M Y', $mw_validity_ts);
+        }
+    }
+}
+
+if ($mw_card_expired) {
+    header('Content-Type: text/html; charset=UTF-8');
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniWebsite Expired</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --mw-primary-color: #14b8a6;
+            --mw-bg: #0f172a;
+            --mw-card: #111827;
+            --mw-text: #e5e7eb;
+            --mw-muted: #9ca3af;
+        }
+        body { font-family: Inter, system-ui, sans-serif; }
+    </style>
+</head>
+<body class="min-h-screen bg-[var(--mw-bg)] text-[var(--mw-text)] flex items-center justify-center p-6">
+    <div class="w-full max-w-xl rounded-2xl border border-white/10 bg-[var(--mw-card)] shadow-2xl p-8 md:p-10 text-center">
+        <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-300">
+            <i class="fas fa-calendar-xmark text-2xl"></i>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">MiniWebsite is expired</h1>
+        <p class="mt-3 text-sm md:text-base text-[var(--mw-muted)]">
+            This miniwebsite has reached its validity end date and is no longer available.
+        </p>
+        <?php if ($mw_card_expiry_text !== ''): ?>
+        <p class="mt-4 inline-flex items-center rounded-full border border-red-300/30 bg-red-500/10 px-4 py-1.5 text-sm text-red-200">
+            Expired on: <?php echo htmlspecialchars($mw_card_expiry_text, ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+        <?php endif; ?>
+    </div>
+</body>
+</html>
+<?php
+    exit;
+}
+
 // Build data arrays (from DB or demo fallback)
 if ($row) {
     $card_db_id = intval($row['id']);
@@ -746,6 +804,14 @@ function mw_vcard_resolve_business_category_name($connect, $category_id, $user_i
             return $name;
         }
     }
+    // Fallback for older rows where category_type may be empty/missing.
+    $q_fallback = @mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id='$id_esc' AND is_active=1 LIMIT 1");
+    if ($q_fallback && ($r_fb = mysqli_fetch_assoc($q_fallback))) {
+        $name_fb = trim((string) ($r_fb['category_name'] ?? ''));
+        if ($name_fb !== '') {
+            return $name_fb;
+        }
+    }
     $uid = intval($user_id);
     if ($uid <= 0) {
         return '';
@@ -753,7 +819,14 @@ function mw_vcard_resolve_business_category_name($connect, $category_id, $user_i
     $uid_esc = mysqli_real_escape_string($connect, (string) $uid);
     $q2 = @mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id='$id_esc' AND user_id='$uid_esc' AND category_type='business-category' AND is_active=1 LIMIT 1");
     if ($q2 && ($r2 = mysqli_fetch_assoc($q2))) {
-        return trim((string) ($r2['category_name'] ?? ''));
+        $name2 = trim((string) ($r2['category_name'] ?? ''));
+        if ($name2 !== '') {
+            return $name2;
+        }
+    }
+    $q2_fallback = @mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id='$id_esc' AND user_id='$uid_esc' AND is_active=1 LIMIT 1");
+    if ($q2_fallback && ($r2_fb = mysqli_fetch_assoc($q2_fallback))) {
+        return trim((string) ($r2_fb['category_name'] ?? ''));
     }
     return '';
 }
@@ -849,6 +922,7 @@ if ($row) {
     $mw_vcard = [
         'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
         'org' => $raw_org,
+        'title' => $bc_pri,
         'businessCategory' => $business_category,
         'telCell' => $tel_cell,
         'telWhatsapp' => $tel_wa,
@@ -876,6 +950,7 @@ if ($row) {
     $mw_vcard = [
         'fn' => 'Olivia Murray',
         'org' => 'Olivia Culinary',
+        'title' => '',
         'businessCategory' => '',
         'telCell' => preg_replace('/[^0-9+]/', '', $phone),
         'telWhatsapp' => preg_replace('/[^0-9+]/', '', $whatsapp),
@@ -1601,7 +1676,7 @@ if ($row) {
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="theme/js/app.js?v=14"></script>
+<script src="theme/js/app.js?v=15"></script>
 
 </body>
 </html>

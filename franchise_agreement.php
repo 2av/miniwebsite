@@ -390,19 +390,17 @@ if ($connect) {
         </div>
         
 
-<!-- Add Agreement Button -->
-<div style="text-align: center; margin: 30px 0;">
-    <button id="agreeButton" style="background: #002169; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer;">
-        AGREE & CONTINUE
-    </button>
-    <p style="font-size: 14px; color: #666; margin-top: 10px;">
-    Press "Agree & Continue", if you want to proceed with the payment.
-    </p>
-</div>
-
-<!-- Payment Form (Initially Hidden) -->
-<div id="paymentSection" style="display: none; margin-top: 40px; padding: 30px 20px; background: #f8f9fa; border-radius: 15px;">
-    <h3 style="text-align: center; color: #002169; margin-bottom: 15px; font-size: 24px; font-weight: 600;">Franchise Registration Payment</h3>    
+<!-- Payment Form -->
+<div id="paymentSection" style="margin-top: 40px; padding: 30px 20px; background: #f8f9fa; border-radius: 15px;">
+    <h3 style="text-align: center; color: #002169; margin-bottom: 8px; font-size: 24px; font-weight: 600;">Franchise Registration Payment</h3>
+    <div style="text-align: center; margin-bottom: 15px;">
+        <p style="margin: 0 0 6px 0; color: #4b5563; font-size: 14px; font-weight: 500;">
+            Choose your plan &amp; start your MiniWebsite franchise journey
+        </p>
+        <div style="display: inline-block; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 999px; padding: 5px 12px; color: #6b7280; font-size: 12px; font-weight: 600;">
+            Trusted by 1000+ Partners Across India
+        </div>
+    </div>
     <div class="payment-layout">
     <div class="plan-panel">
         <div class="plan-card" id="starterPlanCard" data-plan="starter">
@@ -585,86 +583,63 @@ if ($connect) {
             <button type="submit" style="width: 100%; background: #ffc107; color: #000; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px;">
                 PROCEED TO PAY
             </button>
+           
         </form>
+        
     </div>
+    
 </div>
+<p style="margin: 10px 0 0; font-size: 15px; color: #374151; text-align: center;">
+                By proceeding you agree to our Terms &amp; condition 
+            </p>
 </div>
 
 
 <script>
-document.getElementById('agreeButton').addEventListener('click', function() {
-    // Hide the agreement button
-    this.style.display = 'none';
-    
-    // Show the payment section
-    document.getElementById('paymentSection').style.display = 'block';
-    
-    // Auto-fill form fields if user data is available
-    <?php if ($user_data): ?>
-    const form = document.getElementById('franchisePaymentForm');
-    if (form) {
-        <?php if (!empty($user_data['gst_number'])): ?>
-        form.querySelector('input[name="gst_number"]').value = '<?php echo addslashes($user_data['gst_number']); ?>';
-        <?php endif; ?>
-        
-        <?php if (!empty($user_data['name'])): ?>
-        form.querySelector('input[name="name"]').value = '<?php echo addslashes($user_data['name']); ?>';
-        <?php endif; ?>
-        
-        <?php if (!empty($user_data['email'])): ?>
-        const emailInput = form.querySelector('input[name="email"]');
-        emailInput.value = '<?php echo addslashes($user_data['email']); ?>';
-        emailInput.setAttribute('readonly', true);
-        <?php endif; ?>
-        
-        <?php if (!empty($user_data['contact'])): ?>
-        form.querySelector('input[name="contact"]').value = '<?php echo addslashes($user_data['contact']); ?>';
-        <?php endif; ?>
-        
-        <?php if (!empty($user_data['address'])): ?>
-        form.querySelector('input[name="address"]').value = '<?php echo addslashes($user_data['address']); ?>';
-        <?php endif; ?>
-        
-        <?php if (!empty($user_data['state'])): ?>
-        form.querySelector('input[name="state"]').value = '<?php echo addslashes($user_data['state']); ?>';
-        <?php endif; ?>
-        
-        <?php if (!empty($user_data['city'])): ?>
-        form.querySelector('input[name="city"]').value = '<?php echo addslashes($user_data['city']); ?>';
-        <?php endif; ?>
-        
-        <?php if (!empty($user_data['pincode'])): ?>
-        form.querySelector('input[name="pincode"]').value = '<?php echo addslashes($user_data['pincode']); ?>';
-        <?php endif; ?>
-    }
-    <?php elseif (!empty($prefill_email)): ?>
-    // If no user data found, at least fill the email
-    document.querySelector('input[name="email"]').value = '<?php echo $prefill_email; ?>';
-    <?php endif; ?>
-    
-    // Scroll to payment section
-    document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth' });
-});
-
-    // Also auto-fill on page load if payment section is already visible
     document.addEventListener('DOMContentLoaded', function() {
+        // Auto-fill form fields on load
         <?php if ($user_data): ?>
         const form = document.getElementById('franchisePaymentForm');
         if (form) {
+            <?php if (!empty($user_data['gst_number'])): ?>
+            form.querySelector('input[name="gst_number"]').value = '<?php echo addslashes($user_data['gst_number']); ?>';
+            <?php endif; ?>
+            
+            <?php if (!empty($user_data['name'])): ?>
+            form.querySelector('input[name="name"]').value = '<?php echo addslashes($user_data['name']); ?>';
+            <?php endif; ?>
+            
             <?php if (!empty($user_data['email'])): ?>
             const emailInput = form.querySelector('input[name="email"]');
-            if (emailInput) {
-                emailInput.value = '<?php echo addslashes($user_data['email']); ?>';
-            }
+            emailInput.value = '<?php echo addslashes($user_data['email']); ?>';
+            emailInput.setAttribute('readonly', true);
+            <?php endif; ?>
+            
+            <?php if (!empty($user_data['contact'])): ?>
+            form.querySelector('input[name="contact"]').value = '<?php echo addslashes($user_data['contact']); ?>';
+            <?php endif; ?>
+            
+            <?php if (!empty($user_data['address'])): ?>
+            form.querySelector('input[name="address"]').value = '<?php echo addslashes($user_data['address']); ?>';
+            <?php endif; ?>
+            
+            <?php if (!empty($user_data['state'])): ?>
+            form.querySelector('input[name="state"]').value = '<?php echo addslashes($user_data['state']); ?>';
+            <?php endif; ?>
+            
+            <?php if (!empty($user_data['city'])): ?>
+            form.querySelector('input[name="city"]').value = '<?php echo addslashes($user_data['city']); ?>';
+            <?php endif; ?>
+            
+            <?php if (!empty($user_data['pincode'])): ?>
+            form.querySelector('input[name="pincode"]').value = '<?php echo addslashes($user_data['pincode']); ?>';
             <?php endif; ?>
         }
         <?php elseif (!empty($prefill_email)): ?>
-        const emailInput = document.querySelector('input[name="email"]');
-        if (emailInput) {
-            emailInput.value = '<?php echo $prefill_email; ?>';
-        }
+        // If no user data found, at least fill the email
+        document.querySelector('input[name="email"]').value = '<?php echo $prefill_email; ?>';
         <?php endif; ?>
-        
+
         // Initialize promo code functionality
         initializePromoCode();
         

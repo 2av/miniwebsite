@@ -564,10 +564,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                 </label>
                 
                 <!-- 2 Years (BEST VALUE) -->
-                <label class="plan-label" id="label_2year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; cursor: pointer;">
-                    <div style="position: absolute; top: 9px; right: 85px; background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
-                        <span style="font-size: 14px;">⭐</span> BEST VALUE
-                    </div>
+                <label class="plan-label" id="label_2year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
                     <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1500"
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
@@ -575,6 +572,9 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                             <div>
                                 <strong style="font-size: 15px; display: block; color: #FF9800;">2 Years</strong>
                                 <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 63/month approx..</small>
+                                <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                                    <span style="font-size: 14px;">⭐</span> BEST VALUE
+                                </div>
                                 <div style="margin-top: 5px;">
                                     <small style="font-weight: normal; opacity: 0.8; color: #90EE90; display: block;">✓ Save 11% compared to 1 year</small>
                                     </div>
@@ -585,10 +585,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                 </label>
                 
                 <!-- Plan 3: 3 Years (MAXIMUM SAVINGS) -->
-                <label class="plan-label" id="label_3year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; cursor: pointer;">
-                    <div style="position: absolute; top: 9px; right: 85px; background: #FF9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
-                        <span style="font-size: 14px;">⭐</span> MAXIMUM SAVINGS
-                    </div>
+                <label class="plan-label" id="label_3year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
                     <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2100"
                            style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
                     <span style="color: white; flex: 1; font-size: 14px;">
@@ -596,6 +593,9 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
                             <div>
                                 <strong style="font-size: 15px; display: block; color: white;">3 Years</strong>
                                 <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 58/month approx..</small>
+                                <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; background: #FF9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                                    <span style="font-size: 14px;">⭐</span> MAXIMUM SAVINGS
+                                </div>
                             </div>
                             <strong style="font-size: 16px; color: white;">₹ 2,100</strong>
                         </div>

@@ -602,6 +602,7 @@ Thanks a lot for your support \u{1F64F}`;
         const e = escapeVcardValue;
         const fn = e(v.fn || '');
         const org = e(v.org || '');
+        const title = e(String(v.title || v.businessCategory || '').trim());
         const businessCategory = e(String(v.businessCategory || '').trim());
         const cell = String(v.telCell || '').replace(/\s/g, '');
         const wa = String(v.telWhatsapp || '').replace(/\s/g, '');
@@ -614,12 +615,12 @@ Thanks a lot for your support \u{1F64F}`;
         const logoUrl = String(v.logoUrl || '').trim();
         const social = v.social && typeof v.social === 'object' ? v.social : {};
         const socialMap = [
-            { key: 'facebook', type: 'facebook' },
-            { key: 'instagram', type: 'instagram' },
-            { key: 'linkedin', type: 'linkedin' },
-            { key: 'twitter', type: 'x-twitter' },
-            { key: 'youtube', type: 'youtube' },
-            { key: 'pinterest', type: 'pinterest' }
+            { key: 'facebook', type: 'facebook', label: 'Facebook' },
+            { key: 'instagram', type: 'instagram', label: 'Instagram' },
+            { key: 'linkedin', type: 'linkedin', label: 'LinkedIn' },
+            { key: 'twitter', type: 'x-twitter', label: 'Twitter' },
+            { key: 'youtube', type: 'youtube', label: 'YouTube' },
+            { key: 'pinterest', type: 'pinterest', label: 'Pinterest' }
         ];
         const nFam = e(v.nFamily || '');
         const nGiv = e(v.nGiven || '');
@@ -631,6 +632,19 @@ Thanks a lot for your support \u{1F64F}`;
         const country = e(adr.country || '');
 
         const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+        const normalizeComparableUrl = (raw) => {
+            const s = String(raw || '').trim();
+            if (!s) return '';
+            const full = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+            try {
+                const u = new URL(full);
+                const host = u.hostname.toLowerCase().replace(/^www\./, '');
+                const path = u.pathname.replace(/\/+$/, '');
+                return `${host}${path}`;
+            } catch (_) {
+                return full.toLowerCase().replace(/\/+$/, '');
+            }
+        };
         if (nFam || nGiv) {
             lines.push(`N:${nFam};${nGiv};;;`);
         } else {
@@ -638,6 +652,7 @@ Thanks a lot for your support \u{1F64F}`;
         }
         lines.push(`FN:${fn}`);
         if (org) lines.push(`ORG:${org}`);
+        if (title) lines.push(`TITLE:${title}`);
         if (businessCategory) {
             lines.push(`ROLE:${businessCategory}`);
         }
@@ -655,13 +670,19 @@ Thanks a lot for your support \u{1F64F}`;
         }
         if (urlWeb) {
             const full = /^https?:\/\//i.test(urlWeb) ? urlWeb : `https://${urlWeb}`;
-            lines.push(`URL:${e(full)}`);
+            const profileComparable = normalizeComparableUrl(urlProf);
+            const websiteComparable = normalizeComparableUrl(full);
+            // Avoid duplicate URL entries when website is same as profile link.
+            if (!profileComparable || profileComparable !== websiteComparable) {
+                lines.push(`URL:${e(full)}`);
+            }
         }
+        let itemIdx = 1;
         if (mapUrl) {
             const fullMap = /^https?:\/\//i.test(mapUrl) ? mapUrl : `https://${mapUrl}`;
-            lines.push(`URL;TYPE=MAP:${e(fullMap)}`);
-            lines.push(`item7.URL;type=pref:${e(fullMap)}`);
-            lines.push('item7.X-ABLabel:Google Maps');
+            lines.push(`item${itemIdx}.URL;type=pref:${e(fullMap)}`);
+            lines.push(`item${itemIdx}.X-ABLabel:Google Maps`);
+            itemIdx += 1;
         }
         if (street || locality || region || postal || country) {
             lines.push(`ADR;TYPE=WORK:;;${street};${locality};${region};${postal};${country}`);
@@ -670,16 +691,22 @@ Thanks a lot for your support \u{1F64F}`;
         lines.push(`NOTE:${e(noteRaw)}`);
         if (logoUrl) {
             const fullLogo = /^https?:\/\//i.test(logoUrl) ? logoUrl : `https://${logoUrl}`;
-            lines.push(`PHOTO;VALUE=URI:${e(fullLogo)}`);
+            lines.push(`PHOTO;TYPE=PNG;VALUE=URI:${e(fullLogo)}`);
         }
         if (waMe) {
             lines.push(`X-SOCIALPROFILE;TYPE=whatsapp:${e(waMe)}`);
+            lines.push(`item${itemIdx}.URL:${e(waMe)}`);
+            lines.push(`item${itemIdx}.X-ABLabel:WhatsApp`);
+            itemIdx += 1;
         }
-        socialMap.forEach(({ key, type }) => {
+        socialMap.forEach(({ key, type, label }) => {
             const raw = String(social[key] || '').trim();
             if (!raw) return;
             const full = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
             lines.push(`X-SOCIALPROFILE;TYPE=${type}:${e(full)}`);
+            lines.push(`item${itemIdx}.URL:${e(full)}`);
+            lines.push(`item${itemIdx}.X-ABLabel:${e(label)}`);
+            itemIdx += 1;
         });
         lines.push('END:VCARD');
         return lines;
@@ -708,8 +735,10 @@ Thanks a lot for your support \u{1F64F}`;
                 showToast('No contact data');
                 return;
             }
+            // Add UTF-8 BOM so phones/contacts apps parse accented chars correctly (e.g. Bārh).
             const vcardBody = lines.join('\r\n');
-            const blob = new Blob([vcardBody], { type: 'text/vcard;charset=utf-8' });
+            const utf8Bom = '\uFEFF';
+            const blob = new Blob([utf8Bom, vcardBody], { type: 'text/vcard;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             const baseName = (v && v.fn) ? v.fn : heroName;
