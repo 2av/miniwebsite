@@ -520,29 +520,120 @@ if(isset($_POST['process2'])){
             $d_business_operation_area = '';
         }
         $d_business_operation_locations_raw = isset($_POST['d_business_operation_locations']) ? $_POST['d_business_operation_locations'] : '';
-        $d_business_operation_locations = str_replace(
-            array("'", '"', ';', '(', ')', '"', '"', ':', '%', '`', '[', ']'),
-            array("\'", '\"', '\;', '\(', '\)', '\"', '\"', '\:', '\%', '\`', '\[', '\]'),
-            $d_business_operation_locations_raw
-        );
-        if ($d_business_operation_area !== 'selected') {
-            $d_business_operation_locations = '';
-        }
+        $d_business_operation_locations = '';
 
         $form_validation_error = '';
         if ($d_business_operation_area === 'selected') {
             if (trim($d_business_operation_locations_raw) === '') {
-                $form_validation_error = 'Please list the cities or states you serve when "Selected Cities / States" is chosen.';
+                $form_validation_error = 'Please select at least one state when "Selected Cities / States" is chosen.';
             } else {
-                $country_trim = isset($_POST['d_country']) ? trim($_POST['d_country']) : '';
-                if ($country_trim !== '' && strcasecmp($country_trim, 'India') === 0) {
-                    $india_states_path = __DIR__ . '/../../includes/india_states_ut.php';
-                    if (file_exists($india_states_path)) {
-                        require_once $india_states_path;
-                        if (function_exists('mw_validate_operation_locations_for_india')) {
-                            $loc_check = mw_validate_operation_locations_for_india($d_business_operation_locations_raw);
-                            if (!$loc_check['ok']) {
-                                $form_validation_error = $loc_check['message'];
+                $decoded_operation_locations = json_decode($d_business_operation_locations_raw, true);
+                if (is_array($decoded_operation_locations) && isset($decoded_operation_locations['states']) && isset($decoded_operation_locations['citiesByState'])) {
+                    $states = is_array($decoded_operation_locations['states']) ? $decoded_operation_locations['states'] : [];
+                    $citiesByState = is_array($decoded_operation_locations['citiesByState']) ? $decoded_operation_locations['citiesByState'] : [];
+                    $states_clean = [];
+                    $state_lookup = [];
+                    foreach ($states as $state_name) {
+                        if (!is_string($state_name)) continue;
+                        $state_name = trim($state_name);
+                        if ($state_name === '') continue;
+                        $state_key = strtolower($state_name);
+                        if (!isset($state_lookup[$state_key])) {
+                            $state_lookup[$state_key] = true;
+                            $states_clean[] = $state_name;
+                        }
+                    }
+
+                    if (count($states_clean) < 1) {
+                        $form_validation_error = 'Please select at least one state.';
+                    } elseif (count($states_clean) > 6) {
+                        $form_validation_error = 'You can select up to 6 states only.';
+                    } else {
+                        $country_trim = isset($_POST['d_country']) ? trim($_POST['d_country']) : '';
+                        if ($country_trim !== '' && strcasecmp($country_trim, 'India') === 0) {
+                            $india_states_path = __DIR__ . '/../../includes/india_states_ut.php';
+                            if (file_exists($india_states_path)) {
+                                require_once $india_states_path;
+                                if (function_exists('mw_india_state_names')) {
+                                    $accepted_state_lookup = [];
+                                    foreach (mw_india_state_names() as $state_name) {
+                                        if (is_string($state_name) && trim($state_name) !== '') {
+                                            $accepted_state_lookup[strtolower(trim($state_name))] = true;
+                                        }
+                                    }
+                                    $accepted_state_lookup['orissa'] = true;
+                                    $accepted_state_lookup['daman and diu'] = true;
+                                    $accepted_state_lookup['dadra and nagar haveli'] = true;
+                                    $accepted_state_lookup['jammu & kashmir'] = true;
+                                    $accepted_state_lookup['pondicherry'] = true;
+                                    foreach ($states_clean as $selected_state_name) {
+                                        if (!isset($accepted_state_lookup[strtolower($selected_state_name)])) {
+                                            $form_validation_error = 'Please choose valid Indian states/UTs from suggestions only.';
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    $cities_by_state_clean = [];
+                    $total_city_count = 0;
+                    if ($form_validation_error === '') {
+                        foreach ($citiesByState as $state_name => $city_list) {
+                            if (!is_string($state_name) || !is_array($city_list)) continue;
+                            if (!isset($state_lookup[strtolower(trim($state_name))])) continue;
+
+                            $city_seen = [];
+                            $clean_cities = [];
+                            foreach ($city_list as $city_name) {
+                                if (!is_string($city_name)) continue;
+                                $city_name = trim($city_name);
+                                if ($city_name === '') continue;
+                                $city_key = strtolower($city_name);
+                                if (!isset($city_seen[$city_key])) {
+                                    $city_seen[$city_key] = true;
+                                    $clean_cities[] = $city_name;
+                                }
+                            }
+
+                            if (count($clean_cities) > 4) {
+                                $form_validation_error = 'You can choose up to 4 cities per state.';
+                                break;
+                            }
+
+                            $total_city_count += count($clean_cities);
+                            $cities_by_state_clean[$state_name] = $clean_cities;
+                        }
+                    }
+
+                    if ($form_validation_error === '' && $total_city_count > 24) {
+                        $form_validation_error = 'You can choose up to 24 cities in total.';
+                    }
+
+                    if ($form_validation_error === '') {
+                        $d_business_operation_locations = json_encode(
+                            ['states' => $states_clean, 'citiesByState' => $cities_by_state_clean],
+                            JSON_UNESCAPED_UNICODE
+                        );
+                    }
+                } else {
+                    // Backward compatibility for old free-text values.
+                    $d_business_operation_locations = str_replace(
+                        array("'", '"', ';', '(', ')', '"', '"', ':', '%', '`', '[', ']'),
+                        array("\'", '\"', '\;', '\(', '\)', '\"', '\"', '\:', '\%', '\`', '\[', '\]'),
+                        $d_business_operation_locations_raw
+                    );
+                    $country_trim = isset($_POST['d_country']) ? trim($_POST['d_country']) : '';
+                    if ($country_trim !== '' && strcasecmp($country_trim, 'India') === 0) {
+                        $india_states_path = __DIR__ . '/../../includes/india_states_ut.php';
+                        if (file_exists($india_states_path)) {
+                            require_once $india_states_path;
+                            if (function_exists('mw_validate_operation_locations_for_india')) {
+                                $loc_check = mw_validate_operation_locations_for_india($d_business_operation_locations_raw);
+                                if (!$loc_check['ok']) {
+                                    $form_validation_error = $loc_check['message'];
+                                }
                             }
                         }
                     }
@@ -921,14 +1012,20 @@ include '../includes/header.php';
                         <div class="row" id="business_operation_locations_row" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">
                             <div class="col-sm-12">
                                 <div class="form-group">
-                                    <label for="operation_locations_tag_input">Cities / States you serve <span class="text-danger" id="business_operation_locations_required_mark" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">*</span></label>
-                                    <div class="operation-locations-chips-field form-control" id="operation_locations_chips_field">
-                                        <div id="operation_locations_chips" class="operation-locations-chips-inner"></div>
-                                        <input type="text" id="operation_locations_tag_input" class="operation-locations-tag-input" maxlength="200" placeholder="Type your area of operations." autocomplete="off" aria-describedby="operation_locations_help">
+                                    <label for="operation_states_tag_input">States you serve <span class="text-danger" id="business_operation_locations_required_mark" style="<?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? '' : 'display:none;'; ?>">*</span></label>
+                                    <div class="operation-locations-chips-field form-control" id="operation_states_chips_field">
+                                        <div id="operation_states_chips" class="operation-locations-chips-inner"></div>
+                                        <input type="text" id="operation_states_tag_input" class="operation-locations-tag-input" maxlength="200" placeholder="Type and select state(s)." autocomplete="off" aria-describedby="operation_locations_help">
                                     </div>
+                                    <div id="operation-state-suggestions" class="operation-location-suggestions" style="display:none;"></div>
+                                    <label for="operation_cities_tag_input" class="mt-2">Cities you serve</label>
+                                    <div class="operation-locations-chips-field form-control" id="operation_cities_chips_field">
+                                        <div id="operation_cities_chips" class="operation-locations-chips-inner"></div>
+                                        <input type="text" id="operation_cities_tag_input" class="operation-locations-tag-input" maxlength="200" placeholder="Type and select cities from selected states." autocomplete="off" aria-describedby="operation_locations_help">
+                                    </div>
+                                    <div id="operation-city-suggestions" class="operation-location-suggestions" style="display:none;"></div>
                                     <input type="hidden" name="d_business_operation_locations" id="d_business_operation_locations" maxlength="2000" value="<?php echo isset($cardRow['d_business_operation_locations']) && $cardRow['d_business_operation_locations'] !== '' ? htmlspecialchars($cardRow['d_business_operation_locations']) : ''; ?>">
-                                    <div id="operation-location-suggestions" class="operation-location-suggestions" style="display:none;"></div>
-                                    <small id="operation_locations_help" class="form-text text-muted">You can choose up to 6 Cities or States of India where you serve. Select entries only from the suggestions list. When country is India, use a state/UT name or <strong>City, State</strong> with a recognised state (e.g. Mumbai, Maharashtra). Combinations with an invalid state name are not accepted.</small>
+                                    <small id="operation_locations_help" class="form-text text-muted">Select up to 6 states/UTs of India. For each selected state, you can choose up to 4 cities (shown as <strong>City (State)</strong>) only from suggestions. Maximum cities allowed across all states is 24.</small>
                                     <div id="operation_locations_client_error" class="text-danger small mt-1" style="display:none;" role="alert"></div>
                                 </div>
                             </div>
@@ -1485,58 +1582,62 @@ if (file_exists($mw_isp_path)) {
         return { ok: true };
     }
 
-    function getOperationSuggestions(term) {
+    function getOperationStateSuggestions(term, selectedStates) {
+        const selectedLookup = {};
+        (selectedStates || []).forEach(function(s) {
+            selectedLookup[String(s || '').toLowerCase()] = true;
+        });
         const q = (term || '').trim().toLowerCase();
         const merged = [];
         const seen = {};
-        currentStates.forEach(function(s) {
-            if (!seen[s]) {
-                seen[s] = true;
-                merged.push({ label: s + ' (State)', value: s });
-            }
+        const source = isIndiaSelected() ? indiaStateNames : currentStates;
+        source.forEach(function(s) {
+            const value = String(s || '').trim();
+            if (!value) return;
+            const key = value.toLowerCase();
+            if (selectedLookup[key] || seen[key]) return;
+            seen[key] = true;
+            merged.push({ label: value, value: value });
         });
-        currentCities.forEach(function(c) {
-            if (!seen[c]) {
-                seen[c] = true;
-                merged.push({ label: c + ' (City)', value: c });
-            }
-        });
-        allIndiaCities.forEach(function(c) {
-            if (!seen[c]) {
-                seen[c] = true;
-                merged.push({ label: c + ' (City)', value: c });
-            }
-        });
-        if (isIndiaSelected()) {
-            indiaStateNames.forEach(function(s) {
-                if (!seen[s]) {
-                    seen[s] = true;
-                    merged.push({ label: s + ' (State)', value: s });
-                }
-            });
-        }
-        if (!q) return merged.slice(0, 12);
+        if (!q) return merged.slice(0, 15);
         return merged.filter(function(item) {
             return item.value.toLowerCase().indexOf(q) !== -1;
-        }).slice(0, 12);
+        }).slice(0, 15);
     }
 
     function initOperationLocationAutocomplete() {
         const hidden = document.getElementById('d_business_operation_locations');
-        const tagInput = document.getElementById('operation_locations_tag_input');
-        const chipsWrap = document.getElementById('operation_locations_chips');
-        const chipsField = document.getElementById('operation_locations_chips_field');
-        const box = document.getElementById('operation-location-suggestions');
+        const stateInput = document.getElementById('operation_states_tag_input');
+        const stateChips = document.getElementById('operation_states_chips');
+        const stateField = document.getElementById('operation_states_chips_field');
+        const stateBox = document.getElementById('operation-state-suggestions');
+        const cityInput = document.getElementById('operation_cities_tag_input');
+        const cityChips = document.getElementById('operation_cities_chips');
+        const cityField = document.getElementById('operation_cities_chips_field');
+        const cityBox = document.getElementById('operation-city-suggestions');
         const errEl = document.getElementById('operation_locations_client_error');
-        if (!hidden || !tagInput || !chipsWrap || !box) return;
+        if (!hidden || !stateInput || !stateChips || !stateBox || !cityInput || !cityChips || !cityBox) return;
 
-        const MAX_TAGS = 6;
+        const MAX_STATES = 6;
+        const MAX_CITIES_PER_STATE = 4;
+        const MAX_TOTAL_CITIES = 24;
+        const cityCacheByState = {};
+        const cityFetchPromiseByState = {};
+        let selectedStates = [];
+        let citiesByState = {};
+
+        function stateKey(v) {
+            return String(v || '').trim().toLowerCase();
+        }
+
+        function cityKey(v) {
+            return String(v || '').trim().toLowerCase();
+        }
 
         function hideError() {
-            if (errEl) {
-                errEl.style.display = 'none';
-                errEl.textContent = '';
-            }
+            if (!errEl) return;
+            errEl.style.display = 'none';
+            errEl.textContent = '';
         }
 
         function showError(msg) {
@@ -1545,220 +1646,369 @@ if (file_exists($mw_isp_path)) {
             errEl.style.display = '';
         }
 
-        let tags = [];
-        let selectedSuggestionValue = '';
+        function hideStateBox() {
+            stateBox.style.display = 'none';
+            stateBox.innerHTML = '';
+        }
 
-        function parseHiddenToTags() {
-            const raw = (hidden.value || '').trim();
-            if (!raw) return [];
-            return raw.split(/\s*,\s*/).map(function(t) {
-                return t.trim();
-            }).filter(function(t) {
-                return t !== '';
+        function hideCityBox() {
+            cityBox.style.display = 'none';
+            cityBox.innerHTML = '';
+        }
+
+        function totalCityCount() {
+            let total = 0;
+            Object.keys(citiesByState).forEach(function(st) {
+                total += (citiesByState[st] || []).length;
             });
+            return total;
         }
 
         function syncHidden() {
-            hidden.value = tags.join(', ');
-        }
-
-        function tagKey(t) {
-            return t.trim().toLowerCase();
-        }
-
-        function hideBox() {
-            box.style.display = 'none';
-            box.innerHTML = '';
-        }
-
-        function renderChips() {
-            chipsWrap.innerHTML = '';
-            tags.forEach(function(text) {
-                const span = document.createElement('span');
-                span.className = 'operation-location-chip';
-                span.appendChild(document.createTextNode(text));
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'operation-location-chip-remove';
-                btn.setAttribute('aria-label', 'Remove ' + text);
-                btn.innerHTML = '\u00d7';
-                (function(tVal) {
-                    btn.addEventListener('click', function() {
-                        tags = tags.filter(function(x) {
-                            return x !== tVal;
-                        });
-                        renderChips();
-                        syncHidden();
-                        hideError();
-                    });
-                })(text);
-                span.appendChild(btn);
-                chipsWrap.appendChild(span);
+            hidden.value = JSON.stringify({
+                states: selectedStates,
+                citiesByState: citiesByState
             });
         }
 
-        function commitPendingToken() {
-            hideError();
-            let token = tagInput.value.trim().replace(/,\s*$/, '').trim();
-            if (!token) {
-                tagInput.value = '';
-                return true;
-            }
-            if (tags.length >= MAX_TAGS) {
-                showError('You can choose up to 6 cities or states.');
-                return false;
-            }
-            const k = tagKey(token);
-            for (let i = 0; i < tags.length; i++) {
-                if (tagKey(tags[i]) === k) {
-                    tagInput.value = '';
-                    hideBox();
-                    return true;
+        function parseLegacyValue(raw) {
+            const outStates = [];
+            const outCitiesByState = {};
+            const tokenList = String(raw || '').split(/\s*,\s*/).map(function(t) { return t.trim(); }).filter(Boolean);
+            for (let i = 0; i < tokenList.length; i++) {
+                const token = tokenList[i];
+                const tokenLower = token.toLowerCase();
+                if (indiaStateLookup[tokenLower]) {
+                    if (!outStates.some(function(x) { return stateKey(x) === tokenLower; })) {
+                        outStates.push(token);
+                    }
+                    continue;
+                }
+                if (i + 1 < tokenList.length && indiaStateLookup[tokenList[i + 1].toLowerCase()]) {
+                    const st = tokenList[i + 1];
+                    if (!outStates.some(function(x) { return stateKey(x) === stateKey(st); })) outStates.push(st);
+                    if (!outCitiesByState[st]) outCitiesByState[st] = [];
+                    if (!outCitiesByState[st].some(function(c) { return cityKey(c) === cityKey(token); })) {
+                        outCitiesByState[st].push(token);
+                    }
+                    i++;
                 }
             }
-            if (selectedSuggestionValue !== token) {
-                showError('Please select a city/state from the suggestions only.');
-                return false;
-            }
-            const v = validateOperationLocationToken(token);
-            if (!v.ok) {
-                showError(v.message || 'This entry is not accepted.');
-                return false;
-            }
-            tags.push(token);
-            tagInput.value = '';
-            selectedSuggestionValue = '';
-            renderChips();
-            syncHidden();
-            hideBox();
-            return true;
+            return { states: outStates, citiesByState: outCitiesByState };
         }
 
-        function renderSuggestions() {
-            const activeTerm = (tagInput.value || '').trim();
-            const list = getOperationSuggestions(activeTerm);
-            if (!list.length) {
-                hideBox();
+        function loadFromHidden() {
+            const raw = String(hidden.value || '').trim();
+            if (!raw) return { states: [], citiesByState: {} };
+            try {
+                const decoded = JSON.parse(raw);
+                if (decoded && Array.isArray(decoded.states) && decoded.citiesByState && typeof decoded.citiesByState === 'object') {
+                    return decoded;
+                }
+            } catch (e) {}
+            return parseLegacyValue(raw);
+        }
+
+        function normalizeData(data) {
+            const nextStates = [];
+            const nextCitiesByState = {};
+            const stateSeen = {};
+            (data.states || []).forEach(function(st) {
+                const stateName = String(st || '').trim();
+                if (!stateName) return;
+                const sk = stateKey(stateName);
+                if (stateSeen[sk]) return;
+                stateSeen[sk] = true;
+                nextStates.push(stateName);
+            });
+            nextStates.slice(0, MAX_STATES).forEach(function(st) {
+                const list = Array.isArray(data.citiesByState && data.citiesByState[st]) ? data.citiesByState[st] : [];
+                const clean = [];
+                const seen = {};
+                list.forEach(function(city) {
+                    const cityName = String(city || '').trim();
+                    if (!cityName) return;
+                    const ck = cityKey(cityName);
+                    if (seen[ck]) return;
+                    seen[ck] = true;
+                    if (clean.length < MAX_CITIES_PER_STATE) clean.push(cityName);
+                });
+                nextCitiesByState[st] = clean;
+            });
+            selectedStates = nextStates.slice(0, MAX_STATES);
+            citiesByState = nextCitiesByState;
+            if (totalCityCount() > MAX_TOTAL_CITIES) {
+                let remain = MAX_TOTAL_CITIES;
+                selectedStates.forEach(function(st) {
+                    const list = citiesByState[st] || [];
+                    if (remain <= 0) {
+                        citiesByState[st] = [];
+                        return;
+                    }
+                    if (list.length > remain) {
+                        citiesByState[st] = list.slice(0, remain);
+                    }
+                    remain -= (citiesByState[st] || []).length;
+                });
+            }
+        }
+
+        function renderStateChips() {
+            stateChips.innerHTML = '';
+            selectedStates.forEach(function(st) {
+                const span = document.createElement('span');
+                span.className = 'operation-location-chip';
+                span.appendChild(document.createTextNode(st));
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'operation-location-chip-remove';
+                btn.setAttribute('aria-label', 'Remove ' + st);
+                btn.innerHTML = '\u00d7';
+                btn.addEventListener('click', function() {
+                    selectedStates = selectedStates.filter(function(x) { return stateKey(x) !== stateKey(st); });
+                    delete citiesByState[st];
+                    renderAll();
+                    hideError();
+                });
+                span.appendChild(btn);
+                stateChips.appendChild(span);
+            });
+        }
+
+        function renderCityChips() {
+            cityChips.innerHTML = '';
+            selectedStates.forEach(function(st) {
+                (citiesByState[st] || []).forEach(function(city) {
+                    const span = document.createElement('span');
+                    span.className = 'operation-location-chip';
+                    span.appendChild(document.createTextNode(city + ' (' + st + ')'));
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'operation-location-chip-remove';
+                    btn.setAttribute('aria-label', 'Remove ' + city + ' from ' + st);
+                    btn.innerHTML = '\u00d7';
+                    btn.addEventListener('click', function() {
+                        citiesByState[st] = (citiesByState[st] || []).filter(function(c) { return cityKey(c) !== cityKey(city); });
+                        renderAll();
+                        hideError();
+                    });
+                    span.appendChild(btn);
+                    cityChips.appendChild(span);
+                });
+            });
+        }
+
+        function renderAll() {
+            renderStateChips();
+            renderCityChips();
+            syncHidden();
+        }
+
+        async function fetchOperationCitiesForState(stateName) {
+            const st = String(stateName || '').trim();
+            if (!st) return [];
+            if (cityCacheByState[st]) return cityCacheByState[st];
+            if (cityFetchPromiseByState[st]) return cityFetchPromiseByState[st];
+            cityFetchPromiseByState[st] = (async function() {
+                try {
+                    const response = await fetch(API_BASE + '/state/cities', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ country: 'India', state: st })
+                    });
+                    const data = await response.json();
+                    let list = [];
+                    if (data && Array.isArray(data.data)) {
+                        list = data.data.map(function(item) {
+                            if (typeof item === 'string') return item.trim();
+                            if (item && typeof item.city === 'string') return item.city.trim();
+                            return '';
+                        }).filter(Boolean);
+                    }
+                    cityCacheByState[st] = list;
+                    return list;
+                } catch (e) {
+                    cityCacheByState[st] = [];
+                    return [];
+                } finally {
+                    delete cityFetchPromiseByState[st];
+                }
+            })();
+            return cityFetchPromiseByState[st];
+        }
+
+        async function prefetchSelectedStateCities() {
+            if (!selectedStates.length) return;
+            await Promise.all(selectedStates.map(function(st) {
+                return fetchOperationCitiesForState(st);
+            }));
+        }
+
+        function addState(stateName) {
+            const st = String(stateName || '').trim();
+            if (!st) return;
+            if (selectedStates.some(function(x) { return stateKey(x) === stateKey(st); })) return;
+            if (selectedStates.length >= MAX_STATES) {
+                showError('You can choose up to 6 states only.');
                 return;
             }
-            box.innerHTML = '';
+            selectedStates.push(st);
+            if (!citiesByState[st]) citiesByState[st] = [];
+            fetchOperationCitiesForState(st);
+            stateInput.value = '';
+            hideStateBox();
+            renderAll();
+            hideError();
+        }
+
+        function buildCityOptions(term) {
+            const q = String(term || '').trim().toLowerCase();
+            const byState = {};
+            selectedStates.forEach(function(st) {
+                const cityList = cityCacheByState[st] || [];
+                const selectedForState = citiesByState[st] || [];
+                if (selectedForState.length >= MAX_CITIES_PER_STATE) return;
+                byState[st] = [];
+                cityList.forEach(function(city) {
+                    const cityName = String(city || '').trim();
+                    if (!cityName) return;
+                    const already = selectedForState.some(function(x) { return cityKey(x) === cityKey(cityName); });
+                    if (already) return;
+                    const label = cityName + ' (' + st + ')';
+                    if (q && label.toLowerCase().indexOf(q) === -1) return;
+                    byState[st].push({ state: st, city: cityName, label: label });
+                });
+            });
+            const out = [];
+            const MAX_CITY_SUGGESTIONS = 60;
+            // Interleave state-wise so one big state does not hide others.
+            let added = true;
+            let idx = 0;
+            while (added && out.length < MAX_CITY_SUGGESTIONS) {
+                added = false;
+                selectedStates.forEach(function(st) {
+                    const list = byState[st] || [];
+                    if (idx < list.length && out.length < MAX_CITY_SUGGESTIONS) {
+                        out.push(list[idx]);
+                        added = true;
+                    }
+                });
+                idx++;
+            }
+            return out;
+        }
+
+        async function renderStateSuggestions() {
+            const list = getOperationStateSuggestions(stateInput.value || '', selectedStates);
+            if (!list.length) {
+                hideStateBox();
+                return;
+            }
+            stateBox.innerHTML = '';
+            list.forEach(function(item) {
+                const opt = document.createElement('button');
+                opt.type = 'button';
+                opt.className = 'operation-location-option';
+                opt.textContent = item.label;
+                opt.addEventListener('click', function() { addState(item.value); });
+                stateBox.appendChild(opt);
+            });
+            stateBox.style.display = 'block';
+        }
+
+        async function renderCitySuggestions() {
+            if (!selectedStates.length) {
+                hideCityBox();
+                return;
+            }
+            await prefetchSelectedStateCities();
+            const list = buildCityOptions(cityInput.value || '');
+            if (!list.length) {
+                hideCityBox();
+                return;
+            }
+            cityBox.innerHTML = '';
             list.forEach(function(item) {
                 const opt = document.createElement('button');
                 opt.type = 'button';
                 opt.className = 'operation-location-option';
                 opt.textContent = item.label;
                 opt.addEventListener('click', function() {
+                    if (totalCityCount() >= MAX_TOTAL_CITIES) {
+                        showError('You can choose up to 24 cities in total.');
+                        return;
+                    }
+                    const listForState = citiesByState[item.state] || [];
+                    if (listForState.length >= MAX_CITIES_PER_STATE) {
+                        showError('You can choose up to 4 cities per state.');
+                        return;
+                    }
+                    listForState.push(item.city);
+                    citiesByState[item.state] = listForState;
+                    cityInput.value = '';
+                    hideCityBox();
+                    renderAll();
                     hideError();
-                    if (tags.length >= MAX_TAGS) {
-                        showError('You can choose up to 6 cities or states.');
-                        return;
-                    }
-                    const v = validateOperationLocationToken(item.value);
-                    if (!v.ok) {
-                        showError(v.message || 'This entry is not accepted.');
-                        return;
-                    }
-                    const k = tagKey(item.value);
-                    let dup = false;
-                    tags.forEach(function(t) {
-                        if (tagKey(t) === k) dup = true;
-                    });
-                    if (!dup) {
-                        tags.push(item.value);
-                        renderChips();
-                        syncHidden();
-                    }
-                    tagInput.value = '';
-                    selectedSuggestionValue = '';
-                    hideBox();
-                    tagInput.focus();
                 });
-                box.appendChild(opt);
+                cityBox.appendChild(opt);
             });
-            box.style.display = 'block';
+            cityBox.style.display = 'block';
         }
 
-        tags = parseHiddenToTags();
-        if (tags.length > MAX_TAGS) {
-            tags = tags.slice(0, MAX_TAGS);
-            syncHidden();
-        }
-        renderChips();
-        syncHidden();
+        const loadedData = loadFromHidden();
+        normalizeData(loadedData);
+        renderAll();
+        prefetchSelectedStateCities();
+
+        stateInput.addEventListener('input', renderStateSuggestions);
+        stateInput.addEventListener('focus', renderStateSuggestions);
+        stateInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') hideStateBox();
+            if (e.key === 'Backspace' && stateInput.value === '' && selectedStates.length) {
+                const removed = selectedStates.pop();
+                delete citiesByState[removed];
+                renderAll();
+                hideError();
+            }
+        });
+
+        cityInput.addEventListener('input', renderCitySuggestions);
+        cityInput.addEventListener('focus', renderCitySuggestions);
+        cityInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') hideCityBox();
+        });
+
+        document.addEventListener('click', function(e) {
+            const inState = (stateField && stateField.contains(e.target)) || stateBox.contains(e.target);
+            const inCity = (cityField && cityField.contains(e.target)) || cityBox.contains(e.target);
+            if (!inState) hideStateBox();
+            if (!inCity) hideCityBox();
+        });
 
         const form = hidden.closest('form');
         if (form) {
             form.addEventListener('submit', function(ev) {
                 const areaEl = document.getElementById('d_business_operation_area');
                 if (!areaEl || areaEl.value !== 'selected') return;
-                const pending = tagInput.value.trim().replace(/,\s*$/, '').trim();
-                if (!pending) return;
-                if (!commitPendingToken()) {
+                if (!selectedStates.length) {
+                    showError('Please select at least one state.');
                     ev.preventDefault();
+                    return;
                 }
-            });
-        }
-
-        tagInput.addEventListener('input', renderSuggestions);
-        tagInput.addEventListener('focus', renderSuggestions);
-        tagInput.addEventListener('input', function() {
-            selectedSuggestionValue = '';
-        });
-        tagInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                hideBox();
-                return;
-            }
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                commitPendingToken();
-                return;
-            }
-            if (e.key === ',') {
-                e.preventDefault();
-                commitPendingToken();
-                return;
-            }
-            if (e.key === 'Backspace' && tagInput.value === '' && tags.length) {
-                tags.pop();
-                renderChips();
-                syncHidden();
-                hideError();
-            }
-        });
-        tagInput.addEventListener('blur', function() {
-            setTimeout(hideBox, 150);
-        });
-
-        box.addEventListener('mousedown', function(e) {
-            const target = e.target.closest('.operation-location-option');
-            if (!target) return;
-            const text = (target.textContent || '').trim();
-            const idx = text.lastIndexOf(' (');
-            const value = idx > -1 ? text.substring(0, idx).trim() : text;
-            selectedSuggestionValue = value;
-            tagInput.value = value;
-        });
-
-        document.addEventListener('click', function(e) {
-            const inside = (chipsField && chipsField.contains(e.target)) || e.target === tagInput;
-            if (!box.contains(e.target) && !inside) {
-                hideBox();
-            }
-        });
-
-        const countrySel = document.getElementById('d_country');
-        if (countrySel) {
-            countrySel.addEventListener('change', function() {
-                hideError();
-                if (!isIndiaSelected()) return;
-                for (let i = 0; i < tags.length; i++) {
-                    const v = validateOperationLocationToken(tags[i]);
-                    if (!v.ok) {
-                        showError(v.message || 'One or more locations are not valid for India. Remove or edit them.');
+                if (selectedStates.length > MAX_STATES || totalCityCount() > MAX_TOTAL_CITIES) {
+                    showError('Please review selected states/cities limits.');
+                    ev.preventDefault();
+                    return;
+                }
+                for (let i = 0; i < selectedStates.length; i++) {
+                    const st = selectedStates[i];
+                    if ((citiesByState[st] || []).length > MAX_CITIES_PER_STATE) {
+                        showError('You can choose up to 4 cities per state.');
+                        ev.preventDefault();
                         return;
                     }
                 }
+                syncHidden();
             });
         }
     }
