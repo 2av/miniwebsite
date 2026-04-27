@@ -1263,7 +1263,7 @@ if ($row) {
                     </div>
                     <?php endif; ?>
                     <?php
-                        $offer_wa_msg = "Hi 😊\nI am interested in the offer mentioned in your MiniWebsite \"" . $off['title'] . "\".\nPlease share the price & availability of this";
+                        $offer_wa_msg = "Hi 😊\nI am interested in the offer mentioned in your MiniWebsite \"" . $off['title'] . "\".\nPlease share the price & availability of this.";
                         ?>
                     <button type="button" class="mw-offer-wa-cta block w-full py-2.5 rounded-theme font-semibold transition text-center mt-3 cursor-pointer border-0" style="background: var(--mw-offer-cta-bg); color: #111;" data-phone="<?php echo htmlspecialchars((string) $whatsapp, ENT_QUOTES, 'UTF-8'); ?>" data-msg="<?php echo htmlspecialchars($offer_wa_msg, ENT_QUOTES, 'UTF-8'); ?>">Get This Offer</button>
                 </div>

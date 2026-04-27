@@ -22,7 +22,7 @@
     },
     {
       "id": "customer_tracker",
-      "label": "Customer Tracker",
+      "label": "Customer Manager",
       "icon": "Customertracker.png",
       "url": "/customer-tracker",
       "roles": ["TEAM"],
@@ -30,7 +30,7 @@
     },
     {
       "id": "customer_tracker_customer",
-      "label": "Customer Tracker",
+      "label": "Customer Manager",
       "icon": "Customertracker.png",
       "url": "/customer-tracker-customer",
       "roles": ["CUSTOMER"],

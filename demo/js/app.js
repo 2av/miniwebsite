@@ -572,18 +572,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (shareWaBtn && shareUrl) {
         shareWaBtn.addEventListener('click', () => {
             const num = (shareWaInput?.value || '').replace(/[^0-9]/g, '');
-            const msg = `Hello \u{1F60A}
+            const businessName = (heroName || 'Our business').trim();
+            const locationParts = String(location || '').split(',').map((part) => part.trim()).filter(Boolean);
+            const areaCity = locationParts.length >= 2 ? `${locationParts[0]}, ${locationParts[1]}` : (locationParts[0] || 'your area');
+            const msg = `Hello 😊
+This is ${businessName} from ${areaCity}.
 
-This is ${heroName} from ${location}.
-
-We have created a MiniWebsite of our business. 
+We have created a MiniWebsite of our business.
 Now you can easily check our products/services and offers online here:
+👉 ${shareUrl}
 
-\u{1F449} ${shareUrl}
+If you need anything, just send a message on WhatsApp 👍
 
-If you need anything, just send a message on WhatsApp \u{1F44D}
-
-Thanks a lot for your support \u{1F64F}`;
+Thanks a lot for your support 🙏`;
             mwOpenWhatsAppShare(num, msg);
         });
     }
