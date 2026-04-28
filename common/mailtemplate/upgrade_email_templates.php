@@ -20,7 +20,7 @@ function getBasicToStandardUpgradeEmail($user_name, $user_email) {
     $message .= "If you have any questions or need assistance, feel free to reach out to our support team.\n\n";
     $message .= "Best regards,\n";
     $message .= "Team MiniWebsite.in\n";
-    $message .= "www.miniwebsite.in";
+    $message .= "https://www.miniwebsite.in";
     
     return [
         'subject' => $subject,
@@ -44,7 +44,7 @@ function getStandardToPremiumUpgradeEmail($user_name, $user_email) {
     $message .= "If you have any questions or need assistance, feel free to reach out to our support team.\n\n";
     $message .= "Best regards,\n";
     $message .= "Team MiniWebsite.in\n";
-    $message .= "www.miniwebsite.in";
+    $message .= "https://www.miniwebsite.in";
     
     return [
         'subject' => $subject,
@@ -65,7 +65,7 @@ function getBasicToCreatorConfirmationEmail($user_name, $user_email) {
     $message .= "If you have any questions or need assistance, feel free to reach out to our support team.\n\n";
     $message .= "Best regards,\n";
     $message .= "Team MiniWebsite.in\n";
-    $message .= "www.miniwebsite.in";
+    $message .= "https://www.miniwebsite.in";
     
     return [
         'subject' => $subject,
@@ -97,7 +97,7 @@ function getGenericUpgradeEmail($user_name, $user_email, $current_plan, $upgrade
     $message .= "If you have any questions or need assistance, feel free to reach out to our support team.\n\n";
     $message .= "Best regards,\n";
     $message .= "Team MiniWebsite.in\n";
-    $message .= "www.miniwebsite.in";
+    $message .= "https://www.miniwebsite.in";
     
     return [
         'subject' => $subject,
@@ -121,7 +121,7 @@ function getUpgradeWithRemainingAmountEmail($user_name, $user_email, $current_pl
     $message .= "If you have any questions or need assistance, feel free to reach out to our support team.\n\n";
     $message .= "Best regards,\n";
     $message .= "Team MiniWebsite.in\n";
-    $message .= "www.miniwebsite.in";
+    $message .= "https://www.miniwebsite.in";
     
     return [
         'subject' => $subject,

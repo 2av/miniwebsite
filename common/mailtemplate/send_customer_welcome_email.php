@@ -46,7 +46,7 @@ function sendCustomerWelcomeEmail($customer_name, $customer_email, $customer_pas
         
         <p><a href="' . htmlspecialchars($login_url) . '" style="background:rgb(226, 213, 37); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Access Your Account</a></p>
         
-        <p>Best regards,<br>The MiniWebsite Team</p>';
+        <p>Best regards,<br>Team MiniWebsite.in<br><a href="https://www.miniwebsite.in">www.miniwebsite.in</a></p>';
         
         $headers = "From: " . DEFAULT_FROM_NAME . " <" . DEFAULT_FROM_EMAIL . ">\r\n";
         $headers .= "Reply-To: " . SUPPORT_EMAIL . "\r\n";
@@ -259,7 +259,7 @@ function sendCustomerWelcomeEmailWithPHPMailer($customer_name, $customer_email, 
         
         <p><a href="' . htmlspecialchars($login_url) . '" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Access Your Account</a></p>
         
-        <p>Best regards,<br>The MiniWebsite Team</p>';
+        <p>Best regards,<br>Team MiniWebsite.in<br><a href="https://www.miniwebsite.in">www.miniwebsite.in</a></p>';
         
         $mail->Body = $message;
         $mail->AltBody = strip_tags(str_replace('<br>', "\n", $message));

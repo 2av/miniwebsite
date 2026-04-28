@@ -17,20 +17,20 @@ if (!function_exists('buildFranchiseeWelcomeEmail')) {
     function buildFranchiseeWelcomeEmail($userName, $userEmail, $userPassword, array $options = [])
     {
         $host = $_SERVER['HTTP_HOST'] ?? 'miniwebsite.in';
-        $subject = "Welcome to MiniWebsite.in – Your Franchisee Account is Ready!";
+        $subject = "Welcome to MiniWebsite.in – Your Franchise Account is Ready!";
         $includePaymentProcessedLine = !empty($options['include_payment_processed_line']);
         $includePaymentStep = !empty($options['include_payment_step']);
         $compactLoginBlock = !empty($options['compact_login_block']);
 
         $introLine = $includePaymentProcessedLine
-            ? "We are excited to have you on board! Your franchisee account has been successfully created and your payment has been processed. You can now log in using your email and password at the link below:"
-            : "We are excited to have you on board! Your franchisee account has been successfully created. You can now log in using your email and password at the link below:";
+            ? "We are excited to have you on board! Your franchise account has been successfully created and your payment has been processed. You can now log in using your email and password at the link below:"
+            : "We are excited to have you on board! Your franchise account has been successfully created. You can now log in using your email and password at the link below:";
 
         $message = '
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <p style="color: #333; font-size: 16px; line-height: 1.6;">Hi <strong>' . htmlspecialchars($userName) . '</strong>,</p>
             
-            <p style="color: #333; font-size: 16px; line-height: 1.6;">Thank you for registering as a franchisee with MiniWebsite.in.</p>
+            <p style="color: #333; font-size: 16px; line-height: 1.6;">Thank you for registering as a franchise with MiniWebsite.in.</p>
             
             <p style="color: #333; font-size: 16px; line-height: 1.6;">' . $introLine . '</p>';
 
@@ -81,7 +81,7 @@ if (!function_exists('buildFranchiseeWelcomeEmail')) {
             
             <p style="color: #333; font-size: 16px; line-height: 1.6;">Best regards,<br>
             Team MiniWebsite.in<br>
-            www.miniwebsite.in</p>
+            <a href="https://www.miniwebsite.in">www.miniwebsite.in</a></p>
         </div>';
 
         return [
@@ -107,23 +107,23 @@ if (!function_exists('buildFranchiseeVerificationEmail')) {
 
         if ($action === 'approve') {
             $message = "Hi " . $name . ",<br><br>";
-            $message .= "Thank you for registering as a franchisee with MiniWebsite.in.<br><br>";
-            $message .= "Congratulation! The verification documents are approved by Miniwebsite Team.<br>";
-            $message .= "You can access your Franchisee Kit from your Dashboard and start your business immediately.<br><br>";
+            $message .= "Thank you for registering as a franchise with MiniWebsite.in.<br><br>";
+            $message .= "Congratulations! The verification documents are approved by Miniwebsite Team.<br>";
+            $message .= "You can access your Franchise Kit from your Dashboard and start your business immediately.<br><br>";
             $message .= "If you have any questions or need assistance, feel free to reach out to our support team.<br><br>";
             $message .= "Best regards,<br>";
             $message .= "Team MiniWebsite.in<br>";
-            $message .= "www.miniwebsite.in";
+            $message .= "<a href=\"https://www.miniwebsite.in\">www.miniwebsite.in</a>";
         } else {
             $message = "Hi " . $name . ",<br><br>";
-            $message .= "Thank you for registering as a franchisee with MiniWebsite.in.<br><br>";
+            $message .= "Thank you for registering as a franchise with MiniWebsite.in.<br><br>";
             $message .= "The documents uploaded for verification is not approved by Miniwebsite Team.<br><br>";
             $message .= "Please check the reason:<br>";
             $message .= (!empty($remarks) ? $remarks : "Please upload clear and valid documents.") . "<br><br>";
             $message .= "If you have any questions or need assistance, feel free to reach out to our support team.<br><br>";
             $message .= "Best regards,<br>";
             $message .= "Team MiniWebsite.in<br>";
-            $message .= "www.miniwebsite.in";
+            $message .= "<a href=\"https://www.miniwebsite.in\">www.miniwebsite.in</a>";
         }
 
         return [

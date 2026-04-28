@@ -20,7 +20,7 @@ function getStandardJoiningDealEmail($user_name, $user_email) {
     $message .= "If you have any questions or need assistance, feel free to reach out to our support team.\n\n";
     $message .= "Best regards,\n";
     $message .= "Team MiniWebsite.in\n";
-    $message .= "www.miniwebsite.in";
+    $message .= "https://www.miniwebsite.in";
     
     return [
         'subject' => $subject,

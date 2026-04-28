@@ -197,7 +197,8 @@ function getCustomerAccountCreatedTemplate($customer_name, $customer_email, $cus
                 <p>If you have any questions or need assistance, feel free to reach out to our support team. We\'re here to help you make the most of your MiniWebsite!</p>
                 
                 <p>Best regards,<br>
-                <strong>The MiniWebsite Team</strong></p>
+                <strong>Team MiniWebsite.in</strong><br>
+                <a href="https://www.miniwebsite.in">www.miniwebsite.in</a></p>
             </div>
             
             <div class="footer">
@@ -247,7 +248,8 @@ WHAT YOU CAN DO NEXT:
 If you have any questions or need assistance, feel free to reach out to our support team. We're here to help you make the most of your MiniWebsite!
 
 Best regards,
-The MiniWebsite Team
+Team MiniWebsite.in
+https://www.miniwebsite.in
 
 ---
 © 2025 MiniWebsite. All rights reserved.
