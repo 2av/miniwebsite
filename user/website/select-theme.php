@@ -57,11 +57,57 @@ if(mysqli_num_rows($query) == 0){
     $row = mysqli_fetch_array($query);
 }
 
-// Single theme (preview thumbnail). Live card styling is theme/css/* in n.php; d_css kept for DB/admin.
-$themes = [
-    '../../assets/images/templates/template1.png' => 'panel/card_css2.css',
-];
-$theme_css_value = (string) reset($themes);
+// Build theme options dynamically from theme/css/themeN.css + layoutN.css pairs.
+$theme_css_dir = __DIR__ . '/../../theme/css';
+$theme_numbers = [];
+$theme_files = glob($theme_css_dir . '/theme*.css');
+if (is_array($theme_files)) {
+    foreach ($theme_files as $theme_file) {
+        if (preg_match('/theme(\d+)\.css$/', $theme_file, $m)) {
+            $theme_no = intval($m[1]);
+            if ($theme_no > 0 && file_exists($theme_css_dir . '/layout' . $theme_no . '.css')) {
+                $theme_numbers[] = $theme_no;
+            }
+        }
+    }
+}
+$theme_numbers = array_values(array_unique($theme_numbers));
+sort($theme_numbers, SORT_NUMERIC);
+if (empty($theme_numbers)) {
+    $theme_numbers = [1];
+}
+
+$themes = [];
+foreach ($theme_numbers as $theme_no) {
+    $template_image_web = '../../assets/images/templates/template' . $theme_no . '.png';
+    $template_image_abs = __DIR__ . '/../../assets/images/templates/template' . $theme_no . '.png';
+    if (!file_exists($template_image_abs)) {
+        $template_image_web = '../../assets/images/templates/template1.png';
+    }
+    $themes[] = [
+        'number' => $theme_no,
+        'image' => $template_image_web,
+        // Keep DB/admin compatibility: Theme N maps to card_css(N+1)
+        'css' => 'panel/card_css' . ($theme_no + 1) . '.css',
+        'name' => 'Theme ' . $theme_no,
+    ];
+}
+
+$saved_theme_css = isset($row['d_css']) ? trim((string) $row['d_css']) : '';
+$selected_theme_number = (int) $themes[0]['number'];
+if (preg_match('/card_css(\d+)\.css$/', $saved_theme_css, $m)) {
+    $card_css_no = intval($m[1]);
+    if ($card_css_no > 1) {
+        $selected_theme_number = $card_css_no - 1;
+    }
+}
+
+$available_theme_numbers = array_column($themes, 'number');
+if (!in_array($selected_theme_number, $available_theme_numbers, true)) {
+    $selected_theme_number = (int) $themes[0]['number'];
+}
+
+$theme_css_value = 'panel/card_css' . ($selected_theme_number + 1) . '.css';
 ?>
 
 <main class="Dashboard">
@@ -95,11 +141,15 @@ $theme_css_value = (string) reset($themes);
                     <input type="hidden" name="d_css" id="selectedTheme" value="<?php echo htmlspecialchars($theme_css_value); ?>">
                     <input type="hidden" name="save_theme" value="1">
                     <div class="d-flex flex-wrap w-100 theme_section row-items-4">
-                        <?php foreach($themes as $theme_image => $css_file): ?>
-                            <div class="col theme-item selected" data-theme="<?php echo htmlspecialchars($css_file); ?>">
+                        <?php foreach($themes as $theme): ?>
+                            <?php $is_selected = ($theme_css_value === $theme['css']); ?>
+                            <div class="col theme-item <?php echo $is_selected ? 'selected' : ''; ?>" data-theme="<?php echo htmlspecialchars($theme['css']); ?>">
                                 <a href="javascript:void(0);" class="theme-select-link">
-                                    <img class="img-fluid theme_img" src="<?php echo $theme_image; ?>" alt="Theme">
-                                    <div class="selected-overlay">Selected</div>
+                                    <img class="img-fluid theme_img" src="<?php echo htmlspecialchars($theme['image']); ?>" alt="<?php echo htmlspecialchars($theme['name']); ?>">
+                                    <div style="margin-top: 8px; text-align: center; font-weight: 600;"><?php echo htmlspecialchars($theme['name']); ?></div>
+                                    <?php if($is_selected): ?>
+                                        <div class="selected-overlay">Selected</div>
+                                    <?php endif; ?>
                                 </a>
                             </div>
                         <?php endforeach; ?>

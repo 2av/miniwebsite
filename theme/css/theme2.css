@@ -1,0 +1,117 @@
+/* ==========================================================================
+   theme.css (CHANGABLE)
+   Theme: Vibrant Foodie / Restaurant
+   Purpose: Colors, fonts, backgrounds, shadows, border radius control karne ke liye
+   ========================================================================== */
+
+/* Importing Modern Food-Theme Fonts 
+   Yahan hum Google Fonts se 'Poppins' (Headings ke liye) aur 'Inter' (Normal text ke liye) import kar rahe hain.
+   Agar aapko font change karna ho, toh Google Fonts se naya link laakar yahan paste karein.
+*/
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+    /* =========================================
+       Core Theme Tokens - Main Colors
+       ========================================= */
+       
+    /* Main theme color jo buttons, icons aur highlights mein use hoga. 
+       Example: #ff0000 (Pure Red) ya #000000 (Black) */
+    --mw-primary-color: #e11d48;     /* Vibrant Red */
+
+    /* Primary color ka thoda dark version, jo hover effect (jab mouse upar jaye) pe dikhega. 
+       Example: #cc0000 (Dark Red) */
+    --mw-secondary-color: #be123c;   /* Darker Red */
+
+    /* Accent color jo choti details ya badges ko alag se highlight karne ke liye use hota hai. 
+       Example: #ffd700 (Gold) */
+    --mw-accent-color: #f97316;      /* Appetite Orange */
+    
+    /* =========================================
+       Background Colors
+       ========================================= */
+
+    /* Website ka main background color. 
+       Example: #f4f4f4 (Light Gray) ya #ffffff (Pure White) */
+    --mw-background-color: #ffffff;  /* Clean White */
+
+    /* Cards (Services, Products, Offers) ke andar ka background color. 
+       Example: #fafafa (Off White) */
+    --mw-card-background: #ffffff;   /* Pure White Cards */
+    
+    /* =========================================
+       Typography Colors (Text Colors)
+       ========================================= */
+
+    /* Sabhi Headings (H1, H2, H3, etc.) aur Titles ka color. 
+       Example: #333333 (Dark Gray) */
+    --mw-heading-color: #1e293b;     /* Slate Dark for titles */
+
+    /* Normal paragraph aur description ka color. Isko thoda light rakhein taaki padhne mein aasaani ho.
+       Example: #666666 (Medium Gray) */
+    --mw-text-color: #64748b;        /* Soft Gray for body */
+    
+    /* =========================================
+       Shapes & Shadows
+       ========================================= */
+
+    /* Cards aur buttons ke corners kitne gol (round) honge. 
+       Example: 
+       0px = Bilkul sharp/chakor edges
+       10px = Thode rounded corners
+       50px = Pure gol (Pill shape) */
+    --mw-border-radius: 20px; 
+    
+    /* Cards ke peeche ki parchai (Shadow) ko control karne ke liye. 
+       Example: 
+       0 4px 6px rgba(0,0,0,0.1) = Light shadow
+       none = Koi shadow nahi */
+    --mw-shadow: 0 10px 30px rgba(0, 0, 0, 0.07); 
+    
+    /* =========================================
+       Font Family Mapping
+       ========================================= */
+
+    /* Headings mein kaunsa font apply hoga. 
+       Example: 'Arial', sans-serif; */
+    --mw-font-heading: 'Poppins', sans-serif;
+
+    /* Body text mein kaunsa font apply hoga. 
+       Example: 'Verdana', sans-serif; */
+    --mw-font-body: 'Inter', sans-serif;
+
+    /* =========================================
+       Offer Card Theme Tokens (Special Offers section ke liye)
+       ========================================= */
+
+    /* Offer card ke upar lage 'Badge' (jaise 20% OFF) ka background color */
+    --mw-offer-badge-bg: #f97316;    /* Orange Badge */
+
+    /* Offer badge ke andar ke text ka color. Example: #fff (White) */
+    --mw-offer-badge-color: #ffffff;
+
+    /* Offer cards ke liye ek alag aur thodi deep shadow */
+    --mw-offer-card-shadow: 0 15px 35px rgba(225, 29, 72, 0.1);
+
+    /* Offer card ke andar 'Get Offer' button ka color */
+    --mw-offer-cta-bg: #e11d48;
+}
+
+/* ==========================================================================
+   Base Styling (HTML elements par variables apply karna)
+   ========================================================================== */
+
+/* Pura webpage in rules ko follow karega */
+body {
+    background-color: var(--mw-background-color);
+    color: var(--mw-text-color);
+    font-family: var(--mw-font-body);
+    -webkit-font-smoothing: antialiased; /* Text ko sharp aur smooth dikhane ke liye */
+}
+
+/* Sabhi headings in rules ko follow karengi */
+h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--mw-font-heading);
+    color: var(--mw-heading-color);
+    font-weight: 700; /* Text ko bold karne ke liye */
+}

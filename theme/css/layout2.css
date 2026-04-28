@@ -1,0 +1,181 @@
+/* ==========================================================================
+   layout.css (CHANGABLE)
+   Purpose: Section spacing, grid system, responsive breakpoints
+   Theme: Foodie Theme Overrides
+   ========================================================================== */
+
+/* Smooth scrolling jab hum sticky nav links par click karte hain */
+html {
+    scroll-behavior: smooth; 
+}
+
+/* Sticky nav ke peeche section ki heading na chhupe isliye scroll-margin set kiya hai.
+   Example: Agar nav ki height 60px hai, toh margin 70px rakhna theek rehta hai.
+*/
+[id^="mw-"] {
+    scroll-margin-top: 70px; 
+}
+
+/* Website ke main container ki maximum width.
+   Example: Badi screens (Desktop) par website 1200px se jyada faili hui na dikhe.
+*/
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 80px; /* Neeche ki sticky nav ke liye jagah */
+    overflow-x: hidden;
+}
+
+/* =========================================
+   THEME-SPECIFIC OVERRIDES (Foodie Theme)
+   Yahan hum components.css ke purane rules ko theme ke hisab se daba (override) rahe hain.
+   ========================================= */
+
+/* 1. Global Rounded/Pill-Shaped Elements
+   Yahan hum theme.css ke var(--mw-border-radius) ko force kar rahe hain. 
+   '!important' ka use kiya hai taaki purane sabhi styles override ho jayein.
+*/
+.rounded-full, .rounded-theme, .rounded-lg, .rounded-xl, .rounded-t-xl, .mw-card, .mw-offer-card, .mw-service-card {
+    border-radius: var(--mw-border-radius) !important;
+}
+
+/* Buttons aur badges ko puri tarah gol (Pill shape) banane ke liye 50px fix kiya hai */
+button, .mw-btn-add, .mw-btn-add-shop, .mw-share-btn, 
+a[class*="bg-primary"], a[class*="border-primary"], 
+.mw-offer-badge, #mw-floating-wa-btn {
+    border-radius: 50px !important;
+}
+
+/* 2. Background Overrides
+   Kuch background colors ko light gray karne ke liye taaki safed cards alag se chamkein.
+*/
+.bg-cardbg\/30, .bg-slate-50, .bg-cardbg\/20 {
+    background-color: #f8fafc !important; /* Tailwind ka slate-50 color */
+}
+
+/* 3. Hero Overrides - Centered Text & Dark Gradient
+   Hero image ke upar dark shade (black color ka shadow) dalne ke liye taaki white text padhne mein aaye.
+*/
+.mw-hero .absolute.inset-0 {
+    background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.85)) !important;
+}
+
+/* Hero section ki main heading ka font weight aur text-shadow badhaya hai */
+.mw-hero h1 {
+    font-weight: 800 !important;
+    font-size: 2.5rem !important;
+    color: #ffffff !important;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3); /* Text ke piche halki parchai */
+}
+
+/* Desktop pe heading ka size bada karne ke liye media query */
+@media (min-width: 768px) {
+    .mw-hero h1 { font-size: 3.5rem !important; }
+}
+
+/* 4. Card Styling - Modern & Clean
+   Cards par hover karne (mouse upar laane) par thoda upar aane ka effect.
+*/
+.mw-card {
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--mw-shadow) !important;
+}
+
+/* Mouse hover par card 5px upar jayega aur shadow gehri ho jayegi */
+.mw-card:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+    transform: translateY(-5px); 
+}
+
+/* 5. Shop Category Container (Shop Menu UI)
+   Online Order section ka layout jisme left mein categories aur right mein products aayenge.
+*/
+.mw-shop-container {
+    border: none !important;
+    box-shadow: var(--mw-shadow);
+    border-radius: var(--mw-border-radius) !important;
+    display: flex;
+    height: 600px;
+    overflow: hidden;
+}
+
+/* Sidebar jisme category ke naam likhe hote hain */
+.mw-shop-sidebar {
+    background-color: #f1f5f9 !important;
+    border-radius: var(--mw-border-radius) 0 0 var(--mw-border-radius) !important;
+    width: 80px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+@media (min-width: 768px) {
+    .mw-shop-sidebar { width: 110px; }
+}
+
+/* Jo category select hogi uska background white aur left mein line aayegi */
+.mw-cat-item.active {
+    background-color: #ffffff !important;
+    border-left: 4px solid var(--mw-primary-color) !important;
+}
+
+/* Right side ka area jahan actual products dikhte hain */
+.mw-shop-main {
+    background-color: #ffffff !important;
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+/* 6. Section Titles
+   Har section ki heading ke niche custom colored gradient line ban banane ke liye.
+*/
+.mw-section-title {
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+.mw-section-title::after {
+    height: 5px !important;
+    width: 40px !important;
+    border-radius: 10px;
+    background: linear-gradient(to right, var(--mw-primary-color), var(--mw-accent-color)) !important;
+    margin-top: 12px !important;
+}
+
+/* =========================================
+   CORE LAYOUT & GRIDS
+   Yahan decide hota hai ki mobile aur desktop par ek line mein kitne items (cards) dikhenge
+   ========================================= */
+
+/* Section Spacing (Upar-Niche ki jagah/padding) */
+.mw-section-padding { padding: 40px 24px; }
+@media (min-width: 768px) { .mw-section-padding { padding: 60px 32px; } }
+@media (min-width: 1024px) { .mw-section-padding { padding: 80px 40px; } }
+
+/* Services Grid: Mobile pe 2, Tablet pe 3, Desktop pe 4 cards */
+.mw-grid-services { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+@media (min-width: 768px) { .mw-grid-services { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .mw-grid-services { grid-template-columns: repeat(4, 1fr); } }
+
+/* Offers Grid: Mobile pe 1, Tablet pe 2, Desktop pe 3 cards */
+.mw-grid-offers { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+@media (min-width: 768px) { .mw-grid-offers { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .mw-grid-offers { grid-template-columns: repeat(3, 1fr); } }
+
+/* Products Grid: Mobile pe 2, Tablet pe 3, Desktop pe 4 cards */
+.mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+@media (min-width: 768px) { .mw-grid-products { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .mw-grid-products { grid-template-columns: repeat(4, 1fr); } }
+
+/* Gallery Grid: Mobile pe 3, Tablet pe 4, Desktop pe 5 images */
+.mw-grid-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+@media (min-width: 768px) { .mw-grid-gallery { grid-template-columns: repeat(4, 1fr); gap: 1rem; } }
+@media (min-width: 1024px) { .mw-grid-gallery { grid-template-columns: repeat(5, 1fr); } }
+
+/* Video Grid: Mobile pe 1, Tablet/Desktop pe 3 videos */
+.mw-grid-videos { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1.5rem; }
+@media (min-width: 768px) { .mw-grid-videos { grid-template-columns: repeat(3, 1fr); } }
+
+/* Hide Scrollbar Utility (Scrollbars ko hide karne ke liye) */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

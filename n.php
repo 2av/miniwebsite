@@ -973,6 +973,31 @@ if ($row) {
         'nGiven' => 'Olivia',
     ];
 }
+// Resolve active miniwebsite CSS files from selected dashboard theme (d_css).
+// Theme N is stored as card_css(N+1) for DB/admin compatibility.
+$selected_d_css = !empty($row['d_css']) ? trim((string) $row['d_css']) : '';
+$selected_theme_number = 1;
+
+if (preg_match('/card_css(\d+)\.css$/', $selected_d_css, $m)) {
+    $saved_card_css_no = intval($m[1]);
+    if ($saved_card_css_no > 1) {
+        $selected_theme_number = $saved_card_css_no - 1;
+    }
+}
+
+$theme_css_file = 'theme/css/theme' . $selected_theme_number . '.css';
+$layout_css_file = 'theme/css/layout' . $selected_theme_number . '.css';
+
+if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' . $layout_css_file)) {
+    // Safe fallback for missing/invalid theme files.
+    if (file_exists(__DIR__ . '/theme/css/theme1.css') && file_exists(__DIR__ . '/theme/css/layout1.css')) {
+        $theme_css_file = 'theme/css/theme1.css';
+        $layout_css_file = 'theme/css/layout1.css';
+    } else {
+        $theme_css_file = 'theme/css/theme.css';
+        $layout_css_file = 'theme/css/layout.css';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1014,8 +1039,8 @@ if ($row) {
     </script>
 
     <!-- External CSS -->
-    <link rel="stylesheet" href="theme/css/theme.css">
-    <link rel="stylesheet" href="theme/css/layout.css">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($theme_css_file, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($layout_css_file, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="theme/css/components.css">
 </head>
 <body>
