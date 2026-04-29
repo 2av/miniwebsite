@@ -197,23 +197,23 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                     <div class="card mb-4">
                         <div class="card-body">
                             <?php if ($current_role === 'TEAM'): ?>
-                            <div class="ReferralDetails-head">
+                            <div class="CustomerDashboard-head">
                                 <div class="row">
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-6 top_section">
                                         <div class="card">
                                             <div class="img"><img src="../../assets/images/totalsales.png" alt=""></div>
                                             <div class="content">
                                                 <p>Total Sales</p>
-                                                <h4><?php echo (int)$total_sales; ?></h4>
+                                                 <?php echo (int)$total_sales; ?> 
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-6 top_section">
                                         <div class="card">
                                             <div class="img"><img src="../../assets/images/TotalMWCreated.png" alt=""></div>
                                             <div class="content">
                                                 <p>Total MW Created</p>
-                                                <h4><?php echo (int)$total_mw_created; ?></h4>
+                                                 <?php echo (int)$total_mw_created; ?> 
                                             </div>
                                         </div>
                                     </div>

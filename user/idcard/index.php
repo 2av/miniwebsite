@@ -230,13 +230,13 @@ $website_name = 'www.miniwebsite.in';
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="idcard-preview-wrapper">
-                                <div class="col-md-5">
+                                <div class="col-md-7">
                                 <canvas id="idcardCanvas" class="idcard-canvas"></canvas>
                                 </div>
                                 
                                  <!-- Upload Section -->
                     
-                        <div class="col-md-7">
+                        <div class="col-md-5">
                             <div class="upload-download-box">
                                 <form method="POST" enctype="multipart/form-data" id="uploadForm">
                                     <div class="form-group displayFlex">
@@ -254,7 +254,7 @@ $website_name = 'www.miniwebsite.in';
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                                    <div class="action-buttons d-flex flex-column flex-sm-row align-items-center justify-content-between">
+                                    <div class="action-buttons d-flex flex-column flex-sm-row align-items-center justify-content-start">
                                         <button type="submit" name="process_profile" class="btn btn-primary flex-grow-1 mb-3 mb-sm-0">
                                             Upload & Refresh Preview
                                         </button>
@@ -651,8 +651,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .idcard-canvas {
-    width: 2.125in;
-    height: 3.34in;
+    width: 4.25in;
+    height: 6.68in;
     border: 1px solid #dee2e6;
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -670,12 +670,16 @@ document.addEventListener('DOMContentLoaded', function() {
     align-items: flex-start;
 }
 .action-buttons{
-    gap:90px;
+    width: 100%;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 .action-buttons button{
     color:#fff !important;
     font-size:16px !important;
+    margin: 0 !important;
+    flex: 1 1 220px;
 }
 
 #profile_picture{
@@ -744,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function() {
         min-width: 180px;
     }
     .upload-download-box .action-buttons > * + * {
-        margin-left: 15px;
+        margin-left: 0;
     }
 }
 .heading {
