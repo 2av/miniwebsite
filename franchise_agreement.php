@@ -590,7 +590,7 @@ if ($connect) {
     
 </div>
 <p style="margin: 10px 0 0; font-size: 15px; color: #374151; text-align: center;">
-                By proceeding you agree to our Terms &amp; condition 
+                By proceeding you agree to our <a href="terms_conditions.php" target="_blank" rel="noopener noreferrer" style="color: #1b4fa8; text-decoration: underline;">Terms &amp; condition</a>
             </p>
 </div>
 

@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gst_state = isset($_POST['gst_state']) ? mysqli_real_escape_string($connect, $_POST['gst_state']) : '';
     $gst_city = isset($_POST['gst_city']) ? mysqli_real_escape_string($connect, $_POST['gst_city']) : '';
     $gst_pincode = isset($_POST['gst_pincode']) ? mysqli_real_escape_string($connect, $_POST['gst_pincode']) : '';
+    $plan_choice = isset($_POST['plan_choice']) ? trim((string)$_POST['plan_choice']) : '';
     
     // Save to session for use in payment
     $_SESSION['billing_gst_number'] = $gst_number;
@@ -29,6 +30,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['billing_gst_state'] = $gst_state;
     $_SESSION['billing_gst_city'] = $gst_city;
     $_SESSION['billing_gst_pincode'] = $gst_pincode;
+
+    // Save selected plan details in session (DB source-of-truth for invoice)
+    $plan_meta_map = [
+        'plan_team500' => ['Mini Website Plan', '6 Months'],
+        'plan_6month'  => ['Mini Website Plan', '6 Months'],
+        'plan_1year'   => ['Mini Website Plan', '1 Year'],
+        'plan_2year'   => ['Mini Website Plan', '2 Years'],
+        'plan_3year'   => ['Mini Website Plan', '3 Years'],
+    ];
+    if (isset($plan_meta_map[$plan_choice])) {
+        $_SESSION['invoice_plan_name'] = $plan_meta_map[$plan_choice][0];
+        $_SESSION['invoice_plan_validity'] = $plan_meta_map[$plan_choice][1];
+    }
     
     // Get the selected plan amount from JavaScript (for card payment page)
     // If not provided, use session original_amount (for franchise registration)

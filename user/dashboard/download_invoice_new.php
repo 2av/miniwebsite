@@ -228,6 +228,63 @@ $sgst_amount_formatted = number_format((float)($invoice['sgst_amount'] ?? 0), 2)
 
 $amount_in_words = numberToWords($invoice['total_amount']) . " Only";
 
+/**
+ * Resolve plan name and validity from invoice context.
+ *
+ * @param array<string,mixed> $invoice
+ * @return array{0:string,1:string}
+ */
+function resolveInvoicePlanDetails(array $invoice) {
+    $service_name = strtolower(trim((string)($invoice['service_name'] ?? '')));
+    $payment_type = strtolower(trim((string)($invoice['payment_type'] ?? '')));
+    $original_amount = (float)($invoice['original_amount'] ?? 0);
+    $amount_key = (int)round($original_amount);
+
+    $is_franchise = (strpos($service_name, 'franchise') !== false) || ($payment_type === 'franchisee');
+
+    if ($is_franchise) {
+        $franchise_plans = [
+            6000  => ['Starter Franchise Plan', '4 Months'],
+            30000 => ['Full Franchise Plan', 'Lifetime'],
+        ];
+        if (isset($franchise_plans[$amount_key])) {
+            return $franchise_plans[$amount_key];
+        }
+        return ['Franchise Plan', 'As per plan'];
+    }
+
+    $miniwebsite_plans = [
+        500  => ['Mini Website Plan', '6 Months'],
+        847  => ['Mini Website Plan', '1 Year'],
+        1500 => ['Mini Website Plan', '2 Years'],
+        2100 => ['Mini Website Plan', '3 Years'],
+    ];
+    if (isset($miniwebsite_plans[$amount_key])) {
+        return $miniwebsite_plans[$amount_key];
+    }
+
+    return ['Mini Website Plan', 'As per plan'];
+}
+
+$service_description_base = trim((string)($invoice['service_description'] ?? ''));
+$db_plan_name = trim((string)($invoice['plan_name'] ?? ''));
+$db_plan_validity = trim((string)($invoice['plan_validity'] ?? ''));
+if ($db_plan_name !== '' && $db_plan_validity !== '') {
+    $resolved_plan_name = $db_plan_name;
+    $resolved_plan_validity = $db_plan_validity;
+} else {
+    list($resolved_plan_name, $resolved_plan_validity) = resolveInvoicePlanDetails($invoice);
+}
+$plan_suffix = $resolved_plan_name . ' (' . $resolved_plan_validity . ')';
+$description_already_has_validity = stripos($service_description_base, '(') !== false && stripos($service_description_base, ')') !== false;
+$service_description_with_plan = $description_already_has_validity
+    ? $service_description_base
+    : trim($service_description_base . ' - ' . $plan_suffix, ' -');
+
+if ($service_description_with_plan === '') {
+    $service_description_with_plan = $plan_suffix;
+}
+
 // Create HTML content
 $html = '
 <!DOCTYPE html>
@@ -494,7 +551,7 @@ $html = '
             <tbody>
                 <tr>
                     <td>1</td>
-                    <td>' . htmlspecialchars($invoice['service_description']) . '</td>
+                    <td>' . htmlspecialchars($service_description_with_plan) . '</td>
                     <td>' . htmlspecialchars($invoice['hsn_sac_code']) . '</td>
                     <td>' . htmlspecialchars($invoice['quantity']) . '</td>
                     <td>₹' . number_format((float)$invoice['original_amount'], 2) . '</td>

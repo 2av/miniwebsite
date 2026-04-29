@@ -25,6 +25,19 @@ if(isset($_SESSION['promo_code']) && isset($_SESSION['promo_discount'])) {
     $is_auto_applied = false;
 }
 
+// Helper: capture plan details from posted plan key for invoice storage.
+function mw_store_invoice_plan_meta_from_post() {
+    $selected_plan = isset($_POST['selected_plan']) ? trim((string) $_POST['selected_plan']) : '';
+    $plan_meta = [
+        'starter' => ['Starter Franchise Plan', '4 Months'],
+        'full' => ['Full Franchise Plan', 'Lifetime'],
+    ];
+    if (isset($plan_meta[$selected_plan])) {
+        $_SESSION['invoice_plan_name'] = $plan_meta[$selected_plan][0];
+        $_SESSION['invoice_plan_validity'] = $plan_meta[$selected_plan][1];
+    }
+}
+
 // Check if Razorpay SDK exists
 $razorpay_path = __DIR__ . '/razorpay-php/Razorpay.php';
 if (!file_exists($razorpay_path)) {
@@ -195,6 +208,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
 } else {
     // Franchise registration payment flow
     if ($_POST) {
+        mw_store_invoice_plan_meta_from_post();
         $_SESSION['gst_number'] = $_POST['gst_number'] ?? '';
         $_SESSION['user_name'] = $_POST['name'] ?? '';
         $_SESSION['user_email'] = $_POST['email'] ?? '';

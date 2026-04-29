@@ -88,6 +88,19 @@ function updateReferralEarningsAfterPayment($connect, $user_email, $card_id) {
     return false;
 }
 
+function ensureInvoicePlanColumns($connect) {
+    $required = [
+        'plan_name' => "VARCHAR(120) DEFAULT NULL",
+        'plan_validity' => "VARCHAR(80) DEFAULT NULL",
+    ];
+    foreach ($required as $col => $ddl) {
+        $res = @mysqli_query($connect, "SHOW COLUMNS FROM invoice_details LIKE '" . mysqli_real_escape_string($connect, $col) . "'");
+        if (!$res || mysqli_num_rows($res) === 0) {
+            @mysqli_query($connect, "ALTER TABLE invoice_details ADD COLUMN $col $ddl");
+        }
+    }
+}
+
 // Function to get the latest referral amount (mapped deal or default)
 function getLatestReferralAmount($connect, $referrer_email, $plan_type) {
     $default_amount = 250.00;
@@ -248,6 +261,7 @@ if ($test_mode && isset($_SESSION['user_email']) && in_array($_SESSION['user_ema
 
 if ($success === true) {
     $date = date('Y-m-d H:i:s');
+    ensureInvoicePlanColumns($connect);
 
     if (!isset($_SESSION['reference_number']) || $_SESSION['reference_number'] === '') {
         if (!empty($_POST['shopping_order_id'])) {
@@ -323,6 +337,21 @@ if ($success === true) {
         $gst_percentage = 18;
         $hsn_sac_code = '998314';
         $service_name = 'Mini Website Subscription';
+        $plan_name = isset($_SESSION['invoice_plan_name']) ? trim((string)$_SESSION['invoice_plan_name']) : '';
+        $plan_validity = isset($_SESSION['invoice_plan_validity']) ? trim((string)$_SESSION['invoice_plan_validity']) : '';
+        if ($plan_name === '' || $plan_validity === '') {
+            $plan_from_amount = [
+                500 => ['Mini Website Plan', '6 Months'],
+                847 => ['Mini Website Plan', '1 Year'],
+                1500 => ['Mini Website Plan', '2 Years'],
+                2100 => ['Mini Website Plan', '3 Years'],
+            ];
+            $k = (int)round($original_amount);
+            if (isset($plan_from_amount[$k])) {
+                $plan_name = $plan_name === '' ? $plan_from_amount[$k][0] : $plan_name;
+                $plan_validity = $plan_validity === '' ? $plan_from_amount[$k][1] : $plan_validity;
+            }
+        }
 
         $invoice_insert_query = "INSERT INTO invoice_details (
             invoice_number, invoice_date, card_id, user_email, user_name, user_contact,
@@ -332,6 +361,7 @@ if ($success === true) {
             razorpay_signature, payment_status, payment_date, service_name, service_description,
             hsn_sac_code, quantity, unit_price, total_price, sub_total, igst_percentage, 
             igst_amount, cgst_amount, sgst_amount, total_amount, payment_type, reference_number, created_at, updated_at
+            , plan_name, plan_validity
         ) VALUES (
             '" . mysqli_real_escape_string($connect, $invoice_number) . "',
             '" . mysqli_real_escape_string($connect, $invoice_date) . "',
@@ -372,7 +402,9 @@ if ($success === true) {
             'Regular',
             '" . mysqli_real_escape_string($connect, $ref_num) . "',
             '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
-            '" . mysqli_real_escape_string($connect, $current_timestamp) . "'
+            '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+            '" . mysqli_real_escape_string($connect, $plan_name) . "',
+            '" . mysqli_real_escape_string($connect, $plan_validity) . "'
         )";
 
         $invoice_result = mysqli_query($connect, $invoice_insert_query);
@@ -575,6 +607,19 @@ if ($success === true) {
                 
                 $hsn_sac_code = '998314'; // Default for digital services
                 $service_name = 'Franchisee Registration Fees';
+                $plan_name = isset($_SESSION['invoice_plan_name']) ? trim((string)$_SESSION['invoice_plan_name']) : '';
+                $plan_validity = isset($_SESSION['invoice_plan_validity']) ? trim((string)$_SESSION['invoice_plan_validity']) : '';
+                if ($plan_name === '' || $plan_validity === '') {
+                    $plan_from_amount = [
+                        6000 => ['Starter Franchise Plan', '4 Months'],
+                        30000 => ['Full Franchise Plan', 'Lifetime'],
+                    ];
+                    $k = (int)round($original_amount);
+                    if (isset($plan_from_amount[$k])) {
+                        $plan_name = $plan_name === '' ? $plan_from_amount[$k][0] : $plan_name;
+                        $plan_validity = $plan_validity === '' ? $plan_from_amount[$k][1] : $plan_validity;
+                    }
+                }
                 
                 $invoice_insert_query = "INSERT INTO invoice_details (
                     invoice_number, invoice_date, card_id, user_email, user_name, user_contact,
@@ -584,6 +629,7 @@ if ($success === true) {
                     razorpay_signature, payment_status, payment_date, service_name, service_description,
                     hsn_sac_code, quantity, unit_price, total_price, sub_total, igst_percentage, 
                     igst_amount, cgst_amount, sgst_amount, total_amount, payment_type, reference_number, created_at, updated_at
+                    , plan_name, plan_validity
                 ) VALUES (
                     '" . mysqli_real_escape_string($connect, $invoice_number) . "',
                     '" . mysqli_real_escape_string($connect, $invoice_date) . "',
@@ -624,7 +670,9 @@ if ($success === true) {
                     'Franchisee',
                     '" . mysqli_real_escape_string($connect, $_SESSION['reference_number']) . "',
                     '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
-                    '" . mysqli_real_escape_string($connect, $current_timestamp) . "'
+                    '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+                    '" . mysqli_real_escape_string($connect, $plan_name) . "',
+                    '" . mysqli_real_escape_string($connect, $plan_validity) . "'
                 )";
                 
                 $invoice_result = mysqli_query($connect, $invoice_insert_query);

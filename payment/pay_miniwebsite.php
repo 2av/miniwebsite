@@ -29,10 +29,24 @@ if(isset($_SESSION['promo_code']) && isset($_SESSION['promo_discount'])) {
     $promo_message = '';
     $is_auto_applied = false;
 }
+
+// Helper: capture plan details from posted franchise plan key for invoice storage.
+function mw_store_invoice_plan_meta_from_post() {
+    $selected_plan = isset($_POST['selected_plan']) ? trim((string) $_POST['selected_plan']) : '';
+    $plan_meta = [
+        'starter' => ['Starter Franchise Plan', '4 Months'],
+        'full' => ['Full Franchise Plan', 'Lifetime'],
+    ];
+    if (isset($plan_meta[$selected_plan])) {
+        $_SESSION['invoice_plan_name'] = $plan_meta[$selected_plan][0];
+        $_SESSION['invoice_plan_validity'] = $plan_meta[$selected_plan][1];
+    }
+}
  
 
 // Process form data if coming from franchise_agreement.php
 if ($_POST) {
+    mw_store_invoice_plan_meta_from_post();
     $_SESSION['gst_number'] = $_POST['gst_number'] ?? '';
     $_SESSION['user_name'] = $_POST['name'] ?? '';
     $_SESSION['user_email'] = $_POST['email'] ?? '';
@@ -262,6 +276,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
     // Franchise registration payment flow
     // Process form data if coming from franchise_agreement.php
     if ($_POST) {
+        mw_store_invoice_plan_meta_from_post();
         $_SESSION['gst_number'] = $_POST['gst_number'] ?? '';
         $_SESSION['user_name'] = $_POST['name'] ?? '';
         $_SESSION['user_email'] = $_POST['email'] ?? '';
