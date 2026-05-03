@@ -24,13 +24,9 @@
       "id": "customer_tracker",
       "label": "Customer Manager",
       "icon": "Customertracker.png",
-      "url": "/customer-tracker",
-      "roles": ["TEAM", "CUSTOMER"],
-      "conditions": {
-        "CUSTOMER": {
-          "collaboration_enabled": true
-        }
-      }
+      "url": "/customer-tracker-customer",
+      "roles": ["TEAM"],
+      "always_visible": true
     },
     {
       "id": "customer_tracker_customer",

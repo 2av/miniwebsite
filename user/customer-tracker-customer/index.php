@@ -1,21 +1,36 @@
 <?php
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
-require_role('CUSTOMER', '/login/customer.php');
+
+$current_role = get_current_user_role();
+if ($current_role !== 'CUSTOMER' && $current_role !== 'TEAM') {
+    header('Location: ' . ($current_role === 'TEAM' ? '/login/team.php' : '/login/customer.php'));
+    exit;
+}
+
+$collaboration_enabled = isset($_SESSION['collaboration_enabled']) && $_SESSION['collaboration_enabled'];
+/** Team-style fields (TEAM login, or CUSTOMER with collaborator / collaboration enabled). */
+$tracker_variant = ($current_role === 'TEAM' || ($current_role === 'CUSTOMER' && $collaboration_enabled)) ? 'team' : 'customer';
+$owner_role_db = ($current_role === 'TEAM') ? 'TEAM' : 'CUSTOMER';
 
 $owner_id = (int)(get_user_id() ?? 0);
 $owner_email = (string)(get_user_email() ?? '');
 if ($owner_id <= 0 && $owner_email !== '') {
-    $stmtOwner = $connect->prepare("SELECT id FROM user_details WHERE email = ? AND role = 'CUSTOMER' LIMIT 1");
+    $roleLookup = $current_role === 'TEAM' ? 'TEAM' : 'CUSTOMER';
+    $stmtOwner = $connect->prepare("SELECT id FROM user_details WHERE email = ? AND role = ? LIMIT 1");
     if ($stmtOwner) {
-        $stmtOwner->bind_param('s', $owner_email);
+        $stmtOwner->bind_param('ss', $owner_email, $roleLookup);
         $stmtOwner->execute();
         $resOwner = $stmtOwner->get_result();
-        if ($resOwner && ($ownerRow = $resOwner->fetch_assoc())) $owner_id = (int)$ownerRow['id'];
+        if ($resOwner && ($ownerRow = $resOwner->fetch_assoc())) {
+            $owner_id = (int)$ownerRow['id'];
+        }
         $stmtOwner->close();
     }
 }
-if ($owner_id <= 0) die('Unable to identify user.');
+if ($owner_id <= 0) {
+    die('Unable to identify user.');
+}
 
 $connect->query("CREATE TABLE IF NOT EXISTS mw_customers (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -30,21 +45,37 @@ $connect->query("CREATE TABLE IF NOT EXISTS mw_customers (
     address_line1 VARCHAR(255) DEFAULT '',
     area_city VARCHAR(120) DEFAULT '',
     comments TEXT,
-    source VARCHAR(18) DEFAULT 'Manual',
-    status VARCHAR(18) DEFAULT 'Active',
+    source VARCHAR(18) DEFAULT 'Direct',
+    status VARCHAR(40) DEFAULT 'Followup required',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_shared_at DATETIME NULL DEFAULT NULL,
     INDEX idx_owner (owner_user_id, owner_role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+$connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS last_shared_at DATETIME NULL DEFAULT NULL");
 $connect->query("ALTER TABLE mw_customers MODIFY COLUMN label_tag VARCHAR(18) DEFAULT ''");
-$connect->query("ALTER TABLE mw_customers MODIFY COLUMN source VARCHAR(18) DEFAULT 'Manual'");
+$connect->query("ALTER TABLE mw_customers MODIFY COLUMN source VARCHAR(18) DEFAULT 'Direct'");
 $connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS email_id VARCHAR(150) DEFAULT '' AFTER phone_number");
 $connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS company_name VARCHAR(150) DEFAULT '' AFTER email_id");
 $connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS website VARCHAR(255) DEFAULT '' AFTER company_name");
-$connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS status VARCHAR(18) DEFAULT 'Active' AFTER source");
+$connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS status VARCHAR(40) DEFAULT 'Followup required' AFTER source");
+$connect->query("ALTER TABLE mw_customers MODIFY COLUMN status VARCHAR(40) DEFAULT 'Followup required'");
+$connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS business_type VARCHAR(150) DEFAULT '' AFTER label_tag");
+$connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS approached_for VARCHAR(150) DEFAULT '' AFTER business_type");
+$connect->query("ALTER TABLE mw_customers ADD COLUMN IF NOT EXISTS followup_method VARCHAR(150) DEFAULT '' AFTER approached_for");
 
 function mw_phone_clean(string $v): string { return preg_replace('/[^0-9]/', '', $v) ?? ''; }
 function mw_limit_text(string $v, int $max): string { return mb_substr(trim($v), 0, $max); }
+function mw_format_last_shared($v): string {
+    if ($v === null || $v === '' || $v === '0000-00-00 00:00:00') {
+        return '-';
+    }
+    $t = strtotime((string)$v);
+    if ($t === false) {
+        return '-';
+    }
+    return date('d-m-Y H:i', $t);
+}
 
 $message = '';
 $message_type = 'success';
@@ -61,8 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $line1 = trim($_POST['address_line1'] ?? '');
         $areaCity = trim($_POST['area_city'] ?? '');
         $comments = trim($_POST['comments'] ?? '');
-        $source = mw_limit_text($_POST['source'] ?? 'Manual', 18);
-        $status = mw_limit_text($_POST['status'] ?? 'Active', 18);
+        $source = mw_limit_text($_POST['source'] ?? 'Direct', 18);
+        $status = mw_limit_text($_POST['status'] ?? 'Followup required', 40);
+        $businessType = mw_limit_text($_POST['business_type'] ?? '', 150);
+        $approachedFor = mw_limit_text($_POST['approached_for'] ?? '', 150);
+        $followupMethod = mw_limit_text($_POST['followup_method'] ?? '', 150);
         if ($name === '' || $phone === '') {
             header('Location: index.php?msg=validation_error');
             exit;
@@ -71,18 +105,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         } else {
             if ($id > 0) {
-                $stmt = $connect->prepare("UPDATE mw_customers SET customer_name=?, label_tag=?, phone_number=?, email_id=?, company_name=?, website=?, source=?, status=?, address_line1=?, area_city=?, comments=? WHERE id=? AND owner_user_id=? AND owner_role='CUSTOMER'");
+                $stmt = $connect->prepare("UPDATE mw_customers SET customer_name=?, label_tag=?, phone_number=?, email_id=?, company_name=?, website=?, source=?, status=?, address_line1=?, area_city=?, comments=?, business_type=?, approached_for=?, followup_method=? WHERE id=? AND owner_user_id=? AND owner_role=?");
                 if ($stmt) {
-                    $stmt->bind_param('sssssssssssii', $name, $label, $phone, $emailId, $companyName, $website, $source, $status, $line1, $areaCity, $comments, $id, $owner_id);
+                    $stmt->bind_param('ssssssssssssssiis', $name, $label, $phone, $emailId, $companyName, $website, $source, $status, $line1, $areaCity, $comments, $businessType, $approachedFor, $followupMethod, $id, $owner_id, $owner_role_db);
                     $stmt->execute();
                     $stmt->close();
                 }
                 header('Location: index.php?msg=updated');
                 exit;
             } else {
-                $stmt = $connect->prepare("INSERT INTO mw_customers (owner_user_id, owner_role, customer_name, label_tag, phone_number, email_id, company_name, website, address_line1, area_city, comments, source, status) VALUES (?, 'CUSTOMER', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $connect->prepare("INSERT INTO mw_customers (owner_user_id, owner_role, customer_name, label_tag, phone_number, email_id, company_name, website, address_line1, area_city, comments, source, status, business_type, approached_for, followup_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 if ($stmt) {
-                    $stmt->bind_param('isssssssssss', $owner_id, $name, $label, $phone, $emailId, $companyName, $website, $line1, $areaCity, $comments, $source, $status);
+                    $stmt->bind_param('issssssssssssssss', $owner_id, $owner_role_db, $name, $label, $phone, $emailId, $companyName, $website, $line1, $areaCity, $comments, $source, $status, $businessType, $approachedFor, $followupMethod);
                     $stmt->execute();
                     $stmt->close();
                 }
@@ -92,13 +126,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'delete_customer') {
         $id = (int)($_POST['customer_id'] ?? 0);
-        $stmt = $connect->prepare("DELETE FROM mw_customers WHERE id = ? AND owner_user_id = ? AND owner_role = 'CUSTOMER'");
+        $stmt = $connect->prepare("DELETE FROM mw_customers WHERE id = ? AND owner_user_id = ? AND owner_role = ?");
         if ($stmt) {
-            $stmt->bind_param('ii', $id, $owner_id);
+            $stmt->bind_param('iis', $id, $owner_id, $owner_role_db);
             $stmt->execute();
             $stmt->close();
         }
         header('Location: index.php?msg=deleted');
+        exit;
+    } elseif ($action === 'record_last_shared') {
+        header('Content-Type: application/json; charset=utf-8');
+        $cid = (int)($_POST['customer_id'] ?? 0);
+        if ($cid <= 0) {
+            echo json_encode(['ok' => false]);
+            exit;
+        }
+        $stmt = $connect->prepare("UPDATE mw_customers SET last_shared_at = NOW() WHERE id = ? AND owner_user_id = ? AND owner_role = ?");
+        if ($stmt) {
+            $stmt->bind_param('iis', $cid, $owner_id, $owner_role_db);
+            $stmt->execute();
+            $stmt->close();
+        }
+        echo json_encode(['ok' => true]);
         exit;
     }
 }
@@ -125,27 +174,54 @@ if (isset($_GET['msg'])) {
 
 $search = trim($_GET['search'] ?? '');
 $sort_by = trim($_GET['sort_by'] ?? 'created_at');
+if ($sort_by === 'address_line1' || $sort_by === 'area_city') {
+    $sort_by = 'address';
+}
 $sort_dir = strtolower(trim($_GET['sort_dir'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
 $sortable_columns = [
     'created_at' => 'created_at',
     'customer_name' => 'customer_name',
-    'label_tag' => 'label_tag',
     'phone_number' => 'phone_number',
+    'label_tag' => 'label_tag',
+    'source' => 'source',
+    'email_id' => 'email_id',
+    'company_name' => 'company_name',
+    'website' => 'website',
     'address' => "CONCAT(IFNULL(address_line1,''), ' ', IFNULL(area_city,''))",
-    'comments' => 'comments'
+    'last_shared_at' => 'last_shared_at',
+    'comments' => 'comments',
+    'status' => 'status',
+    'business_type' => 'business_type',
+    'approached_for' => 'approached_for',
+    'followup_method' => 'followup_method',
 ];
 if (!isset($sortable_columns[$sort_by])) {
     $sort_by = 'created_at';
 }
+$tracker_clear_search_href = '?' . http_build_query([
+    'sort_by' => $sort_by,
+    'sort_dir' => strtolower($sort_dir),
+]);
+$trackerThSort = function (string $col, string $label) use ($search, $sort_by, $sort_dir, $sortable_columns): string {
+    if (!isset($sortable_columns[$col])) {
+        return '<th>' . htmlspecialchars($label) . '</th>';
+    }
+    $nextDir = ($sort_by === $col && $sort_dir === 'ASC') ? 'desc' : 'asc';
+    $iconClass = ($sort_by === $col) ? ($sort_dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort';
+    $href = '?' . http_build_query(['search' => $search, 'sort_by' => $col, 'sort_dir' => $nextDir]);
+    return '<th><a href="' . htmlspecialchars($href) . '">' . htmlspecialchars($label) . ' <i class="fa ' . $iconClass . ' sort-icon"></i></a></th>';
+};
 $customers = [];
-$sql = "SELECT * FROM mw_customers WHERE owner_user_id = ? AND owner_role = 'CUSTOMER'";
-$types = 'i';
-$args = [$owner_id];
+$sql = "SELECT * FROM mw_customers WHERE owner_user_id = ? AND owner_role = ?";
+$types = 'is';
+$args = [$owner_id, $owner_role_db];
 if ($search !== '') {
-    $sql .= " AND (customer_name LIKE ? OR phone_number LIKE ?)";
+    $sql .= " AND (customer_name LIKE ? OR phone_number LIKE ? OR email_id LIKE ? OR company_name LIKE ? OR source LIKE ? OR website LIKE ? OR address_line1 LIKE ? OR area_city LIKE ? OR comments LIKE ? OR label_tag LIKE ? OR status LIKE ? OR business_type LIKE ? OR approached_for LIKE ? OR followup_method LIKE ?)";
     $lk = '%' . $search . '%';
-    $types .= 'ss';
-    $args[] = $lk; $args[] = $lk;
+    $types .= str_repeat('s', 14);
+    for ($si = 0; $si < 14; $si++) {
+        $args[] = $lk;
+    }
 }
 $sql .= " ORDER BY " . $sortable_columns[$sort_by] . " " . $sort_dir . ", id DESC";
 $stmt = $connect->prepare($sql);
@@ -199,14 +275,118 @@ include __DIR__ . '/../includes/header.php';
     text-decoration: none !important;
     font-weight: 600;
 }
+#customerTrackerSearchForm {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+}
+#customerTrackerSearchForm .tracker-search-input-wrap {
+    position: relative;
+    min-width: 0;
+    flex: 1 1 200px;
+    max-width: 360px;
+}
+#customerTrackerSearchForm .tracker-search-input-wrap .form-control {
+    padding-right: 2.25rem;
+}
+#customerTrackerSearchForm .tracker-search-input-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: #6e7a97;
+    padding: 4px 6px;
+    line-height: 1;
+    border-radius: 6px;
+    z-index: 2;
+    cursor: pointer;
+}
+#customerTrackerSearchForm .tracker-search-input-clear:hover {
+    color: #dc3545;
+    background: rgba(0,0,0,0.05);
+}
+#customerTrackerSearchForm .tracker-search-input-clear[hidden] {
+    display: none !important;
+}
 #customerTrackerTable thead a .sort-icon {
     margin-left: 4px;
     opacity: 0.8;
 }
+/* Wide table: horizontal scroll; columns keep readable minimum widths */
+#customerTrackerTableWrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+#customerTrackerTable {
+    width: max-content;
+    min-width: 100%;
+    margin-bottom: 0;
+    table-layout: auto;
+}
+#customerTrackerTable thead th,
+#customerTrackerTable tbody td {
+    vertical-align: middle;
+}
+/* Default: don’t crush text — scroll instead */
+#customerTrackerTable thead th {
+    white-space: nowrap;
+}
+#customerTrackerTable tbody td {
+    white-space: nowrap;
+}
+/* Address: street + area/city (merged); allow wrap */
+#customerTrackerTable thead th:nth-child(10),
+#customerTrackerTable tbody td:nth-child(10) {
+    white-space: normal;
+    min-width: 11rem;
+    max-width: 22rem;
+    word-break: break-word;
+}
+/* Comments: wrap inside a sensible column width */
+#customerTrackerTable thead th:nth-child(11),
+#customerTrackerTable tbody td:nth-child(11) {
+    white-space: normal;
+    min-width: 11rem;
+    max-width: 18rem;
+    word-break: break-word;
+}
+/* Per-column minimum widths (14 cols) */
+#customerTrackerTable th:nth-child(1),
+#customerTrackerTable td:nth-child(1) { min-width: 2.75rem; }
+#customerTrackerTable th:nth-child(2),
+#customerTrackerTable td:nth-child(2) { min-width: 6.5rem; }
+#customerTrackerTable th:nth-child(3),
+#customerTrackerTable td:nth-child(3) { min-width: 9rem; }
+#customerTrackerTable th:nth-child(4),
+#customerTrackerTable td:nth-child(4) { min-width: 7.5rem; }
+#customerTrackerTable th:nth-child(5),
+#customerTrackerTable td:nth-child(5) { min-width: 7rem; }
+#customerTrackerTable th:nth-child(6),
+#customerTrackerTable td:nth-child(6) { min-width: 7rem; }
+#customerTrackerTable th:nth-child(7),
+#customerTrackerTable td:nth-child(7) { min-width: 10rem; }
+#customerTrackerTable th:nth-child(8),
+#customerTrackerTable td:nth-child(8) { min-width: 9rem; }
+#customerTrackerTable th:nth-child(9),
+#customerTrackerTable td:nth-child(9) { min-width: 9rem; }
+#customerTrackerTable th:nth-child(12),
+#customerTrackerTable td:nth-child(12) { min-width: 8.5rem; }
+#customerTrackerTable th:nth-child(13),
+#customerTrackerTable td:nth-child(13) { min-width: 8.5rem; }
+#customerTrackerTable th:nth-child(14),
+#customerTrackerTable td:nth-child(14) { min-width: 7rem; }
 .tracker-modal .modal-header {
     background: #001b78;
     color: #fff;
     padding: 12px 16px;
+}
+.tracker-modal .modal-header .modal-title {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
 }
 .tracker-modal .modal-header .btn-close {
     filter: invert(1);
@@ -242,14 +422,27 @@ include __DIR__ . '/../includes/header.php';
     color: #27345a;
     margin-bottom: 6px;
 }
-.tracker-modal .form-control,
-.tracker-modal .form-select {
+.tracker-modal .form-control {
     font-size: 13px;
     min-height: 40px;
     background: #fff;
     border: 1px solid #d8deea;
     border-radius: 8px;
     color: #4a5678;
+}
+/* Do not use background shorthand on selects — it removes Bootstrap’s caret. */
+.tracker-modal .form-select {
+    font-size: 13px;
+    min-height: 40px;
+    border: 1px solid #d8deea;
+    border-radius: 8px;
+    color: #4a5678;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234a5678' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.7' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 14px 10px;
+    padding-right: 2.25rem;
 }
 .tracker-input-wrap {
     position: relative;
@@ -293,6 +486,72 @@ include __DIR__ . '/../includes/header.php';
     border-bottom: 1px solid #e8edf6;
     padding-bottom: 6px;
 }
+#shareOfferModal .modal-body {
+    background: #fff;
+}
+#shareOfferModal .modal-content {
+    background: #fff;
+}
+#shareOfferModal .modal-dialog {
+    max-width: 1140px;
+}
+/* Mobile: vertical centering clips tall modals — pin to top + safe area */
+@media (max-width: 767.98px) {
+    #shareOfferModal.modal {
+        align-items: flex-start !important;
+        padding-top: max(12px, env(safe-area-inset-top, 0px));
+        padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+        padding-left: max(8px, env(safe-area-inset-left, 0px));
+        padding-right: max(8px, env(safe-area-inset-right, 0px));
+        overflow-y: auto !important;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+    #shareOfferModal .modal-dialog {
+        max-width: calc(100% - 1rem);
+        margin: 0 auto !important;
+        min-height: 0 !important;
+        align-items: flex-start !important;
+        display: flex;
+    }
+    #shareOfferModal .modal-dialog.modal-dialog-centered {
+        min-height: 0 !important;
+    }
+    #shareOfferModal .modal-content {
+        max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 40px);
+        max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 40px);
+        display: flex;
+        flex-direction: column;
+    }
+    #shareOfferModal .modal-header {
+        flex-shrink: 0;
+    }
+    #shareOfferModal .modal-body {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    #shareOfferModal .wa-popup-footer,
+    #shareOfferModal .modal-footer.wa-popup-footer {
+        flex-shrink: 0;
+    }
+}
+.wa-message-field {
+    position: relative;
+}
+.wa-message-field #offerMessage {
+    padding-bottom: 1.75rem;
+    min-height: 200px;
+}
+.wa-char-count {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font-size: 11px;
+    color: #8b96b2;
+    pointer-events: none;
+}
 #waTemplateList .template-item {
     border: 1px solid #e2e7f2;
     border-radius: 8px;
@@ -301,27 +560,26 @@ include __DIR__ . '/../includes/header.php';
     background: #fff;
 }
 #waTemplateList .template-item.active {
-    border-color: #cfe0ff;
-    background: #f3f8ff;
+    border-color: #6ea8ff;
+    background: #eef5ff;
+}
+#waTemplateList .template-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0d4fbf;
+}
+#waTemplateList .template-item label {
+    color: inherit;
 }
 .wa-template-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 10px;
 }
 .wa-template-title {
-    font-size: 13px;
+    display: block;
+    font-size: 14px;
     font-weight: 700;
-    color: #2b3d66;
+    color: #1a2744;
 }
-.wa-manage-link {
-    font-size: 12px;
-    color: #2d6adf;
-    text-decoration: none;
-    font-weight: 600;
-}
-.wa-manage-link:hover { color: #1f58c6; }
 .template-name-row {
     display: flex;
     align-items: center;
@@ -330,8 +588,9 @@ include __DIR__ . '/../includes/header.php';
 }
 .template-preview {
     font-size: 12px;
-    color: #6f7d9d;
-    margin-top: 2px;
+    color: #5c6b85;
+    margin-top: 4px;
+    line-height: 1.35;
 }
 .template-default-badge {
     background: #28a745;
@@ -341,16 +600,29 @@ include __DIR__ . '/../includes/header.php';
     border-radius: 4px;
     padding: 2px 6px;
 }
-.wa-create-btn {
-    background: #fff;
-    border: 1px solid #cfdbf2;
-    color: #2d6adf;
-    font-size: 13px;
+.wa-popup-footer {
+    background: #fff !important;
+    border-top: 1px solid #e4e8f0 !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.wa-popup-footer .btn-success {
     font-weight: 600;
 }
-.wa-create-btn:hover {
-    background: #f7fbff;
+.wa-popup-footer .btn-outline-primary {
+    border-color: #2d6adf;
+    color: #2d6adf;
+    font-weight: 600;
+    background: #fff;
+}
+.wa-popup-footer .btn-outline-primary:hover {
+    background: #f0f6ff;
+    border-color: #1f58c6;
     color: #1f58c6;
+}
+.wa-popup-footer .btn-danger {
+    font-weight: 600;
 }
 .tracker-subtle-box {
     background: #f2f7ff;
@@ -430,6 +702,14 @@ include __DIR__ . '/../includes/header.php';
     .tracker-modal .modal-footer .btn {
         font-size: 13px;
     }
+    .wa-popup-footer {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    .wa-popup-footer .btn {
+        width: 100%;
+        min-height: 44px;
+    }
 }
 </style>
 <main class="Dashboard">
@@ -442,37 +722,91 @@ include __DIR__ . '/../includes/header.php';
         </div>
     <?php endif; ?>
     <div class="card mb-4"><div class="card-body">
-        <div class="d-flex flex-wrap justify-content-between mb-3">
-            <button id="openCustomerModalBtn" class="btn btn-primary mb-2" data-bs-toggle="modal" data-bs-target="#customerModal"><i class="fa fa-plus"></i>Add Customer</button>
-            <form method="get" class="d-flex mb-2" style="gap:8px;">
-                <input name="search" class="form-control" placeholder="Search Name / Phone" value="<?php echo htmlspecialchars($search); ?>">
-                <button class="btn btn-outline-secondary"><i class="fa fa-search"></i></button>
+        <div class="d-flex flex-wrap flex-md-nowrap justify-content-between align-items-center gap-2 mb-3">
+            <button id="openCustomerModalBtn" class="btn btn-primary flex-shrink-0" data-bs-toggle="modal" data-bs-target="#customerModal"><i class="fa fa-plus"></i>Add Customer</button>
+            <form method="get" id="customerTrackerSearchForm" class="d-flex flex-nowrap align-items-stretch ms-md-auto" style="gap:8px;min-width:0;">
+                <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_by); ?>">
+                <input type="hidden" name="sort_dir" value="<?php echo htmlspecialchars(strtolower($sort_dir)); ?>">
+                <div class="tracker-search-input-wrap">
+                    <input name="search" id="trackerSearchInput" class="form-control" placeholder="Search name, phone, email, company, source…" value="<?php echo htmlspecialchars($search); ?>" autocomplete="off" inputmode="search"<?php echo $search !== '' ? ' aria-label="Search (filter active; use clear to show all)"' : ''; ?>>
+                    <button type="button" class="tracker-search-input-clear" id="trackerSearchInputClear" title="Clear" aria-label="Clear search" hidden><i class="fa fa-times"></i></button>
+                </div>
+                <button type="submit" class="btn btn-outline-secondary flex-shrink-0" title="Search"><i class="fa fa-search"></i></button>
             </form>
         </div>
-        <div class="table-responsive"><table class="table table-bordered table-striped" id="customerTrackerTable">
-            <thead><tr><th>SN</th><th><a href="?search=<?php echo urlencode($search); ?>&sort_by=created_at&sort_dir=<?php echo ($sort_by === 'created_at' && $sort_dir === 'ASC') ? 'desc' : 'asc'; ?>">Date Added <i class="fa <?php echo ($sort_by === 'created_at') ? ($sort_dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'; ?> sort-icon"></i></a></th><th><a href="?search=<?php echo urlencode($search); ?>&sort_by=customer_name&sort_dir=<?php echo ($sort_by === 'customer_name' && $sort_dir === 'ASC') ? 'desc' : 'asc'; ?>">Customer Name <i class="fa <?php echo ($sort_by === 'customer_name') ? ($sort_dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'; ?> sort-icon"></i></a></th><th><a href="?search=<?php echo urlencode($search); ?>&sort_by=label_tag&sort_dir=<?php echo ($sort_by === 'label_tag' && $sort_dir === 'ASC') ? 'desc' : 'asc'; ?>">Label <i class="fa <?php echo ($sort_by === 'label_tag') ? ($sort_dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'; ?> sort-icon"></i></a></th><th><a href="?search=<?php echo urlencode($search); ?>&sort_by=phone_number&sort_dir=<?php echo ($sort_by === 'phone_number' && $sort_dir === 'ASC') ? 'desc' : 'asc'; ?>">Phone Number <i class="fa <?php echo ($sort_by === 'phone_number') ? ($sort_dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'; ?> sort-icon"></i></a></th><th><a href="?search=<?php echo urlencode($search); ?>&sort_by=address&sort_dir=<?php echo ($sort_by === 'address' && $sort_dir === 'ASC') ? 'desc' : 'asc'; ?>">Address <i class="fa <?php echo ($sort_by === 'address') ? ($sort_dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'; ?> sort-icon"></i></a></th><th><a href="?search=<?php echo urlencode($search); ?>&sort_by=comments&sort_dir=<?php echo ($sort_by === 'comments' && $sort_dir === 'ASC') ? 'desc' : 'asc'; ?>">Comments <i class="fa <?php echo ($sort_by === 'comments') ? ($sort_dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'; ?> sort-icon"></i></a></th><th>Actions</th><th>Manage</th></tr></thead>
+        <div class="table-responsive" id="customerTrackerTableWrap"><table class="table table-bordered table-striped" id="customerTrackerTable">
+            <?php if ($tracker_variant === 'team'): ?>
+            <thead><tr><th>SN</th><?php echo $trackerThSort('created_at', 'Date Added') . $trackerThSort('customer_name', 'Customer Name') . $trackerThSort('phone_number', 'Phone Number') . $trackerThSort('business_type', 'Business Type') . $trackerThSort('approached_for', 'Approached For') . $trackerThSort('followup_method', 'Followed-Up Method') . $trackerThSort('source', 'Source') . $trackerThSort('email_id', 'Email ID') . $trackerThSort('company_name', 'Company Name') . $trackerThSort('website', 'Website') . $trackerThSort('address', 'Address') . $trackerThSort('last_shared_at', 'Last shared') . $trackerThSort('comments', 'Comment') . $trackerThSort('status', 'Status'); ?><th>Actions</th><th>Manage</th></tr></thead>
             <tbody>
-            <?php if (empty($customers)): ?><tr><td colspan="9" class="text-center">No customers found.</td></tr><?php else: $sn=1; foreach($customers as $c): ?>
+            <?php if (empty($customers)): ?><tr><td colspan="17" class="text-center">No customers found.</td></tr><?php else: $sn=1; foreach($customers as $c): ?>
                 <tr>
                     <td><?php echo $sn++; ?></td>
                     <td><?php echo date('d-m-Y', strtotime($c['created_at'])); ?></td>
                     <td><?php echo htmlspecialchars($c['customer_name']); ?></td>
-                    <td><?php echo htmlspecialchars($c['label_tag'] ?: 'Regular'); ?></td>
                     <td><?php echo htmlspecialchars($c['phone_number']); ?></td>
-                    <td><?php echo htmlspecialchars(trim(($c['address_line1'] ? $c['address_line1'] . ', ' : '') . ($c['area_city'] ?? ''), ' ,')); ?></td>
-                    <td><?php echo htmlspecialchars($c['comments'] ?: '-'); ?></td>
+                    <td><?php $bt = trim((string)($c['business_type'] ?? '')); echo htmlspecialchars($bt !== '' ? $bt : '-'); ?></td>
+                    <td><?php $af = trim((string)($c['approached_for'] ?? '')); echo htmlspecialchars($af !== '' ? $af : '-'); ?></td>
+                    <td><?php $fm = trim((string)($c['followup_method'] ?? '')); echo htmlspecialchars($fm !== '' ? $fm : '-'); ?></td>
+                    <td><?php $src = trim((string)($c['source'] ?? '')); echo htmlspecialchars($src !== '' ? $src : '-'); ?></td>
+                    <td><?php $em = trim((string)($c['email_id'] ?? '')); echo htmlspecialchars($em !== '' ? $em : '-'); ?></td>
+                    <td><?php $co = trim((string)($c['company_name'] ?? '')); echo htmlspecialchars($co !== '' ? $co : '-'); ?></td>
+                    <td><?php $web = trim((string)($c['website'] ?? '')); echo htmlspecialchars($web !== '' ? $web : '-'); ?></td>
+                    <td><?php
+                        $a1 = trim((string)($c['address_line1'] ?? ''));
+                        $ac = trim((string)($c['area_city'] ?? ''));
+                        $addrMerged = trim($a1 . (($a1 !== '' && $ac !== '') ? ', ' : '') . $ac);
+                        echo htmlspecialchars($addrMerged !== '' ? $addrMerged : '-');
+                    ?></td>
+                    <td><?php echo htmlspecialchars(mw_format_last_shared($c['last_shared_at'] ?? null)); ?></td>
+                    <td><?php $comm = (string)($c['comments'] ?? ''); echo trim($comm) === '' ? '-' : htmlspecialchars($comm); ?></td>
+                    <td><?php $st = trim((string)($c['status'] ?? '')); echo htmlspecialchars($st !== '' ? $st : '-'); ?></td>
                     <td>
                         <a class="btn btn-sm btn-outline-primary" href="tel:<?php echo htmlspecialchars($c['phone_number']); ?>"><i class="fa fa-phone"></i></a>
-                        <button class="btn btn-sm btn-outline-success wa-normal-btn" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>"><i class="fa-brands fa-whatsapp"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-success wa-normal-btn" data-id="<?php echo (int)$c['id']; ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>"><i class="fa-brands fa-whatsapp"></i></button>
                         <button class="btn btn-sm btn-outline-warning single-offer-btn" data-id="<?php echo (int)$c['id']; ?>"><i class="fa fa-gift"></i></button>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-outline-info edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city']); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>"><i class="fa fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-info edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-business-type="<?php echo htmlspecialchars($c['business_type'] ?? ''); ?>" data-approached-for="<?php echo htmlspecialchars($c['approached_for'] ?? ''); ?>" data-followup-method="<?php echo htmlspecialchars($c['followup_method'] ?? ''); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city'] ?? ''); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>"><i class="fa fa-edit"></i></button>
                         <form method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this customer?');"><input type="hidden" name="action" value="delete_customer"><input type="hidden" name="customer_id" value="<?php echo (int)$c['id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button></form>
                     </td>
                 </tr>
             <?php endforeach; endif; ?>
             </tbody>
+            <?php else: ?>
+            <thead><tr><th>SN</th><?php echo $trackerThSort('created_at', 'Date Added') . $trackerThSort('customer_name', 'Customer Name') . $trackerThSort('phone_number', 'Phone Number') . $trackerThSort('label_tag', 'Label') . $trackerThSort('source', 'Source') . $trackerThSort('email_id', 'Email ID') . $trackerThSort('company_name', 'Company Name') . $trackerThSort('website', 'Website') . $trackerThSort('address', 'Address') . $trackerThSort('last_shared_at', 'Last shared') . $trackerThSort('status', 'Status'); ?><th>Actions</th><th>Manage</th></tr></thead>
+            <tbody>
+            <?php if (empty($customers)): ?><tr><td colspan="14" class="text-center">No customers found.</td></tr><?php else: $sn=1; foreach($customers as $c): ?>
+                <tr>
+                    <td><?php echo $sn++; ?></td>
+                    <td><?php echo date('d-m-Y', strtotime($c['created_at'])); ?></td>
+                    <td><?php echo htmlspecialchars($c['customer_name']); ?></td>
+                    <td><?php echo htmlspecialchars($c['phone_number']); ?></td>
+                    <td><?php echo htmlspecialchars($c['label_tag'] ?: 'Regular'); ?></td>
+                    <td><?php $src = trim((string)($c['source'] ?? '')); echo htmlspecialchars($src !== '' ? $src : '-'); ?></td>
+                    <td><?php $em = trim((string)($c['email_id'] ?? '')); echo htmlspecialchars($em !== '' ? $em : '-'); ?></td>
+                    <td><?php $co = trim((string)($c['company_name'] ?? '')); echo htmlspecialchars($co !== '' ? $co : '-'); ?></td>
+                    <td><?php $web = trim((string)($c['website'] ?? '')); echo htmlspecialchars($web !== '' ? $web : '-'); ?></td>
+                    <td><?php
+                        $a1 = trim((string)($c['address_line1'] ?? ''));
+                        $ac = trim((string)($c['area_city'] ?? ''));
+                        $addrMerged = trim($a1 . (($a1 !== '' && $ac !== '') ? ', ' : '') . $ac);
+                        echo htmlspecialchars($addrMerged !== '' ? $addrMerged : '-');
+                    ?></td>
+                    <td><?php echo htmlspecialchars(mw_format_last_shared($c['last_shared_at'] ?? null)); ?></td>
+                    <td><?php $st = trim((string)($c['status'] ?? '')); echo htmlspecialchars($st !== '' ? $st : '-'); ?></td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" href="tel:<?php echo htmlspecialchars($c['phone_number']); ?>"><i class="fa fa-phone"></i></a>
+                        <button type="button" class="btn btn-sm btn-outline-success wa-normal-btn" data-id="<?php echo (int)$c['id']; ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>"><i class="fa-brands fa-whatsapp"></i></button>
+                        <button class="btn btn-sm btn-outline-warning single-offer-btn" data-id="<?php echo (int)$c['id']; ?>"><i class="fa fa-gift"></i></button>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city'] ?? ''); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>"><i class="fa fa-edit"></i></button>
+                        <form method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this customer?');"><input type="hidden" name="action" value="delete_customer"><input type="hidden" name="customer_id" value="<?php echo (int)$c['id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button></form>
+                    </td>
+                </tr>
+            <?php endforeach; endif; ?>
+            </tbody>
+            <?php endif; ?>
         </table></div>
     </div></div>
     <div class="alert alert-light border mt-3 mb-0" id="customerTrackerSafetyTips">
@@ -481,7 +815,7 @@ include __DIR__ . '/../includes/header.php';
             <li><i class="fa fa-phone text-primary"></i> <strong>Call:</strong> Opens phone dialer with customer number.</li>
             <li><i class="fa-brands fa-whatsapp text-success"></i> <strong>WhatsApp:</strong> Opens normal WhatsApp message window.</li>
             <li><i class="fa fa-gift text-warning"></i> <strong>Share Offer:</strong> Opens offer preview and sends selected offer message.</li>
-            <li><i class="fa fa-edit text-info"></i> <strong>Edit:</strong> Update customer name, label, phone, address, and comments.</li>
+            <li><i class="fa fa-edit text-info"></i> <strong>Edit:</strong> Update customer details (same fields as the add form).</li>
             <li><i class="fa fa-trash text-danger"></i> <strong>Delete:</strong> Permanently removes customer entry from your list.</li>
         </ul>
         <strong>WhatsApp Safety Tips</strong>
@@ -499,7 +833,7 @@ include __DIR__ . '/../includes/header.php';
 <div class="modal-header"><h5 class="modal-title">Quick Add Customer</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
 <div class="modal-body">
 <input type="hidden" name="action" value="save_customer"><input type="hidden" name="customer_id" id="customer_id">
-<div class="section-title"><i class="fa fa-user-circle me-1"></i> Basic Information</div>
+<div class="section-title"><i class="fa fa-bolt me-1"></i> Quick action</div>
 <div class="row g-2">
     <div class="col-12 col-md-6" id="customerNameCol">
         <label class="form-label">Customer Name *</label>
@@ -518,8 +852,16 @@ include __DIR__ . '/../includes/header.php';
             <input name="phone_number" id="phone_number" class="form-control phone-input" placeholder="Enter phone number" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);">
         </div>
     </div>
+    <?php if ($tracker_variant === 'team'): ?>
+    <div class="col-md-6"><label class="form-label">Business Type</label><select name="business_type" id="business_type_quick" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Approached For</label><select name="approached_for" id="approached_for_quick" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Followed-Up Method</label><select name="followup_method" id="followup_method_quick" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select" class="form-select"></select></div>
+    <?php else: ?>
     <div class="col-md-6"><label class="form-label">Label</label><select name="label_tag" id="label_tag" class="form-select"></select></div>
     <div class="col-md-6"><label class="form-label">Source</label><select name="source" id="source_select" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select" class="form-select"></select></div>
+    <?php endif; ?>
 </div>
 <button class="btn btn-link px-0 mt-2" type="button" id="toggleAdditionalBtn">+ Additional Details (Optional)</button>
 </div><div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn tracker-btn-yellow">Save Customer</button></div>
@@ -533,56 +875,74 @@ include __DIR__ . '/../includes/header.php';
 <div class="row g-2">
     <div class="col-md-6"><label class="form-label">Customer Name *</label><div class="tracker-input-wrap"><i class="fa fa-user field-icon"></i><input name="customer_name" id="customer_name_full" class="form-control" placeholder="Enter customer name" required></div></div>
     <div class="col-md-6"><label class="form-label">Phone Number *</label><div class="input-group phone-group"><span class="input-group-text bg-white border-end-0"><i class="fa fa-phone text-muted"></i></span><select class="form-select country-code-select border-start-0 border-end-0"><option value="+91" selected>+91</option></select><input name="phone_number" id="phone_number_full" class="form-control phone-input" placeholder="Enter phone number" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"></div></div>
+    <?php if ($tracker_variant === 'team'): ?>
+    <div class="col-md-6"><label class="form-label">Business Type</label><select name="business_type" id="business_type_full" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Approached For</label><select name="approached_for" id="approached_for_full" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Followed-Up Method</label><select name="followup_method" id="followup_method_full" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select_full" class="form-select"></select></div>
+    <?php else: ?>
     <div class="col-md-6"><label class="form-label">Label</label><select name="label_tag" id="label_tag_full" class="form-select"></select></div>
     <div class="col-md-6"><label class="form-label">Source</label><select name="source" id="source_select_full" class="form-select"></select></div>
+    <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select_full" class="form-select"></select></div>
+    <?php endif; ?>
 </div>
 <div class="section-title mt-3"><i class="fa fa-list-check me-1"></i> Additional Details (Optional)</div>
 <div class="row g-2">
+    <?php if ($tracker_variant === 'team'): ?>
+    <div class="col-md-6"><label class="form-label">Source</label><select name="source" id="source_select_advanced" class="form-select"></select></div>
+    <?php endif; ?>
     <div class="col-md-6"><label class="form-label">Email ID</label><input type="email" name="email_id" id="email_id_full" class="form-control" placeholder="Enter email address"></div>
     <div class="col-md-6"><label class="form-label">Company Name</label><input name="company_name" id="company_name_full" class="form-control" placeholder="Enter company name"></div>
     <div class="col-md-6"><label class="form-label">Website</label><input name="website" id="website_full" class="form-control" placeholder="Enter website URL"></div>
-    <div class="col-md-6"><label class="form-label">Address</label><input name="address_line1" id="address_line1_full" class="form-control" placeholder="House no., Building, Street"></div>
-    <div class="col-md-6"><label class="form-label">Comments</label><textarea name="comments" id="comments_full" class="form-control" placeholder="Add any notes about this customer..."></textarea></div>
-    <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select_full" class="form-select"><option value="Active">Active</option><option value="Warm">Warm</option><option value="Cold">Cold</option><option value="Prospect">Prospect</option><option value="Customer">Customer</option></select></div>
-    <div class="col-md-6"><label class="form-label">Area + City</label><input name="area_city" id="area_city_full" class="form-control" placeholder="Area + City"></div>
+    <div class="col-md-6"><label class="form-label">Address</label><input name="address_line1" id="address_line1_full" class="form-control" placeholder="House no., Building, Street, area, city"></div>
+    <?php if ($tracker_variant === 'team'): ?>
+    <div class="col-md-6"><label class="form-label">Comment</label><textarea name="comments" id="comments_full" class="form-control" rows="2" placeholder="Notes (optional)"></textarea></div>
+    <?php else: ?>
+    <input type="hidden" name="comments" id="comments_hidden_customer" value="">
+    <?php endif; ?>
 </div>
+<input type="hidden" name="area_city" id="area_city_hidden" value="">
 </div><div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn tracker-btn-yellow">Save Customer</button></div>
 </form></div></div></div>
 
 <div class="modal fade tracker-modal" id="shareOfferModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content">
-<div class="modal-header"><h5 class="modal-title wa-action-title"><i class="fa-brands fa-whatsapp"></i> <span id="waPopupTitleText">Send WhatsApp Message</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-header"><h5 class="modal-title wa-action-title"><i class="fa-brands fa-whatsapp"></i> <span id="waPopupTitleText">Send WhatsApp Message</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
 <div class="modal-body">
-    <div class="row g-3">
-        <div class="col-lg-7">
-            <label class="form-label">Message</label>
-            <textarea id="offerMessage" class="form-control" rows="12"><?php echo htmlspecialchars($preview_template); ?></textarea>
-            <div class="small text-muted mt-2">Tip: Use placeholders: [Business Name], [Area, City], [MiniWebsite Link], [Customer Name]</div>
+    <div class="row g-3 g-lg-4">
+        <div class="col-12 col-lg-7 order-1">
+            <label class="form-label" for="offerMessage">Message</label>
+            <div class="wa-message-field">
+                <textarea id="offerMessage" class="form-control" rows="12" maxlength="2000" placeholder="Your message…"><?php echo htmlspecialchars($preview_template); ?></textarea>
+                <div class="wa-char-count" id="offerMessageCharWrap" aria-hidden="true"><span id="offerMessageCharCount">0</span>/2000</div>
+            </div>
+            <p class="small text-muted mt-2 mb-0">Placeholders: [Business Name], [Area, City], [MiniWebsite Link], [Customer Name]</p>
             <div class="tracker-subtle-box mt-3">
                 <strong>Use templates for fast messaging</strong>
-                <ul class="mt-2">
+                <ul class="mt-2 mb-0">
                     <li>Save your custom message as template.</li>
                     <li>Set any template as default for quick use.</li>
                 </ul>
             </div>
         </div>
-        <div class="col-lg-5">
+        <div class="col-12 col-lg-5 order-2 order-lg-2">
             <div class="wa-template-head">
                 <span class="wa-template-title">Choose Template</span>
-                <a href="javascript:void(0)" class="wa-manage-link" id="manageTemplatesLink"><i class="fa fa-gear"></i> Manage Templates</a>
             </div>
-            <div id="waTemplateList"></div>
-            <div class="d-grid mt-2">
-                <button type="button" class="btn wa-create-btn btn-sm" id="createTemplateBtn"><i class="fa fa-plus"></i> Create New Template</button>
-            </div>
+            <div id="waTemplateList" role="radiogroup" aria-label="Templates"></div>
         </div>
     </div>
 </div>
-<div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="saveAsTemplateBtn" class="btn btn-outline-primary">Save as Template</button><button id="sendCurrentBtn" class="btn btn-success">Send on WhatsApp</button></div>
+<div class="modal-footer wa-popup-footer flex-column flex-md-row align-items-stretch align-items-md-center justify-content-md-end">
+    <button type="button" id="sendCurrentBtn" class="btn btn-success order-md-1"><i class="fa-brands fa-whatsapp me-1"></i>Send on WhatsApp</button>
+    <button type="button" id="saveAsTemplateBtn" class="btn btn-outline-primary order-md-2">Save Template</button>
+    <button type="button" id="setDefaultTemplateBtn" class="btn btn-outline-primary order-md-3">Save as Default</button>
+    <button type="button" class="btn btn-danger order-md-4" data-bs-dismiss="modal">Cancel</button>
+</div>
 </div></div></div>
 
 <div class="modal fade" id="leadCaptureModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form method="post">
 <div class="modal-header"><h5 class="modal-title">New customer inquiry received</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body"><p>Save this customer?</p><input type="hidden" name="action" value="save_customer"><input type="hidden" name="source" value="WhatsApp"><div class="mb-2"><label>Name</label><input name="customer_name" class="form-control" value="New Inquiry"></div><div class="mb-2"><label>Label</label><input name="label_tag" class="form-control" maxlength="18" value="New Lead"></div><div class="mb-2"><label>Phone Number *</label><input name="phone_number" class="form-control" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"></div></div>
+<div class="modal-body"><p>Save this customer?</p><input type="hidden" name="action" value="save_customer"><input type="hidden" name="source" value="WhatsApp"><div class="mb-2"><label>Name</label><input name="customer_name" class="form-control" value="New Inquiry"></div><div class="mb-2"><label>Label</label><input name="label_tag" class="form-control" maxlength="18" value="New"></div><div class="mb-2"><label>Phone Number *</label><input name="phone_number" class="form-control" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"></div></div>
 
 
 
@@ -615,6 +975,31 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+(function initTrackerSearchBar() {
+    var form = document.getElementById('customerTrackerSearchForm');
+    var input = document.getElementById('trackerSearchInput');
+    var clearBtn = document.getElementById('trackerSearchInputClear');
+    if (!form || !input || !clearBtn) return;
+    var clearFilterHref = <?php echo json_encode($tracker_clear_search_href); ?>;
+    function updateClearVisibility() {
+        clearBtn.hidden = (input.value || '').trim().length === 0;
+    }
+    function onClearClick() {
+        var hasFilterInUrl = window.location.search.indexOf('search=') !== -1;
+        if (hasFilterInUrl) {
+            window.location.href = clearFilterHref;
+        } else {
+            input.value = '';
+            input.focus();
+            updateClearVisibility();
+        }
+    }
+    input.addEventListener('input', updateClearVisibility);
+    input.addEventListener('keyup', updateClearVisibility);
+    clearBtn.addEventListener('click', onClearClick);
+    updateClearVisibility();
+})();
+
 const businessName = <?php echo json_encode($business_name); ?>;
 const businessAreaCity = <?php echo json_encode($area_city_business); ?>;
 const miniLink = <?php echo json_encode($mini_link); ?>;
@@ -622,6 +1007,7 @@ const defaultShareTemplate = <?php echo json_encode($default_template); ?>;
 const defaultWhatsAppTemplate = <?php echo json_encode($default_whatsapp_template); ?>;
 const templateStorageKey = 'mw_wa_templates_<?php echo (int)$owner_id; ?>';
 const customersData = <?php echo json_encode(array_map(function($r){ return ['id'=>(int)$r['id'], 'name'=>$r['customer_name'], 'phone'=>$r['phone_number']]; }, $customers)); ?>;
+const trackerVariant = <?php echo json_encode($tracker_variant); ?>;
 const selectLabel = document.getElementById('label_tag');
 const selectSource = document.getElementById('source_select');
 const toggleAdditionalBtn = document.getElementById('toggleAdditionalBtn');
@@ -629,7 +1015,11 @@ const customerModalEl = document.getElementById('customerModal');
 const customerFullModalEl = document.getElementById('customerFullModal');
 const selectLabelFull = document.getElementById('label_tag_full');
 const selectSourceFull = document.getElementById('source_select_full');
+const selectSourceAdvanced = document.getElementById('source_select_advanced');
 const statusSelectFull = document.getElementById('status_select_full');
+const statusSelectQuick = document.getElementById('status_select');
+const commentsHiddenCustomerEl = document.getElementById('comments_hidden_customer');
+const areaCityHiddenEl = document.getElementById('area_city_hidden');
 const waModalEl = document.getElementById('shareOfferModal');
 let activeCustomer = null;
 let activeContext = 'share_offer';
@@ -642,8 +1032,9 @@ function getModalInstance(modalEl) {
 }
 
 function safeSlice(v, max) { return (v || '').toString().trim().slice(0, max); }
-function ensureSelectHasOption(selectEl, value) {
-    const safeVal = safeSlice(value, 18);
+function ensureSelectHasOption(selectEl, value, maxLen) {
+    maxLen = maxLen == null ? 18 : maxLen;
+    const safeVal = safeSlice(value, maxLen);
     if (!safeVal) return;
     if (![...selectEl.options].some(opt => opt.value === safeVal)) {
         const customOpt = document.createElement('option');
@@ -653,7 +1044,8 @@ function ensureSelectHasOption(selectEl, value) {
     }
     selectEl.value = safeVal;
 }
-function setupCustomizableSelect(selectEl, options) {
+function setupCustomizableSelect(selectEl, options, maxCustomLen) {
+    maxCustomLen = maxCustomLen == null ? 18 : maxCustomLen;
     selectEl.innerHTML = '';
     options.forEach(function (opt) {
         const option = document.createElement('option');
@@ -663,30 +1055,70 @@ function setupCustomizableSelect(selectEl, options) {
     });
     const custom = document.createElement('option');
     custom.value = '__custom__';
-    custom.textContent = '+ Add Custom';
+    custom.textContent = 'Add Custom';
     selectEl.appendChild(custom);
     selectEl.addEventListener('change', function () {
         if (this.value !== '__custom__') return;
-        const userValue = safeSlice(window.prompt('Enter custom value (max 18 characters):', ''), 18);
+        const userValue = safeSlice(window.prompt('Enter custom value (max ' + maxCustomLen + ' characters):', ''), maxCustomLen);
         if (userValue) {
-            ensureSelectHasOption(this, userValue);
+            ensureSelectHasOption(this, userValue, maxCustomLen);
         } else {
             this.selectedIndex = 0;
         }
     });
 }
-setupCustomizableSelect(selectLabel, ['Regular', 'VIP', 'New Lead', 'Follow Up', 'Hot']);
-setupCustomizableSelect(selectSource, ['Manual', 'WhatsApp', 'Reference', 'Website', 'Walk In']);
-setupCustomizableSelect(selectLabelFull, ['Regular', 'VIP', 'New Lead', 'Follow Up', 'Hot']);
-setupCustomizableSelect(selectSourceFull, ['Manual', 'WhatsApp', 'Reference', 'Website', 'Walk In']);
+const sourceOptionsList = ['Direct', 'WhatsApp', 'Referral', 'Existing Contact', 'Walk-in', 'Website'];
+const labelOptionsList = ['Regular', 'New', 'High Value', 'Repeat Customer'];
+const businessTypeOptionsList = ['Retail', 'Wholesale', 'Service', 'Online', 'Manufacturing', 'Other'];
+const approachedForOptionsList = ['Product Demo', 'Pricing / Quote', 'Partnership', 'Support', 'General Inquiry', 'Other'];
+const followupMethodOptionsList = ['Phone Call', 'WhatsApp', 'Email', 'In Person', 'Not Followed Up Yet', 'Other'];
+const statusOptions = ['Followup required', 'Phone Busy/Not Picked', 'Important', 'Deal Done', 'Profile Shared', 'Interested', 'Not Interested'];
+
+if (trackerVariant === 'customer') {
+    if (selectLabel) setupCustomizableSelect(selectLabel, labelOptionsList);
+    if (selectSource) setupCustomizableSelect(selectSource, sourceOptionsList);
+    if (selectLabelFull) setupCustomizableSelect(selectLabelFull, labelOptionsList);
+    if (selectSourceFull) setupCustomizableSelect(selectSourceFull, sourceOptionsList);
+} else {
+    ['business_type_quick', 'business_type_full'].forEach(function (tid) {
+        const el = document.getElementById(tid);
+        if (el) setupCustomizableSelect(el, businessTypeOptionsList, 80);
+    });
+    ['approached_for_quick', 'approached_for_full'].forEach(function (tid) {
+        const el = document.getElementById(tid);
+        if (el) setupCustomizableSelect(el, approachedForOptionsList, 80);
+    });
+    ['followup_method_quick', 'followup_method_full'].forEach(function (tid) {
+        const el = document.getElementById(tid);
+        if (el) setupCustomizableSelect(el, followupMethodOptionsList, 80);
+    });
+    if (selectSourceAdvanced) setupCustomizableSelect(selectSourceAdvanced, sourceOptionsList);
+}
+if (statusSelectFull) {
+    setupCustomizableSelect(statusSelectFull, statusOptions, 40);
+}
+if (statusSelectQuick) {
+    setupCustomizableSelect(statusSelectQuick, statusOptions, 40);
+}
 
 function toggleAdditionalDetails() {
     if (!customerFullModalEl) return;
     customer_id_full.value = customer_id.value || '';
     customer_name_full.value = customer_name.value || '';
     phone_number_full.value = phone_number.value || '';
-    ensureSelectHasOption(selectLabelFull, selectLabel.value || 'Regular');
-    ensureSelectHasOption(selectSourceFull, selectSource.value || 'Manual');
+    if (trackerVariant === 'customer') {
+        if (selectLabelFull && selectLabel) ensureSelectHasOption(selectLabelFull, selectLabel.value || 'Regular');
+        if (selectSourceFull && selectSource) ensureSelectHasOption(selectSourceFull, selectSource.value || 'Direct');
+    } else {
+        [['business_type_full', 'business_type_quick'], ['approached_for_full', 'approached_for_quick'], ['followup_method_full', 'followup_method_quick']].forEach(function (pair) {
+            const fullEl = document.getElementById(pair[0]);
+            const quickEl = document.getElementById(pair[1]);
+            if (fullEl && quickEl) ensureSelectHasOption(fullEl, quickEl.value || '', 80);
+        });
+    }
+    if (statusSelectFull && statusSelectQuick) {
+        ensureSelectHasOption(statusSelectFull, statusSelectQuick.value || 'Followup required', 40);
+    }
     const quickModal = getModalInstance(customerModalEl);
     if (quickModal) quickModal.hide();
     const fullModal = getModalInstance(customerFullModalEl);
@@ -709,88 +1141,149 @@ if (customerModalEl) {
     });
 }
 
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+}
 function getSeedTemplates() {
     return {
         defaultId: '',
-        items: [
-            { id: 'default_share_offer', name: 'Default Share Offer', text: defaultShareTemplate, locked: true },
-            { id: 'default_whatsapp', name: 'Default WhatsApp', text: defaultWhatsAppTemplate, locked: true },
-            { id: 'custom_1', name: 'Custom Template01', text: '', locked: false },
-            { id: 'custom_2', name: 'Custom Template02', text: '', locked: false }
+        defaults: {
+            share_offer: defaultShareTemplate,
+            whatsapp: defaultWhatsAppTemplate
+        },
+        customs: [
+            { id: 'custom_1', name: 'Custom Template 01', text: '', locked: false },
+            { id: 'custom_2', name: 'Custom Template 02', text: '', locked: false },
+            { id: 'custom_3', name: 'Custom Template 03', text: '', locked: false }
         ]
     };
 }
-function getNextCustomTemplateNumber(items) {
-    let maxNum = 0;
-    items.forEach(function (item) {
-        const m = /^custom_(\d+)$/.exec(item.id || '');
-        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10) || 0);
-    });
-    return maxNum + 1;
+function migrateOldTemplates(parsed) {
+    const seed = getSeedTemplates();
+    seed.defaultId = parsed.defaultId || '';
+    if (parsed.defaults && parsed.customs && Array.isArray(parsed.customs)) {
+        if (parsed.defaults.share_offer) seed.defaults.share_offer = parsed.defaults.share_offer;
+        if (parsed.defaults.whatsapp) seed.defaults.whatsapp = parsed.defaults.whatsapp;
+        parsed.customs.forEach(function (pc, i) {
+            if (seed.customs[i] && pc && pc.text !== undefined) {
+                seed.customs[i].text = pc.text || '';
+            }
+        });
+    } else if (parsed.items && Array.isArray(parsed.items)) {
+        parsed.items.forEach(function (x) {
+            if (x.id === 'default_share_offer') seed.defaults.share_offer = x.text || seed.defaults.share_offer;
+            if (x.id === 'default_whatsapp') seed.defaults.whatsapp = x.text || seed.defaults.whatsapp;
+            if (x.id === 'custom_1' || x.id === 'custom_2' || x.id === 'custom_3') {
+                const cu = seed.customs.find(function (c) { return c.id === x.id; });
+                if (cu) cu.text = x.text || '';
+            }
+        });
+    }
+    var allowedDef = ['default', 'custom_1', 'custom_2', 'custom_3'];
+    if (seed.defaultId === 'default_share_offer' || seed.defaultId === 'default_whatsapp') {
+        seed.defaultId = 'default';
+    }
+    if (allowedDef.indexOf(seed.defaultId) === -1) {
+        seed.defaultId = '';
+    }
+    return seed;
 }
 function loadTemplates() {
     try {
         const raw = localStorage.getItem(templateStorageKey);
         if (!raw) return getSeedTemplates();
         const parsed = JSON.parse(raw);
-        if (!parsed || !Array.isArray(parsed.items)) return getSeedTemplates();
-        const seed = getSeedTemplates();
-        seed.defaultId = parsed.defaultId || '';
-        seed.items.forEach(function (seedItem) {
-            const existing = parsed.items.find(function (x) { return x.id === seedItem.id; });
-            if (existing) seedItem.text = existing.text || seedItem.text;
-        });
-        return seed;
+        if (!parsed) return getSeedTemplates();
+        return migrateOldTemplates(parsed);
     } catch (e) {
         return getSeedTemplates();
     }
 }
 function saveTemplates() {
-    localStorage.setItem(templateStorageKey, JSON.stringify(waTemplates));
+    localStorage.setItem(templateStorageKey, JSON.stringify({
+        defaultId: waTemplates.defaultId,
+        defaults: waTemplates.defaults,
+        customs: waTemplates.customs
+    }));
+}
+function getVisibleTemplateRows() {
+    const ctx = activeContext === 'whatsapp' ? 'whatsapp' : 'share_offer';
+    const defText = waTemplates.defaults[ctx];
+    return [
+        { id: 'default', name: 'Default Message', text: defText, locked: true },
+        { id: waTemplates.customs[0].id, name: waTemplates.customs[0].name, text: waTemplates.customs[0].text, locked: false },
+        { id: waTemplates.customs[1].id, name: waTemplates.customs[1].name, text: waTemplates.customs[1].text, locked: false },
+        { id: waTemplates.customs[2].id, name: waTemplates.customs[2].name, text: waTemplates.customs[2].text, locked: false }
+    ];
+}
+function getTemplateTextById(templateId) {
+    const rows = getVisibleTemplateRows();
+    const row = rows.find(function (r) { return r.id === templateId; });
+    return row ? row.text : '';
 }
 function renderTemplateList() {
     const wrap = document.getElementById('waTemplateList');
     wrap.innerHTML = '';
-    waTemplates.items.forEach(function (item) {
+    const rows = getVisibleTemplateRows();
+    const savedDefaultSlot = waTemplates.defaultId || '';
+    rows.forEach(function (item) {
         const div = document.createElement('div');
         div.className = 'template-item' + (selectedTemplateId === item.id ? ' active' : '');
         const checked = selectedTemplateId === item.id ? 'checked' : '';
-        const isDefault = waTemplates.defaultId === item.id ? '<span class="template-default-badge">DEFAULT</span>' : '';
-        const preview = (item.text || '').replace(/\s+/g, ' ').slice(0, 70);
+        const isOpenDefault = savedDefaultSlot === item.id ? '<span class="template-default-badge">DEFAULT</span>' : '';
+        const rawPrev = (item.text || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+        const previewHtml = rawPrev ? escapeHtml(rawPrev) : '<span class="text-muted">Empty template</span>';
         div.innerHTML = '<label class="w-100 d-flex gap-2 align-items-start" style="cursor:pointer;">'
-            + '<input type="radio" name="waTemplateRadio" value="' + item.id + '" ' + checked + '>'
-            + '<span class="w-100"><span class="template-name-row"><strong>' + item.name + '</strong>' + isDefault + '</span><div class="template-preview">' + (preview || 'Empty template') + '</div></span>'
+            + '<input type="radio" name="waTemplateRadio" value="' + escapeHtml(item.id) + '" ' + checked + '>'
+            + '<span class="w-100"><span class="template-name-row"><span class="template-name">' + escapeHtml(item.name) + '</span>' + isOpenDefault + '</span><div class="template-preview">' + previewHtml + '</div></span>'
             + '</label>';
         wrap.appendChild(div);
     });
     wrap.querySelectorAll('input[name="waTemplateRadio"]').forEach(function (radio) {
         radio.addEventListener('change', function () {
             selectedTemplateId = this.value;
-            const item = waTemplates.items.find(function (x) { return x.id === selectedTemplateId; });
-            document.getElementById('offerMessage').value = item ? item.text : '';
+            document.getElementById('offerMessage').value = getTemplateTextById(selectedTemplateId);
+            updateOfferMessageCharCount();
             renderTemplateList();
         });
     });
 }
-function getContextDefaultTemplateId() {
-    return activeContext === 'whatsapp' ? 'default_whatsapp' : 'default_share_offer';
-}
 function applyTemplateText() {
-    const defaultId = waTemplates.defaultId || getContextDefaultTemplateId();
-    selectedTemplateId = defaultId;
-    const selected = waTemplates.items.find(function (x) { return x.id === defaultId; });
-    document.getElementById('offerMessage').value = selected ? selected.text : defaultShareTemplate;
+    const rows = getVisibleTemplateRows();
+    let pick = waTemplates.defaultId;
+    const allowed = ['default', 'custom_1', 'custom_2', 'custom_3'];
+    if (!pick || allowed.indexOf(pick) === -1) {
+        pick = 'default';
+    }
+    selectedTemplateId = pick;
+    const selected = rows.find(function (r) { return r.id === pick; });
+    document.getElementById('offerMessage').value = selected ? selected.text : '';
+    updateOfferMessageCharCount();
     renderTemplateList();
 }
-function saveIntoCustomTemplate(slotId) {
-    const text = document.getElementById('offerMessage').value.trim();
-    const target = waTemplates.items.find(function (x) { return x.id === slotId; });
-    if (!target) return;
-    target.text = text;
-    selectedTemplateId = slotId;
+function saveSelectedTemplateFromEditor() {
+    const text = document.getElementById('offerMessage').value;
+    const ctx = activeContext === 'whatsapp' ? 'whatsapp' : 'share_offer';
+    if (selectedTemplateId === 'default') {
+        waTemplates.defaults[ctx] = text;
+    } else {
+        const target = waTemplates.customs.find(function (x) { return x.id === selectedTemplateId; });
+        if (!target) return;
+        target.text = text;
+    }
     saveTemplates();
     renderTemplateList();
-    alert(target.name + ' saved.');
+    alert('Template saved.');
+}
+function updateOfferMessageCharCount() {
+    const ta = document.getElementById('offerMessage');
+    const n = document.getElementById('offerMessageCharCount');
+    if (!ta || !n) return;
+    const len = (ta.value || '').length;
+    n.textContent = String(len);
 }
 function resolveMessageWithTags(rawMessage, customerName) {
     return rawMessage
@@ -798,6 +1291,14 @@ function resolveMessageWithTags(rawMessage, customerName) {
         .replace(/\[Area, City\]/g, businessAreaCity)
         .replace(/\[MiniWebsite Link\]/g, miniLink)
         .replace(/\[Customer Name\]/g, customerName || 'Customer');
+}
+function recordLastShared(customerId) {
+    var id = parseInt(customerId, 10) || 0;
+    if (id <= 0) return;
+    var fd = new FormData();
+    fd.append('action', 'record_last_shared');
+    fd.append('customer_id', String(id));
+    fetch('index.php', { method: 'POST', body: fd, credentials: 'same-origin' }).catch(function () {});
 }
 function openWaComposer(customer, contextType) {
     activeCustomer = customer;
@@ -814,8 +1315,6 @@ document.getElementById('openCustomerModalBtn').addEventListener('click', functi
     customer_id.value = '';
     customer_name.value = '';
     phone_number.value = '';
-    selectLabel.selectedIndex = 0;
-    selectSource.selectedIndex = 0;
     toggleAdditionalBtn.textContent = '+ Additional Details (Optional)';
     customerModalEl.classList.remove('expanded-view');
     customer_id_full.value = '';
@@ -825,11 +1324,24 @@ document.getElementById('openCustomerModalBtn').addEventListener('click', functi
     company_name_full.value = '';
     website_full.value = '';
     address_line1_full.value = '';
-    area_city_full.value = '';
-    comments_full.value = '';
-    selectLabelFull.selectedIndex = 0;
-    selectSourceFull.selectedIndex = 0;
-    if (statusSelectFull) statusSelectFull.value = 'Active';
+    if (areaCityHiddenEl) areaCityHiddenEl.value = '';
+    if (statusSelectFull) statusSelectFull.selectedIndex = 0;
+    if (statusSelectQuick) statusSelectQuick.selectedIndex = 0;
+    if (trackerVariant === 'customer') {
+        if (selectLabel) selectLabel.selectedIndex = 0;
+        if (selectSource) selectSource.selectedIndex = 0;
+        if (selectLabelFull) selectLabelFull.selectedIndex = 0;
+        if (selectSourceFull) selectSourceFull.selectedIndex = 0;
+        if (commentsHiddenCustomerEl) commentsHiddenCustomerEl.value = '';
+    } else {
+        ['business_type_quick', 'business_type_full', 'approached_for_quick', 'approached_for_full', 'followup_method_quick', 'followup_method_full'].forEach(function (tid) {
+            const el = document.getElementById(tid);
+            if (el) el.selectedIndex = 0;
+        });
+        if (selectSourceAdvanced) selectSourceAdvanced.selectedIndex = 0;
+        var cfReset = document.getElementById('comments_full');
+        if (cfReset) cfReset.value = '';
+    }
 });
 
 document.querySelectorAll('.edit-btn').forEach(function (btn) {
@@ -841,11 +1353,23 @@ document.querySelectorAll('.edit-btn').forEach(function (btn) {
         company_name_full.value = this.dataset.company || '';
         website_full.value = this.dataset.website || '';
         address_line1_full.value = this.dataset.line1 || '';
-        area_city_full.value = this.dataset.areacity || '';
-        comments_full.value = this.dataset.comments || '';
-        ensureSelectHasOption(selectLabelFull, this.dataset.label || 'Regular');
-        ensureSelectHasOption(selectSourceFull, this.dataset.source || 'Manual');
-        if (statusSelectFull) ensureSelectHasOption(statusSelectFull, this.dataset.status || 'Active');
+        if (areaCityHiddenEl) areaCityHiddenEl.value = this.dataset.areacity || '';
+        if (trackerVariant === 'team') {
+            var btf = document.getElementById('business_type_full');
+            var apf = document.getElementById('approached_for_full');
+            var fmf = document.getElementById('followup_method_full');
+            if (btf) ensureSelectHasOption(btf, this.dataset.businessType || '', 80);
+            if (apf) ensureSelectHasOption(apf, this.dataset.approachedFor || '', 80);
+            if (fmf) ensureSelectHasOption(fmf, this.dataset.followupMethod || '', 80);
+            if (selectSourceAdvanced) ensureSelectHasOption(selectSourceAdvanced, this.dataset.source || 'Direct');
+            var cfEd = document.getElementById('comments_full');
+            if (cfEd) cfEd.value = this.dataset.comments || '';
+        } else {
+            if (selectLabelFull) ensureSelectHasOption(selectLabelFull, this.dataset.label || 'Regular');
+            if (selectSourceFull) ensureSelectHasOption(selectSourceFull, this.dataset.source || 'Direct');
+            if (commentsHiddenCustomerEl) commentsHiddenCustomerEl.value = this.dataset.comments || '';
+        }
+        if (statusSelectFull) ensureSelectHasOption(statusSelectFull, this.dataset.status || 'Followup required', 40);
         const customerFullModal = getModalInstance(customerFullModalEl);
         if (customerFullModal) customerFullModal.show();
     });
@@ -853,56 +1377,36 @@ document.querySelectorAll('.edit-btn').forEach(function (btn) {
 
 document.querySelectorAll('.wa-normal-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-        openWaComposer({ id: 0, name: this.dataset.name || 'Customer', phone: this.dataset.phone || '' }, 'whatsapp');
+        openWaComposer({ id: parseInt(this.dataset.id, 10) || 0, name: this.dataset.name || 'Customer', phone: this.dataset.phone || '' }, 'whatsapp');
     });
 });
 document.querySelectorAll('.single-offer-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-        const customer = customersData.find(function (c) { return c.id === parseInt(btn.dataset.id, 10); });
+        const cid = parseInt(this.dataset.id, 10);
+        const customer = customersData.find(function (c) { return c.id === cid; });
         if (!customer) return;
         openWaComposer(customer, 'share_offer');
     });
 });
 
-document.getElementById('createTemplateBtn').addEventListener('click', function () {
-    const nextNum = getNextCustomTemplateNumber(waTemplates.items);
-    const nextId = 'custom_' + nextNum;
-    const nextName = 'Custom Template' + String(nextNum).padStart(2, '0');
-    waTemplates.items.push({ id: nextId, name: nextName, text: '', locked: false });
-    selectedTemplateId = nextId;
+document.getElementById('saveAsTemplateBtn').addEventListener('click', function () {
+    saveSelectedTemplateFromEditor();
+});
+document.getElementById('setDefaultTemplateBtn').addEventListener('click', function () {
+    waTemplates.defaultId = selectedTemplateId || 'default';
     saveTemplates();
     renderTemplateList();
-    document.getElementById('offerMessage').value = '';
 });
-document.getElementById('manageTemplatesLink').addEventListener('click', function () {
-    alert('Template management panel will be available here.');
-});
-document.getElementById('saveAsTemplateBtn').addEventListener('click', function () {
-    if (/^custom_\d+$/.test(selectedTemplateId || '')) {
-        saveIntoCustomTemplate(selectedTemplateId);
-        return;
+(function bindOfferMessageCounter() {
+    const ta = document.getElementById('offerMessage');
+    if (ta) {
+        ta.addEventListener('input', updateOfferMessageCharCount);
+        updateOfferMessageCharCount();
     }
-    const firstEmptyCustom = waTemplates.items.find(function (x) { return /^custom_\d+$/.test(x.id || '') && !(x.text || '').trim(); });
-    if (firstEmptyCustom) {
-        saveIntoCustomTemplate(firstEmptyCustom.id);
-        return;
-    }
-    const nextNum = getNextCustomTemplateNumber(waTemplates.items);
-    const nextId = 'custom_' + nextNum;
-    waTemplates.items.push({ id: nextId, name: 'Custom Template' + String(nextNum).padStart(2, '0'), text: '', locked: false });
-    selectedTemplateId = nextId;
-    saveIntoCustomTemplate(nextId);
-});
-const setDefaultTemplateBtn = document.getElementById('setDefaultTemplateBtn');
-if (setDefaultTemplateBtn) {
-    setDefaultTemplateBtn.addEventListener('click', function () {
-        waTemplates.defaultId = selectedTemplateId || getContextDefaultTemplateId();
-        saveTemplates();
-        renderTemplateList();
-    });
-}
+})();
 document.getElementById('sendCurrentBtn').addEventListener('click', function () {
     if (!activeCustomer || !activeCustomer.phone) return;
+    recordLastShared(activeCustomer.id);
     const phone = (activeCustomer.phone || '').replace(/\D/g, '');
     const message = resolveMessageWithTags(document.getElementById('offerMessage').value, activeCustomer.name || 'Customer');
     window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(message), '_blank');
