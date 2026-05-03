@@ -110,6 +110,23 @@ document.addEventListener('DOMContentLoaded', () => {
         productExpandedBox.style.setProperty('--mw-product-modal-width', w + 'px');
     }
 
+    function formatFrontendPriceText(p) {
+        const priceType = String(p.price_type || '').trim();
+        const unit = String(p.pricing_unit || '').trim();
+        const priceNum = Number(p.price) || 0;
+        const priceBase = '₹' + priceNum.toLocaleString();
+        const priceWithUnit = unit ? (priceBase + ' / ' + unit) : priceBase;
+        const isOnRequest = priceType === 'on_request' || p.price_on_request === true || !(priceNum > 0);
+        if (isOnRequest) return 'Price on Request';
+        if (priceType === 'starting_from') return 'Starting ' + priceWithUnit;
+        return priceWithUnit;
+    }
+
+    function getProductCtaText(p) {
+        const cta = (p && p.cta_text != null ? String(p.cta_text) : '').trim();
+        return cta || 'Enquire';
+    }
+
     function updateProductExpandedContent(index) {
         if (index < 0 || index >= totalProducts || !productsData[index]) return;
         const p = productsData[index];
@@ -124,9 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const raw = (p.desc != null ? String(p.desc) : '') || 'Contact us for details.';
             productExpandedDesc.textContent = raw.length > 400 ? raw.slice(0, 400) : raw;
         }
-        const priceOnRequest = p.price_on_request === true || !(Number(p.price) > 0);
+        const priceType = String(p.price_type || '').trim();
+        const priceOnRequest = priceType === 'on_request' || p.price_on_request === true || !(Number(p.price) > 0);
+        const priceText = formatFrontendPriceText(p);
         if (productExpandedMrp) {
-            if (!priceOnRequest && p.mrp && p.mrp > p.price) {
+            if (!priceOnRequest && priceType === 'fixed_price' && p.mrp && p.mrp > p.price) {
                 productExpandedMrp.textContent = '₹' + (p.mrp || 0).toLocaleString();
                 productExpandedMrp.classList.remove('mw-product-expanded-mrp--empty');
             } else {
@@ -135,10 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (productExpandedPrice) {
-            productExpandedPrice.textContent = priceOnRequest ? 'Call for price' : ('₹' + (Number(p.price) || 0).toLocaleString());
+            productExpandedPrice.textContent = priceText;
         }
         if (productExpandedOfferLine) {
-            productExpandedOfferLine.textContent = priceOnRequest ? 'Call for price' : ('₹' + (Number(p.price) || 0).toLocaleString());
+            productExpandedOfferLine.textContent = priceText;
         }
         if (productExpandedBadge) {
             const cat = (p.category != null ? String(p.category) : '').trim();
@@ -466,10 +485,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (floatingWaBtn) floatingWaBtn.classList.remove('hidden');
             }
         }
-        // Update ADD/REMOVE button text
+        // Update CTA/REMOVE button text
         document.querySelectorAll('.mw-add-to-cart').forEach(btn => {
             const idx = btn.getAttribute('data-product-index');
-            const label = idx != null && isInCart(parseInt(idx, 10)) ? 'REMOVE' : 'ADD';
+            const n = idx != null ? parseInt(idx, 10) : NaN;
+            let label = 'Enquire';
+            if (!isNaN(n) && products[n]) {
+                label = getProductCtaText(products[n]);
+            }
+            if (idx != null && isInCart(n)) label = 'REMOVE';
             const span = btn.querySelector('.mw-cart-btn-label');
             if (span) span.textContent = label;
             else btn.textContent = label;
@@ -488,6 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: p.name,
                 price: p.price,
                 qty: 1,
+                price_type: p.price_type,
+                pricing_unit: p.pricing_unit,
+                cta_text: getProductCtaText(p),
                 price_on_request: p.price_on_request === true || !(Number(p.price) > 0),
             });
         }
@@ -518,28 +545,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cartShareBtn && whatsappNum) {
         cartShareBtn.addEventListener('click', () => {
             if (cart.length === 0) return;
-            let msg = 'Hi! I want to order:\n\n';
-            let total = 0;
-            let anyOnRequest = false;
-            cart.forEach(item => {
-                const onReq = item.price_on_request === true || !(Number(item.price) > 0);
-                if (onReq) {
-                    anyOnRequest = true;
-                    msg += `• ${item.name} x ${item.qty} — Call for price\n`;
-                } else {
-                    msg += `• ${item.name} x ${item.qty} = ₹${(item.price * item.qty).toLocaleString()}\n`;
-                    total += item.price * item.qty;
-                }
+            let msg = 'Hi, I wanted to Enquire related to below mentioned:\n\n';
+            cart.forEach((item, idx) => {
+                const itemPriceText = formatFrontendPriceText(item);
+                msg += `Item: ${item.name}\n`;
+                msg += `Pricing: ${itemPriceText}`;
+                if (item.qty > 1) msg += ` x ${item.qty}`;
+                if (idx < cart.length - 1) msg += '\n\n';
             });
-            if (total > 0) {
-                msg += `\nTotal: ₹${total.toLocaleString()}`;
-            }
-            if (anyOnRequest) {
-                msg += total > 0 ? '\n\nPlease share prices for the items marked “Call for price”.' : '\nPlease share prices for these items.';
-            }
+            msg += '\n\nPlease share details.';
             mwOpenWhatsAppShare(whatsappNum, msg);
         });
     }
+
+    // Ensure initial button labels use saved CTA text.
+    updateCartUI();
 
     // --- Share Profile Section ---
     const shareUrl = window.MW_SHARE_URL || '';

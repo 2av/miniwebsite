@@ -474,7 +474,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                           
                                 </div>
                                 <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
+                        <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
@@ -482,8 +482,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
                             <span>Save</span>
                         </button>
-                        <a href="../dashboard/" class="btn btn-secondary align-right">
-                            <span>Finish</span>
+                        <a href="payment-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                            <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
                         </a>
                     </div>

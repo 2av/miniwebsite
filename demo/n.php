@@ -609,13 +609,14 @@ if ($row) {
         $vid_idx++;
     }
 
-    // Business Hours from d_business_hours (JSON)
-    $business_hours = [];
-    if (!empty($row['d_business_hours'])) {
-        $bh_decoded = json_decode($row['d_business_hours'], true);
-        if (is_array($bh_decoded)) $business_hours = $bh_decoded;
+    // Business Hours from d_business_hours (JSON; v2 weekly or legacy rows)
+    $bh_display_inc = dirname(__DIR__) . '/includes/business_hours_display.php';
+    if (is_file($bh_display_inc)) {
+        require_once $bh_display_inc;
     }
-    if (empty($business_hours)) {
+    if (function_exists('mw_normalize_business_hours_display')) {
+        $business_hours = mw_normalize_business_hours_display($row['d_business_hours'] ?? '');
+    } else {
         $business_hours = [
             ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
             ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],

@@ -42,6 +42,7 @@ html {
 .mw-offer-card .mw-offer-image-wrap:hover img { transform: scale(1.1); }
 /* Special Offers badge: ~20% larger than previous scale(1.2) → 1.2 × 1.2 */
 .mw-offer-badge { transform: scale(1.44); transform-origin: left top; }
+.mw-offer-expired-badge { transform: scale(1.44); transform-origin: right top; }
 
 /* Products: 2 cols mobile, 4 cols desktop (Shop Online) */
 .mw-grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; overflow: visible; }

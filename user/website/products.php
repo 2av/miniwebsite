@@ -20,9 +20,10 @@ if($is_ajax && isset($_GET['action']) && $_GET['action'] == 'get_product_names')
     if(isset($_GET['category_id'])) {
         $category_id = intval($_GET['category_id']);
         
-        // Get product names for the selected product category
+        // Preset titles under a product category: admin uses product-name or service (see admin/category_add.php)
         $query = "SELECT id, category_name FROM product_categories 
-                 WHERE parent_id = $category_id AND is_active = 1 AND category_type = 'product-name'
+                 WHERE parent_id = $category_id AND is_active = 1 
+                 AND category_type IN ('product-name', 'service')
                  ORDER BY display_order, category_name ASC";
         
         $result = mysqli_query($connect, $query);
@@ -171,10 +172,18 @@ if(isset($_SESSION['card_id_inprocess']) && !empty($_SESSION['card_id_inprocess'
         
         // Get products from new table (card_product_pricing)
         $card_id = mysqli_real_escape_string($connect, $_SESSION['card_id_inprocess']);
-        // Ensure category_source column exists (to distinguish system vs custom category - avoids ID collision)
-        $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE 'category_source'");
-        if(!$col_check || mysqli_num_rows($col_check) == 0) {
-            @mysqli_query($connect, "ALTER TABLE card_product_pricing ADD category_source VARCHAR(10) DEFAULT 'system' AFTER product_category");
+        // Ensure required product columns exist (safe auto-migration)
+        $required_product_columns = [
+            'category_source' => "ALTER TABLE card_product_pricing ADD category_source VARCHAR(10) DEFAULT 'system' AFTER product_category",
+            'price_type' => "ALTER TABLE card_product_pricing ADD price_type VARCHAR(20) DEFAULT 'fixed_price' AFTER selling_price",
+            'pricing_unit' => "ALTER TABLE card_product_pricing ADD pricing_unit VARCHAR(30) DEFAULT '' AFTER price_type",
+            'cta_text' => "ALTER TABLE card_product_pricing ADD cta_text VARCHAR(50) DEFAULT '' AFTER pricing_unit"
+        ];
+        foreach($required_product_columns as $column_name => $alter_sql) {
+            $col_check = @mysqli_query($connect, "SHOW COLUMNS FROM card_product_pricing LIKE '$column_name'");
+            if(!$col_check || mysqli_num_rows($col_check) == 0) {
+                @mysqli_query($connect, $alter_sql);
+            }
         }
         if($user_id > 0) {
             $products_query = mysqli_query($connect, "SELECT * FROM card_product_pricing WHERE card_id='$card_id' AND user_id=$user_id ORDER BY display_order ASC, id ASC");
@@ -344,6 +353,25 @@ if(isset($_POST['product'])){
                 if(isset($_POST["pro_price$slot_found"]) && !empty(trim($_POST["pro_price$slot_found"]))) {
                     $product_price = floatval(preg_replace('/[^0-9.]/', '', $_POST["pro_price$slot_found"]));
                 }
+                $price_type = 'fixed_price';
+                if(isset($_POST["pro_price_type$slot_found"])) {
+                    $posted_price_type = trim($_POST["pro_price_type$slot_found"]);
+                    if(in_array($posted_price_type, ['fixed_price', 'starting_from', 'on_request'], true)) {
+                        $price_type = $posted_price_type;
+                    }
+                }
+                $pricing_unit = '';
+                if(isset($_POST["pro_pricing_unit$slot_found"])) {
+                    $pricing_unit = trim($_POST["pro_pricing_unit$slot_found"]);
+                    $pricing_unit = function_exists('mb_substr') ? mb_substr($pricing_unit, 0, 30) : substr($pricing_unit, 0, 30);
+                    $pricing_unit = mysqli_real_escape_string($connect, $pricing_unit);
+                }
+                $cta_text = '';
+                if(isset($_POST["pro_cta_text$slot_found"])) {
+                    $cta_text = trim($_POST["pro_cta_text$slot_found"]);
+                    $cta_text = function_exists('mb_substr') ? mb_substr($cta_text, 0, 50) : substr($cta_text, 0, 50);
+                    $cta_text = mysqli_real_escape_string($connect, $cta_text);
+                }
                 
                 // Get product description if provided (max 400 characters)
                 $product_description = '';
@@ -387,10 +415,10 @@ if(isset($_POST['product'])){
                     if($product_image !== null) {
                         $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
                         $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price, price_type='$price_type', pricing_unit='$pricing_unit', cta_text='$cta_text' WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
                         $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', mrp=$product_mrp, selling_price=$product_price WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', mrp=$product_mrp, selling_price=$product_price, price_type='$price_type', pricing_unit='$pricing_unit', cta_text='$cta_text' WHERE id=$direct_product_id AND card_id='$card_id' AND user_id=$user_id";
                     }
                     $update_result = mysqli_query($connect, $update_query);
                     if(!$update_result) {
@@ -422,6 +450,25 @@ if(isset($_POST['product'])){
                 }
                 if(isset($_POST["pro_price$x"]) && !empty(trim($_POST["pro_price$x"]))) {
                     $product_price = floatval(preg_replace('/[^0-9.]/', '', $_POST["pro_price$x"]));
+                }
+                $price_type = 'fixed_price';
+                if(isset($_POST["pro_price_type$x"])) {
+                    $posted_price_type = trim($_POST["pro_price_type$x"]);
+                    if(in_array($posted_price_type, ['fixed_price', 'starting_from', 'on_request'], true)) {
+                        $price_type = $posted_price_type;
+                    }
+                }
+                $pricing_unit = '';
+                if(isset($_POST["pro_pricing_unit$x"])) {
+                    $pricing_unit = trim($_POST["pro_pricing_unit$x"]);
+                    $pricing_unit = function_exists('mb_substr') ? mb_substr($pricing_unit, 0, 30) : substr($pricing_unit, 0, 30);
+                    $pricing_unit = mysqli_real_escape_string($connect, $pricing_unit);
+                }
+                $cta_text = '';
+                if(isset($_POST["pro_cta_text$x"])) {
+                    $cta_text = trim($_POST["pro_cta_text$x"]);
+                    $cta_text = function_exists('mb_substr') ? mb_substr($cta_text, 0, 50) : substr($cta_text, 0, 50);
+                    $cta_text = mysqli_real_escape_string($connect, $cta_text);
                 }
                 
                 // Category for this slot (parse s_/c_ prefix: s_5=system id 5, c_123=custom id 123)
@@ -517,10 +564,10 @@ if(isset($_POST['product'])){
                     if($product_image !== null) {
                         $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
                         $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', product_image='$product_image_escaped', mrp=$product_mrp, selling_price=$product_price, price_type='$price_type', pricing_unit='$pricing_unit', cta_text='$cta_text' WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
                     } else {
                         $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
-                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', mrp=$product_mrp, selling_price=$product_price WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
+                        $update_query = "UPDATE card_product_pricing SET product_name='$product_name', product_category=$product_category_value, category_source='$cat_source_esc', product_description='$product_description', mrp=$product_mrp, selling_price=$product_price, price_type='$price_type', pricing_unit='$pricing_unit', cta_text='$cta_text' WHERE id=$product_id AND card_id='$card_id' AND user_id=$user_id";
                     }
                     $update_result = mysqli_query($connect, $update_query);
                     if(!$update_result) {
@@ -539,14 +586,14 @@ if(isset($_POST['product'])){
                     $product_category_value = ($product_category !== null && $product_category > 0) ? $product_category : 'NULL';
                     if($product_image !== null) {
                         $product_image_escaped = mysqli_real_escape_string($connect, $product_image);
-                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, category_source, product_description, product_image, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$cat_source_esc', '$product_description', '$product_image_escaped', $product_mrp, $product_price, $display_order)";
+                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, category_source, product_description, product_image, mrp, selling_price, price_type, pricing_unit, cta_text, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$cat_source_esc', '$product_description', '$product_image_escaped', $product_mrp, $product_price, '$price_type', '$pricing_unit', '$cta_text', $display_order)";
                     } else {
-                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, category_source, product_description, mrp, selling_price, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$cat_source_esc', '$product_description', $product_mrp, $product_price, $display_order)";
+                        $insert_query = "INSERT INTO card_product_pricing (card_id, user_id, product_name, product_category, category_source, product_description, mrp, selling_price, price_type, pricing_unit, cta_text, display_order) VALUES ('$card_id_escaped', $user_id, '$product_name_escaped', $product_category_value, '$cat_source_esc', '$product_description', $product_mrp, $product_price, '$price_type', '$pricing_unit', '$cta_text', $display_order)";
                     }
                     
                     $insert_result = mysqli_query($connect, $insert_query);
                     if(!$insert_result) {
-                        $error_message .= '<div class="alert alert-danger">Failed to add product. Error: ' . mysqli_error($connect) . '</div>';
+                        $error_message .= '<div class="alert alert-danger">Failed to Add Item. Error: ' . mysqli_error($connect) . '</div>';
                     } else {
                         // Get the inserted product_id for AJAX response
                         $new_product_id = mysqli_insert_id($connect);
@@ -641,22 +688,50 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
         <div class="card mb-4">
             <div class="card-body">
                 <label class="heading">Products:</label>
-                <p class="sub_title">You can add upto 60 products with pricing which you want to showcase on your Mini Website.</p>
+                <p class="sub_title">You can add up to 60 services or products with pricing details to showcase on your MiniWebsite.</p>
                 <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
                 <br>
                 <div id="status_remove_img"></div>
-                <button type="button" id="addProductBtn" class="btn btn-primary add_product" onclick="openProductModal()" <?php echo (count($products_data ?? []) >= 60) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Product</span></button>
+                <button type="button" id="addProductBtn" class="btn btn-primary add_product" onclick="openProductModal()" <?php echo (count($products_data ?? []) >= 60) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Item</span></button>
 
                 <div class="Product-ServicesTable">
                     <table class="display table">
                         <thead class="bg-secondary">
                             <tr>
                                 <th>Image Details</th>
-                                <th>Product Category</th>
-                                <th>Product Name</th>
-                                <th>Product Description</th>
-                                <th>MRP</th>
-                                <th>Selling Price</th>
+                                <th class="product-th-with-filter">
+                                    <span class="product-th-label">Category</span>
+                                    <button type="button" class="btn btn-link p-0 ml-1 align-baseline product-filter-open-btn" id="product_filter_open_category" aria-expanded="false" aria-controls="product_filter_dropdown_category" title="Filter by category">
+                                        <i class="fa fa-filter product-col-filter-icon" aria-hidden="true"></i>
+                                    </button>
+                                    <div id="product_filter_dropdown_category" class="product-filter-dropdown">
+                                        <div class="product-filter-input-wrap">
+                                            <input type="text" class="form-control form-control-sm product-filter-input" id="filter_product_category" placeholder="Filter category" autocomplete="off" aria-label="Filter by category" inputmode="search">
+                                            <button type="button" class="product-filter-clear" id="filter_product_category_clear" title="Clear" aria-label="Clear filter">
+                                                <i class="fa fa-times" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="product-th-with-filter">
+                                    <span class="product-th-label">Title</span>
+                                    <button type="button" class="btn btn-link p-0 ml-1 align-baseline product-filter-open-btn" id="product_filter_open_title" aria-expanded="false" aria-controls="product_filter_dropdown_title" title="Filter by title">
+                                        <i class="fa fa-filter product-col-filter-icon" aria-hidden="true"></i>
+                                    </button>
+                                    <div id="product_filter_dropdown_title" class="product-filter-dropdown">
+                                        <div class="product-filter-input-wrap">
+                                            <input type="text" class="form-control form-control-sm product-filter-input" id="filter_product_title" placeholder="Filter title" autocomplete="off" aria-label="Filter by title" inputmode="search">
+                                            <button type="button" class="product-filter-clear" id="filter_product_title_clear" title="Clear" aria-label="Clear filter">
+                                                <i class="fa fa-times" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>Pricing Type</th>
+                                <th>Price</th>
+                                <th>Pricing Unit</th>
+                                <th>Button Text (CTA)</th>
+                                <th>Description</th>
                                 <th>Manage</th>
                             </tr>
                         </thead>
@@ -697,8 +772,33 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $prod_description = $prod_description_raw !== '' ? htmlspecialchars($prod_description_raw) : '';
                                     $prod_mrp = !empty($prod['mrp']) && $prod['mrp'] > 0 ? floatval($prod['mrp']) : 0;
                                     $prod_price = !empty($prod['selling_price']) && $prod['selling_price'] > 0 ? floatval($prod['selling_price']) : 0;
+                                    $prod_price_type = 'fixed_price';
+                                    if(!empty($prod['price_type'])) {
+                                        if(in_array($prod['price_type'], ['fixed_price', 'starting_from', 'on_request'], true)) {
+                                            $prod_price_type = $prod['price_type'];
+                                        } elseif($prod['price_type'] === 'customize') {
+                                            // Backward compatibility for old saved values.
+                                            $prod_price_type = 'on_request';
+                                        }
+                                    }
+                                    $prod_pricing_unit = !empty($prod['pricing_unit']) ? $prod['pricing_unit'] : '';
+                                    $prod_cta_text = !empty($prod['cta_text']) ? $prod['cta_text'] : '';
+                                    $prod_price_type_label = 'Fixed Price';
+                                    if($prod_price_type === 'starting_from') {
+                                        $prod_price_type_label = 'Starting From';
+                                    } elseif($prod_price_type === 'on_request') {
+                                        $prod_price_type_label = 'On Request';
+                                    }
+                                    $prod_price_label = '-';
+                                    if($prod_price_type === 'on_request' || $prod_price <= 0) {
+                                        $prod_price_label = 'Price on Request';
+                                    } elseif($prod_price_type === 'starting_from') {
+                                        $prod_price_label = '<i class="fa fa-inr" aria-hidden="true"></i> ' . number_format($prod_price, 2) . ' (Starting)';
+                                    } else {
+                                        $prod_price_label = '<i class="fa fa-inr" aria-hidden="true"></i> ' . number_format($prod_price, 2);
+                                    }
                             ?>
-                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>" data-product-name="<?php echo htmlspecialchars($prod_name_raw, ENT_QUOTES, 'UTF-8'); ?>" data-product-category="<?php echo intval($prod_category_id); ?>" data-product-category-source="<?php echo htmlspecialchars($prod_category_source, ENT_QUOTES, 'UTF-8'); ?>" data-product-mrp="<?php echo $prod_mrp; ?>" data-product-price="<?php echo $prod_price; ?>" data-product-desc="<?php echo htmlspecialchars($prod_description_raw, ENT_QUOTES, 'UTF-8'); ?>">
+                                <tr data-product-id="<?php echo $prod_id; ?>" data-card-id="<?php echo $card_id;?>" data-product-name="<?php echo htmlspecialchars($prod_name_raw, ENT_QUOTES, 'UTF-8'); ?>" data-product-category="<?php echo intval($prod_category_id); ?>" data-product-category-source="<?php echo htmlspecialchars($prod_category_source, ENT_QUOTES, 'UTF-8'); ?>" data-product-category-name="<?php echo htmlspecialchars($prod_category_raw, ENT_QUOTES, 'UTF-8'); ?>" data-product-mrp="<?php echo $prod_mrp; ?>" data-product-price="<?php echo $prod_price; ?>" data-product-price-type="<?php echo htmlspecialchars($prod_price_type, ENT_QUOTES, 'UTF-8'); ?>" data-product-pricing-unit="<?php echo htmlspecialchars($prod_pricing_unit, ENT_QUOTES, 'UTF-8'); ?>" data-product-cta-text="<?php echo htmlspecialchars($prod_cta_text, ENT_QUOTES, 'UTF-8'); ?>" data-product-desc="<?php echo htmlspecialchars($prod_description_raw, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td valign="middle">
                                         <?php if(!empty($prod['product_image'])): ?>
                                             <?php
@@ -718,21 +818,11 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     </td>
                                     <td valign="middle" class="product-table-cell-clip" title="<?php echo $prod_category_raw !== '' ? htmlspecialchars($prod_category_raw, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_category ? $prod_category : '<span class="text-muted">-</span>'; ?></td>
                                     <td valign="middle" class="product-table-cell-clip" title="<?php echo $prod_name_raw !== '' ? htmlspecialchars($prod_name_raw, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_name; ?></td>
+                                    <td valign="middle"><?php echo htmlspecialchars($prod_price_type_label, ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td valign="middle"><?php echo $prod_price_label; ?></td>
+                                    <td valign="middle" class="product-table-cell-clip" title="<?php echo $prod_pricing_unit !== '' ? htmlspecialchars($prod_pricing_unit, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_pricing_unit !== '' ? htmlspecialchars($prod_pricing_unit, ENT_QUOTES, 'UTF-8') : '<span class="text-muted">-</span>'; ?></td>
+                                    <td valign="middle" class="product-table-cell-clip" title="<?php echo $prod_cta_text !== '' ? htmlspecialchars($prod_cta_text, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_cta_text !== '' ? htmlspecialchars($prod_cta_text, ENT_QUOTES, 'UTF-8') : '<span class="text-muted">-</span>'; ?></td>
                                     <td valign="middle" class="product-table-desc-cell" title="<?php echo $prod_description_raw !== '' ? htmlspecialchars($prod_description_raw, ENT_QUOTES, 'UTF-8') : ''; ?>"><?php echo $prod_description !== '' ? $prod_description : '<span class="text-muted">-</span>'; ?></td>
-                                    <td valign="middle">
-                                        <?php if($prod_mrp > 0): ?>
-                                            <i class="fa fa-inr" aria-hidden="true"></i> <?php echo number_format($prod_mrp, 2); ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">-</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td valign="middle">
-                                        <?php if($prod_price > 0): ?>
-                                            <i class="fa fa-inr" aria-hidden="true"></i> <?php echo number_format($prod_price, 2); ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">-</span>
-                                        <?php endif; ?>
-                                    </td>
                                     <td valign="middle">
                                         <a class="edit" href="javascript:void(0);" onclick="editProductFromRow(this)" title="Edit"><i class="fa fa-edit" style="font-size:16px;color:#007bff;margin-right:8px;"></i></a>
                                         <a class="delet" href="javascript:void(0);" onclick="removeData(<?php echo $prod_id; ?>)" title="Delete"><i class="fa fa-trash" style="font-size:16px;color:#dc3545;"></i></a>
@@ -743,7 +833,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             else:
                             ?>
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td>
+                                    <td colspan="9" class="text-center text-muted">No products added yet. Click "Add Item" to add.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -756,6 +846,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <input type="text" name="pro_category<?php echo $m; ?>" id="form_pro_category<?php echo $m; ?>" value="">
                             <input type="number" name="pro_mrp<?php echo $m; ?>" id="form_pro_mrp<?php echo $m; ?>" value="">
                             <input type="number" name="pro_price<?php echo $m; ?>" id="form_pro_price<?php echo $m; ?>" value="">
+                            <input type="text" name="pro_price_type<?php echo $m; ?>" id="form_pro_price_type<?php echo $m; ?>" value="">
+                            <input type="text" name="pro_pricing_unit<?php echo $m; ?>" id="form_pro_pricing_unit<?php echo $m; ?>" value="">
+                            <input type="text" name="pro_cta_text<?php echo $m; ?>" id="form_pro_cta_text<?php echo $m; ?>" value="">
                             <input type="file" name="pro_img<?php echo $m; ?>" id="form_pro_img<?php echo $m; ?>">
                             <!-- Hidden field for processed image data -->
                             <input type="hidden" name="processed_product_image_data<?php echo $m; ?>" id="form_processed_image_data<?php echo $m; ?>" value="">
@@ -767,7 +860,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                    
                 </div>
                 <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
+                        <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
@@ -775,7 +868,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
                             <span>Save</span>
                         </button>
-                        <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                        <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
                         </a>
@@ -807,11 +900,11 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
                     </div>
                     <div class="form-group">
-                        <label for="modal_product_category">Product Category</label>
+                        <label for="modal_product_category">Category</label>
                         <small class="form-text text-muted d-block mb-1">Category and product name are each limited to 30 characters when saved.</small>
                         <div style="display: flex; gap: 10px;">
                             <select name="modal_product_category" id="modal_product_category" class="form-control" style="flex: 1;" onchange="loadProductNames(this.value)">
-                                <option value="">Select Product Category</option>
+                                <option value="">Select Category</option>
                                 <?php
                                 // Bind product categories from BOTH selected business categories:
                                 // primary + secondary (from company-details.php).
@@ -873,21 +966,59 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="modal_product_name">Product Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_product_name" maxlength="30" required placeholder="Enter product name (max 30)">
-                        <small class="form-text text-muted">Product name is required and limited to 30 characters.</small>
+                        <label for="modal_product_name">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modal_product_name" maxlength="30" required placeholder="Enter title (max 30)">
+                        <small class="form-text text-muted">Title is required and limited to 30 characters.</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="modal_product_price_type">Pricing Type</label>
+                            <select class="form-control" id="modal_product_price_type" onchange="updatePriceFieldByType()">
+                                <option value="fixed_price">Fixed Price</option>
+                                <option value="starting_from">Starting From</option>
+                                <option value="on_request">On Request</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6" id="modal_product_price_wrapper">
+                            <label for="modal_product_price" id="modal_product_price_label">Price</label>
+                            <input type="number" class="form-control" id="modal_product_price" min="0" step="0.01" placeholder="Enter price">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="modal_product_mrp">MRP</label>
-                        <input type="number" class="form-control" id="modal_product_mrp" maxlength="200" max="500000" min="0" placeholder="Enter MRP">
+                        <label for="modal_product_pricing_unit">Pricing Unit</label>
+                        <select class="form-control" id="modal_product_pricing_unit" onchange="updatePricingUnitField()">
+                            <option value="">Select Pricing Unit</option>
+                            <option value="Per Item">Per Item</option>
+                            <option value="Per Hour">Per Hour</option>
+                            <option value="Per Minute">Per Minute</option>
+                            <option value="Per Day">Per Day</option>
+                            <option value="Per Visit">Per Visit</option>
+                            <option value="Per Service">Per Service</option>
+                            <option value="Per Kg / Unit">Per Kg / Unit</option>
+                            <option value="Per Project">Per Project</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input type="text" class="form-control mt-2" id="modal_product_pricing_unit_custom" maxlength="30" placeholder="Enter custom pricing unit" style="display:none;">
                     </div>
                     <div class="form-group">
-                        <label for="modal_product_price">Selling Price</label>
-                        <input type="number" class="form-control" id="modal_product_price" maxlength="200" max="500000" min="0" placeholder="Enter Selling Price">
+                        <label for="modal_product_cta_text">Button Text (CTA)</label>
+                        <select class="form-control" id="modal_product_cta_text" onchange="updateCtaField()">
+                            <option value="Enquire" selected>Enquire</option>
+                            <option value="Get Details">Get Details</option>
+                            <option value="Contact Now">Contact Now</option>
+                            <option value="Book Now">Book Now</option>
+                            <option value="Schedule">Schedule</option>
+                            <option value="Get Quote">Get Quote</option>
+                            <option value="Order Now">Order Now</option>
+                            <option value="Buy Now">Buy Now</option>
+                            <option value="Know More">Know More</option>
+                            <option value="custom">Write Your Own CTA</option>
+                        </select>
+                        <input type="text" class="form-control mt-2" id="modal_product_cta_text_custom" maxlength="50" placeholder="Write Your Own CTA" style="display:none;">
                     </div>
                     <div class="form-group">
-                        <label for="modal_product_description">Product Description</label>
-                        <textarea class="form-control" id="modal_product_description" maxlength="400" placeholder="Enter product description (max 400 characters)" rows="4" oninput="updateCharCount()" onpaste="updateCharCount()" onkeyup="updateCharCount()"></textarea>
+                        <label for="modal_product_description">Description</label>
+                        <textarea class="form-control" id="modal_product_description" maxlength="400" placeholder="Enter description (max 400 characters)" rows="4" oninput="updateCharCount()" onpaste="updateCharCount()" onkeyup="updateCharCount()"></textarea>
                         <small class="form-text text-muted">
                             <strong id="char_counter_display">0/400</strong> characters
                         </small>
@@ -896,7 +1027,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="productModalSubmitBtn" onclick="addProductToForm()">Add Product</button>
+                <button type="button" class="btn btn-primary" id="productModalSubmitBtn" onclick="addProductToForm()">Add Item</button>
             </div>
         </div>
     </div>
@@ -915,6 +1046,53 @@ function updateCharCount() {
         var count = textarea.value.length;
         counter.textContent = count + '/400';
         counter.style.color = count > 400 ? '#dc3545' : '';
+    }
+}
+
+function updatePriceFieldByType() {
+    var priceTypeField = document.getElementById('modal_product_price_type');
+    var priceWrapper = document.getElementById('modal_product_price_wrapper');
+    var priceLabel = document.getElementById('modal_product_price_label');
+    var priceField = document.getElementById('modal_product_price');
+    if(!priceTypeField || !priceWrapper || !priceLabel || !priceField) return;
+
+    var selectedType = priceTypeField.value;
+    if(selectedType === 'on_request') {
+        priceWrapper.style.display = 'none';
+        priceField.value = '';
+    } else {
+        priceWrapper.style.display = '';
+        if(selectedType === 'starting_from') {
+            priceLabel.textContent = 'Starting Price';
+            priceField.placeholder = 'Enter starting price';
+        } else {
+            priceLabel.textContent = 'Price';
+            priceField.placeholder = 'Enter price';
+        }
+    }
+}
+
+function updatePricingUnitField() {
+    var pricingUnitField = document.getElementById('modal_product_pricing_unit');
+    var customPricingUnitField = document.getElementById('modal_product_pricing_unit_custom');
+    if(!pricingUnitField || !customPricingUnitField) return;
+    if(pricingUnitField.value === 'custom') {
+        customPricingUnitField.style.display = '';
+    } else {
+        customPricingUnitField.style.display = 'none';
+        customPricingUnitField.value = '';
+    }
+}
+
+function updateCtaField() {
+    var ctaField = document.getElementById('modal_product_cta_text');
+    var ctaCustomField = document.getElementById('modal_product_cta_text_custom');
+    if(!ctaField || !ctaCustomField) return;
+    if(ctaField.value === 'custom') {
+        ctaCustomField.style.display = '';
+    } else {
+        ctaCustomField.style.display = 'none';
+        ctaCustomField.value = '';
     }
 }
 
@@ -946,7 +1124,7 @@ function openProductModal() {
     
     try {
         // Reset form fields (skip file input - clearing can throw in some browsers)
-        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_category', 'modal_product_name', 'modal_product_mrp', 'modal_product_price', 'modal_product_description'];
+        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_category', 'modal_product_name', 'modal_product_mrp', 'modal_product_price', 'modal_product_price_type', 'modal_product_pricing_unit', 'modal_product_pricing_unit_custom', 'modal_product_cta_text', 'modal_product_cta_text_custom', 'modal_product_description'];
         fieldIds.forEach(function(fieldId) {
             var field = document.getElementById(fieldId);
             if(field) field.value = '';
@@ -963,9 +1141,14 @@ function openProductModal() {
         }
 
         var submitBtn = document.getElementById('productModalSubmitBtn');
-        if(submitBtn) submitBtn.textContent = 'Add Product';
+        if(submitBtn) submitBtn.textContent = 'Add Item';
 
         if(typeof updateCharCount === 'function') updateCharCount();
+        if(typeof updatePriceFieldByType === 'function') updatePriceFieldByType();
+        if(typeof updatePricingUnitField === 'function') updatePricingUnitField();
+        var modalProductCtaFieldDefault = document.getElementById('modal_product_cta_text');
+        if(modalProductCtaFieldDefault) modalProductCtaFieldDefault.value = 'Enquire';
+        if(typeof updateCtaField === 'function') updateCtaField();
 
         // Show modal
         var productModalEl = document.getElementById('productModal');
@@ -1002,11 +1185,15 @@ function editProductFromRow(editLink) {
     var productCategorySource = row.getAttribute('data-product-category-source') || row.dataset.productCategorySource || 'system';
     var mrp = row.getAttribute('data-product-mrp') || row.dataset.productMrp || '';
     var price = row.getAttribute('data-product-price') || row.dataset.productPrice || '';
+    var productPriceType = row.getAttribute('data-product-price-type') || row.dataset.productPriceType || 'price';
+    var productPricingUnit = row.getAttribute('data-product-pricing-unit') || row.dataset.productPricingUnit || '';
+    var productCtaText = row.getAttribute('data-product-cta-text') || row.dataset.productCtaText || '';
+    var productCategoryName = row.getAttribute('data-product-category-name') || row.dataset.productCategoryName || '';
     var productDescription = row.getAttribute('data-product-desc') || row.dataset.productDesc || '';
-    editProduct(productId, productName, productCategoryId, productCategorySource, mrp, price, productDescription);
+    editProduct(productId, productName, productCategoryId, productCategorySource, productCategoryName, mrp, price, productPriceType, productPricingUnit, productCtaText, productDescription);
 }
 
-function editProduct(productId, productName, productCategoryId, productCategorySource, mrp, price, productDescription) {
+function editProduct(productId, productName, productCategoryId, productCategorySource, productCategoryName, mrp, price, productPriceType, productPricingUnit, productCtaText, productDescription) {
     currentProductId = productId;
     processedProductImageData = null;
     
@@ -1015,6 +1202,9 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
     var modalProductNumberField = document.getElementById('modal_product_number');
     var modalProductMrpField = document.getElementById('modal_product_mrp');
     var modalProductPriceField = document.getElementById('modal_product_price');
+    var modalProductPriceTypeField = document.getElementById('modal_product_price_type');
+    var modalProductPricingUnitField = document.getElementById('modal_product_pricing_unit');
+    var modalProductCtaTextField = document.getElementById('modal_product_cta_text');
     var modalProductDescField = document.getElementById('modal_product_description');
     var modalProductCategoryField = document.getElementById('modal_product_category');
     var modalProductNameField = document.getElementById('modal_product_name');
@@ -1023,6 +1213,46 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
     if(modalProductNumberField) modalProductNumberField.value = productId;
     if(modalProductMrpField) modalProductMrpField.value = mrp || '';
     if(modalProductPriceField) modalProductPriceField.value = price || '';
+    if(modalProductPriceTypeField) {
+        var selectedPriceType = 'fixed_price';
+        if(productPriceType === 'starting_from' || productPriceType === 'on_request' || productPriceType === 'fixed_price') {
+            selectedPriceType = productPriceType;
+        } else if(productPriceType === 'customize') {
+            selectedPriceType = 'on_request';
+        }
+        modalProductPriceTypeField.value = selectedPriceType;
+    }
+    if(modalProductPricingUnitField) {
+        var predefinedPricingUnits = ['Per Item', 'Per Hour', 'Per Minute', 'Per Day', 'Per Visit', 'Per Service', 'Per Kg / Unit', 'Per Project'];
+        if(predefinedPricingUnits.indexOf(productPricingUnit) !== -1) {
+            modalProductPricingUnitField.value = productPricingUnit;
+            var modalProductPricingUnitCustomField = document.getElementById('modal_product_pricing_unit_custom');
+            if(modalProductPricingUnitCustomField) modalProductPricingUnitCustomField.value = '';
+        } else if(productPricingUnit && productPricingUnit !== '') {
+            modalProductPricingUnitField.value = 'custom';
+            var modalProductPricingUnitCustomField2 = document.getElementById('modal_product_pricing_unit_custom');
+            if(modalProductPricingUnitCustomField2) modalProductPricingUnitCustomField2.value = productPricingUnit;
+        } else {
+            modalProductPricingUnitField.value = '';
+            var modalProductPricingUnitCustomField3 = document.getElementById('modal_product_pricing_unit_custom');
+            if(modalProductPricingUnitCustomField3) modalProductPricingUnitCustomField3.value = '';
+        }
+    }
+    if(modalProductCtaTextField) {
+        var predefinedCtas = ['Enquire', 'Get Details', 'Contact Now', 'Book Now', 'Schedule', 'Get Quote', 'Order Now', 'Buy Now', 'Know More'];
+        var productCtaNormalized = (productCtaText || '').trim();
+        var modalProductCtaCustomField = document.getElementById('modal_product_cta_text_custom');
+        if(predefinedCtas.indexOf(productCtaNormalized) !== -1) {
+            modalProductCtaTextField.value = productCtaNormalized;
+            if(modalProductCtaCustomField) modalProductCtaCustomField.value = '';
+        } else if(productCtaNormalized !== '') {
+            modalProductCtaTextField.value = 'custom';
+            if(modalProductCtaCustomField) modalProductCtaCustomField.value = productCtaNormalized;
+        } else {
+            modalProductCtaTextField.value = 'Enquire';
+            if(modalProductCtaCustomField) modalProductCtaCustomField.value = '';
+        }
+    }
     if(modalProductDescField) modalProductDescField.value = productDescription || '';
     
     if(modalProductNameField) modalProductNameField.value = productName || '';
@@ -1034,6 +1264,15 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
     }
     if(modalProductCategoryField) {
         modalProductCategoryField.value = categoryValue;
+        if(categoryValue && modalProductCategoryField.value !== categoryValue) {
+            var fallbackLabel = productCategoryName && productCategoryName.trim() !== '' ? productCategoryName.trim() : 'Previously selected category';
+            var fallbackOption = document.createElement('option');
+            fallbackOption.value = categoryValue;
+            fallbackOption.textContent = '[Saved] ' + fallbackLabel;
+            fallbackOption.setAttribute('data-fallback-category', '1');
+            modalProductCategoryField.appendChild(fallbackOption);
+            modalProductCategoryField.value = categoryValue;
+        }
     }
     
     // Get and set product image preview
@@ -1055,6 +1294,9 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
     }
     
     updateCharCount();
+    if(typeof updatePriceFieldByType === 'function') updatePriceFieldByType();
+    if(typeof updatePricingUnitField === 'function') updatePricingUnitField();
+    if(typeof updateCtaField === 'function') updateCtaField();
     
     // Show modal
     if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
@@ -1163,9 +1405,43 @@ function addProductToForm() {
     var mrp = modalProductMrpField ? modalProductMrpField.value : '';
     if(mrp) formData.append('pro_mrp' + tempSlot, mrp);
     
+    var modalProductPriceTypeField = document.getElementById('modal_product_price_type');
+    var priceType = modalProductPriceTypeField ? modalProductPriceTypeField.value : 'fixed_price';
+    if(priceType !== 'fixed_price' && priceType !== 'starting_from' && priceType !== 'on_request') {
+        priceType = 'fixed_price';
+    }
+    formData.append('pro_price_type' + tempSlot, priceType);
+    
     var modalProductPriceField = document.getElementById('modal_product_price');
     var price = modalProductPriceField ? modalProductPriceField.value : '';
-    if(price) formData.append('pro_price' + tempSlot, price);
+    if(priceType !== 'on_request' && price) formData.append('pro_price' + tempSlot, price);
+    
+    var modalProductPricingUnitField = document.getElementById('modal_product_pricing_unit');
+    var modalProductPricingUnitCustomField = document.getElementById('modal_product_pricing_unit_custom');
+    var pricingUnit = '';
+    if(modalProductPricingUnitField) {
+        if(modalProductPricingUnitField.value === 'custom') {
+            pricingUnit = modalProductPricingUnitCustomField ? modalProductPricingUnitCustomField.value.trim() : '';
+        } else {
+            pricingUnit = modalProductPricingUnitField.value.trim();
+        }
+    }
+    if(pricingUnit.length > 30) pricingUnit = pricingUnit.substring(0, 30);
+    if(pricingUnit) formData.append('pro_pricing_unit' + tempSlot, pricingUnit);
+    
+    var modalProductCtaTextField = document.getElementById('modal_product_cta_text');
+    var modalProductCtaTextCustomField = document.getElementById('modal_product_cta_text_custom');
+    var ctaText = '';
+    if(modalProductCtaTextField) {
+        if(modalProductCtaTextField.value === 'custom') {
+            ctaText = modalProductCtaTextCustomField ? modalProductCtaTextCustomField.value.trim() : '';
+        } else {
+            ctaText = modalProductCtaTextField.value.trim();
+        }
+    }
+    if(!ctaText) ctaText = 'Enquire';
+    if(ctaText.length > 50) ctaText = ctaText.substring(0, 50);
+    if(ctaText) formData.append('pro_cta_text' + tempSlot, ctaText);
     
     var modalProductDescField = document.getElementById('modal_product_description');
     var description = modalProductDescField ? modalProductDescField.value.trim() : '';
@@ -1277,7 +1553,7 @@ function removeData(productId) {
                 var hasProducts = tableBody ? tableBody.querySelector('tr[data-product-id]') : null;
                 
                 if(tableBody && !hasProducts) {
-                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No products added yet. Click "Add Product" to add.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No products added yet. Click "Add Item" to add.</td></tr>';
                 }
                 
                 updateAddProductButtonState();
@@ -1485,6 +1761,115 @@ function saveCustomProductCategory() {
     });
 }
 
+function initProductTableColumnFilters() {
+    var catInput = document.getElementById('filter_product_category');
+    var titleInput = document.getElementById('filter_product_title');
+    var ddCat = document.getElementById('product_filter_dropdown_category');
+    var ddTitle = document.getElementById('product_filter_dropdown_title');
+    var btnOpenCat = document.getElementById('product_filter_open_category');
+    var btnOpenTitle = document.getElementById('product_filter_open_title');
+    var btnClearCat = document.getElementById('filter_product_category_clear');
+    var btnClearTitle = document.getElementById('filter_product_title_clear');
+    if (!catInput || !titleInput || !ddCat || !ddTitle) return;
+
+    function applyProductTableFilters() {
+        var catVal = (catInput.value || '').toLowerCase().trim();
+        var titleVal = (titleInput.value || '').toLowerCase().trim();
+        var rows = document.querySelectorAll('.Product-ServicesTable tbody tr[data-product-id]');
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var tds = row.getElementsByTagName('td');
+            if (tds.length < 3) continue;
+            var catText = (tds[1].textContent || '').toLowerCase();
+            var titleText = (tds[2].textContent || '').toLowerCase();
+            var show = (catVal === '' || catText.indexOf(catVal) !== -1) && (titleVal === '' || titleText.indexOf(titleVal) !== -1);
+            row.style.display = show ? '' : 'none';
+        }
+    }
+
+    function syncClearVisibility(input, clearBtn) {
+        if (!clearBtn) return;
+        clearBtn.style.display = (input.value && input.value.length) ? 'flex' : 'none';
+    }
+
+    function closeAllFilterDropdowns() {
+        ddCat.classList.remove('show');
+        ddTitle.classList.remove('show');
+        if (btnOpenCat) btnOpenCat.setAttribute('aria-expanded', 'false');
+        if (btnOpenTitle) btnOpenTitle.setAttribute('aria-expanded', 'false');
+    }
+
+    if (btnOpenCat) {
+        btnOpenCat.addEventListener('click', function(e) {
+            e.preventDefault();
+            var wasOpen = ddCat.classList.contains('show');
+            closeAllFilterDropdowns();
+            if (!wasOpen) {
+                ddCat.classList.add('show');
+                btnOpenCat.setAttribute('aria-expanded', 'true');
+                setTimeout(function() { catInput.focus(); }, 0);
+            }
+        });
+    }
+    if (btnOpenTitle) {
+        btnOpenTitle.addEventListener('click', function(e) {
+            e.preventDefault();
+            var wasOpen = ddTitle.classList.contains('show');
+            closeAllFilterDropdowns();
+            if (!wasOpen) {
+                ddTitle.classList.add('show');
+                btnOpenTitle.setAttribute('aria-expanded', 'true');
+                setTimeout(function() { titleInput.focus(); }, 0);
+            }
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.product-filter-dropdown') || e.target.closest('.product-filter-open-btn')) {
+            return;
+        }
+        closeAllFilterDropdowns();
+    });
+
+    catInput.addEventListener('input', function() {
+        syncClearVisibility(catInput, btnClearCat);
+        applyProductTableFilters();
+    });
+    titleInput.addEventListener('input', function() {
+        syncClearVisibility(titleInput, btnClearTitle);
+        applyProductTableFilters();
+    });
+
+    if (btnClearCat) {
+        btnClearCat.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            catInput.value = '';
+            syncClearVisibility(catInput, btnClearCat);
+            applyProductTableFilters();
+            catInput.focus();
+        });
+    }
+    if (btnClearTitle) {
+        btnClearTitle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            titleInput.value = '';
+            syncClearVisibility(titleInput, btnClearTitle);
+            applyProductTableFilters();
+            titleInput.focus();
+        });
+    }
+
+    syncClearVisibility(catInput, btnClearCat);
+    syncClearVisibility(titleInput, btnClearTitle);
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProductTableColumnFilters);
+} else {
+    initProductTableColumnFilters();
+}
+
 </script>
 <style>
     .Product-ServicesBtn{
@@ -1620,6 +2005,72 @@ function saveCustomProductCategory() {
     }
     .Product-ServicesTable .display.table td.product-table-desc-cell {
         max-width: 16rem;
+    }
+    .Product-ServicesTable {
+        overflow: visible;
+    }
+    .Product-ServicesTable .display.table thead th.product-th-with-filter {
+        position: relative;
+        overflow: visible;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .product-col-filter-icon {
+        opacity: 0.75;
+        font-size: 0.85em;
+        vertical-align: middle;
+    }
+    .product-filter-open-btn {
+        cursor: pointer;
+        vertical-align: middle;
+    }
+    .product-filter-open-btn .product-col-filter-icon {
+        margin-left: 0;
+    }
+    .product-filter-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 4px;
+        z-index: 1050;
+        min-width: 220px;
+        padding: 8px;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        text-align: left;
+    }
+    .product-filter-dropdown.show {
+        display: block;
+    }
+    .product-filter-input-wrap {
+        position: relative;
+    }
+    .product-filter-input-wrap .product-filter-input {
+        padding-right: 32px;
+    }
+    .product-filter-clear {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 26px;
+        height: 26px;
+        border: none;
+        background: transparent;
+        color: #6c757d;
+        padding: 0;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .product-filter-clear:hover {
+        color: #dc3545;
+        background: rgba(0, 0, 0, 0.06);
     }
 </style>
 

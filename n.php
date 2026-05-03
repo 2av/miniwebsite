@@ -257,7 +257,11 @@ function mw_demo_format_offer_time_part($raw) {
     return $dt ? $dt->format('g:i A') : $t;
 }
 
-/** One line: date + time for offer row (plain text, not escaped). */
+/**
+ * Public label for Start/End Dt on the card (no year in the string — e.g. "17 Mar, 9:54 PM").
+ * The stored DB date is still the full Y-m-d; strtotime() uses that full date internally.
+ * For Offer Expired, use mw_demo_offer_end_moment_ts() / offer raw fields (year included there).
+ */
 function mw_demo_format_offer_datetime_display($date_raw, $time_raw) {
     $d = mw_demo_clean_offer_date($date_raw);
     $tpart = mw_demo_format_offer_time_part($time_raw);
@@ -286,6 +290,60 @@ function mw_demo_offer_start_end_dt_labels($start_date, $end_date, $start_time, 
         'start_dt' => mw_demo_format_offer_datetime_display($start_date, $start_time),
         'end_dt' => mw_demo_format_offer_datetime_display($end_date, $end_time),
     ];
+}
+
+/**
+ * Unix timestamp for offer end (background / expiry only). Uses full calendar date from DB including year.
+ * Not shown on the page — public labels omit the year via mw_demo_format_offer_datetime_display().
+ * Handles: DATE + TIME columns, DATETIME / ISO in end_date, fractional seconds on TIME, T separator.
+ */
+function mw_demo_offer_end_moment_ts($end_date, $end_time) {
+    $raw = trim((string) ($end_date ?? ''));
+    if ($raw === '' || $raw === '0000-00-00' || strpos($raw, '0000-00-00') === 0) {
+        return null;
+    }
+    // Full datetime already in end_date (DATETIME column or ISO)
+    if (preg_match('/^\d{4}-\d{2}-\d{2}[\sT]\d/', $raw)) {
+        $norm = str_replace('T', ' ', $raw);
+        $norm = preg_replace('/(\d{2}:\d{2}:\d{2})\.\d+/', '$1', $norm);
+        $ts = strtotime($norm);
+        return ($ts === false) ? null : $ts;
+    }
+    if (!preg_match('/^(\d{4}-\d{2}-\d{2})/', $raw, $dm)) {
+        return null;
+    }
+    $dateOnly = $dm[1];
+    $timeRaw = trim((string) ($end_time ?? ''));
+    if ($timeRaw !== '') {
+        $timeRaw = preg_replace('/\.\d+$/', '', $timeRaw);
+        if (preg_match('/^(\d{1,2}:\d{2}(?::\d{2})?)/', $timeRaw, $mm)) {
+            $timeRaw = $mm[1];
+        } else {
+            $timeRaw = '';
+        }
+    }
+    $combined = ($timeRaw !== '') ? ($dateOnly . ' ' . $timeRaw) : ($dateOnly . ' 23:59:59');
+    $ts = strtotime($combined);
+    if ($ts !== false) {
+        return $ts;
+    }
+    $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $combined)
+        ?: DateTimeImmutable::createFromFormat('Y-m-d G:i:s', $combined)
+        ?: DateTimeImmutable::createFromFormat('Y-m-d H:i', $combined)
+        ?: DateTimeImmutable::createFromFormat('Y-m-d G:i', $combined);
+    if ($dt instanceof DateTimeImmutable) {
+        return $dt->getTimestamp();
+    }
+    return null;
+}
+
+/** True when end date/time is set and is strictly before now (date-only → end of that day at 23:59:59). */
+function mw_demo_offer_end_dt_expired($end_date, $end_time) {
+    $endTs = mw_demo_offer_end_moment_ts($end_date, $end_time);
+    if ($endTs === null) {
+        return false;
+    }
+    return $endTs < time();
 }
 
 // Try to load from database when card_id provided
@@ -446,11 +504,26 @@ if ($mw_card_expired) {
 }
 
 // Build data arrays (from DB or demo fallback)
+$primary_business_category_title = '';
 if ($row) {
     $card_db_id = intval($row['id']);
     $hero_name = !empty($row['d_comp_name']) ? htmlspecialchars($row['d_comp_name']) : trim((isset($row['d_f_name']) ? $row['d_f_name'] : '') . ' ' . (isset($row['d_l_name']) ? $row['d_l_name'] : ''));
     if (empty($hero_name)) $hero_name = 'Your Name';
     $hero_title = !empty($row['d_position']) ? htmlspecialchars($row['d_position']) : 'Executive Chef';
+    $mw_hero_user_id = intval($row['user_id'] ?? 0);
+    if ($mw_hero_user_id <= 0 && !empty($row['user_email']) && isset($connect) && $connect) {
+        $em_lookup = mysqli_real_escape_string($connect, strtolower(trim((string) $row['user_email'])));
+        $uq = @mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = '$em_lookup' LIMIT 1");
+        if ($uq && ($ur = mysqli_fetch_assoc($uq))) {
+            $mw_hero_user_id = intval($ur['id'] ?? 0);
+        }
+    }
+    if (isset($connect) && $connect) {
+        $pri_cat_name = mw_vcard_resolve_business_category_name($connect, intval($row['d_position_primary'] ?? 0), $mw_hero_user_id);
+        if ($pri_cat_name !== '') {
+            $primary_business_category_title = htmlspecialchars($pri_cat_name, ENT_QUOTES, 'UTF-8');
+        }
+    }
     // Hero cover: use d_hero_image_location first, fallback to default image
     $hero_cover = $default_image;
     if (!empty($row['d_hero_image_location'])) {
@@ -531,11 +604,16 @@ if ($row) {
                     $o['start_time'] ?? null,
                     $o['end_time'] ?? null
                 );
+                $expired = mw_demo_offer_end_dt_expired($o['end_date'] ?? null, $o['end_time'] ?? null);
                 $offers[] = [
                     'title' => htmlspecialchars($o['offer_title']),
                     'desc' => htmlspecialchars($o['offer_description'] ?? ''),
                     'image' => $img,
                     'badge' => !empty($o['badge']) ? htmlspecialchars($o['badge']) : (!empty($o['discount_percentage']) ? $o['discount_percentage'] . '% OFF' : 'OFFER'),
+                    'offer_expired' => (bool) $expired,
+                    /** Raw DB values — template recomputes expiry so it always matches End Dt display */
+                    'offer_end_date_raw' => $o['end_date'] ?? null,
+                    'offer_end_time_raw' => $o['end_time'] ?? null,
                     'offer_start_dt' => $se['start_dt'] !== '' ? htmlspecialchars($se['start_dt']) : '',
                     'offer_end_dt' => $se['end_dt'] !== '' ? htmlspecialchars($se['end_dt']) : '',
                 ];
@@ -578,7 +656,12 @@ if ($row) {
                     : $default_image;
                 $mrp = floatval($p['mrp'] ?? 0);
                 $price = floatval($p['selling_price'] ?? 0);
-                $price_on_request = ($price <= 0);
+                $pricing_type = trim((string)($p['price_type'] ?? ''));
+                if (!in_array($pricing_type, ['fixed_price', 'starting_from', 'on_request'], true)) {
+                    $pricing_type = ($price > 0) ? 'fixed_price' : 'on_request';
+                }
+                $pricing_unit = trim((string)($p['pricing_unit'] ?? ''));
+                $price_on_request = ($pricing_type === 'on_request' || $price <= 0);
                 if ($mrp <= 0) {
                     $mrp = $price;
                 }
@@ -589,6 +672,9 @@ if ($row) {
                     'image' => $img,
                     'mrp' => $mrp,
                     'price' => $price,
+                    'price_type' => $pricing_type,
+                    'pricing_unit' => htmlspecialchars($pricing_unit),
+                    'cta_text' => htmlspecialchars(trim((string)($p['cta_text'] ?? ''))),
                     'price_on_request' => $price_on_request,
                     'desc' => htmlspecialchars($p['product_description'] ?? ''),
                 ];
@@ -649,13 +735,14 @@ if ($row) {
         $vid_idx++;
     }
 
-    // Business Hours from d_business_hours (JSON)
-    $business_hours = [];
-    if (!empty($row['d_business_hours'])) {
-        $bh_decoded = json_decode($row['d_business_hours'], true);
-        if (is_array($bh_decoded)) $business_hours = $bh_decoded;
+    // Business Hours from d_business_hours (JSON; v2 weekly or legacy rows)
+    $bh_display_inc = __DIR__ . '/includes/business_hours_display.php';
+    if (is_file($bh_display_inc)) {
+        require_once $bh_display_inc;
     }
-    if (empty($business_hours)) {
+    if (function_exists('mw_normalize_business_hours_display')) {
+        $business_hours = mw_normalize_business_hours_display($row['d_business_hours'] ?? '');
+    } else {
         $business_hours = [
             ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
             ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
@@ -664,6 +751,7 @@ if ($row) {
     }
 } else {
     // Demo fallback data
+    $primary_business_category_title = '';
     $hero_name = 'Olivia Murray';
     $hero_title = 'Executive Chef';
     $hero_cover = $default_image;
@@ -730,7 +818,12 @@ if ($row) {
                             : $default_image;
                         $mrp = floatval($p['mrp'] ?? 0);
                         $price = floatval($p['selling_price'] ?? 0);
-                        $price_on_request = ($price <= 0);
+                        $pricing_type = trim((string)($p['price_type'] ?? ''));
+                        if (!in_array($pricing_type, ['fixed_price', 'starting_from', 'on_request'], true)) {
+                            $pricing_type = ($price > 0) ? 'fixed_price' : 'on_request';
+                        }
+                        $pricing_unit = trim((string)($p['pricing_unit'] ?? ''));
+                        $price_on_request = ($pricing_type === 'on_request' || $price <= 0);
                         if ($mrp <= 0) {
                             $mrp = $price;
                         }
@@ -741,6 +834,9 @@ if ($row) {
                             'image' => $img,
                             'mrp' => $mrp,
                             'price' => $price,
+                            'price_type' => $pricing_type,
+                            'pricing_unit' => htmlspecialchars($pricing_unit),
+                            'cta_text' => htmlspecialchars(trim((string)($p['cta_text'] ?? ''))),
                             'price_on_request' => $price_on_request,
                             'desc' => htmlspecialchars($p['product_description'] ?? ''),
                         ];
@@ -1059,7 +1155,9 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                 <img src="<?php echo htmlspecialchars($hero_logo); ?>" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
             </div>
             <h1 class="text-3xl md:text-4xl font-bold mb-1"><?php echo $hero_name; ?></h1>
-           
+            <?php if ($primary_business_category_title !== ''): ?>
+            <p class="text-heading font-semibold text-base md:text-lg mb-3 mt-0"><?php echo $primary_business_category_title; ?></p>
+            <?php endif; ?>
 
             <div class="flex gap-4 w-full max-w-sm justify-center">
                 <a href="tel:<?php echo htmlspecialchars($phone, ENT_QUOTES, 'UTF-8'); ?>" class="flex-1 bg-cardbg border border-primary text-primary py-3 px-4 rounded-theme hover:bg-primary hover:text-bgbase transition-colors flex items-center justify-center gap-2 font-medium">
@@ -1340,11 +1438,18 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
     <section id="mw-offers" class="mw-special-offers mw-section-padding bg-cardbg/30">
         <h2 class="mw-section-title">Special Offers</h2>
         <div class="mw-grid-offers">
-            <?php foreach ($offers as $off): ?>
+            <?php foreach ($offers as $off):
+                $mw_offer_has_end_dt = !empty($off['offer_end_dt'] ?? '');
+                /** Recompute from raw end_date/end_time so label matches DB (no stale/cached flag). */
+                $mw_offer_expired_from_end_dt = $mw_offer_has_end_dt && mw_demo_offer_end_dt_expired($off['offer_end_date_raw'] ?? null, $off['offer_end_time_raw'] ?? null);
+            ?>
             <div class="mw-card mw-offer-card bg-cardbg rounded-theme relative overflow-hidden">
                 <div class="mw-offer-badge absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold z-10" style="background: var(--mw-offer-badge-bg); color: var(--mw-offer-badge-color);"><?php echo htmlspecialchars($off['badge']); ?></div>
+                <?php if ($mw_offer_expired_from_end_dt): ?>
+                <div class="mw-offer-expired-badge absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold z-10 shadow-sm" style="background:#dc2626;color:#fff;">Offer Expired</div>
+                <?php endif; ?>
                 <div class="mw-offer-image-wrap aspect-[4/3] overflow-hidden">
-                    <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
+                <img src="<?php echo htmlspecialchars($off['image']); ?>" alt="<?php echo htmlspecialchars($off['title']); ?>" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
                 </div>
                 <div class="p-5 flex flex-col min-h-0">
                     <h3 class="text-heading font-semibold text-lg mb-1"><?php echo $off['title']; ?></h3>
@@ -1354,7 +1459,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                     <?php if (!empty($off['offer_start_dt'] ?? '') || !empty($off['offer_end_dt'] ?? '')): ?>
                     <div class="mw-offer-valid-row flex flex-row justify-between items-baseline gap-3 w-full text-xs text-textmain pt-3 mt-3 border-t border-white/10">
                         <span class="min-w-0 text-left leading-snug"><?php if (!empty($off['offer_start_dt'] ?? '')): ?><span class="font-medium text-heading">Start Dt:</span> <?php echo $off['offer_start_dt']; ?><?php endif; ?></span>
-                        <span class="min-w-0 text-right leading-snug shrink-0"><?php if (!empty($off['offer_end_dt'] ?? '')): ?><span class="font-medium text-heading">End Dt:</span> <?php echo $off['offer_end_dt']; ?><?php endif; ?></span>
+                        <span class="min-w-0 text-right leading-snug shrink-0"><?php if ($mw_offer_has_end_dt): ?><span class="font-medium text-heading">End Dt:</span> <?php echo $off['offer_end_dt']; ?><?php endif; ?></span>
                     </div>
                     <?php endif; ?>
                     <?php
@@ -1371,7 +1476,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
     <!-- 8. Products Section (Blinkit Style) -->
     <?php if (!empty($products_by_cat)): ?>
     <section id="mw-products" class="mw-products mw-section-padding">
-        <h2 class="mw-section-title">Shop Online</h2>
+        <h2 class="mw-section-title">Details & Pricing</h2>
         
         <div id="mw-products-blinkit" class="mw-blinkit-container">
             <!-- Sidebar Categories -->
@@ -1395,9 +1500,10 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                             $global_idx += isset($products_by_cat[$ok]) ? count($products_by_cat[$ok]) : 0;
                         } ?>
                     <div class="mw-card mw-product-card bg-white text-gray-800 overflow-hidden rounded-xl shadow-md p-1 cursor-pointer" data-product-index="<?php echo $global_idx; ?>">
+                        <?php $mw_card_cta_text = !empty($prod['cta_text']) ? trim((string)$prod['cta_text']) : 'Enquire'; ?>
                         <div class="mw-product-image-wrap aspect-[4/3] relative rounded-t-xl">
                             <img src="<?php echo htmlspecialchars($prod['image']); ?>" class="w-full h-full object-cover pointer-events-none select-none" alt="<?php echo htmlspecialchars($prod['name']); ?>" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($default_image, ENT_QUOTES); ?>'">
-                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10 pointer-events-auto" data-product-index="<?php echo $global_idx; ?>" aria-label="Add <?php echo htmlspecialchars($prod['name']); ?> to cart"><span class="mw-cart-btn-label">ADD</span></button>
+                            <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10 pointer-events-auto" data-product-index="<?php echo $global_idx; ?>" aria-label="Add <?php echo htmlspecialchars($prod['name']); ?> to cart"><span class="mw-cart-btn-label"><?php echo htmlspecialchars($mw_card_cta_text); ?></span></button>
                         </div>
                         <div class="p-1">
                             <h3 class="font-medium text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
@@ -1405,18 +1511,25 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                             <div class="mw-product-desc-full hidden text-xs text-gray-500 mt-2 leading-relaxed"><?php echo !empty($prod['desc']) ? nl2br(htmlspecialchars($prod['desc'])) : 'Contact us for details.'; ?></div>
                             <button type="button" class="mw-product-read-more text-primary text-xs font-medium mt-1 hover:underline">Read more</button>
                             <?php
-                            $mw_price_on_request = !empty($prod['price_on_request']);
-                            $mw_has_prod_discount = !$mw_price_on_request && isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
+                            $mw_price_type = !empty($prod['price_type']) ? $prod['price_type'] : 'fixed_price';
+                            $mw_pricing_unit = !empty($prod['pricing_unit']) ? trim((string)$prod['pricing_unit']) : '';
+                            $mw_price_on_request = !empty($prod['price_on_request']) || $mw_price_type === 'on_request';
+                            $mw_has_prod_discount = !$mw_price_on_request && $mw_price_type === 'fixed_price' && isset($prod['mrp']) && $prod['mrp'] > $prod['price'];
+                            $mw_price_base = '₹' . number_format($prod['price']);
+                            $mw_price_with_unit = $mw_pricing_unit !== '' ? ($mw_price_base . ' / ' . htmlspecialchars($mw_pricing_unit)) : $mw_price_base;
+                            if ($mw_price_on_request) {
+                                $mw_price_display = 'Price on Request';
+                            } elseif ($mw_price_type === 'starting_from') {
+                                $mw_price_display = 'Starting ' . $mw_price_with_unit;
+                            } else {
+                                $mw_price_display = $mw_price_with_unit;
+                            }
                             ?>
                             <div class="mw-product-card-prices flex flex-col items-start gap-0.5 mt-2 md:flex-row md:items-center md:gap-2 <?php echo $mw_has_prod_discount ? 'md:justify-between' : ''; ?>">
                                 <?php if ($mw_has_prod_discount): ?>
                                 <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
                                 <?php endif; ?>
-                                <?php if ($mw_price_on_request): ?>
-                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">Call for price</span>
-                                <?php else: ?>
-                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>">₹<?php echo number_format($prod['price']); ?></span>
-                                <?php endif; ?>
+                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>"><?php echo $mw_price_display; ?></span>
                             </div>
                         </div>
                     </div>
@@ -1456,7 +1569,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                                     </div>
                                    </div>
                             </div>
-                            <button type="button" class="mw-product-expanded-add-btn mw-btn-add-shop mw-add-to-cart mt-4 flex items-center justify-center gap-2 rounded-xl font-bold uppercase tracking-wide border-0 cursor-pointer flex-shrink-0 self-end" style="background: var(--mw-offer-cta-bg); color: #111;" id="mw-product-expanded-add-main" data-product-index="0" aria-label="Add to cart"><span class="mw-cart-btn-label">ADD</span></button>
+                            <button type="button" class="mw-product-expanded-add-btn mw-btn-add-shop mw-add-to-cart mt-4 flex items-center justify-center gap-2 rounded-xl font-bold uppercase tracking-wide border-0 cursor-pointer flex-shrink-0 self-end" style="background: var(--mw-offer-cta-bg); color: #111;" id="mw-product-expanded-add-main" data-product-index="0" aria-label="Add to cart"><span class="mw-cart-btn-label">Enquire</span></button>
                         </div>
                     </div>
                 </div>

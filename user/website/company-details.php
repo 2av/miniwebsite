@@ -641,18 +641,47 @@ if(isset($_POST['process2'])){
             }
         }
 
-        // Business hours: array of {days, hours}, stored as JSON
-        $business_hours_arr = [];
-        if (!empty($_POST['bh_days']) && is_array($_POST['bh_days']) && !empty($_POST['bh_hours']) && is_array($_POST['bh_hours'])) {
-            foreach ($_POST['bh_days'] as $i => $days) {
-                $days_clean = trim($days);
-                $hours_clean = isset($_POST['bh_hours'][$i]) ? trim($_POST['bh_hours'][$i]) : '';
-                if ($days_clean !== '' || $hours_clean !== '') {
-                    $business_hours_arr[] = ['days' => $days_clean, 'hours' => $hours_clean];
+        // Business hours: JSON v2 weekly schedule { version, schedule: { mon: {open, open_time, close_time}, ... } }
+        $business_hours_obj = ['version' => 2, 'schedule' => []];
+        $bh_day_keys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        $bh_schedule_saved = false;
+        if (!empty($_POST['business_hours_json'])) {
+            $raw_bh = trim((string) $_POST['business_hours_json']);
+            $decoded_bh = json_decode($raw_bh, true);
+            if (is_array($decoded_bh) && isset($decoded_bh['schedule']) && is_array($decoded_bh['schedule'])) {
+                $clean_bh = [];
+                foreach ($bh_day_keys as $dk) {
+                    $slot = (isset($decoded_bh['schedule'][$dk]) && is_array($decoded_bh['schedule'][$dk]))
+                        ? $decoded_bh['schedule'][$dk] : [];
+                    $open = !empty($slot['open']);
+                    $ot = isset($slot['open_time']) ? trim((string) $slot['open_time']) : '';
+                    $ct = isset($slot['close_time']) ? trim((string) $slot['close_time']) : '';
+                    if ($ot !== '' && !preg_match('/^\d{2}:\d{2}$/', $ot)) {
+                        $ot = '';
+                    }
+                    if ($ct !== '' && !preg_match('/^\d{2}:\d{2}$/', $ct)) {
+                        $ct = '';
+                    }
+                    if ($open && ($ot === '' || $ct === '')) {
+                        $open = false;
+                    }
+                    $clean_bh[$dk] = [
+                        'open' => $open,
+                        'open_time' => $ot,
+                        'close_time' => $ct,
+                    ];
                 }
+                $business_hours_obj = ['version' => 2, 'schedule' => $clean_bh];
+                $bh_schedule_saved = true;
             }
         }
-        $d_business_hours = mysqli_real_escape_string($connect, json_encode($business_hours_arr));
+        if (!$bh_schedule_saved && !empty($cardRow['d_business_hours'])) {
+            $prev_bh = json_decode($cardRow['d_business_hours'], true);
+            if (is_array($prev_bh) && isset($prev_bh['version']) && (int) $prev_bh['version'] === 2 && !empty($prev_bh['schedule']) && is_array($prev_bh['schedule'])) {
+                $business_hours_obj = $prev_bh;
+            }
+        }
+        $d_business_hours = mysqli_real_escape_string($connect, json_encode($business_hours_obj));
 
         $d_business_type_sql = mysqli_real_escape_string($connect, $d_business_type);
         $d_business_operation_area_sql = mysqli_real_escape_string($connect, $d_business_operation_area);
@@ -1146,52 +1175,101 @@ include '../includes/header.php';
                             </div>
                         </div>
 
-                        <!-- Business Hierarchical Format - Business Hours -->
+                        <!-- Business Hours (weekly v2; stored as JSON) -->
+                        <?php
+                        $bh_day_order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+                        $bh_day_labels = [
+                            'mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday',
+                            'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday',
+                        ];
+                        $bh_defaults = [
+                            'mon' => ['open' => true, 'open_time' => '10:00', 'close_time' => '20:00'],
+                            'tue' => ['open' => true, 'open_time' => '10:00', 'close_time' => '20:00'],
+                            'wed' => ['open' => true, 'open_time' => '10:00', 'close_time' => '20:00'],
+                            'thu' => ['open' => true, 'open_time' => '10:00', 'close_time' => '20:00'],
+                            'fri' => ['open' => true, 'open_time' => '10:00', 'close_time' => '20:00'],
+                            'sat' => ['open' => true, 'open_time' => '10:00', 'close_time' => '20:00'],
+                            'sun' => ['open' => false, 'open_time' => '10:00', 'close_time' => '20:00'],
+                        ];
+                        $bh_schedule_merged = $bh_defaults;
+                        $bh_raw_decoded = null;
+                        if (!empty($cardRow['d_business_hours'])) {
+                            $bh_raw_decoded = json_decode($cardRow['d_business_hours'], true);
+                        }
+                        if (is_array($bh_raw_decoded) && isset($bh_raw_decoded['version']) && (int) $bh_raw_decoded['version'] === 2 && !empty($bh_raw_decoded['schedule']) && is_array($bh_raw_decoded['schedule'])) {
+                            foreach ($bh_day_order as $dk) {
+                                if (isset($bh_raw_decoded['schedule'][$dk]) && is_array($bh_raw_decoded['schedule'][$dk])) {
+                                    $s = $bh_raw_decoded['schedule'][$dk];
+                                    $ot = isset($s['open_time']) ? trim((string) $s['open_time']) : $bh_defaults[$dk]['open_time'];
+                                    $ct = isset($s['close_time']) ? trim((string) $s['close_time']) : $bh_defaults[$dk]['close_time'];
+                                    if ($ot === '' || !preg_match('/^\d{2}:\d{2}$/', $ot)) {
+                                        $ot = $bh_defaults[$dk]['open_time'];
+                                    }
+                                    if ($ct === '' || !preg_match('/^\d{2}:\d{2}$/', $ct)) {
+                                        $ct = $bh_defaults[$dk]['close_time'];
+                                    }
+                                    $bh_schedule_merged[$dk] = [
+                                        'open' => !empty($s['open']),
+                                        'open_time' => $ot,
+                                        'close_time' => $ct,
+                                    ];
+                                }
+                            }
+                        }
+                        $bh_json_initial = json_encode(['version' => 2, 'schedule' => $bh_schedule_merged], JSON_UNESCAPED_UNICODE);
+                        ?>
                         <div class="row mt-4">
                             <div class="col-sm-12">
-                                <label class="heading heading2">Business Hours</label>
-                                <p class="text-muted small mb-3">Add your business hours. Example: Monday - Thursday with 10:00 AM - 10:00 PM, or Sunday with Closed.</p>
-                                <div id="business-hours-container">
-                                    <?php
-                                    $bh_rows = [];
-                                    if (!empty($cardRow['d_business_hours'])) {
-                                        $bh_decoded = json_decode($cardRow['d_business_hours'], true);
-                                        if (is_array($bh_decoded)) $bh_rows = $bh_decoded;
-                                    }
-                                    if (empty($bh_rows)) {
-                                        $bh_rows = [
-                                            ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
-                                            ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
-                                            ['days' => 'Sunday', 'hours' => 'Closed'],
-                                        ];
-                                    }
-                                    foreach ($bh_rows as $bh): ?>
-                                    <div class="row business-hours-row mb-3 align-items-center">
-                                        <div class="col col-sm-10 business-hours-fields">
-                                            <div class="row">
-                                                <div class="col-12 col-sm-6">
-                                                    <div class="form-group">
-                                                        <label class="d-none">Days</label>
-                                                        <input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="<?php echo htmlspecialchars($bh['days'] ?? ''); ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="col-12 col-sm-6">
-                                                    <div class="form-group">
-                                                        <label class="d-none">Hours</label>
-                                                        <input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="<?php echo htmlspecialchars($bh['hours'] ?? ''); ?>">
-                                                    </div>
-                                                </div>
-                                            </div>
+                                <div class="bh-settings-card Personal-Details">
+                                    <lable class="bh-settings-title mb-1">Business Hours Settings</lable>
+                                    <h4 class="bh-settings-sub mb-4">Working Days &amp; Timings</h4>
+                                    <div class="bh-table-head d-none d-md-grid">
+                                        <span class="bh-th-day">Day</span>
+                                        <span class="bh-th-open">Open</span>
+                                        <span class="bh-th-close">Close</span>
+                                    </div>
+                                    <?php foreach ($bh_day_order as $dk):
+                                        $bs = $bh_schedule_merged[$dk];
+                                        $is_open = !empty($bs['open']);
+                                        $ot_val = htmlspecialchars($bs['open_time'] ?? '10:00', ENT_QUOTES, 'UTF-8');
+                                        $ct_val = htmlspecialchars($bs['close_time'] ?? '20:00', ENT_QUOTES, 'UTF-8');
+                                        ?>
+                                    <div class="bh-day-row" data-day="<?php echo htmlspecialchars($dk, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <div class="bh-cell bh-cell-day">
+                                            <label class="bh-day-label mb-0">
+                                                <input type="checkbox" class="bh-open-cb" <?php echo $is_open ? 'checked' : ''; ?> aria-label="<?php echo htmlspecialchars($bh_day_labels[$dk]); ?> open">
+                                                <span class="bh-day-name"><?php echo htmlspecialchars($bh_day_labels[$dk]); ?></span>
+                                            </label>
                                         </div>
-                                        <div class="col-auto d-flex align-items-center justify-content-end pl-2 business-hours-actions">
-                                            <button type="button" class="btn btn-outline-danger btn-sm remove-bh-row" title="Remove"><i class="fa fa-trash"></i></button>
+                                        <div class="bh-cell bh-cell-open">
+                                            <span class="d-md-none bh-mobile-col-label">Open</span>
+                                            <div class="bh-time-field bh-when-open" <?php echo $is_open ? '' : 'style="display:none;"'; ?>>
+                                                <span class="bh-time-icon" aria-hidden="true"><i class="fa fa-clock-o"></i></span>
+                                                <input type="time" class="form-control bh-time-input bh-ot" value="<?php echo $ot_val; ?>" step="60" title="Open time">
+                                            </div>
+                                            <input type="text" class="form-control bh-closed-faux" value="Closed" readonly tabindex="-1" <?php echo $is_open ? 'style="display:none;"' : ''; ?> aria-hidden="<?php echo $is_open ? 'true' : 'false'; ?>">
+                                        </div>
+                                        <div class="bh-cell bh-cell-close">
+                                            <span class="d-md-none bh-mobile-col-label">Close</span>
+                                            <div class="bh-time-field bh-when-open" <?php echo $is_open ? '' : 'style="display:none;"'; ?>>
+                                                <span class="bh-time-icon" aria-hidden="true"><i class="fa fa-clock-o"></i></span>
+                                                <input type="time" class="form-control bh-time-input bh-ct" value="<?php echo $ct_val; ?>" step="60" title="Close time">
+                                            </div>
+                                            <input type="text" class="form-control bh-closed-faux" value="Closed" readonly tabindex="-1" <?php echo $is_open ? 'style="display:none;"' : ''; ?> aria-hidden="<?php echo $is_open ? 'true' : 'false'; ?>">
                                         </div>
                                     </div>
                                     <?php endforeach; ?>
+                                    <p class="bh-tz-note text-muted small mt-3 mb-4">Note: Time is set in your local time zone.</p>
+                                    <div class="bh-quick-tips">
+                                        <strong class="d-block mb-2">Quick Tips</strong>
+                                        <ul class="bh-tip-list list-unstyled mb-0">
+                                            <li><span class="bh-tip-icon"><i class="fa fa-check"></i></span> Set your correct working hours to avoid unnecessary calls.</li>
+                                            <li><span class="bh-tip-icon"><i class="fa fa-check"></i></span> Timings will be shown to customers in your local time.</li>
+                                            <li><span class="bh-tip-icon"><i class="fa fa-check"></i></span> Add special holidays to keep your customers informed.</li>
+                                        </ul>
+                                    </div>
+                                    <input type="hidden" name="business_hours_json" id="business_hours_json" value="<?php echo htmlspecialchars($bh_json_initial, ENT_QUOTES, 'UTF-8'); ?>">
                                 </div>
-                                <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-business-hours-row">
-                                    <i class="fa fa-plus"></i> Add Row
-                                </button>
                             </div>
                         </div>
 
@@ -1204,7 +1282,7 @@ include '../includes/header.php';
                                 <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
                                 <span>Save</span>
                             </button>
-                            <a href="social-links.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                            <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                                 <span>Next</span>
                                 <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
                             </a>
@@ -1283,25 +1361,63 @@ include '../includes/header.php';
 
 <script>
 (function() {
-    function addBusinessHoursRow(days, hours) {
-        days = days || '';
-        hours = hours || '';
-        var row = document.createElement('div');
-        row.className = 'row business-hours-row mb-3 align-items-center';
-        row.innerHTML = '<div class="col col-sm-10 business-hours-fields"><div class="row">' +
-            '<div class="col-12 col-sm-6"><div class="form-group"><label class="d-none">Days</label><input type="text" name="bh_days[]" class="form-control" placeholder="e.g. Monday - Thursday" value="' + (days ? (days.replace(/"/g, '&quot;')) : '') + '"></div></div>' +
-            '<div class="col-12 col-sm-6"><div class="form-group"><label class="d-none">Hours</label><input type="text" name="bh_hours[]" class="form-control" placeholder="e.g. 10:00 AM - 10:00 PM or Closed" value="' + (hours ? (hours.replace(/"/g, '&quot;')) : '') + '"></div></div>' +
-            '</div></div>' +
-            '<div class="col-auto d-flex align-items-center justify-content-end pl-2 business-hours-actions"><button type="button" class="btn btn-outline-danger btn-sm remove-bh-row" title="Remove"><i class="fa fa-trash"></i></button></div>';
-        document.getElementById('business-hours-container').appendChild(row);
-        row.querySelector('.remove-bh-row').addEventListener('click', function() { row.remove(); });
+    function bhRowFor(el) {
+        return el && el.closest ? el.closest('.bh-day-row') : null;
+    }
+    function bhDayKey(row) {
+        return row ? row.getAttribute('data-day') : '';
+    }
+    function bhUpdateRow(row) {
+        if (!row) return;
+        var open = row.querySelector('.bh-open-cb');
+        var isOpen = open && open.checked;
+        row.querySelectorAll('.bh-when-open').forEach(function(el) {
+            el.style.display = isOpen ? '' : 'none';
+        });
+        row.querySelectorAll('.bh-closed-faux').forEach(function(el) {
+            el.style.display = isOpen ? 'none' : '';
+            el.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+        });
+    }
+    function syncBusinessHoursJson() {
+        var schedule = {};
+        document.querySelectorAll('.bh-day-row').forEach(function(row) {
+            var dk = bhDayKey(row);
+            if (!dk) return;
+            var cb = row.querySelector('.bh-open-cb');
+            var ot = row.querySelector('.bh-ot');
+            var ct = row.querySelector('.bh-ct');
+            schedule[dk] = {
+                open: !!(cb && cb.checked),
+                open_time: ot ? ot.value : '',
+                close_time: ct ? ct.value : ''
+            };
+        });
+        var hidden = document.getElementById('business_hours_json');
+        if (hidden) {
+            hidden.value = JSON.stringify({ version: 2, schedule: schedule });
+        }
     }
     document.addEventListener('DOMContentLoaded', function() {
-        var addBtn = document.getElementById('add-business-hours-row');
-        if (addBtn) addBtn.addEventListener('click', function() { addBusinessHoursRow(); });
-        document.querySelectorAll('.remove-bh-row').forEach(function(btn) {
-            btn.addEventListener('click', function() { btn.closest('.business-hours-row').remove(); });
+        var container = document.querySelector('.bh-settings-card');
+        if (!container) return;
+        document.querySelectorAll('.bh-day-row').forEach(function(row) { bhUpdateRow(row); });
+        syncBusinessHoursJson();
+        container.addEventListener('change', function(e) {
+            if (e.target && e.target.classList.contains('bh-open-cb')) {
+                bhUpdateRow(bhRowFor(e.target));
+                syncBusinessHoursJson();
+            }
         });
+        container.addEventListener('input', function(e) {
+            if (e.target && (e.target.classList.contains('bh-ot') || e.target.classList.contains('bh-ct'))) {
+                syncBusinessHoursJson();
+            }
+        });
+        var form = document.getElementById('card_form');
+        if (form) {
+            form.addEventListener('submit', function() { syncBusinessHoursJson(); });
+        }
     });
 })();
 </script>
@@ -2490,10 +2606,171 @@ padding-bottom:0px;
     .operation-location-option:hover {
         background: #f5f7ff;
     }
-    /* Stacked mobile: small gap between the two inputs; delete stays in col-auto to the right */
-    @media screen and (max-width: 575.98px) {
-        .business-hours-row .business-hours-fields .row > div:first-child .form-group {
-            margin-bottom: 0.5rem;
+    /* Business Hours Settings (weekly grid) */
+    .bh-settings-card {
+        padding-left: 40px;
+        padding-right: 40px;
+        padding-bottom: 24px;
+    }
+    .bh-settings-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+    .bh-settings-sub {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e3a5f;
+    }
+    .bh-table-head {
+        display: none;
+        grid-template-columns: minmax(140px, 1.2fr) 1fr 1fr;
+        gap: 12px 16px;
+        padding: 0 0 8px 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e3a5f;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 8px;
+        align-items: end;
+    }
+    .bh-day-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 14px 0;
+        border-bottom: 1px solid #eef1f5;
+        align-items: center;
+    }
+    .bh-day-row:last-of-type {
+        border-bottom: none;
+    }
+    @media (min-width: 768px) {
+        .bh-table-head.d-md-grid {
+            display: grid;
+        }
+        .bh-day-row {
+            grid-template-columns: minmax(140px, 1.2fr) 1fr 1fr;
+            gap: 12px 16px;
+            padding: 12px 0;
+        }
+        .bh-mobile-col-label {
+            display: none !important;
+        }
+    }
+    .bh-day-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+    }
+    .bh-open-cb {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 22px;
+        height: 22px;
+        border: 2px solid #cbd5e1;
+        border-radius: 4px;
+        margin: 0;
+        flex-shrink: 0;
+        cursor: pointer;
+        position: relative;
+        background: #fff;
+    }
+    .bh-open-cb:checked {
+        background: #2563eb;
+        border-color: #2563eb;
+    }
+    .bh-open-cb:checked::after {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 2px;
+        width: 5px;
+        height: 10px;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+    .bh-open-cb:focus {
+        outline: 2px solid rgba(37, 99, 235, 0.35);
+        outline-offset: 2px;
+    }
+    .bh-cell-open .bh-time-field,
+    .bh-cell-close .bh-time-field {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    .bh-time-icon {
+        position: absolute;
+        right: 12px;
+        z-index: 2;
+        color: #64748b;
+        pointer-events: none;
+        font-size: 15px;
+    }
+    .bh-time-input {
+        border-radius: 10px !important;
+        border: 1px solid #d1d5db !important;
+        min-height: 48px !important;
+        padding-right: 40px !important;
+        font-size: 15px !important;
+        font-weight: 400;
+    }
+    .bh-closed-faux {
+        border-radius: 10px !important;
+        border: 1px solid #e5e7eb !important;
+        background: #f3f4f6 !important;
+        color: #6b7280 !important;
+        min-height: 48px !important;
+        font-size: 15px !important;
+        cursor: default;
+    }
+    .bh-mobile-col-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .bh-tz-note {
+        font-size: 13px;
+    }
+    .bh-quick-tips {
+        background: #fdf6e3;
+        border-radius: 12px;
+        padding: 16px 18px;
+        border: 1px solid #f5e6c8;
+    }
+    .bh-quick-tips strong {
+        font-size: 16px;
+        color: #1a1a1a;
+    }
+    .bh-tip-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 6px 0;
+        font-size: 14px;
+        color: #374151;
+        line-height: 1.45;
+    }
+    .bh-tip-icon {
+        color: #2563eb;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    @media screen and (max-width: 767.98px) {
+        .bh-settings-card {
+            padding-left: 12px;
+            padding-right: 12px;
         }
     }
 </style>

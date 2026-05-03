@@ -43,7 +43,7 @@ html {
 /* Buttons aur badges ko puri tarah gol (Pill shape) banane ke liye 50px fix kiya hai */
 button, .mw-btn-add, .mw-btn-add-shop, .mw-share-btn, 
 a[class*="bg-primary"], a[class*="border-primary"], 
-.mw-offer-badge, #mw-floating-wa-btn {
+.mw-offer-badge, .mw-offer-expired-badge, #mw-floating-wa-btn {
     border-radius: 50px !important;
 }
 

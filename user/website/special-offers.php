@@ -52,7 +52,10 @@ function mw_special_offer_validate_dt($start_date, $end_date, $start_time, $end_
     return '';
 }
 
-/** Table / summary cell: date + time on one line. */
+/**
+ * Table cell: date + time on one line for display (no year — "j M"). DB values are full dates;
+ * expiry checks use mw_special_offer_end_moment_ts() which includes the year.
+ */
 function mw_special_offer_format_dt_cell($date_raw, $time_raw) {
     $d = trim((string) $date_raw);
     if ($d === '' || $d === '0000-00-00' || strpos($d, '0000-00-00') === 0) {
@@ -77,6 +80,55 @@ function mw_special_offer_format_dt_cell($date_raw, $time_raw) {
         return $ts ? date('j M', $ts) : $d;
     }
     return $t_disp !== '' ? $t_disp : '-';
+}
+
+/** Unix timestamp for offer end, or null (mirrors n.php mw_demo_offer_end_moment_ts). */
+function mw_special_offer_end_moment_ts($date_raw, $time_raw) {
+    $raw = trim((string) $date_raw);
+    if ($raw === '' || $raw === '0000-00-00' || strpos($raw, '0000-00-00') === 0) {
+        return null;
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}[\sT]\d/', $raw)) {
+        $norm = str_replace('T', ' ', $raw);
+        $norm = preg_replace('/(\d{2}:\d{2}:\d{2})\.\d+/', '$1', $norm);
+        $ts = strtotime($norm);
+        return ($ts === false) ? null : $ts;
+    }
+    if (!preg_match('/^(\d{4}-\d{2}-\d{2})/', $raw, $dm)) {
+        return null;
+    }
+    $dateOnly = $dm[1];
+    $timeRaw = trim((string) $time_raw);
+    if ($timeRaw !== '') {
+        $timeRaw = preg_replace('/\.\d+$/', '', $timeRaw);
+        if (preg_match('/^(\d{1,2}:\d{2}(?::\d{2})?)/', $timeRaw, $mm)) {
+            $timeRaw = $mm[1];
+        } else {
+            $timeRaw = '';
+        }
+    }
+    $combined = ($timeRaw !== '') ? ($dateOnly . ' ' . $timeRaw) : ($dateOnly . ' 23:59:59');
+    $ts = strtotime($combined);
+    if ($ts !== false) {
+        return $ts;
+    }
+    $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $combined)
+        ?: DateTimeImmutable::createFromFormat('Y-m-d G:i:s', $combined)
+        ?: DateTimeImmutable::createFromFormat('Y-m-d H:i', $combined)
+        ?: DateTimeImmutable::createFromFormat('Y-m-d G:i', $combined);
+    if ($dt instanceof DateTimeImmutable) {
+        return $dt->getTimestamp();
+    }
+    return null;
+}
+
+/** True when end date/time is set and is strictly before now (date-only → end of that day at 23:59:59). */
+function mw_special_offer_end_dt_expired($date_raw, $time_raw) {
+    $endTs = mw_special_offer_end_moment_ts($date_raw, $time_raw);
+    if ($endTs === null) {
+        return false;
+    }
+    return $endTs < time();
 }
 
 // Handle AJAX image processing FIRST - before any other output
@@ -655,7 +707,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
         <div class="card mb-4">
             <div class="card-body">
                 <label class="heading">Special Offers:</label>
-                <p class="sub_title">You can add upto 5 special offers with discount percentages to showcase on your Mini Website.</p>
+                <p class="sub_title">You can add upto 5 special offers to showcase on your Mini Website.</p>
                 <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
                 <br>
                 <div id="status_remove_img"></div>
@@ -720,6 +772,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     </td>
                                     <td valign="middle">
                                         <small><?php echo htmlspecialchars(mw_special_offer_format_dt_cell($offer['end_date'] ?? '', $offer['end_time'] ?? '')); ?></small>
+                                        <?php if (mw_special_offer_end_dt_expired($offer['end_date'] ?? '', $offer['end_time'] ?? '')): ?>
+                                            <br><small class="text-danger">offer expired</small>
+                                        <?php endif; ?>
                                     </td>
                                     <td valign="middle">
                                         <?php 
@@ -768,7 +823,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                    
                 </div>
                 <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
+                        <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
                             <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
                             <span>Back</span>
                         </a>
@@ -776,7 +831,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                             <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
                             <span>Save</span>
                         </button>
-                        <a href="image-gallery.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                        <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
                             <span>Next</span>
                             <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
                         </a>
