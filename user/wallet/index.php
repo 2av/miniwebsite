@@ -218,10 +218,26 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
                                                      <td>
                                                          <?php 
                                                          $wallet_row_id = isset($q_row['id']) ? $q_row['id'] : '';
-                                                         $invoice_ref = $wallet_row_id ? ('WALLET-' . $wallet_row_id) : ('WALLET-' . $order_id);                                                         
-                                                         $inv_q = mysqli_query($connect, "SELECT id FROM invoice_details WHERE reference_number='" . mysqli_real_escape_string($connect, $invoice_ref) . "' LIMIT 1");
+                                                         $invoice_ref_by_row = $wallet_row_id ? ('WALLET-' . $wallet_row_id) : '';
+                                                         $invoice_ref_by_order = !empty($order_id) ? ('WALLET-' . $order_id) : '';
+                                                         $invoice_ref = '';
+                                                         $inv_q = false;
+                                                         
+                                                         if ($invoice_ref_by_row !== '' && $invoice_ref_by_order !== '') {
+                                                             $safe_ref_row = mysqli_real_escape_string($connect, $invoice_ref_by_row);
+                                                             $safe_ref_order = mysqli_real_escape_string($connect, $invoice_ref_by_order);
+                                                             $inv_q = mysqli_query($connect, "SELECT reference_number FROM invoice_details WHERE reference_number IN ('$safe_ref_row', '$safe_ref_order') ORDER BY id DESC LIMIT 1");
+                                                         } else if ($invoice_ref_by_row !== '') {
+                                                             $safe_ref_row = mysqli_real_escape_string($connect, $invoice_ref_by_row);
+                                                             $inv_q = mysqli_query($connect, "SELECT reference_number FROM invoice_details WHERE reference_number='$safe_ref_row' LIMIT 1");
+                                                         } else if ($invoice_ref_by_order !== '') {
+                                                             $safe_ref_order = mysqli_real_escape_string($connect, $invoice_ref_by_order);
+                                                             $inv_q = mysqli_query($connect, "SELECT reference_number FROM invoice_details WHERE reference_number='$safe_ref_order' LIMIT 1");
+                                                         }
                                                          
                                                          if ($inv_q && mysqli_num_rows($inv_q) > 0) {
+                                                            $inv_row = mysqli_fetch_assoc($inv_q);
+                                                            $invoice_ref = $inv_row['reference_number'] ?? '';
                                                             echo '<a href="../invoice/download_receipt.php?ref=' . htmlspecialchars($invoice_ref) . '" target="_blank" class="view_btn">View</a>';
                                                         } else {
                                                             echo '<span class="text-muted">-</span>';

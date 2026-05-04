@@ -110,15 +110,38 @@ if (isset($_SESSION['promo_code']) && isset($_SESSION['promo_discount'])) {
     $is_auto_applied = isset($_SESSION['auto_applied_promo']) && $_SESSION['auto_applied_promo'] === true;
 }
 
-// Get franchisee details for pre-filling
-$franchisee_query = mysqli_query($connect, 'SELECT * FROM franchisee_login WHERE f_user_email="' . mysqli_real_escape_string($connect, $franchisee_email) . '"');
-$franchisee_data = mysqli_fetch_array($franchisee_query);
-$franchisee_name = $franchisee_data['f_user_name'] ?? '';
-$franchisee_contact = $franchisee_data['f_user_contact'] ?? '';
-$franchisee_address = $franchisee_data['f_user_address'] ?? '';
-$franchisee_state = $franchisee_data['f_user_state'] ?? '';
-$franchisee_city = $franchisee_data['f_user_city'] ?? '';
-$franchisee_pincode = $franchisee_data['f_user_pincode'] ?? '';
+// Get user details for pre-filling (active unified table)
+$safe_email = mysqli_real_escape_string($connect, strtolower(trim($franchisee_email)));
+$user_details_query = mysqli_query(
+    $connect,
+    "SELECT name, phone FROM user_details 
+     WHERE LOWER(TRIM(email))='$safe_email' 
+     AND role='FRANCHISEE' 
+     LIMIT 1"
+);
+
+// Fallback: in case role is not mapped correctly, fetch by email only
+if (!$user_details_query || mysqli_num_rows($user_details_query) === 0) {
+    $user_details_query = mysqli_query(
+        $connect,
+        "SELECT name, phone FROM user_details 
+         WHERE LOWER(TRIM(email))='$safe_email' 
+         LIMIT 1"
+    );
+}
+
+$user_data = ($user_details_query && mysqli_num_rows($user_details_query) > 0)
+    ? mysqli_fetch_array($user_details_query)
+    : [];
+
+$franchisee_name = $user_data['name'] ?? '';
+$franchisee_contact = $user_data['phone'] ?? '';
+
+// Address fields are not guaranteed in user_details, keep session-first values
+$franchisee_address = $_SESSION['address'] ?? '';
+$franchisee_state = $_SESSION['state'] ?? '';
+$franchisee_city = $_SESSION['city'] ?? '';
+$franchisee_pincode = $_SESSION['pincode'] ?? '';
 
 // Wallet billing data is auto-filled and locked
 $locked_billing_name = $_SESSION['billing_gst_name'] ?? $franchisee_name;

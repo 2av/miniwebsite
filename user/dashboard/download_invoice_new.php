@@ -18,7 +18,9 @@ if (isset($_GET['admin']) && $_GET['admin'] == '1') {
     }
 }
 
-if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
+if ((!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) &&
+    (!isset($_SESSION['f_user_email']) || empty($_SESSION['f_user_email'])) &&
+    (!isset($_SESSION['franchisee_email']) || empty($_SESSION['franchisee_email']))) {
     if (!$isAdminBypass) {
         echo '<div class="alert alert-danger">Please login to download invoice.</div>';
         exit;
@@ -38,6 +40,7 @@ if (isset($_GET['invoice_id']) && !empty($_GET['invoice_id'])) {
 
 $invoice_id = mysqli_real_escape_string($connect, $invoice_id);
 $user_email = $_SESSION['user_email'] ?? '';
+$franchisee_email = $_SESSION['f_user_email'] ?? ($_SESSION['franchisee_email'] ?? '');
 
 // Try to get invoice details from invoice_details table (new flow)
 if ($isAdminBypass) {
@@ -46,10 +49,12 @@ if ($isAdminBypass) {
                                             LEFT JOIN digi_card dc ON id.card_id = dc.id 
                                             WHERE id.id = '$invoice_id'");
 } else {
+    $safe_user_email = mysqli_real_escape_string($connect, $user_email);
+    $safe_franchisee_email = mysqli_real_escape_string($connect, $franchisee_email);
     $invoice_query = mysqli_query($connect, "SELECT id.*, dc.d_comp_name, dc.d_f_name, dc.d_l_name 
                                             FROM invoice_details id 
                                             LEFT JOIN digi_card dc ON id.card_id = dc.id 
-                                            WHERE id.id = '$invoice_id' AND dc.user_email = '$user_email'");
+                                            WHERE id.id = '$invoice_id' AND (dc.user_email = '$safe_user_email' OR dc.f_user_email = '$safe_franchisee_email')");
 }
 
 if ($invoice_query && mysqli_num_rows($invoice_query) > 0) {
@@ -60,7 +65,9 @@ if ($invoice_query && mysqli_num_rows($invoice_query) > 0) {
     $card_id = $invoice_id;
     
     // Ensure card belongs to this user (unless admin bypass)
-    $card_email_condition = $isAdminBypass ? "" : " AND user_email = '$user_email'";
+    $safe_user_email = mysqli_real_escape_string($connect, $user_email);
+    $safe_franchisee_email = mysqli_real_escape_string($connect, $franchisee_email);
+    $card_email_condition = $isAdminBypass ? "" : " AND (user_email = '$safe_user_email' OR f_user_email = '$safe_franchisee_email')";
     $card_query = mysqli_query($connect, "SELECT * FROM digi_card WHERE id = '$card_id' $card_email_condition");
     
     if (!$card_query || mysqli_num_rows($card_query) == 0) {

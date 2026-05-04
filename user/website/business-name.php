@@ -293,8 +293,21 @@ if (!isset($_GET['card_number']) || empty($_GET['card_number'])) {
             $_SESSION['card_id_inprocess'] = $_GET['card_number'];
             $query = mysqli_query($connect, 'SELECT * FROM digi_card WHERE id="'.$_SESSION['card_id_inprocess'].'" AND user_email="'.$_SESSION['user_email'].'"');
             $row = mysqli_fetch_array($query);
+            $display_name_value = '';
             $row_previous_slug = '';
             if ($row && mysqli_num_rows($query) > 0) {
+                // Auto-fill Business Name from Business URL when display name is blank (common in franchisee-created MW)
+                $display_name_value = trim((string)($row['d_display_name'] ?? ''));
+                if ($display_name_value === '') {
+                    $display_name_value = trim((string)($row['d_comp_name'] ?? ''));
+                    if ($display_name_value !== '') {
+                        $cid_fill = intval($row['id']);
+                        mysqli_query(
+                            $connect,
+                            'UPDATE digi_card SET d_display_name="' . mysqli_real_escape_string($connect, $display_name_value) . '" WHERE id="' . $cid_fill . '" LIMIT 1'
+                        );
+                    }
+                }
                 $cid_view = intval($row['id']);
                 $q_ps = mysqli_query($connect, 'SELECT previous_slug FROM digi_card_previous_slug WHERE digi_card_id='.$cid_view.' LIMIT 1');
                 if ($q_ps && mysqli_num_rows($q_ps) > 0) {
@@ -328,7 +341,7 @@ if (!isset($_GET['card_number']) || empty($_GET['card_number'])) {
                         <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="<?php echo isset($_GET['card_number']) ? (int)$_GET['card_number'] : ''; ?>">
                             <div class="form-group top_header_section">
                                 <label for="d_display_name">Business Name: <span class="text-danger">*</span></label>
-                                <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_display_name']); ?>" placeholder="Enter Business Name*" required>
+                                <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" value="<?php echo htmlspecialchars($display_name_value); ?>" placeholder="Enter Business Name*" required>
                             </div>
                             <div class="form-group top_header_section">
                                 <label for="d_comp_name">Business URL: <span class="text-danger">*</span></label>

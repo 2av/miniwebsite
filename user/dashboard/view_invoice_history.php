@@ -6,7 +6,9 @@ require_once(__DIR__ . '/../../app/config/database.php');
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
+if ((!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) &&
+    (!isset($_SESSION['f_user_email']) || empty($_SESSION['f_user_email'])) &&
+    (!isset($_SESSION['franchisee_email']) || empty($_SESSION['franchisee_email']))) {
     echo '<div class="alert alert-danger">Please login to view invoice history.</div>';
     exit;
 }
@@ -18,10 +20,13 @@ if (!isset($_GET['card_id']) || empty($_GET['card_id'])) {
 }
 
 $card_id = mysqli_real_escape_string($connect, $_GET['card_id']);
-$user_email = $_SESSION['user_email'];
+$user_email = $_SESSION['user_email'] ?? '';
+$franchisee_email = $_SESSION['f_user_email'] ?? ($_SESSION['franchisee_email'] ?? '');
 
 // Verify that the card belongs to the logged-in user
-$card_verify_query = mysqli_query($connect, "SELECT id, d_comp_name FROM digi_card WHERE id = '$card_id' AND user_email = '$user_email'");
+$safe_user_email = mysqli_real_escape_string($connect, $user_email);
+$safe_franchisee_email = mysqli_real_escape_string($connect, $franchisee_email);
+$card_verify_query = mysqli_query($connect, "SELECT id, d_comp_name FROM digi_card WHERE id = '$card_id' AND (user_email = '$safe_user_email' OR f_user_email = '$safe_franchisee_email')");
 if (mysqli_num_rows($card_verify_query) == 0) {
     echo '<div class="alert alert-danger">Access denied. This card does not belong to you.</div>';
     exit;

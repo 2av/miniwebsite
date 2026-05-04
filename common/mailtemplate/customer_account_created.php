@@ -164,7 +164,7 @@ function getCustomerAccountCreatedTemplate($customer_name, $customer_email, $cus
                     Hello <strong>' . htmlspecialchars($customer_name) . '</strong>,
                 </div>
                 
-                <p>Great news! Your MiniWebsite account has been successfully created by <strong>' . htmlspecialchars($franchisee_name) . '</strong>. You can now start building your professional digital presence!</p>
+                <p>Great news! Your MiniWebsite account has been successfully created by our official Franchise partner.</p>
                 
                 <div class="account-details">
                     <h3>📋 Your Account Details</h3>
@@ -226,7 +226,7 @@ WELCOME TO MINIWEBSITE!
 
 Hello " . $customer_name . ",
 
-Great news! Your MiniWebsite account has been successfully created by " . $franchisee_name . ". You can now start building your professional digital presence!
+Great news! Your MiniWebsite account has been successfully created by our official Franchise partner.
 
 YOUR ACCOUNT DETAILS:
 - Email Address: " . $customer_email . "

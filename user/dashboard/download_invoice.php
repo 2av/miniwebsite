@@ -12,10 +12,11 @@ if($current_role !== 'FRANCHISEE') {
 
 $franchisee_email = get_user_email();
 
-// Get franchisee payment invoice details from invoice_details table
-// First, try to find any invoice for this email (most recent)
+// Get franchisee registration invoice details from invoice_details table
+// Restrict to franchise_agreement payment invoices only
 $invoice_query = "SELECT * FROM invoice_details 
                   WHERE (user_email = ? OR billing_email = ?)
+                  AND (service_name = 'Franchisee Registration Fees' OR payment_type = 'Franchisee' OR reference_number LIKE 'FRAN%')
                   ORDER BY created_at DESC, id DESC LIMIT 1";
 
 $stmt = $connect->prepare($invoice_query);

@@ -426,17 +426,40 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                 endforeach;
                             endif;
 
-                            // Franchisee-only Download Invoice button (franchisee joining invoice)
+                            // Franchisee-only Download Invoice button (only after franchise_agreement payment verification)
                             if ($current_role == 'FRANCHISEE'):
+                                $franchise_invoice_available = false;
+                                $franchise_email_for_invoice = $_SESSION['f_user_email'] ?? ($_SESSION['franchisee_email'] ?? ($_SESSION['user_email'] ?? ''));
+                                if (!empty($franchise_email_for_invoice)) {
+                                    $safe_invoice_email = mysqli_real_escape_string($connect, $franchise_email_for_invoice);
+                                    $franchise_invoice_check = mysqli_query(
+                                        $connect,
+                                        "SELECT id FROM invoice_details
+                                         WHERE (user_email='$safe_invoice_email' OR billing_email='$safe_invoice_email')
+                                           AND (service_name='Franchisee Registration Fees' OR payment_type='Franchisee' OR reference_number LIKE 'FRAN%')
+                                         ORDER BY id DESC
+                                         LIMIT 1"
+                                    );
+                                    $franchise_invoice_available = ($franchise_invoice_check && mysqli_num_rows($franchise_invoice_check) > 0);
+                                }
                             ?>
                                 <div class="nav-link" style="margin-top: 20px;">
-                                    <a href="<?php echo $nav_base; ?>/dashboard/download_invoice.php"
-                                       class="btn btn-warning btn-sm"
-                                       style="width: 100%; background-color: #ffc107; border-color: #ffc107; color: #000; padding: 10px; border-radius: 5px; text-decoration: none; display: block; text-align: center;"
-                                       target="_blank">
-                                        <i class="fa fa-download"></i>
-                                        <span>Download Invoice</span>
-                                    </a>
+                                    <?php if ($franchise_invoice_available): ?>
+                                        <a href="<?php echo $nav_base; ?>/dashboard/download_invoice.php"
+                                           class="btn btn-warning btn-sm"
+                                           style="width: 100%; background-color: #ffc107; border-color: #ffc107; color: #000; padding: 10px; border-radius: 5px; text-decoration: none; display: block; text-align: center;"
+                                           target="_blank">
+                                            <i class="fa fa-download"></i>
+                                            <span>Download Invoice</span>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="btn btn-secondary btn-sm"
+                                              style="width: 100%; padding: 10px; border-radius: 5px; display: block; text-align: center; cursor: not-allowed; opacity: 0.7;"
+                                              title="Invoice will be available only after franchise agreement payment verification.">
+                                            <i class="fa fa-download"></i>
+                                            <span>Download Invoice</span>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                             <?php
                             endif;

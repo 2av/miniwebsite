@@ -541,17 +541,17 @@ if ($row) {
     } else {
         $hero_logo = $default_image;
     }
-    $phone = !empty($row['d_contact']) ? preg_replace('/[^0-9+]/', '', $row['d_contact']) : '1234567890';
-    $whatsapp = !empty($row['d_whatsapp']) ? preg_replace('/[^0-9+]/', '', $row['d_whatsapp']) : $phone;
-    $about = !empty($row['d_about_us']) ? htmlspecialchars($row['d_about_us']) : 'Passionately crafting exceptional culinary experiences.';
-    $email = !empty($row['d_email']) ? htmlspecialchars($row['d_email']) : 'contact@example.com';
+    $phone = !empty($row['d_contact']) ? preg_replace('/[^0-9+]/', '', $row['d_contact']) : '';
+    $whatsapp = !empty($row['d_whatsapp']) ? preg_replace('/[^0-9+]/', '', $row['d_whatsapp']) : '';
+    $about = !empty($row['d_about_us']) ? htmlspecialchars($row['d_about_us']) : '';
+    $email = !empty($row['d_email']) ? htmlspecialchars($row['d_email']) : '';
     // Location: Area, City, State only
     $locParts = array_filter([
         !empty($row['d_address2']) ? trim($row['d_address2']) : null,
         !empty($row['d_city']) ? trim($row['d_city']) : null,
         !empty($row['d_state']) ? trim($row['d_state']) : null,
     ]);
-    $location = !empty($locParts) ? htmlspecialchars(implode(', ', $locParts)) : 'Berlin, Germany';
+    $location = !empty($locParts) ? htmlspecialchars(implode(', ', $locParts)) : '';
     $website = !empty($row['d_website']) ? htmlspecialchars($row['d_website']) : '';
     $google_direction = !empty($row['d_location']) ? htmlspecialchars($row['d_location']) : '';
     $share_card_key = (string) ($row['card_id'] ?? $card_id_slug);
@@ -750,28 +750,21 @@ if ($row) {
         ];
     }
 } else {
-    // Demo fallback data
+    // Keep fallback fields blank (no demo data)
     $primary_business_category_title = '';
-    $hero_name = 'Olivia Murray';
-    $hero_title = 'Executive Chef';
-    $hero_cover = $default_image;
-    $hero_logo = $default_image;
-    $phone = '1234567890';
-    $whatsapp = '1234567890';
-    $about = 'Passionately crafting exceptional culinary experiences. With over 15 years in fine dining, I specialize in blending classic techniques with modern flavor profiles to deliver an unforgettable taste journey right to your table or private event.';
-    $email = 'olivia@gourmet.com';
-    $location = 'Berlin, Germany';
-    $website = 'www.oliviaculinary.com';
+    $hero_name = '';
+    $hero_title = '';
+    $hero_cover = '';
+    $hero_logo = '';
+    $phone = '';
+    $whatsapp = '';
+    $about = '';
+    $email = '';
+    $location = '';
+    $website = '';
     $google_direction = '';
-    $share_url = mw_miniwebsite_profile_url($base_url, '');
-
-    // Demo: Instagram & YouTube have no web share URLs - only show share-capable platforms
-    $social_links = [
-        ['icon' => 'facebook-f', 'url' => 'https://www.facebook.com/sharer/sharer.php?u=' . urlencode($share_url)],
-        ['icon' => 'linkedin-in', 'url' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . urlencode($share_url)],
-        ['icon' => 'x-twitter', 'url' => 'https://twitter.com/intent/tweet?url=' . urlencode($share_url) . '&text=' . urlencode($hero_name)],
-        ['icon' => 'pinterest', 'url' => 'https://pinterest.com/pin/create/button/?url=' . urlencode($share_url) . '&description=' . urlencode($hero_name)],
-    ];
+    $share_url = '';
+    $social_links = [];
 
     $services =[];
 
@@ -1187,9 +1180,11 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
     </section>
 
     <!-- 4. Quick Action Grid -->
+    <?php if (!empty($email) || !empty($phone) || !empty($location) || !empty($google_direction)): ?>
     <section class="mw-action-grid mw-section-padding">
         <h2 class="mw-section-title">Contact</h2>
         <div class="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+            <?php if (!empty($email)): ?>
             <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
                 <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
                     <i class="fas fa-envelope text-xl"></i>
@@ -1197,6 +1192,8 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Email Address</h3>
                 <p class="text-heading font-medium text-sm truncate"><?php echo $email; ?></p>
             </div>
+            <?php endif; ?>
+            <?php if (!empty($phone)): ?>
             <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
                 <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
                     <i class="fas fa-phone-alt text-xl"></i>
@@ -1204,6 +1201,8 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Phone Number</h3>
                 <p class="text-heading font-medium text-sm"><?php echo htmlspecialchars($phone, ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
+            <?php endif; ?>
+            <?php if (!empty($location)): ?>
             <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
                 <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
                     <i class="fas fa-map-marker-alt text-xl"></i>
@@ -1211,6 +1210,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                 <h3 class="text-xs uppercase tracking-wider text-textmain mt-2">Location</h3>
                 <p class="text-heading font-medium text-sm"><?php echo $location; ?></p>
             </div>
+            <?php endif; ?>
             <?php if (!empty($google_direction)): ?>
             <div class="mw-card p-4 flex flex-col gap-2 group cursor-default">
                 <span class="mw-contact-icon inline-flex w-10 h-10 items-center justify-center rounded-theme text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-bgbase">
@@ -1222,6 +1222,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
             <?php endif; ?>
         </div>
     </section>
+    <?php endif; ?>
 
     <!-- 5. QR Share Section -->
     <?php

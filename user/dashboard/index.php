@@ -65,15 +65,15 @@ require_once(__DIR__ . '/../../app/config/database.php');
         }
         mysqli_stmt_close($check_mobile);
         
-        // Verify wallet balance (must be >= 236)
+        // Verify wallet balance (mini website price: Rs 350 + GST = Rs 413)
         $wallet_balance = 0;
         $wallet_query = mysqli_query($connect, "SELECT w_balance FROM wallet WHERE f_user_email = '".$franchisee_email."' ORDER BY ID DESC LIMIT 1");
         if ($wallet_query && mysqli_num_rows($wallet_query) > 0) {
             $wallet_row = mysqli_fetch_array($wallet_query);
             $wallet_balance = floatval($wallet_row['w_balance'] ?? 0);
         }
-        if ($wallet_balance < 236) {
-            throw new Exception('Insufficient wallet balance. Please recharge at least Rs. 236. Current balance: ' . number_format($wallet_balance, 2));
+        if ($wallet_balance < 413) {
+            throw new Exception('Insufficient wallet balance. Please recharge at least Rs. 413. Current balance: ' . number_format($wallet_balance, 2));
         }
         
         // Generate sender token, hash password, and referral code
@@ -111,15 +111,98 @@ require_once(__DIR__ . '/../../app/config/database.php');
                 $new_card_auto_id = mysqli_insert_id($connect);
                 mysqli_stmt_close($card_stmt);
                 
-                // Deduct Rs. 236 from wallet
-                $new_balance = $wallet_balance - 236;
-                $withdraw_amount_str = '-236';
+                // Deduct Rs. 413 (Rs. 350 + GST)
+                $new_balance = $wallet_balance - 413;
+                $withdraw_amount_str = '-413';
                 $order_id_for_wallet = (string)$new_card_auto_id;
                 $wallet_insert = mysqli_prepare($connect, "INSERT INTO wallet (f_user_email, w_withdraw, w_order_id, w_balance, uploaded_date) VALUES (?, ?, ?, ?, NOW())");
                 if ($wallet_insert) {
                     mysqli_stmt_bind_param($wallet_insert, "sssd", $franchisee_email, $withdraw_amount_str, $order_id_for_wallet, $new_balance);
-                    mysqli_stmt_execute($wallet_insert);
+                    $wallet_insert_ok = mysqli_stmt_execute($wallet_insert);
+                    if (!$wallet_insert_ok) {
+                        error_log('wallet deduction insert failed: ' . mysqli_stmt_error($wallet_insert));
+                    }
+                    $wallet_txn_id = mysqli_insert_id($connect);
                     mysqli_stmt_close($wallet_insert);
+
+                    // Create invoice for wallet deduction (Mini Website creation charge: Rs. 350 + GST = Rs. 413)
+                    if ($wallet_txn_id > 0) {
+                        $invoice_reference = 'WALLET-' . $wallet_txn_id;
+                        $check_invoice = mysqli_query($connect, "SELECT id FROM invoice_details WHERE reference_number='" . mysqli_real_escape_string($connect, $invoice_reference) . "' LIMIT 1");
+
+                        if (!$check_invoice || mysqli_num_rows($check_invoice) === 0) {
+                            $last_invoice_query = mysqli_query($connect, "SELECT MAX(CAST(SUBSTRING_INDEX(invoice_number, '/', -1) AS UNSIGNED)) as last_number FROM invoice_details WHERE invoice_number LIKE 'KIR/%'");
+                            $last_invoice_result = $last_invoice_query ? mysqli_fetch_array($last_invoice_query) : null;
+                            $next_number = (($last_invoice_result['last_number'] ?? 0) + 1);
+                            $invoice_number = 'KIR/' . str_pad((string)$next_number, 5, '0', STR_PAD_LEFT);
+                            $invoice_date = date('Y-m-d');
+                            $current_timestamp = date('Y-m-d H:i:s');
+
+                            $original_amount = 350.00;
+                            $discount_amount = 0.00;
+                            $subtotal_amount = 350.00;
+                            $igst_amount = 63.00;
+                            $cgst_amount = 0.00;
+                            $sgst_amount = 0.00;
+                            $final_total = 413.00;
+                            $gst_percentage = 18;
+
+                            $invoice_insert_query = "INSERT INTO invoice_details (
+                                invoice_number, invoice_date, card_id, user_email, user_name, user_contact,
+                                billing_name, billing_email, billing_contact, billing_address, billing_state,
+                                billing_city, billing_pincode, billing_gst_number, original_amount, discount_amount,
+                                final_amount, promo_code, promo_discount, razorpay_order_id, razorpay_payment_id,
+                                razorpay_signature, payment_status, payment_date, service_name, service_description,
+                                hsn_sac_code, quantity, unit_price, total_price, sub_total, igst_percentage,
+                                igst_amount, cgst_amount, sgst_amount, total_amount, payment_type, reference_number, created_at, updated_at
+                            ) VALUES (
+                                '" . mysqli_real_escape_string($connect, $invoice_number) . "',
+                                '" . mysqli_real_escape_string($connect, $invoice_date) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$new_card_auto_id) . "',
+                                '" . mysqli_real_escape_string($connect, $emailAddress) . "',
+                                '" . mysqli_real_escape_string($connect, $fullName) . "',
+                                '" . mysqli_real_escape_string($connect, $mobileNumber) . "',
+                                '" . mysqli_real_escape_string($connect, $fullName) . "',
+                                '" . mysqli_real_escape_string($connect, $emailAddress) . "',
+                                '" . mysqli_real_escape_string($connect, $mobileNumber) . "',
+                                '',
+                                '',
+                                '',
+                                '',
+                                '',
+                                '" . mysqli_real_escape_string($connect, (string)$original_amount) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$discount_amount) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
+                                '',
+                                '0',
+                                '',
+                                '',
+                                '',
+                                'Success',
+                                '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+                                'Mini Website Creation',
+                                'Mini Website Creation (Wallet)',
+                                '998314',
+                                '1',
+                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$subtotal_amount) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$gst_percentage) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$igst_amount) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$cgst_amount) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$sgst_amount) . "',
+                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
+                                'Wallet',
+                                '" . mysqli_real_escape_string($connect, $invoice_reference) . "',
+                                '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+                                '" . mysqli_real_escape_string($connect, $current_timestamp) . "'
+                            )";
+                            $invoice_insert_ok = mysqli_query($connect, $invoice_insert_query);
+                            if (!$invoice_insert_ok) {
+                                error_log('wallet deduction invoice insert failed: ' . mysqli_error($connect));
+                            }
+                        }
+                    }
                 }
                 
                 // Send welcome email (if function exists)
@@ -253,7 +336,7 @@ if ($current_role == 'CUSTOMER' || $current_role == 'TEAM') {
         $wallet_row = mysqli_fetch_array($wallet_query);
         $wallet_balance = floatval($wallet_row['w_balance'] ?? 0);
     }
-    $has_sufficient_balance = $wallet_balance >= 236;
+    $has_sufficient_balance = $wallet_balance >= 413;
     
     // Get total cards created by this franchisee
     $total_cards_query = mysqli_query($connect, "SELECT COUNT(*) as total_cards FROM digi_card WHERE f_user_email = '$franchisee_email'");
@@ -635,42 +718,35 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                 </td>
                                 <?php if ($show_invoice_column): ?>
                                 <td style="text-align: left;">
-                                    <?php 
-                                    // Only show invoice options for cards created by the user themselves
-                                    if(empty($row['f_user_email'])) {
-                                        // Check if invoice details exist for this card
-                                        $invoice_check_query = mysqli_query($connect, "SELECT COUNT(*) as invoice_count FROM invoice_details WHERE card_id = '" . mysqli_real_escape_string($connect, $row['id']) . "'");
-                                        $invoice_check_result = mysqli_fetch_array($invoice_check_query);
-                                        $has_invoices = $invoice_check_result['invoice_count'] > 0;
-                                        
-                                        if($payment_status == 'Success') { 
-                                        ?>
-                                           <?php if($has_invoices) { ?>
-                                                <div class="d-flex  align-items-center">
-                                                    <button class="btn btn-info btn-sm view_btn" onclick="viewInvoiceHistory(<?php echo $row['id']; ?>)" title="View Invoice History">
-                                                          View
-                                                    </button>
-                                                </div>
-                                            <?php } else { ?>
-                                                 <div class="d-flex align-items-center">
-                                                    <span class="download" title="Invoice will be available after payment verification">
-                                                        <span class="download_icon_style" style="filter: grayscale(100%); opacity: 0.5;"><i class="fa-solid fa-arrow-down"></i></span>
-                                                    </span>
-                                                 </div>
-                                             <?php } ?>
-                                        <?php } else { ?>
+                                    <?php
+                                    // Lock invoice until payment verification; allow for all paid cards (including franchise-created cards)
+                                    $invoice_check_query = mysqli_query($connect, "SELECT COUNT(*) as invoice_count FROM invoice_details WHERE card_id = '" . mysqli_real_escape_string($connect, $row['id']) . "'");
+                                    $invoice_check_result = mysqli_fetch_array($invoice_check_query);
+                                    $has_invoices = ($invoice_check_result && isset($invoice_check_result['invoice_count'])) ? ((int)$invoice_check_result['invoice_count'] > 0) : false;
+
+                                    if ($payment_status == 'Success') {
+                                        if ($has_invoices) {
+                                    ?>
                                             <div class="d-flex  align-items-center">
-                                                <span class="download"  title="Payment required to download invoice">
-                                                    <span class="download_icon_style" style="filter: grayscale(100%); opacity: 0.5;"><i class="fa-solid fa-arrow-down"></i></span>
-                                                    <!-- <img src="../../../assets/images/download.png" alt="" > -->
-                                                </span>
-                                                
+                                                <button class="btn btn-info btn-sm view_btn" onclick="viewInvoiceHistory(<?php echo $row['id']; ?>)" title="View Invoice History">
+                                                      View
+                                                </button>
                                             </div>
-                                        <?php } 
-                                    } else {
-                                        // For franchisee-created cards, show hyphens
-                                        echo '<span style="color: #6c757d; font-size: 18px;">-</span>';
-                                    } ?>
+                                        <?php } else { ?>
+                                             <div class="d-flex align-items-center">
+                                                <span class="download" title="Invoice will be available after payment verification">
+                                                    <span class="download_icon_style" style="filter: grayscale(100%); opacity: 0.5;"><i class="fa-solid fa-arrow-down"></i></span>
+                                                </span>
+                                             </div>
+                                         <?php }
+                                    } else { ?>
+                                        <div class="d-flex  align-items-center">
+                                            <span class="download"  title="Payment required to download invoice">
+                                                <span class="download_icon_style" style="filter: grayscale(100%); opacity: 0.5;"><i class="fa-solid fa-arrow-down"></i></span>
+                                                <!-- <img src="../../../assets/images/download.png" alt="" > -->
+                                            </span>
+                                        </div>
+                                    <?php } ?>
                                 </td>
                                 <?php endif; ?>
                                 <?php if ($show_refund_status_col): ?>

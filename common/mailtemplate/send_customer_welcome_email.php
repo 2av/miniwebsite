@@ -246,7 +246,7 @@ function sendCustomerWelcomeEmailWithPHPMailer($customer_name, $customer_email, 
         $message = '
         <h2>Welcome to MiniWebsite!</h2>
         <p>Hello <strong>' . htmlspecialchars($customer_name) . '</strong>,</p>
-        <p>Great news! Your MiniWebsite account has been successfully created by <strong>' . htmlspecialchars($franchisee_name) . '</strong>.</p>
+        <p>Great news! Your MiniWebsite account has been successfully created by our official Franchise partner.</p>
         
         <h3>Your Account Details:</h3>
         <ul>
