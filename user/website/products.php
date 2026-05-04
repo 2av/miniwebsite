@@ -660,7 +660,7 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 <main class="Dashboard">
     <div class="container-fluid customer_content_area">
         <div class="main-top">
-        <span class="heading">Products</span>
+        <span class="heading">Details & Pricing</span>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
@@ -687,8 +687,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
         <?php endif; ?>
         <div class="card mb-4">
             <div class="card-body">
-                <label class="heading">Products:</label>
-                <p class="sub_title">You can add up to 60 services or products with pricing details to showcase on your MiniWebsite.</p>
+                <label class="heading">Details & Pricing:</label>
+                <p class="sub_title">You can add up to 60 services or Details & Pricing with pricing details to showcase on your MiniWebsite.</p>
                 <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
                 <br>
                 <div id="status_remove_img"></div>
