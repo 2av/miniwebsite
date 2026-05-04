@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $stmt = $connect->prepare("INSERT INTO mw_customers (owner_user_id, owner_role, customer_name, label_tag, phone_number, email_id, company_name, website, address_line1, area_city, comments, source, status, business_type, approached_for, followup_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 if ($stmt) {
-                    $stmt->bind_param('issssssssssssssss', $owner_id, $owner_role_db, $name, $label, $phone, $emailId, $companyName, $website, $line1, $areaCity, $comments, $source, $status, $businessType, $approachedFor, $followupMethod);
+                    $stmt->bind_param('isssssssssssssss', $owner_id, $owner_role_db, $name, $label, $phone, $emailId, $companyName, $website, $line1, $areaCity, $comments, $source, $status, $businessType, $approachedFor, $followupMethod);
                     $stmt->execute();
                     $stmt->close();
                 }
@@ -250,6 +250,58 @@ if ($stmtBiz) {
         if (!empty($biz['card_id'])) $mini_link = $mini_link . '/n.php?n=' . urlencode($biz['card_id']);
     }
     $stmtBiz->close();
+}
+
+$business_primary_options = [
+    ['value' => '', 'label' => '-- Select Primary Category --']
+];
+$business_primary_seen = [];
+$catSql = "SELECT c.category_name, p.category_name AS parent_name
+    FROM product_categories c
+    LEFT JOIN product_categories p ON c.parent_id = p.id
+    WHERE c.is_active = 1 AND c.category_type = 'business-category' AND c.parent_id IS NOT NULL
+    ORDER BY p.display_order, c.display_order ASC";
+$catRes = @mysqli_query($connect, $catSql);
+if ($catRes) {
+    while ($catRow = mysqli_fetch_assoc($catRes)) {
+        $catName = trim((string)($catRow['category_name'] ?? ''));
+        $parentName = trim((string)($catRow['parent_name'] ?? ''));
+        if ($catName !== '') {
+            $uniqKey = strtolower($parentName . '|' . $catName);
+            if (!isset($business_primary_seen[$uniqKey])) {
+                $business_primary_seen[$uniqKey] = true;
+                $business_primary_options[] = [
+                    'value' => $catName,
+                    'label' => $catName,
+                    'group' => $parentName !== '' ? $parentName : null
+                ];
+            }
+        }
+    }
+}
+if ($owner_id > 0) {
+    $customCatSql = "SELECT category_name
+        FROM user_custom_categories
+        WHERE user_id = " . (int)$owner_id . " AND category_type = 'business-category' AND is_active = 1
+        ORDER BY created_at DESC";
+    $customCatRes = @mysqli_query($connect, $customCatSql);
+    if ($customCatRes) {
+        while ($customCatRow = mysqli_fetch_assoc($customCatRes)) {
+            $catName = trim((string)($customCatRow['category_name'] ?? ''));
+            if ($catName !== '') {
+                $customLabel = '[Custom] ' . $catName;
+                $uniqKey = strtolower('my custom categories|' . $customLabel);
+                if (!isset($business_primary_seen[$uniqKey])) {
+                    $business_primary_seen[$uniqKey] = true;
+                    $business_primary_options[] = [
+                        'value' => $customLabel,
+                        'label' => $customLabel,
+                        'group' => 'My Custom Categories'
+                    ];
+                }
+            }
+        }
+    }
 }
 
 $default_template = "Hello 😊\nThis is [Business Name] from [Area, City].\n\nWe have added some latest special offers for you.👇\n👉 [MiniWebsite Link]\n\nIf anything interests you, feel free to message us on WhatsApp.\n\nLimited time offers hain, jaldi check karein 👍\n\nThank you 🙏";
@@ -1047,11 +1099,25 @@ function ensureSelectHasOption(selectEl, value, maxLen) {
 function setupCustomizableSelect(selectEl, options, maxCustomLen) {
     maxCustomLen = maxCustomLen == null ? 18 : maxCustomLen;
     selectEl.innerHTML = '';
+    const optgroups = {};
     options.forEach(function (opt) {
+        const normalized = (opt && typeof opt === 'object')
+            ? { value: (opt.value ?? ''), label: (opt.label ?? opt.value ?? ''), group: (opt.group ?? '') }
+            : { value: opt, label: opt, group: '' };
         const option = document.createElement('option');
-        option.value = opt;
-        option.textContent = opt;
-        selectEl.appendChild(option);
+        option.value = normalized.value;
+        option.textContent = normalized.label;
+        if (normalized.group) {
+            if (!optgroups[normalized.group]) {
+                const grp = document.createElement('optgroup');
+                grp.label = normalized.group;
+                optgroups[normalized.group] = grp;
+                selectEl.appendChild(grp);
+            }
+            optgroups[normalized.group].appendChild(option);
+        } else {
+            selectEl.appendChild(option);
+        }
     });
     const custom = document.createElement('option');
     custom.value = '__custom__';
@@ -1069,7 +1135,15 @@ function setupCustomizableSelect(selectEl, options, maxCustomLen) {
 }
 const sourceOptionsList = ['Direct', 'WhatsApp', 'Referral', 'Existing Contact', 'Walk-in', 'Website'];
 const labelOptionsList = ['Regular', 'New', 'High Value', 'Repeat Customer'];
-const businessTypeOptionsList = ['Retail', 'Wholesale', 'Service', 'Online', 'Manufacturing', 'Other'];
+const businessTypeOptionsList = <?php echo json_encode(!empty($business_primary_options) ? $business_primary_options : [
+    ['value' => '', 'label' => '-- Select Primary Category --'],
+    ['value' => 'Retail', 'label' => 'Retail'],
+    ['value' => 'Wholesale', 'label' => 'Wholesale'],
+    ['value' => 'Service', 'label' => 'Service'],
+    ['value' => 'Online', 'label' => 'Online'],
+    ['value' => 'Manufacturing', 'label' => 'Manufacturing'],
+    ['value' => 'Other', 'label' => 'Other']
+], JSON_UNESCAPED_UNICODE); ?>;
 const approachedForOptionsList = ['Product Demo', 'Pricing / Quote', 'Partnership', 'Support', 'General Inquiry', 'Other'];
 const followupMethodOptionsList = ['Phone Call', 'WhatsApp', 'Email', 'In Person', 'Not Followed Up Yet', 'Other'];
 const statusOptions = ['Followup required', 'Phone Busy/Not Picked', 'Important', 'Deal Done', 'Profile Shared', 'Interested', 'Not Interested'];

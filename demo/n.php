@@ -618,8 +618,12 @@ if ($row) {
         $business_hours = mw_normalize_business_hours_display($row['d_business_hours'] ?? '');
     } else {
         $business_hours = [
-            ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
-            ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+            ['days' => 'Monday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Tuesday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Wednesday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Friday', 'hours' => '10:00 AM - 12:00 AM'],
+            ['days' => 'Saturday', 'hours' => '10:00 AM - 12:00 AM'],
             ['days' => 'Sunday', 'hours' => 'Closed'],
         ];
     }
@@ -712,8 +716,12 @@ if ($row) {
     }
 
     $business_hours = [
-        ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
-        ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+        ['days' => 'Monday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Tuesday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Wednesday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Friday', 'hours' => '10:00 AM - 12:00 AM'],
+        ['days' => 'Saturday', 'hours' => '10:00 AM - 12:00 AM'],
         ['days' => 'Sunday', 'hours' => 'Closed'],
     ];
 

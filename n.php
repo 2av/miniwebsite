@@ -744,8 +744,12 @@ if ($row) {
         $business_hours = mw_normalize_business_hours_display($row['d_business_hours'] ?? '');
     } else {
         $business_hours = [
-            ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
-            ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+            ['days' => 'Monday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Tuesday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Wednesday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Friday', 'hours' => '10:00 AM - 12:00 AM'],
+            ['days' => 'Saturday', 'hours' => '10:00 AM - 12:00 AM'],
             ['days' => 'Sunday', 'hours' => 'Closed'],
         ];
     }
@@ -840,8 +844,12 @@ if ($row) {
     }
 
     $business_hours = [
-        ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
-        ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+        ['days' => 'Monday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Tuesday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Wednesday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+        ['days' => 'Friday', 'hours' => '10:00 AM - 12:00 AM'],
+        ['days' => 'Saturday', 'hours' => '10:00 AM - 12:00 AM'],
         ['days' => 'Sunday', 'hours' => 'Closed'],
     ];
 
@@ -1793,7 +1801,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
     <a href="#mw-hero" class="mw-nav-item active" data-section="mw-hero"><i class="fas fa-home mw-nav-icon"></i><span>Home</span></a>
     <a href="#mw-services" class="mw-nav-item <?php echo empty($services) ? 'hidden' : ''; ?>" data-section="mw-services"><i class="fas fa-concierge-bell mw-nav-icon"></i><span>Serv</span></a>
     <a href="#mw-offers" class="mw-nav-item <?php echo empty($offers) ? 'hidden' : ''; ?>" data-section="mw-offers"><i class="fas fa-tags mw-nav-icon"></i><span>Offers</span></a>
-    <a href="#mw-products" class="mw-nav-item <?php echo empty($products_by_cat) ? 'hidden' : ''; ?>" data-section="mw-products"><i class="fas fa-store mw-nav-icon"></i><span>Shop</span></a>
+    <a href="#mw-products" class="mw-nav-item <?php echo empty($products_by_cat) ? 'hidden' : ''; ?>" data-section="mw-products"><i class="fas fa-store mw-nav-icon"></i><span>Pricing</span></a>
     <a href="#mw-gallery" class="mw-nav-item <?php echo empty($gallery) ? 'hidden' : ''; ?>" data-section="mw-gallery"><i class="fas fa-images mw-nav-icon"></i><span>Gallery</span></a>
     <a href="#mw-pay" class="mw-nav-item hidden sm:flex <?php echo empty($payment_qrs) ? 'hidden' : ''; ?>" data-section="mw-pay"><i class="fas fa-qrcode mw-nav-icon"></i><span>Pay</span></a>
 </nav>

@@ -42,6 +42,43 @@ if (!function_exists('mw_bh_format_time_ampm')) {
         return 'open|' . $ot . '|' . $ct;
     }
 
+    function mw_bh_default_display_rows()
+    {
+        return [
+            ['days' => 'Monday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Tuesday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Wednesday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Thursday', 'hours' => '10:00 AM - 10:00 PM'],
+            ['days' => 'Friday', 'hours' => '10:00 AM - 12:00 AM'],
+            ['days' => 'Saturday', 'hours' => '10:00 AM - 12:00 AM'],
+            ['days' => 'Sunday', 'hours' => 'Closed'],
+        ];
+    }
+
+    /** Expand common weekday abbreviations in a label to full English names. */
+    function mw_bh_expand_days_label($label)
+    {
+        if ($label === null || $label === '') {
+            return $label;
+        }
+        $s = (string) $label;
+        $patterns = [
+            '/\b(?:Mon)\b/i' => 'Monday',
+            '/\b(?:Tue|Tues)\b/i' => 'Tuesday',
+            '/\b(?:Wed|Weds)\b/i' => 'Wednesday',
+            '/\b(?:Thu|Thur|Thurs)\b/i' => 'Thursday',
+            '/\b(?:Fri)\b/i' => 'Friday',
+            '/\b(?:Sat)\b/i' => 'Saturday',
+            '/\b(?:Sun)\b/i' => 'Sunday',
+        ];
+        foreach ($patterns as $re => $full) {
+            $s = preg_replace($re, $full, $s);
+        }
+
+        return $s;
+    }
+
+    /** One row per weekday (Monday through Sunday), full day names, no merged ranges. */
     function mw_weekly_schedule_to_display_rows($schedule)
     {
         if (!is_array($schedule)) {
@@ -53,16 +90,8 @@ if (!function_exists('mw_bh_format_time_ampm')) {
             'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday',
         ];
         $rows = [];
-        $i = 0;
-        while ($i < 7) {
-            $sig = mw_bh_day_signature($schedule, $order[$i]);
-            $j = $i;
-            while ($j < 7 && mw_bh_day_signature($schedule, $order[$j]) === $sig) {
-                $j++;
-            }
-            $startLabel = $dayLabels[$order[$i]];
-            $endLabel = $dayLabels[$order[$j - 1]];
-            $daysStr = ($i === $j - 1) ? $startLabel : ($startLabel . ' - ' . $endLabel);
+        foreach ($order as $dk) {
+            $sig = mw_bh_day_signature($schedule, $dk);
             if ($sig === 'closed') {
                 $hoursStr = 'Closed';
             } else {
@@ -71,8 +100,7 @@ if (!function_exists('mw_bh_format_time_ampm')) {
                 $ct = $parts[2] ?? '';
                 $hoursStr = mw_bh_format_time_ampm($ot) . ' - ' . mw_bh_format_time_ampm($ct);
             }
-            $rows[] = ['days' => $daysStr, 'hours' => $hoursStr];
-            $i = $j;
+            $rows[] = ['days' => $dayLabels[$dk], 'hours' => $hoursStr];
         }
 
         return $rows;
@@ -80,11 +108,7 @@ if (!function_exists('mw_bh_format_time_ampm')) {
 
     function mw_normalize_business_hours_display($json_raw)
     {
-        $default = [
-            ['days' => 'Monday - Thursday', 'hours' => '10:00 AM - 10:00 PM'],
-            ['days' => 'Friday - Saturday', 'hours' => '10:00 AM - 12:00 AM'],
-            ['days' => 'Sunday', 'hours' => 'Closed'],
-        ];
+        $default = mw_bh_default_display_rows();
         if ($json_raw === null || $json_raw === '') {
             return $default;
         }
@@ -96,7 +120,18 @@ if (!function_exists('mw_bh_format_time_ampm')) {
             return mw_weekly_schedule_to_display_rows($decoded['schedule']);
         }
         if (isset($decoded[0]) && is_array($decoded[0]) && array_key_exists('days', $decoded[0])) {
-            return $decoded;
+            $out = [];
+            foreach ($decoded as $r) {
+                if (!is_array($r)) {
+                    continue;
+                }
+                $out[] = [
+                    'days' => mw_bh_expand_days_label($r['days'] ?? ''),
+                    'hours' => $r['hours'] ?? '',
+                ];
+            }
+
+            return !empty($out) ? $out : $default;
         }
 
         return $default;
