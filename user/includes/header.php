@@ -24,7 +24,7 @@ $page_title = ucfirst(strtolower($current_role)) . " Portal";
 if($current_dir == 'dashboard') {
     $page_title = ucfirst(strtolower($current_role)) . " Dashboard";
 } elseif($current_dir == 'referral' || $current_dir == 'referral-details') {
-    $page_title = "Referral Details";
+    $page_title = ($current_role === 'TEAM') ? "Sales Details" : "Referral Details";
 } elseif($current_dir == 'collaboration' || $current_dir == 'collaboration-details') {
     $page_title = "Collaboration Details";
 } elseif($current_dir == 'verification') {
@@ -54,6 +54,7 @@ if ($current_role == 'CUSTOMER') {
     $saleskit_enabled = isset($_SESSION['saleskit_enabled']) ? (bool)$_SESSION['saleskit_enabled'] : false;
 } elseif ($current_role == 'FRANCHISEE') {
     $is_verified = isFranchiseeVerified($user_email);
+    $franchise_agreement_paid = isFranchiseeRegistrationAgreementPaid($user_email);
 }
 
 // Build role-aware menu visibility conditions (used by sidebar + profile dropdown)
@@ -63,6 +64,7 @@ if ($current_role == 'CUSTOMER') {
     $user_conditions['saleskit_enabled'] = $saleskit_enabled;
 } elseif ($current_role == 'FRANCHISEE') {
     $user_conditions['is_verified'] = $is_verified;
+    $user_conditions['franchise_agreement_paid'] = $franchise_agreement_paid;
 }
 
 // Pre-compute visible menu items once (so dropdown + sidebar stay consistent)
@@ -402,30 +404,53 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                 
                                 $icon_path = $assets_base . '/assets/images/' . $menu_item['icon'];
                                 $menu_link = $nav_base . $menu_item['url'];
+                                $menu_item_id = $menu_item['id'] ?? '';
+                                $franchise_agreement_paid_nav = !empty($user_conditions['franchise_agreement_paid']);
+                                $franchise_verified_nav = !empty($user_conditions['is_verified']);
+
+                                // FRANCHISEE: keep same nav-link layout as enabled items; disable rows in place (Dashboard → Verification → Wallet → Marketing Kit)
+                                if ($current_role === 'FRANCHISEE' && $menu_item_id === 'verification' && !$franchise_agreement_paid_nav) {
                             ?>
-                                <a class="nav-link collapsed <?php echo $is_active ? 'active' : ''; ?>" href="<?php echo $menu_link; ?>">
-                                    <div class="sb-nav-link-icon"><img src="<?php echo $icon_path; ?>" class="img-fluid" alt="" srcset=""></div>
+                                <div class="nav-link collapsed" style="opacity: 0.6; cursor: not-allowed;" title="Complete franchise registration payment to unlock Verification.">
+                                    <div class="sb-nav-link-icon"><img src="<?php echo htmlspecialchars($icon_path, ENT_QUOTES, 'UTF-8'); ?>" class="img-fluid" alt="" srcset=""></div>
+                                    <?php echo htmlspecialchars($menu_item['label']); ?>
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                                </div>
+                            <?php
+                                    continue;
+                                }
+                                if ($current_role === 'FRANCHISEE' && $menu_item_id === 'wallet' && (!$franchise_agreement_paid_nav || !$franchise_verified_nav)) {
+                                    $wallet_title = !$franchise_agreement_paid_nav
+                                        ? 'Complete franchise registration payment to unlock Wallet.'
+                                        : 'Document verification required to access Wallet.';
+                            ?>
+                                <div class="nav-link collapsed" style="opacity: 0.6; cursor: not-allowed;" title="<?php echo htmlspecialchars($wallet_title, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <div class="sb-nav-link-icon"><img src="<?php echo htmlspecialchars($icon_path, ENT_QUOTES, 'UTF-8'); ?>" class="img-fluid" alt="" srcset=""></div>
+                                    <?php echo htmlspecialchars($menu_item['label']); ?>
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                                </div>
+                            <?php
+                                    continue;
+                                }
+                                if ($current_role === 'FRANCHISEE' && $menu_item_id === 'franchisee_kit' && !$franchise_verified_nav) {
+                            ?>
+                                <div class="nav-link collapsed" style="opacity: 0.6; cursor: not-allowed;" title="Document verification required">
+                                    <div class="sb-nav-link-icon"><img src="<?php echo htmlspecialchars($icon_path, ENT_QUOTES, 'UTF-8'); ?>" class="img-fluid" alt="" srcset=""></div>
+                                    <?php echo htmlspecialchars($menu_item['label']); ?>
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
+                                </div>
+                            <?php
+                                    continue;
+                                }
+                            ?>
+                                <a class="nav-link collapsed <?php echo $is_active ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($menu_link, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <div class="sb-nav-link-icon"><img src="<?php echo htmlspecialchars($icon_path, ENT_QUOTES, 'UTF-8'); ?>" class="img-fluid" alt="" srcset=""></div>
                                     <?php echo htmlspecialchars($menu_item['label']); ?>
                                     <div class="sb-sidenav-collapse-arrow"><i class="fa fa-angle-down"></i></div>
                                 </a>
                             <?php endforeach; ?>
-                            
-                            <?php
-                            if ($current_role == 'FRANCHISEE' && !$is_verified):
-                                $disabled_items = [
-                                    ['label' => 'Wallet', 'icon' => 'wallet.png'],
-                                    ['label' => 'Marketing Kit', 'icon' => 'marketingkit.png']
-                                ];
-                                foreach ($disabled_items as $item):
-                            ?>
-                                <div class="nav-link collapsed" style="opacity: 0.6; cursor: not-allowed;" title="Document verification required">
-                                    <div class="sb-nav-link-icon"><img src="<?php echo $assets_base; ?>/assets/images/<?php echo $item['icon']; ?>" class="img-fluid" alt="" srcset=""></div>
-                                    <?php echo htmlspecialchars($item['label']); ?>
-                                </div>
-                            <?php 
-                                endforeach;
-                            endif;
 
+                            <?php
                             // Franchisee-only Download Invoice button (only after franchise_agreement payment verification)
                             if ($current_role == 'FRANCHISEE'):
                                 $franchise_invoice_available = false;

@@ -39,6 +39,79 @@ if (!function_exists('verification_get_base_path')) {
     }
 }
 
+/**
+ * True when franchise registration (agreement) payment succeeded for this email.
+ * Uses franchise_payments when present, else invoice_details (Franchisee registration rows).
+ */
+function isFranchiseeRegistrationAgreementPaid($user_email) {
+    global $connect;
+
+    if (empty($user_email) || !($connect instanceof mysqli)) {
+        return false;
+    }
+
+    $email = trim((string) $user_email);
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    try {
+        $tbl = @mysqli_query($connect, "SHOW TABLES LIKE 'franchise_payments'");
+        if ($tbl) {
+            $has_fp = mysqli_num_rows($tbl) > 0;
+            mysqli_free_result($tbl);
+        } else {
+            $has_fp = false;
+        }
+        if ($has_fp) {
+            $stmt = $connect->prepare('SELECT 1 FROM franchise_payments WHERE franchise_email = ? AND LOWER(TRIM(payment_status)) = ? LIMIT 1');
+            if ($stmt) {
+                $ok = 'success';
+                $stmt->bind_param('ss', $email, $ok);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                if ($res && $res->num_rows > 0) {
+                    $stmt->close();
+                    return true;
+                }
+                $stmt->close();
+            }
+        }
+
+        $stmt = $connect->prepare("SELECT 1 FROM invoice_details WHERE (user_email = ? OR billing_email = ?) AND LOWER(TRIM(payment_status)) IN ('success', 'paid') AND (service_name = 'Franchisee Registration Fees' OR payment_type = 'Franchisee' OR reference_number LIKE 'FRAN%') LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('ss', $email, $email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && $res->num_rows > 0) {
+                $stmt->close();
+                return true;
+            }
+            $stmt->close();
+        }
+    } catch (Throwable $e) {
+        error_log('isFranchiseeRegistrationAgreementPaid: ' . $e->getMessage());
+    }
+
+    return false;
+}
+
+/**
+ * Redirect franchisee to agreement payment page until registration is paid.
+ */
+function redirectFranchiseeToAgreementUntilPaid($franchise_email) {
+    if (empty(trim((string) $franchise_email))) {
+        return;
+    }
+    if (isFranchiseeRegistrationAgreementPaid($franchise_email)) {
+        return;
+    }
+    $basePath = verification_get_base_path();
+    $q = rawurlencode(trim((string) $franchise_email));
+    header('Location: ' . $basePath . '/franchise_agreement.php?email=' . $q . '&unlock=1');
+    exit();
+}
+
 // Function to check if franchisee documents are verified
 function isFranchiseeVerified($user_email) {
     global $connect;

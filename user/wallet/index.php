@@ -2,12 +2,18 @@
 // Include database connection
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/access_control.php');
+require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
+
+// Franchise registration payment must succeed before Verification / Wallet
+$franchisee_email = $_SESSION['f_user_email'] ?? '';
+if (function_exists('get_current_user_role') && get_current_user_role() === 'FRANCHISEE' && !isFranchiseeRegistrationAgreementPaid($franchisee_email)) {
+    redirectFranchiseeToAgreementUntilPaid($franchisee_email);
+}
 
 // Check page access - redirects to dashboard if unauthorized
 require_page_access('/wallet');
 
 // Check if franchisee is verified
-$franchisee_email = $_SESSION['f_user_email'] ?? '';
 $is_verified = isFranchiseeVerified($franchisee_email);
 
 // Redirect to verification page if not verified

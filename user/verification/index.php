@@ -2,6 +2,12 @@
 // Start session and include database connection first
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/access_control.php');
+require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
+
+$franchisee_email_gate = $_SESSION['f_user_email'] ?? '';
+if (function_exists('get_current_user_role') && get_current_user_role() === 'FRANCHISEE' && !isFranchiseeRegistrationAgreementPaid($franchisee_email_gate)) {
+    redirectFranchiseeToAgreementUntilPaid($franchisee_email_gate);
+}
 
 // Check page access - redirects to dashboard if unauthorized
 require_page_access('/verification');

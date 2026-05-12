@@ -111,6 +111,7 @@ function require_page_access($page_url = null) {
         require_once(__DIR__ . '/verification_helper.php');
         $user_email = get_user_email();
         $user_conditions['is_verified'] = isFranchiseeVerified($user_email);
+        $user_conditions['franchise_agreement_paid'] = isFranchiseeRegistrationAgreementPaid($user_email);
     }
     
     // Check access

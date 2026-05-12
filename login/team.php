@@ -200,7 +200,6 @@ if (!empty($login_messages)) {
                         </div>
                     </div>
                 </div>
-                <a href="forgot-password.php?role=TEAM" class="forgot-password">Forgot Password?</a>
             </div>
             <input type="submit" value="LOG IN" class="btn btn-login">
         </form>

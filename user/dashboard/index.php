@@ -207,22 +207,38 @@ require_once(__DIR__ . '/../../app/config/database.php');
                 
                 // Send welcome email (if function exists)
                 $email_sent = false;
+                $franchisee_name = 'Franchisee';
+                $franchisee_esc = mysqli_real_escape_string($connect, $franchisee_email);
+                $franchisee_query = mysqli_query($connect, "SELECT f_user_name FROM franchisee_login WHERE f_user_email = '$franchisee_esc' LIMIT 1");
+                if ($franchisee_query && mysqli_num_rows($franchisee_query) > 0) {
+                    $franchisee_data = mysqli_fetch_array($franchisee_query);
+                    $franchisee_name = $franchisee_data['f_user_name'] ?? 'Franchisee';
+                }
                 if (file_exists(__DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php')) {
                     require_once(__DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php');
-                    $franchisee_name = 'Franchisee';
-                    $franchisee_query = mysqli_query($connect, "SELECT f_user_name FROM franchisee_login WHERE f_user_email = '$franchisee_email'");
-                    if ($franchisee_query && mysqli_num_rows($franchisee_query) > 0) {
-                        $franchisee_data = mysqli_fetch_array($franchisee_query);
-                        $franchisee_name = $franchisee_data['f_user_name'] ?? 'Franchisee';
-                    }
                     $email_sent = sendCustomerWelcomeEmail($fullName, $emailAddress, $password, $franchisee_name);
+                }
+
+                // MAIL TEMPLATE 04A — acknowledgement to franchisee (personal/login email)
+                $franchise_ack_email_sent = false;
+                if (file_exists(__DIR__ . '/../../common/mailtemplate/send_franchise_customer_created_ack_email.php')) {
+                    require_once __DIR__ . '/../../common/mailtemplate/send_franchise_customer_created_ack_email.php';
+                    $franchise_ack_email_sent = sendFranchiseCustomerCreatedAckEmail(
+                        $franchisee_email,
+                        $franchisee_name,
+                        $fullName,
+                        $emailAddress,
+                        $companyname,
+                        $mobileNumber
+                    );
                 }
                 
                 echo json_encode([
                     'success' => true,
                     'message' => 'Account created successfully' . ($email_sent ? ' and welcome email sent' : ' (email sending failed)'),
                     'customer_id' => $customer_id,
-                    'email_sent' => $email_sent
+                    'email_sent' => $email_sent,
+                    'franchise_ack_email_sent' => $franchise_ack_email_sent
                 ]);
             } else {
                 mysqli_stmt_close($card_stmt);
@@ -328,6 +344,8 @@ if ($current_role == 'CUSTOMER' || $current_role == 'TEAM') {
     // Get franchisee verification status
     require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
     $is_verified = isFranchiseeVerified($franchisee_email);
+    $franchise_agreement_paid = isFranchiseeRegistrationAgreementPaid($franchisee_email);
+    $franchise_agreement_url = ($assets_base !== '' && $assets_base !== null ? $assets_base : '') . '/franchise_agreement.php?email=' . rawurlencode($franchisee_email);
     
     // Get wallet balance for franchisee
     $wallet_balance = 0;
@@ -429,7 +447,13 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
             <div class="card-body">
                 <?php if ($current_role == 'FRANCHISEE'): ?>
                     <!-- FRANCHISEE DASHBOARD LAYOUT -->
-                    <?php if(!$is_verified): ?>
+                    <?php if (!$franchise_agreement_paid): ?>
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <strong>Registration payment pending.</strong> Complete your franchise agreement payment to unlock <strong>Verification</strong> and <strong>Wallet</strong> in the portal.
+                            <a href="<?php echo htmlspecialchars($franchise_agreement_url, ENT_QUOTES, 'UTF-8'); ?>" class="alert-link">Complete payment</a>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php elseif(!$is_verified): ?>
                         <?php 
                         require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
                         showVerificationWarning(); 

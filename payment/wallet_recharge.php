@@ -143,7 +143,26 @@ $franchisee_state = $_SESSION['state'] ?? '';
 $franchisee_city = $_SESSION['city'] ?? '';
 $franchisee_pincode = $_SESSION['pincode'] ?? '';
 
-// Wallet billing data is auto-filled and locked
+// Prefill from franchisee_login when still empty (franchise can edit on this page)
+$fl_esc = mysqli_real_escape_string($connect, $franchisee_email);
+$fl_q = mysqli_query($connect, "SELECT f_user_address, f_user_state, f_user_city, f_user_pincode FROM franchisee_login WHERE f_user_email='{$fl_esc}' LIMIT 1");
+if ($fl_q && mysqli_num_rows($fl_q) > 0) {
+    $fl = mysqli_fetch_assoc($fl_q);
+    if ($franchisee_address === '' && !empty($fl['f_user_address'])) {
+        $franchisee_address = $fl['f_user_address'];
+    }
+    if ($franchisee_state === '' && !empty($fl['f_user_state'])) {
+        $franchisee_state = $fl['f_user_state'];
+    }
+    if ($franchisee_city === '' && !empty($fl['f_user_city'])) {
+        $franchisee_city = $fl['f_user_city'];
+    }
+    if ($franchisee_pincode === '' && !empty($fl['f_user_pincode'])) {
+        $franchisee_pincode = $fl['f_user_pincode'];
+    }
+}
+
+// Wallet billing: name/email/contact stay read-only; address fields editable on this page
 $locked_billing_name = $_SESSION['billing_gst_name'] ?? $franchisee_name;
 $locked_billing_email = $_SESSION['billing_gst_email'] ?? $franchisee_email;
 $locked_billing_contact = $_SESSION['billing_gst_contact'] ?? $franchisee_contact;
@@ -251,21 +270,26 @@ $locked_billing_pincode = $_SESSION['billing_gst_pincode'] ?? $franchisee_pincod
                required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #f2f2f2; cursor: not-allowed;">
         
         <input type="text" id="gst_address" name="gst_address" placeholder="Address" 
-               value="<?php echo htmlspecialchars($locked_billing_address); ?>" readonly
-               required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #f2f2f2; cursor: not-allowed;">
+               value="<?php echo htmlspecialchars($locked_billing_address); ?>"
+               required autocomplete="street-address"
+               style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #ffffff;">
         
         <div style="display: flex; gap: 15px; margin-bottom: 15px;">
             <input type="text" id="gst_state" name="gst_state" placeholder="State" 
-                   value="<?php echo htmlspecialchars($locked_billing_state); ?>" readonly
-                   required style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #f2f2f2; cursor: not-allowed;">
+                   value="<?php echo htmlspecialchars($locked_billing_state); ?>"
+                   required autocomplete="address-level1"
+                   style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #ffffff;">
             <input type="text" id="gst_city" name="gst_city" placeholder="City" 
-                   value="<?php echo htmlspecialchars($locked_billing_city); ?>" readonly
-                   required style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #f2f2f2; cursor: not-allowed;">
+                   value="<?php echo htmlspecialchars($locked_billing_city); ?>"
+                   required autocomplete="address-level2"
+                   style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #ffffff;">
         </div>
         
         <input type="text" id="gst_pincode" name="gst_pincode" placeholder="Pin Code" 
-               value="<?php echo htmlspecialchars($locked_billing_pincode); ?>" readonly
-               required style="width: 100%; padding: 12px 15px; margin-bottom: 25px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #f2f2f2; cursor: not-allowed;">
+               value="<?php echo htmlspecialchars($locked_billing_pincode); ?>"
+               required inputmode="numeric" maxlength="10"
+               autocomplete="postal-code"
+               style="width: 100%; padding: 12px 15px; margin-bottom: 25px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #ffffff;">
     </div>
     
     <!-- Price Breakdown -->
@@ -354,12 +378,20 @@ document.addEventListener('DOMContentLoaded', function() {
     var lockedBillingData = {
         gst_name: <?php echo json_encode($locked_billing_name); ?>,
         gst_email: <?php echo json_encode($locked_billing_email); ?>,
-        gst_contact: <?php echo json_encode($locked_billing_contact); ?>,
-        gst_address: <?php echo json_encode($locked_billing_address); ?>,
-        gst_state: <?php echo json_encode($locked_billing_state); ?>,
-        gst_city: <?php echo json_encode($locked_billing_city); ?>,
-        gst_pincode: <?php echo json_encode($locked_billing_pincode); ?>
+        gst_contact: <?php echo json_encode($locked_billing_contact); ?>
     };
+    function getEditableLocationFields() {
+        var a = document.getElementById('gst_address');
+        var s = document.getElementById('gst_state');
+        var c = document.getElementById('gst_city');
+        var p = document.getElementById('gst_pincode');
+        return {
+            gst_address: (a && a.value) ? a.value.trim() : '',
+            gst_state: (s && s.value) ? s.value.trim() : '',
+            gst_city: (c && c.value) ? c.value.trim() : '',
+            gst_pincode: (p && p.value) ? p.value.trim() : ''
+        };
+    }
     
     // Wallet recharge does not include GST
     function updateTaxCalculation(originalAmount, discountAmount) {
@@ -434,21 +466,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
                 errorMessage += "Contact number is missing. Please update profile details first.\n";
             }
-            if (!lockedBillingData.gst_address || !lockedBillingData.gst_address.trim()) {
+            var loc = getEditableLocationFields();
+            if (!loc.gst_address) {
                 isValid = false;
-                errorMessage += "Address is missing. Please update profile details first.\n";
+                errorMessage += "Please enter your address.\n";
             }
-            if (!lockedBillingData.gst_state || !lockedBillingData.gst_state.trim()) {
+            if (!loc.gst_state) {
                 isValid = false;
-                errorMessage += "State is missing. Please update profile details first.\n";
+                errorMessage += "Please enter your state.\n";
             }
-            if (!lockedBillingData.gst_city || !lockedBillingData.gst_city.trim()) {
+            if (!loc.gst_city) {
                 isValid = false;
-                errorMessage += "City is missing. Please update profile details first.\n";
+                errorMessage += "Please enter your city.\n";
             }
-            if (!lockedBillingData.gst_pincode || !lockedBillingData.gst_pincode.trim()) {
+            if (!loc.gst_pincode) {
                 isValid = false;
-                errorMessage += "Pin code is missing. Please update profile details first.\n";
+                errorMessage += "Please enter your pin code.\n";
             }
             
             var rechargeAmount = parseFloat(document.getElementById('recharge_amount').value) || 0;
@@ -469,13 +502,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             var formData = new FormData();
             formData.append('recharge_amount', document.getElementById('recharge_amount').value);
+            var locSave = getEditableLocationFields();
             formData.append('gst_name', lockedBillingData.gst_name);
             formData.append('gst_email', lockedBillingData.gst_email);
             formData.append('gst_contact', lockedBillingData.gst_contact);
-            formData.append('gst_address', lockedBillingData.gst_address);
-            formData.append('gst_state', lockedBillingData.gst_state);
-            formData.append('gst_city', lockedBillingData.gst_city);
-            formData.append('gst_pincode', lockedBillingData.gst_pincode);
+            formData.append('gst_address', locSave.gst_address);
+            formData.append('gst_state', locSave.gst_state);
+            formData.append('gst_city', locSave.gst_city);
+            formData.append('gst_pincode', locSave.gst_pincode);
             
             // Recalculate tax before saving
             var rechargeAmount = parseFloat(document.getElementById('recharge_amount').value) || originalAmount;

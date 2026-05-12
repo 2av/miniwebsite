@@ -9,16 +9,48 @@
       "always_visible": true
     },
     {
-      "id": "referral",
+      "id": "verification",
+      "label": "Verification",
+      "icon": "Verification.png",
+      "url": "/verification",
+      "roles": ["FRANCHISEE"],
+      "always_visible": true
+    },
+    {
+      "id": "wallet",
+      "label": "Wallet",
+      "icon": "wallet.png",
+      "url": "/wallet",
+      "roles": ["FRANCHISEE"],
+      "always_visible": true
+    },
+    {
+      "id": "franchisee_kit",
+      "label": "Marketing Kit",
+      "icon": "marketingkit.png",
+      "url": "/kit",
+      "roles": ["FRANCHISEE"],
+      "always_visible": true
+    },
+    {
+      "id": "referral_customer",
       "label": "Referral Details",
       "icon": "ReferralDetails.png",
       "url": "/referral",
-      "roles": ["CUSTOMER", "TEAM"],
+      "roles": ["CUSTOMER"],
       "conditions": {
         "CUSTOMER": {
           "collaboration_enabled": false
         }
       }
+    },
+    {
+      "id": "sales_details_team",
+      "label": "Sales Details",
+      "icon": "ReferralDetails.png",
+      "url": "/referral",
+      "roles": ["TEAM"],
+      "always_visible": true
     },
     {
       "id": "customer_tracker",
@@ -93,38 +125,6 @@
       "conditions": {
         "CUSTOMER": {
           "collaboration_enabled": true
-        }
-      }
-    },
-    {
-      "id": "verification",
-      "label": "Verification",
-      "icon": "Verification.png",
-      "url": "/verification",
-      "roles": ["FRANCHISEE"],
-      "always_visible": true
-    },
-    {
-      "id": "wallet",
-      "label": "Wallet",
-      "icon": "wallet.png",
-      "url": "/wallet",
-      "roles": ["FRANCHISEE"],
-      "conditions": {
-        "FRANCHISEE": {
-          "is_verified": true
-        }
-      }
-    },
-    {
-      "id": "franchisee_kit",
-      "label": "Marketing Kit",
-      "icon": "marketingkit.png",
-      "url": "/kit",
-      "roles": ["FRANCHISEE"],
-      "conditions": {
-        "FRANCHISEE": {
-          "is_verified": true
         }
       }
     }

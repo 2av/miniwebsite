@@ -405,7 +405,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($insertStmt) {
                 $insertStmt->bind_param('sssss', $memberEmail, $memberPhone, $memberName, $passwordHash, $passwordHash);
                 if ($insertStmt->execute()) {
-                    $successMessage = 'Team member added successfully.';
+                        $successMessage = 'Team member added successfully.';
+
+                        // MAIL TEMPLATE 09: Send team welcome credentials email
+                        require_once __DIR__ . '/../common/mailtemplate/send_team_member_welcome_email.php';
+                        $mailOk = sendTeamMemberWelcomeEmail($memberEmail, $memberName, $memberPassword);
+                        if (!$mailOk) {
+                            $errors[] = 'Team member created, but welcome email could not be sent.';
+                        }
                 } else {
                     $errors[] = 'Failed to add team member: ' . $insertStmt->error;
                 }
@@ -616,6 +623,27 @@ if (empty($tableError) && !empty($teamMembers)) {
         .modal-backdrop {
             padding-right: 0 !important;
         }
+        .password-toggle-wrap {
+            position: relative;
+        }
+        .password-toggle-wrap .form-control {
+            padding-right: 42px;
+        }
+        .password-toggle-btn {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #6c757d;
+            padding: 0;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .password-toggle-btn:hover {
+            color: #0d6efd;
+        }
     </style>
 </head>
 <body class="main-bg">
@@ -668,7 +696,12 @@ if (empty($tableError) && !empty($teamMembers)) {
                 </div>
                 <div class="col-md-4">
                     <label for="member_password" class="form-label">Password <span class="text-danger">*</span></label>
-                    <input type="password" class="form-control" id="member_password" name="member_password" placeholder="Minimum 6 characters" required>
+                    <div class="password-toggle-wrap">
+                        <input type="password" class="form-control" id="member_password" name="member_password" placeholder="Minimum 6 characters" required>
+                        <button type="button" class="password-toggle-btn" data-target="member_password" aria-label="Show password" title="Show/Hide password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary">Create Team Member</button>
@@ -828,7 +861,12 @@ if (empty($tableError) && !empty($teamMembers)) {
                                                             <input type="hidden" name="member_id" value="<?php echo (int)$member['id']; ?>">
                                                             <div class="mb-3">
                                                                 <label for="new_password_<?php echo (int)$member['id']; ?>" class="form-label">New Password</label>
-                                                                <input type="password" class="form-control" id="new_password_<?php echo (int)$member['id']; ?>" name="new_password" placeholder="Enter new password" required>
+                                                                <div class="password-toggle-wrap">
+                                                                    <input type="password" class="form-control" id="new_password_<?php echo (int)$member['id']; ?>" name="new_password" placeholder="Enter new password" required>
+                                                                    <button type="button" class="password-toggle-btn" data-target="new_password_<?php echo (int)$member['id']; ?>" aria-label="Show password" title="Show/Hide password">
+                                                                        <i class="fas fa-eye"></i>
+                                                                    </button>
+                                                                </div>
                                                                 <small class="text-muted">Minimum 6 characters.</small>
                                                             </div>
                                                         </div>
@@ -931,6 +969,32 @@ if (empty($tableError) && !empty($teamMembers)) {
 })();
 
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.password-toggle-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var targetId = btn.getAttribute('data-target');
+            if (!targetId) return;
+            var input = document.getElementById(targetId);
+            if (!input) return;
+
+            var icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+                btn.setAttribute('aria-label', 'Hide password');
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+                btn.setAttribute('aria-label', 'Show password');
+            }
+        });
+    });
+
     // Dashboard Details Modal handler
     var dashboardModal = document.getElementById('dashboardTeamsModal');
     var dashboardContent = document.getElementById('dashboardTeamsContent');
