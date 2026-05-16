@@ -34,6 +34,12 @@
 				<span>Teams Management</span>
 			</a>
 		</div>
+		<div class="menu-item">
+			<a href="documentation/index.php" class="menu-link">
+				<i class="fas fa-book"></i>
+				<span>Documentation</span>
+			</a>
+		</div>
 		
 		<div class="menu-item">
 			<a href="logout.php" class="menu-link logout-link">

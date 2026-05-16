@@ -5,7 +5,8 @@
     "require": {
         "php": ">=7.4",
         "phpmailer/phpmailer": "^6.9",
-        "mpdf/mpdf": "^8.2"
+        "mpdf/mpdf": "^8.2",
+        "ezyang/htmlpurifier": "4.17"
     },
     "autoload": {
         "psr-4": {

@@ -22,16 +22,19 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
+# Help center pretty URLs (some hosts ignore AllowOverride inside /docs/; this rule sits in root .htaccess)
+# Maps /docs/your-slug -> docs/index.php?slug=your-slug (skips existing files/folders such as docs/assets/*.css)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^docs/([A-Za-z0-9][A-Za-z0-9_-]*)/?$ docs/index.php?slug=$1 [L,QSA]
+
 # Clean card URL: /your-slug -> n.php?n=your-slug (one segment, no dots — avoids *.css, *.js, etc.)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^([^/\.]+)$ n.php?n=$1 [L,QSA]
 </IfModule>
 
-# --- Nginx (no .htaccess): inside server { } for this site root, add: ---
-#   location / {
-#     try_files $uri $uri/ @mw_clean_card;
-#   }
-#   location @mw_clean_card {
-#     rewrite ^/([^/.]+)$ /n.php?n=$1 last;
-#   }
+# --- Nginx (no .htaccess): sample ---
+#   location ~ ^/docs/([A-Za-z0-9][A-Za-z0-9_-]*)$ { rewrite ^ /docs/index.php?slug=$1 last; }
+#   location / { try_files $uri $uri/ @mw_clean_card; }
+#   location @mw_clean_card { rewrite ^/([^/.]+)$ /n.php?n=$1 last; }

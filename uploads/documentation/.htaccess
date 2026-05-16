@@ -1,0 +1,4 @@
+# Serve images only; block script execution if Apache allows .htaccess overrides
+<FilesMatch "\.(?i:php|phtml|php3|php4|php5|phar)$">
+    Require all denied
+</FilesMatch>
