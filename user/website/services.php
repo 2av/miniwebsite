@@ -5,6 +5,7 @@ ob_start();
 // Handle card_number from URL, session, or cookie
 // MUST be done before any output (before including header.php)
 require_once(__DIR__ . '/../../app/config/database.php');
+require_once(__DIR__ . '/../../app/includes/product_categories_helper.php');
 
 // Handle AJAX image processing FIRST - before any other output
 // This must be at the very top to prevent any output before JSON response
@@ -707,16 +708,9 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     }
                                     $prod_category_display = '-';
                                     if ($prod_category_id > 0) {
-                                        if ($prod_category_source === 'custom') {
-                                            $ucc_q = mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id = $prod_category_id AND user_id = $user_id AND is_active = 1 LIMIT 1");
-                                            if ($ucc_q && mysqli_num_rows($ucc_q) > 0) {
-                                                $prod_category_display = htmlspecialchars(mysqli_fetch_assoc($ucc_q)['category_name']);
-                                            }
-                                        } else {
-                                            $pc_q = mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id = $prod_category_id LIMIT 1");
-                                            if ($pc_q && mysqli_num_rows($pc_q) > 0) {
-                                                $prod_category_display = htmlspecialchars(mysqli_fetch_assoc($pc_q)['category_name']);
-                                            }
+                                        $cat_label = getStoredProductCategoryLabel($connect, $prod_category_id, $prod_category_source, $user_id);
+                                        if ($cat_label !== '') {
+                                            $prod_category_display = htmlspecialchars($cat_label);
                                         }
                                     }
                             ?>
@@ -818,48 +812,49 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         <select class="form-control" id="modal_service_name_select" name="modal_service_name_select">
                             <option value="">Select service name</option>
                             <?php
-                            // Bind EXACT same categories as products.php modal_product_category (L905-L961).
+                            // Same product category source as products.php (flat + legacy via helper).
                             $selected_business_category_ids = [];
-                            if(!empty($card_d_position_primary) && is_numeric($card_d_position_primary)) {
-                                $selected_business_category_ids[] = (int)$card_d_position_primary;
+                            if (!empty($card_d_position_primary) && is_numeric($card_d_position_primary)) {
+                                $selected_business_category_ids[] = (int) $card_d_position_primary;
                             }
-                            if(!empty($card_d_position_secondary) && is_numeric($card_d_position_secondary)) {
-                                $selected_business_category_ids[] = (int)$card_d_position_secondary;
+                            if (!empty($card_d_position_secondary) && is_numeric($card_d_position_secondary)) {
+                                $selected_business_category_ids[] = (int) $card_d_position_secondary;
                             }
                             $selected_business_category_ids = array_values(array_unique($selected_business_category_ids));
 
-                            if(!empty($selected_business_category_ids)) {
-                                $parent_ids_sql = implode(',', $selected_business_category_ids);
-                                $child_cats_query = mysqli_query($connect, "
-                                    SELECT id, category_name, display_order
-                                    FROM product_categories
-                                    WHERE parent_id IN ($parent_ids_sql)
-                                    AND is_active = 1
-                                    AND category_type = 'product-category'
-                                    ORDER BY display_order ASC, category_name ASC
-                                ");
-
-                                while($cat = mysqli_fetch_assoc($child_cats_query)) {
-                                    $cat_name = trim((string)($cat['category_name'] ?? ''));
-                                    if ($cat_name === '') { continue; }
-                                    $pl = ['c' => 's_' . intval($cat['id']), 'n' => $cat_name];
-                                    $jsonv = json_encode($pl, JSON_UNESCAPED_UNICODE);
-                                    echo '<option value="' . htmlspecialchars($jsonv, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($cat_name) . '</option>';
+                            if (empty($selected_business_category_ids)) {
+                                echo '<option value="" disabled>Set Business Categories on Company Details first</option>';
+                            } else {
+                                $service_cat_options = getProductCategoriesForBusinessIds($connect, $selected_business_category_ids);
+                                if (empty($service_cat_options)) {
+                                    echo '<option value="" disabled>No service categories for your business categories</option>';
+                                } else {
+                                    foreach ($service_cat_options as $cat) {
+                                        $cat_name = trim((string) ($cat['label'] ?? ''));
+                                        if ($cat_name === '') {
+                                            continue;
+                                        }
+                                        $pl = ['c' => 's_' . (int) $cat['id'], 'n' => $cat_name];
+                                        $jsonv = json_encode($pl, JSON_UNESCAPED_UNICODE);
+                                        echo '<option value="' . htmlspecialchars($jsonv, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($cat_name) . '</option>';
+                                    }
                                 }
 
-                                if($user_id > 0) {
+                                if ($user_id > 0) {
                                     $custom_cats_query = mysqli_query($connect, "
                                         SELECT id, category_name FROM user_custom_categories
                                         WHERE user_id = $user_id AND category_type = 'product-category' AND is_active = 1
                                         ORDER BY created_at DESC
                                     ");
 
-                                    if($custom_cats_query && mysqli_num_rows($custom_cats_query) > 0) {
+                                    if ($custom_cats_query && mysqli_num_rows($custom_cats_query) > 0) {
                                         echo '<optgroup label="My Custom Categories">';
-                                        while($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
-                                            $cat_name = trim((string)($custom_cat['category_name'] ?? ''));
-                                            if ($cat_name === '') { continue; }
-                                            $pl = ['c' => 'c_' . intval($custom_cat['id']), 'n' => $cat_name];
+                                        while ($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
+                                            $cat_name = trim((string) ($custom_cat['category_name'] ?? ''));
+                                            if ($cat_name === '') {
+                                                continue;
+                                            }
+                                            $pl = ['c' => 'c_' . (int) $custom_cat['id'], 'n' => $cat_name];
                                             $jsonv = json_encode($pl, JSON_UNESCAPED_UNICODE);
                                             echo '<option value="' . htmlspecialchars($jsonv, ENT_QUOTES, 'UTF-8') . '">[Custom] ' . htmlspecialchars($cat_name) . '</option>';
                                         }

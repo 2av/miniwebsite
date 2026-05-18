@@ -2,6 +2,7 @@
 // Handle card_number from URL, session, or cookie
 // MUST be done before any output (before including header.php)
 require_once(__DIR__ . '/../../app/config/database.php');
+require_once(__DIR__ . '/../../app/includes/product_categories_helper.php');
 
 // Handle AJAX image processing FIRST - before any other output
 // This must be at the very top to prevent any output before JSON response
@@ -239,16 +240,53 @@ if(mysqli_num_rows($query) == 0){
     $cardRow = mysqli_fetch_array($query);
 }
 
+if (!function_exists('ensureDigiCardPreviousSlugMetaColumns')) {
+    function ensureDigiCardPreviousSlugMetaColumn($connect, $column, $definition) {
+        $column_esc = mysqli_real_escape_string($connect, $column);
+        $res = @mysqli_query($connect, "SHOW COLUMNS FROM `digi_card_previous_slug` LIKE '$column_esc'");
+        if (!$res || mysqli_num_rows($res) === 0) {
+            @mysqli_query($connect, "ALTER TABLE `digi_card_previous_slug` ADD `$column_esc` $definition");
+        }
+    }
+    function ensureDigiCardPreviousSlugMetaColumns($connect) {
+        ensureDigiCardPreviousSlugMetaColumn($connect, 'd_business_profile_type', "VARCHAR(100) NOT NULL DEFAULT ''");
+        ensureDigiCardPreviousSlugMetaColumn($connect, 'd_business_type', "VARCHAR(32) NOT NULL DEFAULT ''");
+        ensureDigiCardPreviousSlugMetaColumn($connect, 'd_business_operation_area', "VARCHAR(32) NOT NULL DEFAULT ''");
+        ensureDigiCardPreviousSlugMetaColumn($connect, 'd_business_operation_locations', 'TEXT NULL');
+    }
+}
+ensureDigiCardPreviousSlugMetaColumns($connect);
+
 // Read overflow/meta fields from digi_card_previous_slug when present (avoids wide digi_card row limit)
-$metaQuery = @mysqli_query($connect, 'SELECT d_business_type, d_business_operation_area, d_business_operation_locations FROM digi_card_previous_slug WHERE digi_card_id="'.intval($_SESSION['card_id_inprocess']).'" LIMIT 1');
+$metaQuery = @mysqli_query($connect, 'SELECT d_business_profile_type, d_business_type, d_business_operation_area, d_business_operation_locations FROM digi_card_previous_slug WHERE digi_card_id="'.intval($_SESSION['card_id_inprocess']).'" LIMIT 1');
 if ($metaQuery && mysqli_num_rows($metaQuery) > 0) {
     $metaRow = mysqli_fetch_assoc($metaQuery);
     if (is_array($metaRow)) {
+        $cardRow['d_business_profile_type'] = isset($metaRow['d_business_profile_type']) ? $metaRow['d_business_profile_type'] : '';
         $cardRow['d_business_type'] = isset($metaRow['d_business_type']) ? $metaRow['d_business_type'] : (isset($cardRow['d_business_type']) ? $cardRow['d_business_type'] : '');
         $cardRow['d_business_operation_area'] = isset($metaRow['d_business_operation_area']) ? $metaRow['d_business_operation_area'] : (isset($cardRow['d_business_operation_area']) ? $cardRow['d_business_operation_area'] : '');
         $cardRow['d_business_operation_locations'] = isset($metaRow['d_business_operation_locations']) ? $metaRow['d_business_operation_locations'] : (isset($cardRow['d_business_operation_locations']) ? $cardRow['d_business_operation_locations'] : '');
     }
 }
+
+$business_profile_type_options = getBusinessProfileTypeOptions($connect);
+
+$company_details_user_id = 0;
+if (!empty($_SESSION['user_email'])) {
+    $user_email_escaped = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $user_query_cd = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = LOWER(TRIM('$user_email_escaped')) LIMIT 1");
+    if ($user_query_cd && mysqli_num_rows($user_query_cd) > 0) {
+        $company_details_user_id = (int) mysqli_fetch_assoc($user_query_cd)['id'];
+    }
+}
+
+$category_cascade_init = [
+    'profile_type' => isset($cardRow['d_business_profile_type']) ? trim($cardRow['d_business_profile_type']) : '',
+    'business_model' => isset($cardRow['d_business_type']) ? trim($cardRow['d_business_type']) : '',
+    'primary_id' => !empty($cardRow['d_position_primary']) ? (int) $cardRow['d_position_primary'] : '',
+    'secondary_id' => !empty($cardRow['d_position_secondary']) ? (int) $cardRow['d_position_secondary'] : '',
+    'user_id' => $company_details_user_id,
+];
 
 // Handle form submission
 if(isset($_POST['process2'])){
@@ -461,9 +499,7 @@ if(isset($_POST['process2'])){
             }
         }
         function ensurePreviousSlugMetaColumns($connect){
-            ensureColumnExists($connect, 'digi_card_previous_slug', 'd_business_type', "VARCHAR(32) NOT NULL DEFAULT ''");
-            ensureColumnExists($connect, 'digi_card_previous_slug', 'd_business_operation_area', "VARCHAR(32) NOT NULL DEFAULT ''");
-            ensureColumnExists($connect, 'digi_card_previous_slug', 'd_business_operation_locations', "TEXT NULL");
+            ensureDigiCardPreviousSlugMetaColumns($connect);
         }
         
         // Helper to convert position columns from VARCHAR to INT (for storing category IDs)
@@ -508,6 +544,12 @@ if(isset($_POST['process2'])){
         $d_pincode = isset($_POST['d_pincode']) ? mysqli_real_escape_string($connect, $_POST['d_pincode']) : '';
         $d_country = isset($_POST['d_country']) ? mysqli_real_escape_string($connect, $_POST['d_country']) : '';
         $d_gst_number = isset($_POST['d_gst_number']) ? mysqli_real_escape_string($connect, $_POST['d_gst_number']) : '';
+
+        $d_business_profile_type = isset($_POST['d_business_profile_type']) ? trim($_POST['d_business_profile_type']) : '';
+        $allowed_profile_types = getBusinessProfileTypeOptions($connect);
+        if ($d_business_profile_type !== '' && !empty($allowed_profile_types) && !in_array($d_business_profile_type, $allowed_profile_types, true)) {
+            $d_business_profile_type = '';
+        }
 
         $d_business_type = isset($_POST['d_business_type']) ? trim($_POST['d_business_type']) : '';
         $allowed_business_types = ['product', 'service', 'hybrid'];
@@ -683,6 +725,7 @@ if(isset($_POST['process2'])){
         }
         $d_business_hours = mysqli_real_escape_string($connect, json_encode($business_hours_obj));
 
+        $d_business_profile_type_sql = mysqli_real_escape_string($connect, $d_business_profile_type);
         $d_business_type_sql = mysqli_real_escape_string($connect, $d_business_type);
         $d_business_operation_area_sql = mysqli_real_escape_string($connect, $d_business_operation_area);
 
@@ -722,11 +765,11 @@ if(isset($_POST['process2'])){
             $cid = intval($_SESSION['card_id_inprocess']);
             $prevSlugRes = @mysqli_query($connect, 'SELECT previous_slug FROM digi_card_previous_slug WHERE digi_card_id="'.$cid.'" LIMIT 1');
             if ($prevSlugRes && mysqli_num_rows($prevSlugRes) > 0) {
-                @mysqli_query($connect, 'UPDATE digi_card_previous_slug SET d_business_type="'.$d_business_type_sql.'", d_business_operation_area="'.$d_business_operation_area_sql.'", d_business_operation_locations="'.mysqli_real_escape_string($connect, $d_business_operation_locations).'" WHERE digi_card_id="'.$cid.'"');
+                @mysqli_query($connect, 'UPDATE digi_card_previous_slug SET d_business_profile_type="'.$d_business_profile_type_sql.'", d_business_type="'.$d_business_type_sql.'", d_business_operation_area="'.$d_business_operation_area_sql.'", d_business_operation_locations="'.mysqli_real_escape_string($connect, $d_business_operation_locations).'" WHERE digi_card_id="'.$cid.'"');
             } else {
                 // Keep unique key valid; placeholder uses current active slug when no previous slug exists yet
                 $currSlug = isset($cardRow['card_id']) ? mysqli_real_escape_string($connect, (string) $cardRow['card_id']) : ('card-'.$cid);
-                @mysqli_query($connect, 'INSERT INTO digi_card_previous_slug (digi_card_id, previous_slug, d_business_type, d_business_operation_area, d_business_operation_locations) VALUES ("'.$cid.'", "'.$currSlug.'", "'.$d_business_type_sql.'", "'.$d_business_operation_area_sql.'", "'.mysqli_real_escape_string($connect, $d_business_operation_locations).'")');
+                @mysqli_query($connect, 'INSERT INTO digi_card_previous_slug (digi_card_id, previous_slug, d_business_profile_type, d_business_type, d_business_operation_area, d_business_operation_locations) VALUES ("'.$cid.'", "'.$currSlug.'", "'.$d_business_profile_type_sql.'", "'.$d_business_type_sql.'", "'.$d_business_operation_area_sql.'", "'.mysqli_real_escape_string($connect, $d_business_operation_locations).'")');
             }
             $_SESSION['save_success'] = "Details Updated Successfully!";
             // Re-fetch updated record so fields show latest saved values
@@ -734,10 +777,11 @@ if(isset($_POST['process2'])){
             if($query && mysqli_num_rows($query) > 0){
                 $cardRow = mysqli_fetch_array($query);
             }
-            $metaQuery = @mysqli_query($connect, 'SELECT d_business_type, d_business_operation_area, d_business_operation_locations FROM digi_card_previous_slug WHERE digi_card_id="'.intval($_SESSION['card_id_inprocess']).'" LIMIT 1');
+            $metaQuery = @mysqli_query($connect, 'SELECT d_business_profile_type, d_business_type, d_business_operation_area, d_business_operation_locations FROM digi_card_previous_slug WHERE digi_card_id="'.intval($_SESSION['card_id_inprocess']).'" LIMIT 1');
             if ($metaQuery && mysqli_num_rows($metaQuery) > 0) {
                 $metaRow = mysqli_fetch_assoc($metaQuery);
                 if (is_array($metaRow)) {
+                    $cardRow['d_business_profile_type'] = isset($metaRow['d_business_profile_type']) ? $metaRow['d_business_profile_type'] : '';
                     $cardRow['d_business_type'] = isset($metaRow['d_business_type']) ? $metaRow['d_business_type'] : '';
                     $cardRow['d_business_operation_area'] = isset($metaRow['d_business_operation_area']) ? $metaRow['d_business_operation_area'] : '';
                     $cardRow['d_business_operation_locations'] = isset($metaRow['d_business_operation_locations']) ? $metaRow['d_business_operation_locations'] : '';
@@ -802,7 +846,7 @@ include '../includes/header.php';
 
         <div class="card mb-4">
             <div class="card-body">
-                <label class="heading heading1">Company Details:</label>
+                <label class="heading heading1">Company Visuals:</label>
                 <form action="" method="POST" enctype="multipart/form-data" id="card_form">
                     <!-- Hidden field to store processed image data -->
                      <div class="row">
@@ -855,7 +899,7 @@ include '../includes/header.php';
                     </div>
                    
                     <div class="Personal-Details">
-                        <label class="heading heading2">Personal Details:</label>
+                        <label class="heading heading2">Business Information:</label>
                         <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
@@ -873,68 +917,11 @@ include '../includes/header.php';
                         <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_position_primary">Business Category(Primary) <span class="text-danger">*</span></label>
+                                    <label for="d_position_primary">Business Category (Primary) <span class="text-danger">*</span></label>
+                                    
                                     <div style="display: flex; gap: 10px;">
-                                        <select name="d_position_primary" id="d_position_primary" class="form-control" style="flex: 1;">
-                                            <option value="">-- Select Primary Category --</option>   
-                                            <?php
-                                            // Get user ID for custom categories
-                                            $user_email_escaped = mysqli_real_escape_string($connect, $_SESSION['user_email']);
-                                            $user_query = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = LOWER(TRIM('$user_email_escaped')) LIMIT 1");
-                                            $user_id = 0;
-                                            if($user_query && mysqli_num_rows($user_query) > 0) {
-                                                $user_row = mysqli_fetch_assoc($user_query);
-                                                $user_id = intval($user_row['id']);
-                                            }
-                                            
-                                            // Get all system categories with their parents
-                                            $all_cats_query = mysqli_query($connect, "
-                                                SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name, 'system' as source
-                                                FROM product_categories c
-                                                LEFT JOIN product_categories p ON c.parent_id = p.id
-                                                WHERE c.is_active = 1 AND c.category_type = 'business-category'
-                                                ORDER BY p.display_order, c.display_order ASC
-                                            ");
-                                            
-                                            $current_group = null;
-                                            while($cat = mysqli_fetch_assoc($all_cats_query)) {
-                                                // Add optgroup header when parent changes (but only for children)
-                                                if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
-                                                    if($current_group !== null) {
-                                                        echo '</optgroup>';
-                                                    }
-                                                    echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
-                                                    $current_group = $cat['parent_name'];
-                                                }
-                                                
-                                                // Show child categories only (those with parent_id)
-                                                if($cat['parent_id'] !== null) {
-                                                    $selected = (!empty($cardRow['d_position_primary']) && $cardRow['d_position_primary'] == $cat['id']) ? 'selected' : '';
-                                                    echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
-                                                }
-                                            }
-                                            if($current_group !== null) {
-                                                echo '</optgroup>';
-                                            }
-                                            
-                                            // Get user custom business categories
-                                            if($user_id > 0) {
-                                                $custom_cats_query = mysqli_query($connect, "
-                                                    SELECT id, category_name FROM user_custom_categories
-                                                    WHERE user_id = $user_id AND category_type = 'business-category' AND is_active = 1
-                                                    ORDER BY created_at DESC
-                                                ");
-                                                
-                                                if(mysqli_num_rows($custom_cats_query) > 0) {
-                                                    echo '<optgroup label="My Custom Categories">';
-                                                    while($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
-                                                        $selected = (!empty($cardRow['d_position_primary']) && $cardRow['d_position_primary'] == $custom_cat['id']) ? 'selected' : '';
-                                                        echo '<option value="' . intval($custom_cat['id']) . '" ' . $selected . '>[Custom] ' . htmlspecialchars($custom_cat['category_name']) . '</option>';
-                                                    }
-                                                    echo '</optgroup>';
-                                                }
-                                            }
-                                            ?>
+                                        <select name="d_position_primary" id="d_position_primary" class="form-control" style="flex: 1;" disabled required>
+                                            <option value="">Select Business Profile Type first</option>
                                         </select>
                                         <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category">
                                             <i class="fa fa-plus" aria-hidden="true"></i>
@@ -944,68 +931,11 @@ include '../includes/header.php';
                             </div>
                             <div class="col-sm-6">
                             <div class="form-group">
-                                    <label for="d_position_secondary">Business Category(secondary)</label>
+                                    <label for="d_position_secondary">Business Category (Secondary)</label>
+                                    
                                     <div style="display: flex; gap: 10px;">
-                                        <select name="d_position_secondary" id="d_position_secondary" class="form-control" style="flex: 1;">
-                                            <option value="">-- Select Secondary Category --</option>   
-                                            <?php
-                                            // Get user ID for custom categories
-                                            $user_email_escaped = mysqli_real_escape_string($connect, $_SESSION['user_email']);
-                                            $user_query = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = LOWER(TRIM('$user_email_escaped')) LIMIT 1");
-                                            $user_id = 0;
-                                            if($user_query && mysqli_num_rows($user_query) > 0) {
-                                                $user_row = mysqli_fetch_assoc($user_query);
-                                                $user_id = intval($user_row['id']);
-                                            }
-                                            
-                                            // Get all system categories with their parents
-                                            $all_cats_query = mysqli_query($connect, "
-                                                SELECT c.id, c.category_name, c.parent_id, p.category_name as parent_name, 'system' as source
-                                                FROM product_categories c
-                                                LEFT JOIN product_categories p ON c.parent_id = p.id
-                                                WHERE c.is_active = 1 AND c.category_type = 'business-category'
-                                                ORDER BY p.display_order, c.display_order ASC
-                                            ");
-                                           
-                                            $current_group = null;
-                                            while($cat = mysqli_fetch_assoc($all_cats_query)) {
-                                                // Add optgroup header when parent changes (but only for children)
-                                                if($cat['parent_id'] !== null && $cat['parent_name'] != $current_group) {
-                                                    if($current_group !== null) {
-                                                        echo '</optgroup>';
-                                                    }
-                                                    echo '<optgroup label="' . htmlspecialchars($cat['parent_name']) . '">';
-                                                    $current_group = $cat['parent_name'];
-                                                }
-                                                
-                                                // Show child categories only (those with parent_id)
-                                                if($cat['parent_id'] !== null) {
-                                                    $selected = (!empty($cardRow['d_position_secondary']) && $cardRow['d_position_secondary'] == $cat['id']) ? 'selected' : '';
-                                                    echo '<option value="' . intval($cat['id']) . '" ' . $selected . '>' . htmlspecialchars($cat['category_name']) . '</option>';
-                                                }
-                                            }
-                                            if($current_group !== null) {
-                                                echo '</optgroup>';
-                                            }
-                                            
-                                            // Get user custom business categories
-                                            if($user_id > 0) {
-                                                $custom_cats_query = mysqli_query($connect, "
-                                                    SELECT id, category_name FROM user_custom_categories
-                                                    WHERE user_id = $user_id AND category_type = 'business-category' AND is_active = 1
-                                                    ORDER BY created_at DESC
-                                                ");
-                                                
-                                                if(mysqli_num_rows($custom_cats_query) > 0) {
-                                                    echo '<optgroup label="My Custom Categories">';
-                                                    while($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
-                                                        $selected = (!empty($cardRow['d_position_secondary']) && $cardRow['d_position_secondary'] == $custom_cat['id']) ? 'selected' : '';
-                                                        echo '<option value="' . intval($custom_cat['id']) . '" ' . $selected . '>[Custom] ' . htmlspecialchars($custom_cat['category_name']) . '</option>';
-                                                    }
-                                                    echo '</optgroup>';
-                                                }
-                                            }
-                                            ?>
+                                        <select name="d_position_secondary" id="d_position_secondary" class="form-control" style="flex: 1;" disabled>
+                                            <option value="">Select Business Profile Type first</option>
                                         </select>
                                         <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category">
                                             <i class="fa fa-plus" aria-hidden="true"></i>
@@ -1014,18 +944,42 @@ include '../includes/header.php';
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <input type="hidden" name="d_product_categories_json" id="d_product_categories_json" value="">
+                        <div id="product_category_cascade_panel" style="display:none;" aria-hidden="true"></div>
+                        <div class="row" id="step_business_profile_model_row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_business_type">Business Type</label>
-                                    <select name="d_business_type" id="d_business_type" class="form-control">
-                                        <option value="">-- Select Business Type --</option>
+                                    <label for="d_business_profile_type">Business Profile Type <span class="text-danger">*</span></label>
+                                    <select name="d_business_profile_type" id="d_business_profile_type" class="form-control" required>
+                                        <option value="" <?php echo empty($cardRow['d_business_profile_type']) ? 'selected' : ''; ?>>Choose which best describes your business?</option>
+                                        <?php
+                                        $saved_profile_type = isset($cardRow['d_business_profile_type']) ? trim($cardRow['d_business_profile_type']) : '';
+                                        foreach ($business_profile_type_options as $profile_type):
+                                            $sel = ($saved_profile_type !== '' && strcasecmp($saved_profile_type, $profile_type) === 0) ? ' selected' : '';
+                                        ?>
+                                        <option value="<?php echo htmlspecialchars($profile_type); ?>"<?php echo $sel; ?>><?php echo htmlspecialchars($profile_type); ?></option>
+                                        <?php endforeach; ?>
+                                        <?php if ($saved_profile_type !== '' && !in_array($saved_profile_type, $business_profile_type_options, true)): ?>
+                                        <option value="<?php echo htmlspecialchars($saved_profile_type); ?>" selected><?php echo htmlspecialchars($saved_profile_type); ?> (saved)</option>
+                                        <?php endif; ?>
+                                    </select>
+                                    
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="d_business_type">Business Model</label>
+                                    <select name="d_business_type" id="d_business_type" class="form-control" disabled>
+                                        <option value="">Choose What you offer?</option>
                                         <option value="product" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'product') ? 'selected' : ''; ?>>Product</option>
                                         <option value="service" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'service') ? 'selected' : ''; ?>>Service</option>
                                         <option value="hybrid" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'hybrid') ? 'selected' : ''; ?>>Hybrid (Product + Service)</option>
                                     </select>
+                                    
                                 </div>
                             </div>
+                        </div>
+                        <div class="row" id="step_business_operation_area_row">
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="d_business_operation_area">Business Operation Area</label>
@@ -1446,6 +1400,128 @@ include '../includes/header.php';
             syncOperationLocationsRow();
         }
     });
+})();
+</script>
+<script>
+window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init, JSON_UNESCAPED_UNICODE); ?>;
+</script>
+<script>
+(function() {
+    const AJAX_URL = '../../user/ajax/category_cascade.php';
+    const INIT = window.MW_CATEGORY_CASCADE_INIT || {};
+
+    const profileEl = document.getElementById('d_business_profile_type');
+    const modelEl = document.getElementById('d_business_type');
+    const primaryEl = document.getElementById('d_position_primary');
+    const secondaryEl = document.getElementById('d_position_secondary');
+    const productJsonEl = document.getElementById('d_product_categories_json');
+
+    if (!profileEl || !modelEl || !primaryEl || !secondaryEl) return;
+
+    // Step order: Profile Type → Business Model → Operation Area → States/Cities → Business Categories
+    const profileModelRow = document.getElementById('step_business_profile_model_row')
+        || profileEl.closest('.row');
+    const categoriesRow = primaryEl.closest('.row');
+    const locationsRow = document.getElementById('business_operation_locations_row');
+    if (profileModelRow && categoriesRow && profileModelRow.parentNode) {
+        const parent = categoriesRow.parentNode;
+        parent.insertBefore(profileModelRow, categoriesRow);
+        const opAreaRow = document.getElementById('step_business_operation_area_row')
+            || document.getElementById('d_business_operation_area')?.closest('.row');
+        if (opAreaRow) {
+            parent.insertBefore(opAreaRow, categoriesRow);
+        }
+        if (locationsRow) {
+            parent.insertBefore(locationsRow, categoriesRow);
+        }
+    }
+
+    function resetSelect(sel, placeholder, disabled) {
+        sel.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = placeholder;
+        sel.appendChild(opt);
+        sel.disabled = !!disabled;
+    }
+
+    function fillBusinessSelect(sel, categories, selectedId, placeholder) {
+        resetSelect(sel, placeholder, false);
+        let currentGroup = null;
+        let og = null;
+        categories.forEach(function(c) {
+            if (c.group && c.group !== currentGroup) {
+                if (og) sel.appendChild(og);
+                og = document.createElement('optgroup');
+                og.label = c.group;
+                currentGroup = c.group;
+            }
+            const opt = document.createElement('option');
+            opt.value = String(c.id);
+            opt.textContent = c.label;
+            if (selectedId && String(selectedId) === String(c.id)) opt.selected = true;
+            if (og) og.appendChild(opt);
+            else sel.appendChild(opt);
+        });
+        if (og) sel.appendChild(og);
+    }
+
+    async function fetchBusinessCategories(profileType) {
+        const url = AJAX_URL + '?action=business_categories&profile_type=' + encodeURIComponent(profileType);
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.success ? data.categories : [];
+    }
+
+    async function fetchProductCategories(primaryId, secondaryId) {
+        const params = new URLSearchParams({ action: 'product_categories' });
+        if (primaryId) params.set('primary_id', primaryId);
+        if (secondaryId) params.set('secondary_id', secondaryId);
+        const res = await fetch(AJAX_URL + '?' + params.toString());
+        const data = await res.json();
+        return data.success ? data.categories : [];
+    }
+
+    async function refreshProductCategories() {
+        const primaryId = primaryEl.value;
+        const secondaryId = secondaryEl.value;
+        if (!primaryId && !secondaryId) {
+            if (productJsonEl) productJsonEl.value = '';
+            return;
+        }
+        const products = await fetchProductCategories(primaryId, secondaryId);
+        if (productJsonEl) productJsonEl.value = JSON.stringify(products);
+    }
+
+    async function onProfileTypeChange() {
+        const profileType = profileEl.value.trim();
+        if (!profileType) {
+            modelEl.disabled = true;
+            resetSelect(primaryEl, 'Select Business Profile Type first', true);
+            resetSelect(secondaryEl, 'Select Business Profile Type first', true);
+            if (productJsonEl) productJsonEl.value = '';
+            return;
+        }
+        modelEl.disabled = false;
+        const categories = await fetchBusinessCategories(profileType);
+        fillBusinessSelect(primaryEl, categories, '', '-- Select Primary Category --');
+        fillBusinessSelect(secondaryEl, categories, '', '-- Select Secondary Category (Optional) --');
+        if (productJsonEl) productJsonEl.value = '';
+    }
+
+    profileEl.addEventListener('change', onProfileTypeChange);
+    primaryEl.addEventListener('change', refreshProductCategories);
+    secondaryEl.addEventListener('change', refreshProductCategories);
+
+    if (INIT.profile_type) {
+        profileEl.value = INIT.profile_type;
+        modelEl.disabled = false;
+        fetchBusinessCategories(INIT.profile_type).then(function(categories) {
+            fillBusinessSelect(primaryEl, categories, INIT.primary_id || '', '-- Select Primary Category --');
+            fillBusinessSelect(secondaryEl, categories, INIT.secondary_id || '', '-- Select Secondary Category (Optional) --');
+            refreshProductCategories();
+        });
+    }
 })();
 </script>
 <?php

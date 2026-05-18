@@ -12,6 +12,7 @@ if($is_ajax && isset($_POST['product'])) {
 // Handle card_number from URL, session, or cookie
 // MUST be done before any output (before including header.php)
 require_once(__DIR__ . '/../../app/config/database.php');
+require_once(__DIR__ . '/../../app/includes/product_categories_helper.php');
 
 // Handle AJAX request to get product names by category
 if($is_ajax && isset($_GET['action']) && $_GET['action'] == 'get_product_names') {
@@ -20,20 +21,22 @@ if($is_ajax && isset($_GET['action']) && $_GET['action'] == 'get_product_names')
     if(isset($_GET['category_id'])) {
         $category_id = intval($_GET['category_id']);
         
-        // Preset titles under a product category: admin uses product-name or service (see admin/category_add.php)
-        $query = "SELECT id, category_name FROM product_categories 
-                 WHERE parent_id = $category_id AND is_active = 1 
-                 AND category_type IN ('product-name', 'service')
-                 ORDER BY display_order, category_name ASC";
-        
-        $result = mysqli_query($connect, $query);
+        // Legacy hierarchical schema only (flat schema uses free-text product title in modal).
         $products = [];
-        
-        while($row = mysqli_fetch_assoc($result)) {
-            $products[] = [
-                'id' => $row['id'],
-                'name' => htmlspecialchars($row['category_name'])
-            ];
+        if (!productCategoriesIsFlatSchema($connect)) {
+            $query = "SELECT id, category_name FROM product_categories 
+                     WHERE parent_id = $category_id AND is_active = 1 
+                     AND category_type IN ('product-name', 'service')
+                     ORDER BY display_order, category_name ASC";
+            $result = mysqli_query($connect, $query);
+            if ($result) {
+                while ($row = mysqli_fetch_assoc($result)) {
+                    $products[] = [
+                        'id' => $row['id'],
+                        'name' => htmlspecialchars($row['category_name']),
+                    ];
+                }
+            }
         }
         
         echo json_encode([
@@ -750,21 +753,10 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                     $prod_category_raw = '';
                                     $prod_category_source = !empty($prod['category_source']) ? trim($prod['category_source']) : 'system';
                                     $prod_user_id = !empty($prod['user_id']) ? intval($prod['user_id']) : $user_id;
-                                    if($prod_category_id) {
-                                        if($prod_category_source === 'custom') {
-                                            $ucc_query = mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id = $prod_category_id AND user_id = $prod_user_id AND is_active = 1 LIMIT 1");
-                                            if($ucc_query && mysqli_num_rows($ucc_query) > 0) {
-                                                $ucc_row = mysqli_fetch_assoc($ucc_query);
-                                                $prod_category_raw = $ucc_row['category_name'];
-                                                $prod_category = htmlspecialchars($prod_category_raw);
-                                            }
-                                        } else {
-                                            $cat_query = mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id = $prod_category_id LIMIT 1");
-                                            if($cat_query && mysqli_num_rows($cat_query) > 0) {
-                                                $cat_row = mysqli_fetch_assoc($cat_query);
-                                                $prod_category_raw = $cat_row['category_name'];
-                                                $prod_category = htmlspecialchars($prod_category_raw);
-                                            }
+                                    if ($prod_category_id) {
+                                        $prod_category_raw = getStoredProductCategoryLabel($connect, $prod_category_id, $prod_category_source, $prod_user_id);
+                                        if ($prod_category_raw !== '') {
+                                            $prod_category = htmlspecialchars($prod_category_raw);
                                         }
                                     }
                                     
@@ -918,18 +910,8 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                                 $selected_business_category_ids = array_values(array_unique($selected_business_category_ids));
 
                                 if(!empty($selected_business_category_ids)) {
-                                    $parent_ids_sql = implode(',', $selected_business_category_ids);
-                                    $child_cats_query = mysqli_query($connect, "
-                                        SELECT id, category_name, display_order 
-                                        FROM product_categories 
-                                        WHERE parent_id IN ($parent_ids_sql)
-                                        AND is_active = 1
-                                        AND category_type = 'product-category'
-                                        ORDER BY display_order ASC, category_name ASC
-                                    ");
-                                    
-                                    while($cat = mysqli_fetch_assoc($child_cats_query)) {
-                                        echo '<option value="s_' . intval($cat['id']) . '">' . htmlspecialchars($cat['category_name']) . '</option>';
+                                    foreach (getProductCategoriesForBusinessIds($connect, $selected_business_category_ids) as $cat) {
+                                        echo '<option value="s_' . intval($cat['id']) . '">' . htmlspecialchars($cat['label']) . '</option>';
                                     }
                                     
                                     // Get user ID for custom categories

@@ -351,6 +351,7 @@ if (!empty($card_id_slug)) {
     $db_config = __DIR__ . '/app/config/database.php';
     if (file_exists($db_config)) {
         require_once $db_config;
+        require_once __DIR__ . '/app/includes/product_categories_helper.php';
         $card_id_esc = mysqli_real_escape_string($connect, $card_id_slug);
         // Support both: slug (card_id) and numeric id (from card_number in URL)
         if (ctype_digit($card_id_slug)) {
@@ -628,15 +629,12 @@ if ($row) {
     }
     $products_by_cat = [];
     $cat_display_names = [];
+    $prod_cat_case_sql = function_exists('buildProductPricingCategoryNameCaseSql')
+        ? buildProductPricingCategoryNameCaseSql($connect)
+        : "CASE WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name ELSE pc.category_name END as category_name";
     $prod_query = mysqli_query($connect, "
         SELECT pp.*,
-            CASE
-                WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name
-                WHEN (pp.category_source = 'system' OR pp.category_source IS NULL OR pp.category_source = '') AND pc.category_name IS NOT NULL THEN pc.category_name
-                ELSE COALESCE(ucc.category_name, pc.category_name,
-                    CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
-                )
-            END as category_name
+            $prod_cat_case_sql
         FROM card_product_pricing pp
         LEFT JOIN product_categories pc ON pp.product_category = pc.id
         LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.user_id = pp.user_id AND ucc.is_active = 1
@@ -780,6 +778,10 @@ if ($row) {
     $db_config = __DIR__ . '/app/config/database.php';
     if (file_exists($db_config)) {
         require_once $db_config;
+        require_once __DIR__ . '/app/includes/product_categories_helper.php';
+        $demo_cat_case_sql = function_exists('buildProductPricingCategoryNameCaseSql')
+            ? buildProductPricingCategoryNameCaseSql($connect)
+            : "CASE WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name ELSE pc.category_name END as category_name";
         $demo_card_query = mysqli_query($connect, "SELECT pp.card_id FROM card_product_pricing pp INNER JOIN digi_card dc ON dc.id = pp.card_id ORDER BY pp.card_id ASC");
         if ($demo_card_query && $dc = mysqli_fetch_assoc($demo_card_query)) {
             $card_db_id = intval($dc['card_id']);
@@ -789,13 +791,7 @@ if ($row) {
             }
             $prod_query = mysqli_query($connect, "
                 SELECT pp.*,
-                    CASE
-                        WHEN pp.category_source = 'custom' AND ucc.category_name IS NOT NULL THEN ucc.category_name
-                        WHEN (pp.category_source = 'system' OR pp.category_source IS NULL OR pp.category_source = '') AND pc.category_name IS NOT NULL THEN pc.category_name
-                        ELSE COALESCE(ucc.category_name, pc.category_name,
-                            CASE WHEN pp.product_category IS NOT NULL AND pp.product_category > 0 THEN CONCAT('Category ', pp.product_category) ELSE NULL END
-                        )
-                    END as category_name
+                    $demo_cat_case_sql
                 FROM card_product_pricing pp
                 LEFT JOIN product_categories pc ON pp.product_category = pc.id
                 LEFT JOIN user_custom_categories ucc ON pp.product_category = ucc.id AND ucc.user_id = pp.user_id AND ucc.is_active = 1
@@ -893,37 +889,22 @@ function mw_vcard_resolve_business_category_name($connect, $category_id, $user_i
     if ($category_id <= 0 || !$connect) {
         return '';
     }
-    $id_esc = mysqli_real_escape_string($connect, (string) $category_id);
-    $q = @mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id='$id_esc' AND category_type='business-category' AND is_active=1 LIMIT 1");
-    if ($q && ($r = mysqli_fetch_assoc($q))) {
-        $name = trim((string) ($r['category_name'] ?? ''));
+    static $helper_loaded = false;
+    if (!$helper_loaded) {
+        $helper_path = __DIR__ . '/app/includes/product_categories_helper.php';
+        if (file_exists($helper_path)) {
+            require_once $helper_path;
+        }
+        $helper_loaded = true;
+    }
+    if (function_exists('getBusinessCategoryNameById')) {
+        $name = getBusinessCategoryNameById($connect, $category_id);
         if ($name !== '') {
             return $name;
         }
     }
-    // Fallback for older rows where category_type may be empty/missing.
-    $q_fallback = @mysqli_query($connect, "SELECT category_name FROM product_categories WHERE id='$id_esc' AND is_active=1 LIMIT 1");
-    if ($q_fallback && ($r_fb = mysqli_fetch_assoc($q_fallback))) {
-        $name_fb = trim((string) ($r_fb['category_name'] ?? ''));
-        if ($name_fb !== '') {
-            return $name_fb;
-        }
-    }
-    $uid = intval($user_id);
-    if ($uid <= 0) {
-        return '';
-    }
-    $uid_esc = mysqli_real_escape_string($connect, (string) $uid);
-    $q2 = @mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id='$id_esc' AND user_id='$uid_esc' AND category_type='business-category' AND is_active=1 LIMIT 1");
-    if ($q2 && ($r2 = mysqli_fetch_assoc($q2))) {
-        $name2 = trim((string) ($r2['category_name'] ?? ''));
-        if ($name2 !== '') {
-            return $name2;
-        }
-    }
-    $q2_fallback = @mysqli_query($connect, "SELECT category_name FROM user_custom_categories WHERE id='$id_esc' AND user_id='$uid_esc' AND is_active=1 LIMIT 1");
-    if ($q2_fallback && ($r2_fb = mysqli_fetch_assoc($q2_fallback))) {
-        return trim((string) ($r2_fb['category_name'] ?? ''));
+    if (function_exists('getCustomBusinessCategoryNameById')) {
+        return getCustomBusinessCategoryNameById($connect, $category_id, $user_id);
     }
     return '';
 }
