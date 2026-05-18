@@ -1,6 +1,6 @@
 
 $(document).ready(function () {
-    $(".upload-profile span").click(function (e) {
+    $(".upload-profile .profile-text, .upload-profile .profile-name-line").click(function (e) {
         e.preventDefault(); // Prevent default action if inside an <a> tag
         $(this).closest(".nav-item").find(".dropdown-menu").slideToggle(); // Toggle dropdown
     });

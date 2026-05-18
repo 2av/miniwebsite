@@ -283,10 +283,14 @@ if (!empty($_SESSION['user_email'])) {
 $category_cascade_init = [
     'profile_type' => isset($cardRow['d_business_profile_type']) ? trim($cardRow['d_business_profile_type']) : '',
     'business_model' => isset($cardRow['d_business_type']) ? trim($cardRow['d_business_type']) : '',
+    'operation_area' => isset($cardRow['d_business_operation_area']) ? trim($cardRow['d_business_operation_area']) : '',
     'primary_id' => !empty($cardRow['d_position_primary']) ? (int) $cardRow['d_position_primary'] : '',
     'secondary_id' => !empty($cardRow['d_position_secondary']) ? (int) $cardRow['d_position_secondary'] : '',
     'user_id' => $company_details_user_id,
 ];
+$cascade_has_profile = $category_cascade_init['profile_type'] !== '';
+$cascade_has_model = $cascade_has_profile && $category_cascade_init['business_model'] !== '';
+$cascade_has_operation_area = $cascade_has_model && $category_cascade_init['operation_area'] !== '';
 
 // Handle form submission
 if(isset($_POST['process2'])){
@@ -536,9 +540,21 @@ if(isset($_POST['process2'])){
         ensureColumnExists($connect, 'digi_card', 'd_hero_image_location', "VARCHAR(500) DEFAULT ''");
         ensurePreviousSlugMetaColumns($connect);
 
-        // Sanitize new fields (fall back to empty string when not provided) - now storing as ID
-        $d_position_primary = (isset($_POST['d_position_primary']) && $_POST['d_position_primary'] !== '') ? intval($_POST['d_position_primary']) : null;
-        $d_position_secondary = (isset($_POST['d_position_secondary']) && $_POST['d_position_secondary'] !== '') ? intval($_POST['d_position_secondary']) : null;
+        // Sanitize category IDs (0 = none). Disabled selects are omitted from POST — keep saved values.
+        if (isset($_POST['d_position_primary'])) {
+            $d_position_primary = ($_POST['d_position_primary'] !== '') ? (int) $_POST['d_position_primary'] : 0;
+        } elseif (!empty($cardRow['d_position_primary'])) {
+            $d_position_primary = (int) $cardRow['d_position_primary'];
+        } else {
+            $d_position_primary = 0;
+        }
+        if (isset($_POST['d_position_secondary'])) {
+            $d_position_secondary = ($_POST['d_position_secondary'] !== '') ? (int) $_POST['d_position_secondary'] : 0;
+        } elseif (!empty($cardRow['d_position_secondary'])) {
+            $d_position_secondary = (int) $cardRow['d_position_secondary'];
+        } else {
+            $d_position_secondary = 0;
+        }
         $d_city = isset($_POST['d_city']) ? mysqli_real_escape_string($connect, $_POST['d_city']) : '';
         $d_state = isset($_POST['d_state']) ? mysqli_real_escape_string($connect, $_POST['d_state']) : '';
         $d_pincode = isset($_POST['d_pincode']) ? mysqli_real_escape_string($connect, $_POST['d_pincode']) : '';
@@ -565,7 +581,14 @@ if(isset($_POST['process2'])){
         $d_business_operation_locations = '';
 
         $form_validation_error = '';
-        if ($d_business_operation_area === 'selected') {
+        if ($d_business_profile_type === '') {
+            $form_validation_error = 'Please select Business Profile Type.';
+        } elseif ($d_business_type === '') {
+            $form_validation_error = 'Please select Business Model.';
+        } elseif ($d_business_operation_area === '') {
+            $form_validation_error = 'Please select Business Operation Area.';
+        }
+        if ($form_validation_error === '' && $d_business_operation_area === 'selected') {
             if (trim($d_business_operation_locations_raw) === '') {
                 $form_validation_error = 'Please select at least one state when "Selected Cities / States" is chosen.';
             } else {
@@ -733,8 +756,8 @@ if(isset($_POST['process2'])){
             $error_message = '<div class="alert alert-danger">' . htmlspecialchars($form_validation_error) . '</div>';
             $update = false;
         } else {
-            $d_position_primary_sql = ($d_position_primary === null) ? 'NULL' : (string)$d_position_primary;
-            $d_position_secondary_sql = ($d_position_secondary === null) ? 'NULL' : (string)$d_position_secondary;
+            $d_position_primary_sql = (string) max(0, (int) $d_position_primary);
+            $d_position_secondary_sql = (string) max(0, (int) $d_position_secondary);
             $update = mysqli_query($connect, 'UPDATE digi_card SET 
         d_f_name="'.mysqli_real_escape_string($connect, $_POST['d_f_name']).'",
         d_l_name="'.mysqli_real_escape_string($connect, $_POST['d_l_name']).'",
@@ -920,10 +943,10 @@ include '../includes/header.php';
                                     <label for="d_position_primary">Business Category (Primary) <span class="text-danger">*</span></label>
                                     
                                     <div style="display: flex; gap: 10px;">
-                                        <select name="d_position_primary" id="d_position_primary" class="form-control" style="flex: 1;" disabled required>
-                                            <option value="">Select Business Profile Type first</option>
+                                        <select name="d_position_primary" id="d_position_primary" class="form-control mw-cascade-field" style="flex: 1;" disabled<?php echo $cascade_has_operation_area ? ' required' : ''; ?>>
+                                            <option value="">Select Business Operation Area first</option>
                                         </select>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category">
+                                        <button type="button" id="btn_custom_category_primary" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category"<?php echo $cascade_has_operation_area ? '' : ' disabled'; ?>>
                                             <i class="fa fa-plus" aria-hidden="true"></i>
                                         </button>
                                     </div>
@@ -934,10 +957,10 @@ include '../includes/header.php';
                                     <label for="d_position_secondary">Business Category (Secondary)</label>
                                     
                                     <div style="display: flex; gap: 10px;">
-                                        <select name="d_position_secondary" id="d_position_secondary" class="form-control" style="flex: 1;" disabled>
-                                            <option value="">Select Business Profile Type first</option>
+                                        <select name="d_position_secondary" id="d_position_secondary" class="form-control mw-cascade-field" style="flex: 1;" disabled>
+                                            <option value="">Select Business Operation Area first</option>
                                         </select>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category">
+                                        <button type="button" id="btn_custom_category_secondary" class="btn btn-outline-primary btn-sm" onclick="openCustomBusinessCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Category"<?php echo $cascade_has_operation_area ? '' : ' disabled'; ?>>
                                             <i class="fa fa-plus" aria-hidden="true"></i>
                                         </button>
                                     </div>
@@ -968,9 +991,9 @@ include '../includes/header.php';
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_business_type">Business Model</label>
-                                    <select name="d_business_type" id="d_business_type" class="form-control" disabled>
-                                        <option value="">Choose What you offer?</option>
+                                    <label for="d_business_type">Business Model <span class="text-danger">*</span></label>
+                                    <select name="d_business_type" id="d_business_type" class="form-control mw-cascade-field"<?php echo $cascade_has_profile ? '' : ' disabled'; ?><?php echo $cascade_has_profile ? ' required' : ''; ?>>
+                                        <option value=""><?php echo $cascade_has_profile ? 'Choose What you offer?' : 'Select Business Profile Type first'; ?></option>
                                         <option value="product" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'product') ? 'selected' : ''; ?>>Product</option>
                                         <option value="service" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'service') ? 'selected' : ''; ?>>Service</option>
                                         <option value="hybrid" <?php echo (isset($cardRow['d_business_type']) && $cardRow['d_business_type'] === 'hybrid') ? 'selected' : ''; ?>>Hybrid (Product + Service)</option>
@@ -982,9 +1005,9 @@ include '../includes/header.php';
                         <div class="row" id="step_business_operation_area_row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label for="d_business_operation_area">Business Operation Area</label>
-                                    <select name="d_business_operation_area" id="d_business_operation_area" class="form-control">
-                                        <option value="">-- Select Operation Area --</option>
+                                    <label for="d_business_operation_area">Business Operation Area <span class="text-danger">*</span></label>
+                                    <select name="d_business_operation_area" id="d_business_operation_area" class="form-control mw-cascade-field"<?php echo $cascade_has_model ? '' : ' disabled'; ?><?php echo $cascade_has_model ? ' required' : ''; ?>>
+                                        <option value=""><?php echo $cascade_has_model ? '-- Select Operation Area --' : 'Select Business Model first'; ?></option>
                                         <option value="local" <?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'local') ? 'selected' : ''; ?>>Local Area (Within City)</option>
                                         <option value="pan_india" <?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'pan_india') ? 'selected' : ''; ?>>Across India (Pan India Service)</option>
                                         <option value="selected" <?php echo (isset($cardRow['d_business_operation_area']) && $cardRow['d_business_operation_area'] === 'selected') ? 'selected' : ''; ?>>Selected Cities / States</option>
@@ -1412,11 +1435,14 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
 
     const profileEl = document.getElementById('d_business_profile_type');
     const modelEl = document.getElementById('d_business_type');
+    const opAreaEl = document.getElementById('d_business_operation_area');
     const primaryEl = document.getElementById('d_position_primary');
     const secondaryEl = document.getElementById('d_position_secondary');
     const productJsonEl = document.getElementById('d_product_categories_json');
+    const btnCategoryPrimary = document.getElementById('btn_custom_category_primary');
+    const btnCategorySecondary = document.getElementById('btn_custom_category_secondary');
 
-    if (!profileEl || !modelEl || !primaryEl || !secondaryEl) return;
+    if (!profileEl || !modelEl || !opAreaEl || !primaryEl || !secondaryEl) return;
 
     // Step order: Profile Type → Business Model → Operation Area → States/Cities → Business Categories
     const profileModelRow = document.getElementById('step_business_profile_model_row')
@@ -1427,7 +1453,7 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
         const parent = categoriesRow.parentNode;
         parent.insertBefore(profileModelRow, categoriesRow);
         const opAreaRow = document.getElementById('step_business_operation_area_row')
-            || document.getElementById('d_business_operation_area')?.closest('.row');
+            || opAreaEl.closest('.row');
         if (opAreaRow) {
             parent.insertBefore(opAreaRow, categoriesRow);
         }
@@ -1436,13 +1462,37 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
         }
     }
 
-    function resetSelect(sel, placeholder, disabled) {
+    function setPlaceholderOption(sel, text) {
+        if (!sel || !sel.options.length) return;
+        sel.options[0].textContent = text;
+    }
+
+    function setFieldLocked(el, locked, opts) {
+        opts = opts || {};
+        if (!el) return;
+        el.disabled = !!locked;
+        el.classList.toggle('mw-cascade-locked', !!locked);
+        const fg = el.closest('.form-group');
+        if (fg) fg.classList.toggle('mw-field-locked', !!locked);
+        if (opts.requiredWhenUnlocked) {
+            if (locked) el.removeAttribute('required');
+            else el.setAttribute('required', 'required');
+        }
+    }
+
+    function setCategoryButtonsLocked(locked) {
+        [btnCategoryPrimary, btnCategorySecondary].forEach(function(btn) {
+            if (btn) btn.disabled = !!locked;
+        });
+    }
+
+    function resetSelect(sel, placeholder, locked) {
         sel.innerHTML = '';
         const opt = document.createElement('option');
         opt.value = '';
         opt.textContent = placeholder;
         sel.appendChild(opt);
-        sel.disabled = !!disabled;
+        setFieldLocked(sel, locked, { requiredWhenUnlocked: sel === primaryEl });
     }
 
     function fillBusinessSelect(sel, categories, selectedId, placeholder) {
@@ -1464,6 +1514,7 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
             else sel.appendChild(opt);
         });
         if (og) sel.appendChild(og);
+        setFieldLocked(sel, false, { requiredWhenUnlocked: sel === primaryEl });
     }
 
     async function fetchBusinessCategories(profileType) {
@@ -1493,34 +1544,134 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
         if (productJsonEl) productJsonEl.value = JSON.stringify(products);
     }
 
-    async function onProfileTypeChange() {
-        const profileType = profileEl.value.trim();
-        if (!profileType) {
-            modelEl.disabled = true;
-            resetSelect(primaryEl, 'Select Business Profile Type first', true);
-            resetSelect(secondaryEl, 'Select Business Profile Type first', true);
-            if (productJsonEl) productJsonEl.value = '';
-            return;
-        }
-        modelEl.disabled = false;
-        const categories = await fetchBusinessCategories(profileType);
-        fillBusinessSelect(primaryEl, categories, '', '-- Select Primary Category --');
-        fillBusinessSelect(secondaryEl, categories, '', '-- Select Secondary Category (Optional) --');
+    function lockCategories() {
+        resetSelect(primaryEl, 'Select Business Operation Area first', true);
+        resetSelect(secondaryEl, 'Select Business Operation Area first', true);
+        setCategoryButtonsLocked(true);
         if (productJsonEl) productJsonEl.value = '';
     }
 
+    function lockOperationArea() {
+        opAreaEl.value = '';
+        setFieldLocked(opAreaEl, true, { requiredWhenUnlocked: true });
+        setPlaceholderOption(opAreaEl, 'Select Business Model first');
+        lockCategories();
+        opAreaEl.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function lockBusinessModel() {
+        modelEl.value = '';
+        setFieldLocked(modelEl, true, { requiredWhenUnlocked: true });
+        setPlaceholderOption(modelEl, 'Select Business Profile Type first');
+        lockOperationArea();
+    }
+
+    async function onOperationAreaChange() {
+        const profileType = profileEl.value.trim();
+        const opArea = opAreaEl.value.trim();
+        if (!profileType || !modelEl.value.trim() || !opArea) {
+            lockCategories();
+            return;
+        }
+        const categories = await fetchBusinessCategories(profileType);
+        fillBusinessSelect(primaryEl, categories, '', '-- Select Primary Category --');
+        fillBusinessSelect(secondaryEl, categories, '', '-- Select Secondary Category (Optional) --');
+        setCategoryButtonsLocked(false);
+        if (productJsonEl) productJsonEl.value = '';
+    }
+
+    let lastProfileType = INIT.profile_type || '';
+    let lastBusinessModel = INIT.business_model || '';
+
+    function onBusinessModelChange() {
+        const model = modelEl.value.trim();
+        if (!model) {
+            lastBusinessModel = '';
+            lockOperationArea();
+            return;
+        }
+        const modelChanged = lastBusinessModel !== '' && lastBusinessModel !== model;
+        lastBusinessModel = model;
+        setFieldLocked(opAreaEl, false, { requiredWhenUnlocked: true });
+        setPlaceholderOption(opAreaEl, '-- Select Operation Area --');
+        if (modelChanged) {
+            opAreaEl.value = '';
+            lockCategories();
+            opAreaEl.dispatchEvent(new Event('change', { bubbles: true }));
+            return;
+        }
+        if (!opAreaEl.value.trim()) {
+            lockCategories();
+        } else {
+            onOperationAreaChange();
+        }
+    }
+
+    function onProfileTypeChange() {
+        const profileType = profileEl.value.trim();
+        if (!profileType) {
+            lastProfileType = '';
+            lockBusinessModel();
+            return;
+        }
+        const profileChanged = lastProfileType !== '' && lastProfileType !== profileType;
+        lastProfileType = profileType;
+        setFieldLocked(modelEl, false, { requiredWhenUnlocked: true });
+        setPlaceholderOption(modelEl, 'Choose What you offer?');
+        if (profileChanged) {
+            modelEl.value = '';
+            lastBusinessModel = '';
+            lockOperationArea();
+            return;
+        }
+        if (!modelEl.value.trim()) {
+            lockOperationArea();
+        } else {
+            onBusinessModelChange();
+        }
+    }
+
     profileEl.addEventListener('change', onProfileTypeChange);
+    modelEl.addEventListener('change', onBusinessModelChange);
+    opAreaEl.addEventListener('change', onOperationAreaChange);
     primaryEl.addEventListener('change', refreshProductCategories);
     secondaryEl.addEventListener('change', refreshProductCategories);
 
+    const cardForm = document.getElementById('card_form');
+    if (cardForm) {
+        cardForm.addEventListener('submit', function() {
+            [modelEl, opAreaEl, primaryEl, secondaryEl].forEach(function(el) {
+                if (el) el.disabled = false;
+            });
+        });
+    }
+
+    // Initial locked visuals for saved or empty state
+    setFieldLocked(modelEl, modelEl.disabled, { requiredWhenUnlocked: true });
+    setFieldLocked(opAreaEl, opAreaEl.disabled, { requiredWhenUnlocked: true });
+    setFieldLocked(primaryEl, primaryEl.disabled, { requiredWhenUnlocked: true });
+    setFieldLocked(secondaryEl, secondaryEl.disabled, { requiredWhenUnlocked: false });
+    setCategoryButtonsLocked(primaryEl.disabled);
+
     if (INIT.profile_type) {
         profileEl.value = INIT.profile_type;
-        modelEl.disabled = false;
-        fetchBusinessCategories(INIT.profile_type).then(function(categories) {
-            fillBusinessSelect(primaryEl, categories, INIT.primary_id || '', '-- Select Primary Category --');
-            fillBusinessSelect(secondaryEl, categories, INIT.secondary_id || '', '-- Select Secondary Category (Optional) --');
-            refreshProductCategories();
-        });
+        setFieldLocked(modelEl, false, { requiredWhenUnlocked: true });
+        setPlaceholderOption(modelEl, 'Choose What you offer?');
+        if (INIT.business_model) {
+            modelEl.value = INIT.business_model;
+            setFieldLocked(opAreaEl, false, { requiredWhenUnlocked: true });
+            setPlaceholderOption(opAreaEl, '-- Select Operation Area --');
+            if (INIT.operation_area) {
+                opAreaEl.value = INIT.operation_area;
+                opAreaEl.dispatchEvent(new Event('change', { bubbles: true }));
+                fetchBusinessCategories(INIT.profile_type).then(function(categories) {
+                    fillBusinessSelect(primaryEl, categories, INIT.primary_id || '', '-- Select Primary Category --');
+                    fillBusinessSelect(secondaryEl, categories, INIT.secondary_id || '', '-- Select Secondary Category (Optional) --');
+                    setCategoryButtonsLocked(false);
+                    refreshProductCategories();
+                });
+            }
+        }
     }
 })();
 </script>
@@ -2595,8 +2746,25 @@ padding-bottom:0px;
         cursor: pointer;
     }
 
-    select.form-control:disabled {
+    select.form-control:disabled,
+    select.form-control.mw-cascade-locked {
         background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    }
+
+    select.mw-cascade-field:disabled,
+    select.mw-cascade-field.mw-cascade-locked {
+        background-color: #e9ecef !important;
+        color: #6c757d !important;
+        cursor: not-allowed !important;
+        border-color: #ced4da;
+        opacity: 1;
+    }
+    .form-group.mw-field-locked > label {
+        color: #6c757d;
+    }
+    .form-group.mw-field-locked .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
     }
 
     /* Business hours: align delete control with inputs (no extra form-group offset) */
@@ -2877,6 +3045,10 @@ padding-bottom:0px;
 
 <script>
 function openCustomBusinessCategoryModal() {
+    var primaryEl = document.getElementById('d_position_primary');
+    if (primaryEl && primaryEl.disabled) {
+        return;
+    }
     var nameField = document.getElementById('custom_business_category_name');
     if(nameField) nameField.value = '';
     

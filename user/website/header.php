@@ -71,6 +71,41 @@ if (!empty($user_email) && !empty($current_role) && isset($connect)) {
         $stmt->close();
     }
 }
+
+// MW ID (digi_card.id) for profile header
+$mw_id = null;
+if (!empty($user_email) && isset($connect)) {
+    $card_in_process = null;
+    if (!empty($_SESSION['card_id_inprocess'])) {
+        $card_in_process = (int)$_SESSION['card_id_inprocess'];
+    } elseif (!empty($_COOKIE['card_id_inprocess'])) {
+        $card_in_process = (int)$_COOKIE['card_id_inprocess'];
+    }
+    if ($card_in_process > 0) {
+        $stmt = $connect->prepare("SELECT id FROM digi_card WHERE id = ? AND user_email = ? LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param("is", $card_in_process, $user_email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && ($row = $res->fetch_assoc())) {
+                $mw_id = (int)$row['id'];
+            }
+            $stmt->close();
+        }
+    }
+    if ($mw_id === null) {
+        $stmt = $connect->prepare("SELECT id FROM digi_card WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param("s", $user_email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && ($row = $res->fetch_assoc())) {
+                $mw_id = (int)$row['id'];
+            }
+            $stmt->close();
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -111,12 +146,15 @@ if (!empty($user_email) && !empty($current_role) && isset($connect)) {
                         <div class="upload-profile">
                             <div class="circle">
                                 <img class="profile-pic" src="<?php echo htmlspecialchars($user_image); ?>" alt="" srcset=""> 
-                                <span>
-                                    <?php 
-                                    echo isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : 'Guest'; 
-                                    ?> 
-                                    <i class="fa fa-angle-double-down"></i>
-                                </span>
+                                <div class="profile-text">
+                                    <div class="profile-name-line">
+                                        <?php echo isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : 'Guest'; ?>
+                                        <i class="fa fa-angle-double-down"></i>
+                                    </div>
+                                    <?php if (!empty($mw_id)): ?>
+                                    <span class="profile-mw-id">MW ID: MW<?php echo (int)$mw_id; ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="p-image" title="Click to upload profile image (Max: 250KB, Formats: JPG, PNG, GIF)">
                                 <img src="../../../assets/images/camera.png" class="upload-button img-fluid" alt="">

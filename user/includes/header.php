@@ -111,6 +111,45 @@ if (!empty($user_email) && !empty($current_role) && isset($connect)) {
     }
 }
 
+// MW ID (digi_card.id) for profile header
+$mw_id = null;
+if (!empty($user_email) && isset($connect)) {
+    $card_in_process = null;
+    if (!empty($_SESSION['card_id_inprocess'])) {
+        $card_in_process = (int)$_SESSION['card_id_inprocess'];
+    } elseif (!empty($_COOKIE['card_id_inprocess'])) {
+        $card_in_process = (int)$_COOKIE['card_id_inprocess'];
+    }
+    if ($card_in_process > 0) {
+        $stmt = $connect->prepare("SELECT id FROM digi_card WHERE id = ? AND (user_email = ? OR f_user_email = ?) LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param("iss", $card_in_process, $user_email, $user_email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && ($row = $res->fetch_assoc())) {
+                $mw_id = (int)$row['id'];
+            }
+            $stmt->close();
+        }
+    }
+    if ($mw_id === null) {
+        if ($current_role === 'FRANCHISEE') {
+            $stmt = $connect->prepare("SELECT id FROM digi_card WHERE f_user_email = ? ORDER BY id DESC LIMIT 1");
+        } else {
+            $stmt = $connect->prepare("SELECT id FROM digi_card WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+        }
+        if ($stmt) {
+            $stmt->bind_param("s", $user_email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && ($row = $res->fetch_assoc())) {
+                $mw_id = (int)$row['id'];
+            }
+            $stmt->close();
+        }
+    }
+}
+
 // Dynamic site base URL for referral links (protocol + host from current request)
 $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'miniwebsite.in');
 ?>
@@ -199,13 +238,15 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                         <div class="upload-profile">
                             <div class="circle">
                                 <img class="profile-pic" src="<?php echo htmlspecialchars($user_image); ?>" alt="" srcset=""> 
-                                <span>
-                                    <?php 
-                                    echo htmlspecialchars($user_name ?? 'Guest'); 
-                                    ?> 
-
-                                    <i class="fa fa-angle-double-down"></i>
-                                </span>
+                                <div class="profile-text">
+                                    <div class="profile-name-line">
+                                        <?php echo htmlspecialchars($user_name ?? 'Guest'); ?>
+                                        <i class="fa fa-angle-double-down"></i>
+                                    </div>
+                                    <?php if (!empty($mw_id)): ?>
+                                    <span class="profile-mw-id">MW ID: MW<?php echo (int)$mw_id; ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="p-image" title="Click to upload profile image (Max: 250KB, Formats: JPG, PNG, GIF)">
                                 <img src="<?php echo $assets_base; ?>/assets/images/camera.png" class="upload-button img-fluid" alt="">
