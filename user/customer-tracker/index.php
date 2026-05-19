@@ -1,12 +1,16 @@
 <?php
-// Customer Tracker for TEAM members (copied from old/team/customer-tracker/index.php and adapted)
+// Customer Tracker for TEAM and FRANCHISEE members (copied from old/team/customer-tracker/index.php and adapted)
 
 // Include centralized database + helpers
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 
-// Require TEAM role
-require_role('TEAM', '/login/team.php');
+$current_role = get_current_user_role();
+if (!in_array($current_role, ['TEAM', 'FRANCHISEE'], true)) {
+    header('Location: /login/team.php');
+    exit;
+}
+$is_franchisee_tracker = ($current_role === 'FRANCHISEE');
 
 /**
  * Ensure customer tracker tables do NOT depend on legacy `team_members` table.
@@ -114,6 +118,38 @@ function ensureCustomerTrackerColumns(mysqli $connect): void {
 }
 
 /**
+ * Allow approached_for to be empty (franchisee visits do not require this field).
+ * Legacy DBs use ENUM which rejects '' — convert to nullable VARCHAR.
+ */
+function ensureApproachedForColumnAllowsEmpty(mysqli $connect): void {
+    $check = $connect->prepare("
+        SELECT COLUMN_TYPE, IS_NULLABLE
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'customer_tracker'
+          AND COLUMN_NAME = 'approached_for'
+        LIMIT 1
+    ");
+    if (!$check) {
+        return;
+    }
+    $check->execute();
+    $row = $check->get_result()->fetch_assoc();
+    $check->close();
+
+    if (!$row) {
+        @$connect->query("ALTER TABLE `customer_tracker` ADD COLUMN `approached_for` VARCHAR(150) NULL DEFAULT NULL AFTER `contact_number`");
+        return;
+    }
+
+    $columnType = strtolower((string)($row['COLUMN_TYPE'] ?? ''));
+    $isNullable = strtoupper((string)($row['IS_NULLABLE'] ?? '')) === 'YES';
+    if (strpos($columnType, 'enum') !== false || !$isNullable) {
+        @$connect->query("ALTER TABLE `customer_tracker` MODIFY COLUMN `approached_for` VARCHAR(150) NULL DEFAULT NULL");
+    }
+}
+
+/**
  * Map UI labels to DB-safe legacy values for approached_for.
  * Some databases still use old ENUM values.
  */
@@ -131,6 +167,7 @@ function normalizeApproachedForForDb(string $value): string {
 // Run FK migration before any insert/update
 ensureCustomerTrackerForeignKeys($connect);
 ensureCustomerTrackerColumns($connect);
+ensureApproachedForColumnAllowsEmpty($connect);
 
 // Get team member details from helpers/session
 $team_member_id = get_user_id();
@@ -148,7 +185,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $business_type  = trim($_POST['business_type']  ?? '');
         $business_type_custom = trim($_POST['business_type_custom'] ?? '');
         $contact_number = trim($_POST['contact_number'] ?? '');
-        $approached_for = normalizeApproachedForForDb(trim($_POST['approached_for'] ?? 'Franchise Sale'));
+        $approached_for = $is_franchisee_tracker
+            ? null
+            : normalizeApproachedForForDb(trim($_POST['approached_for'] ?? 'Franchise Sale'));
         $address        = trim($_POST['address']        ?? '');
         $date_visited   = trim($_POST['date_visited']   ?? '');
         $final_status   = trim($_POST['final_status']   ?? 'Followup Required');
@@ -168,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (empty($contact_number)) {
             $message = 'Contact number is required.';
             $message_type = 'danger';
-        } elseif (empty($approached_for)) {
+        } elseif (!$is_franchisee_tracker && empty($approached_for)) {
             $message = 'Approached For is required.';
             $message_type = 'danger';
         } elseif (empty($date_visited)) {
@@ -211,11 +250,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tracker_id        = intval($_POST['tracker_id'] ?? 0);
         $new_shop_name     = trim($_POST['shop_name']      ?? '');
         $new_contact_number= trim($_POST['contact_number'] ?? '');
-        $new_approached_for= normalizeApproachedForForDb(trim($_POST['approached_for'] ?? 'Franchise Sale'));
+        $new_approached_for = $is_franchisee_tracker
+            ? ''
+            : normalizeApproachedForForDb(trim($_POST['approached_for'] ?? 'Franchise Sale'));
         $new_address       = trim($_POST['address']        ?? '');
         
         if ($tracker_id > 0) {
-            // Get current record (edit only updates shop_name, contact_number, approached_for, address)
+            // Get current record (edit updates shop_name, contact_number, address; approached_for only for TEAM)
             $get_stmt = $connect->prepare('SELECT shop_name, contact_number, approached_for, address FROM customer_tracker WHERE id = ? AND team_member_id = ?');
             if ($get_stmt) {
                 $get_stmt->bind_param('ii', $tracker_id, $team_member_id);
@@ -229,10 +270,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $old_approached_for = $current['approached_for'] ?? '';
                     $old_address        = $current['address'] ?? '';
                     
-                    // Update only the four edit fields
-                    $update_stmt = $connect->prepare('UPDATE customer_tracker SET shop_name = ?, contact_number = ?, approached_for = ?, address = ? WHERE id = ? AND team_member_id = ?');
+                    if ($is_franchisee_tracker) {
+                        $update_stmt = $connect->prepare('UPDATE customer_tracker SET shop_name = ?, contact_number = ?, address = ? WHERE id = ? AND team_member_id = ?');
+                        if ($update_stmt) {
+                            $update_stmt->bind_param('sssii', $new_shop_name, $new_contact_number, $new_address, $tracker_id, $team_member_id);
+                        }
+                    } else {
+                        $update_stmt = $connect->prepare('UPDATE customer_tracker SET shop_name = ?, contact_number = ?, approached_for = ?, address = ? WHERE id = ? AND team_member_id = ?');
+                        if ($update_stmt) {
+                            $update_stmt->bind_param('ssssii', $new_shop_name, $new_contact_number, $new_approached_for, $new_address, $tracker_id, $team_member_id);
+                        }
+                    }
                     if ($update_stmt) {
-                        $update_stmt->bind_param('ssssii', $new_shop_name, $new_contact_number, $new_approached_for, $new_address, $tracker_id, $team_member_id);
                         if ($update_stmt->execute()) {
                             // Record history for changed fields only
                             if ($old_shop_name !== $new_shop_name) {
@@ -255,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     $history_stmt->close();
                                 }
                             }
-                            if ($old_approached_for !== $new_approached_for) {
+                            if (!$is_franchisee_tracker && $old_approached_for !== $new_approached_for) {
                                 $history_stmt = $connect->prepare('INSERT INTO customer_tracker_history (tracker_id, team_member_id, changed_field, old_value, new_value, change_type, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
                                 if ($history_stmt) {
                                     $changed_field = 'approached_for';
@@ -462,45 +511,11 @@ if ($stats_stmt) {
 }
 
 // Load business category list (same source as Primary Category on company-details)
-$business_type_options = [];
-$all_cats_query = mysqli_query($connect, "
-    SELECT c.id, c.category_name, c.parent_id, p.category_name AS parent_name
-    FROM product_categories c
-    LEFT JOIN product_categories p ON c.parent_id = p.id
-    WHERE c.is_active = 1 AND c.category_type = 'business-category'
-    ORDER BY p.display_order, c.display_order ASC
-");
-if ($all_cats_query) {
-    while ($cat = mysqli_fetch_assoc($all_cats_query)) {
-        if ($cat['parent_id'] !== null) {
-            $business_type_options[] = [
-                'value' => $cat['category_name'],
-                'label' => $cat['category_name'],
-                'group' => $cat['parent_name'] ?? 'Categories'
-            ];
-        }
-    }
-}
-
-if (!empty($team_member_id)) {
-    $custom_cats_query = mysqli_query($connect, "
-        SELECT category_name
-        FROM user_custom_categories
-        WHERE user_id = " . (int)$team_member_id . "
-          AND category_type = 'business-category'
-          AND is_active = 1
-        ORDER BY created_at DESC
-    ");
-    if ($custom_cats_query) {
-        while ($custom_cat = mysqli_fetch_assoc($custom_cats_query)) {
-            $business_type_options[] = [
-                'value' => $custom_cat['category_name'],
-                'label' => '[Custom] ' . $custom_cat['category_name'],
-                'group' => 'My Custom Categories'
-            ];
-        }
-    }
-}
+require_once(__DIR__ . '/../../app/includes/product_categories_helper.php');
+$business_type_options = getBusinessPrimaryCategoryOptions($connect, (int)($team_member_id ?? 0), [
+    'include_placeholder' => false,
+    'custom_value_mode' => 'name',
+]);
 
 // Function to get followups for a tracker record
 function getTrackerFollowups($connect, $tracker_id) {
@@ -561,14 +576,12 @@ function getTrackerFollowups($connect, $tracker_id) {
                 </div>
 
                 <!-- Statistics Section (same card style as dashboard quick action cards) -->
-                <div class="CustomerDashboard-head mb-4">
+                <div id="customerTrackerStats" class="CustomerDashboard-head mb-4 customer-tracker-stats">
                     <div class="row">
                         <div class="col-sm-3 top_section">
                             <a href="javascript:void(0)" style="text-decoration: none;">
                                 <div class="card">
-                                    <div class="img addNewCustomer">
-                                        <img class="img-fluid" src="<?php echo $assets_base; ?>/assets/images/AddNewCutomer.png" alt="">
-                                    </div>
+                                     
                                     <div class="content">
                                         <p>Total Joined <br><?php echo (int)($stats['joined_count'] ?? 0); ?></p>
                                     </div>
@@ -578,9 +591,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                         <div class="col-sm-3 top_section">
                             <a href="javascript:void(0)" style="text-decoration: none;">
                                 <div class="card">
-                                    <div class="img addNewCustomer">
-                                        <img class="img-fluid" src="<?php echo $assets_base; ?>/assets/images/AddNewCutomer.png" alt="">
-                                    </div>
+                                    
                                     <div class="content">
                                         <p>Not Interested <br><?php echo (int)($stats['not_interested_count'] ?? 0); ?></p>
                                     </div>
@@ -590,9 +601,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                         <div class="col-sm-3 top_section">
                             <a href="javascript:void(0)" style="text-decoration: none;">
                                 <div class="card">
-                                    <div class="img addNewCustomer">
-                                        <img class="img-fluid" src="<?php echo $assets_base; ?>/assets/images/AddNewCutomer.png" alt="">
-                                    </div>
+                                    
                                     <div class="content">
                                         <p>Followup Required <br><?php echo (int)($stats['followup_count'] ?? 0); ?></p>
                                     </div>
@@ -602,9 +611,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                         <div class="col-sm-3 top_section">
                             <a href="javascript:void(0)" style="text-decoration: none;">
                                 <div class="card">
-                                    <div class="img addNewCustomer">
-                                        <img class="img-fluid" src="<?php echo $assets_base; ?>/assets/images/AddNewCutomer.png" alt="">
-                                    </div>
+                                     
                                     <div class="content">
                                         <p>Total Customers <br><?php echo (int)($stats['total_records'] ?? 0); ?></p>
                                     </div>
@@ -622,6 +629,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                                 <label style="font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block;"><i class="fa fa-search"></i> Search by Name/Contact:</label>
                                 <input type="text" name="search" class="form-control" placeholder="Shop name or contact number" value="<?php echo htmlspecialchars($search_query); ?>">
                             </div>
+                            <?php if (!$is_franchisee_tracker): ?>
                             <div class="col-md-4 mb-0">
                                 <label style="font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block;">Approached For:</label>
                                 <select name="approached_for" class="form-control">
@@ -630,6 +638,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                                     <option value="MW Sales" <?php echo $filter_approached_for === 'MW Sales' ? 'selected' : ''; ?>>MW Sales</option>
                                 </select>
                             </div>
+                            <?php endif; ?>
                             <div class="col-md-2 d-flex align-items-end mb-0">
                                 <button type="submit" class="btn btn-primary w-100" style="margin-bottom: 0;"><i class="fa fa-search"></i> Search</button>
                             </div>
@@ -642,7 +651,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                     </form>
                 </div>
 
-                <div class="table-container">
+                <div id="customerTrackerTableWrap" class="table-container">
                     <?php if (empty($records)): ?>
                         <div class="text-center py-5">
                             <i class="fa fa-info-circle fa-3x text-muted mb-3"></i>
@@ -650,31 +659,32 @@ function getTrackerFollowups($connect, $tracker_id) {
                             <p class="text-muted">Click "Add Customer Visit" button to add your first visit.</p>
                         </div>
                     <?php else: ?>
-                        <table class="display table" style="text-align: center;">
+                        <table id="customerTrackerTable" class="display table customer-tracker-table">
                             <thead class="bg-secondary">
-                                <tr >
-                                    <th>Name</th>
-                                    <th>Business type</th>
+                                <tr>
+                                    <th class="ct-cell-wrap">Name</th>
+                                    <th class="ct-cell-wrap">Business type</th>
                                     <th>Person Name</th>
-                                    <th>Contact Number</th>
-                                    <th>Approached for</th>
-                                    <th>Address</th>
-                                    <th>Date Added</th>
-                                    <th>Follow-up Method</th>
+                                    <th class="ct-cell-nowrap">Contact Number</th>
+                                    <?php if (!$is_franchisee_tracker): ?><th class="ct-cell-wrap">Approached for</th><?php endif; ?>
+                                    <th class="ct-cell-address">Address</th>
+                                    <th class="ct-cell-date">Date Added</th>
+                                    <th class="ct-cell-wrap">Follow-up Method</th>
                                     <th>Demo diya</th>
-                                    <th>Final Status</th>
-                                    <th>Last Updated</th>
-                                    <th>Action</th>
+                                    <th class="ct-cell-wrap">Final Status</th>
+                                    <th class="ct-cell-date">Last Updated</th>
+                                    <th class="ct-cell-action">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($records as $record): ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($record['shop_name'] ?: '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($record['business_type'] ?: '-'); ?></td>
+                                    <td class="ct-cell-wrap"><?php echo htmlspecialchars($record['shop_name'] ?: '-'); ?></td>
+                                    <td class="ct-cell-wrap"><?php echo htmlspecialchars($record['business_type'] ?: '-'); ?></td>
                                     <td>-</td>
-                                    <td><?php echo htmlspecialchars($record['contact_number'] ?: '-'); ?></td>
-                                    <td>
+                                    <td class="ct-cell-nowrap"><?php echo htmlspecialchars($record['contact_number'] ?: '-'); ?></td>
+                                    <?php if (!$is_franchisee_tracker): ?>
+                                    <td class="ct-cell-wrap">
                                         <?php
                                         $approached_class = '';
                                         if ($record['approached_for'] === 'Franchise Sale' || $record['approached_for'] === 'Franchisee Sale') {
@@ -687,11 +697,12 @@ function getTrackerFollowups($connect, $tracker_id) {
                                         ?>
                                         <span class="badge <?php echo $approached_class; ?>"><?php echo htmlspecialchars($record['approached_for'] ?? '-'); ?></span>
                                     </td>
-                                    <td><?php echo htmlspecialchars($record['address'] ?: '-'); ?></td>
-                                    <td><?php echo !empty($record['created_at']) ? date('d-m-Y', strtotime($record['created_at'])) : '-'; ?></td>
-                                    <td><?php echo htmlspecialchars($record['latest_followup_method'] ?: '-'); ?></td>
+                                    <?php endif; ?>
+                                    <td class="ct-cell-address"><?php echo htmlspecialchars($record['address'] ?: '-'); ?></td>
+                                    <td class="ct-cell-date"><?php echo !empty($record['created_at']) ? date('d-m-Y', strtotime($record['created_at'])) : '-'; ?></td>
+                                    <td class="ct-cell-wrap"><?php echo htmlspecialchars($record['latest_followup_method'] ?: '-'); ?></td>
                                     <td>-</td>
-                                    <td>
+                                    <td class="ct-cell-wrap">
                                         <?php
                                         $status_class = '';
                                         if ($record['final_status'] === 'Joined') {
@@ -704,8 +715,8 @@ function getTrackerFollowups($connect, $tracker_id) {
                                         ?>
                                         <span class="badge <?php echo $status_class; ?>"><?php echo htmlspecialchars($record['final_status']); ?></span>
                                     </td>
-                                    <td><?php echo date('d-m-Y H:i', strtotime($record['last_updated'])); ?></td>
-                                    <td>
+                                    <td class="ct-cell-date"><?php echo date('d-m-Y H:i', strtotime($record['last_updated'])); ?></td>
+                                    <td class="ct-cell-action">
                                         <div class="action-btn-group">
                                             <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewModal<?php echo $record['id']; ?>" title="View Full Details">
                                                 <i class="fa fa-eye"></i> View
@@ -797,14 +808,66 @@ function getTrackerFollowups($connect, $tracker_id) {
 .edit-customer-visit-modal .modal-footer .btn-edit-cancel { background: #6c757d; color: #fff; border-color: #6c757d; }
 .edit-customer-visit-modal .modal-footer .btn-edit-update { background: #f0ad4e; color: #333; border-color: #f0ad4e; }
 .edit-customer-visit-modal .modal-footer .btn-edit-update:hover { background: #ec971f; border-color: #ec971f; color: #333; }
-/* Responsive table scroll for small screens */
-.table-container {
+/* Stats cards: center label + count (no side image) */
+.customer-tracker-stats .card {
+    justify-content: center;
+    width: 100%;
+}
+.customer-tracker-stats .card .content {
+    width: 100%;
+    text-align: center;
+    align-items: center;
+    font-weight: initial;
+    padding: 12px;
+}
+.customer-tracker-stats .card .content p {
+    padding-left: 0;
+    text-align: center;
+    margin-bottom: 0;
+}
+/* Main tracker table: horizontal scroll + wrapped text in long columns */
+#customerTrackerTableWrap {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
-.table-container .table {
-    min-width: 1300px;
+#customerTrackerTable {
+    width: max-content;
+    min-width: 100%;
+    margin-bottom: 0;
+    table-layout: auto;
+}
+#customerTrackerTable thead th,
+#customerTrackerTable tbody td {
+    vertical-align: middle;
+    text-align: center;
+    padding: 0.5rem 0.6rem;
+}
+#customerTrackerTable .ct-cell-wrap,
+#customerTrackerTable .ct-cell-address {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+#customerTrackerTable .ct-cell-wrap {
+    min-width: 7rem;
+    max-width: 12rem;
+}
+#customerTrackerTable .ct-cell-address {
+    min-width: 10rem;
+    max-width: 16rem;
+    text-align: left;
+}
+#customerTrackerTable .ct-cell-date,
+#customerTrackerTable .ct-cell-nowrap,
+#customerTrackerTable .ct-cell-action {
+    white-space: nowrap;
+}
+#customerTrackerTable .ct-cell-date {
+    min-width: 6.5rem;
+}
+#customerTrackerTable .ct-cell-action {
+    min-width: 7.5rem;
 }
 .action-btn-group {
     display: flex;
@@ -863,6 +926,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                             </select>
                             <input type="text" name="business_type_custom" id="add_business_type_custom" class="form-control mt-2" placeholder="Enter new business type" style="display:none;">
                         </div>
+                        <?php if (!$is_franchisee_tracker): ?>
                         <div class="col-12 mb-3">
                             <label class="form-label">Approached For <span class="text-danger">*</span></label>
                             <div class="d-flex flex-wrap gap-3">
@@ -872,6 +936,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                                 </select>
                             </div>
                         </div>
+                        <?php endif; ?>
                         <div class="col-12 mb-3">
                             <label class="form-label">Address</label>
                             <textarea name="address" class="form-control" rows="3" style="resize: vertical;"></textarea>
@@ -991,6 +1056,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                                     <label class="form-label">Contact Number</label>
                                     <input type="text" name="contact_number" class="form-control" value="<?php echo htmlspecialchars($record['contact_number'] ?: ''); ?>">
                                 </div>
+                                <?php if (!$is_franchisee_tracker): ?>
                                 <div class="col-12 mb-3">
                                     <label class="form-label">Approached For</label>
                                     <select name="approached_for" class="form-select" required>
@@ -998,6 +1064,7 @@ function getTrackerFollowups($connect, $tracker_id) {
                                         <option value="MW Sales" <?php echo ($edit_approached === 'MW Sales') ? 'selected' : ''; ?>>MW Sales</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
                                 <div class="col-12 mb-3">
                                     <label class="form-label">Address</label>
                                     <textarea name="address" class="form-control" rows="3" style="resize: vertical;"><?php echo htmlspecialchars($record['address'] ?: ''); ?></textarea>

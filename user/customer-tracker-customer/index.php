@@ -1,22 +1,60 @@
-<?php
+﻿<?php
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
+require_once(__DIR__ . '/../../app/includes/product_categories_helper.php');
 
 $current_role = get_current_user_role();
-if ($current_role !== 'CUSTOMER' && $current_role !== 'TEAM') {
-    header('Location: ' . ($current_role === 'TEAM' ? '/login/team.php' : '/login/customer.php'));
-    exit;
+$collaboration_enabled = isset($_SESSION['collaboration_enabled']) && $_SESSION['collaboration_enabled'];
+$tracker_portal = defined('MW_TRACKER_PORTAL') ? MW_TRACKER_PORTAL : 'customer';
+
+if (!function_exists('mw_tracker_portal_redirect')) {
+    function mw_tracker_portal_redirect(string $path): void {
+        $script_dir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+        $base = preg_replace('#/user(/.*)?$#', '', $script_dir);
+        if ($base === '/') {
+            $base = '';
+        }
+        header('Location: ' . $base . '/user/' . ltrim($path, '/'));
+        exit;
+    }
 }
 
-$collaboration_enabled = isset($_SESSION['collaboration_enabled']) && $_SESSION['collaboration_enabled'];
-/** Team-style fields (TEAM login, or CUSTOMER with collaborator / collaboration enabled). */
-$tracker_variant = ($current_role === 'TEAM' || ($current_role === 'CUSTOMER' && $collaboration_enabled)) ? 'team' : 'customer';
-$owner_role_db = ($current_role === 'TEAM') ? 'TEAM' : 'CUSTOMER';
+$can_use_team_portal = (
+    $current_role === 'TEAM'
+    || $current_role === 'FRANCHISEE'
+    || ($current_role === 'CUSTOMER' && $collaboration_enabled)
+);
+
+if ($tracker_portal === 'customer') {
+    if ($current_role !== 'CUSTOMER') {
+        header('Location: /login/customer.php');
+        exit;
+    }
+    if ($collaboration_enabled) {
+        mw_tracker_portal_redirect('customer-tracker/');
+    }
+    $tracker_variant = 'customer';
+    $owner_role_db = 'CUSTOMER';
+} else {
+    if (!$can_use_team_portal) {
+        if ($current_role === 'CUSTOMER') {
+            mw_tracker_portal_redirect('customer-tracker-customer/');
+        }
+        if ($current_role === 'TEAM') {
+            header('Location: /login/team.php');
+            exit;
+        }
+        header('Location: /login/customer.php');
+        exit;
+    }
+    $tracker_variant = 'team';
+    $owner_role_db = $current_role;
+}
 
 $owner_id = (int)(get_user_id() ?? 0);
 $owner_email = (string)(get_user_email() ?? '');
 if ($owner_id <= 0 && $owner_email !== '') {
-    $roleLookup = $current_role === 'TEAM' ? 'TEAM' : 'CUSTOMER';
+    $roleLookup = $current_role;
     $stmtOwner = $connect->prepare("SELECT id FROM user_details WHERE email = ? AND role = ? LIMIT 1");
     if ($stmtOwner) {
         $stmtOwner->bind_param('ss', $owner_email, $roleLookup);
@@ -93,7 +131,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $areaCity = trim($_POST['area_city'] ?? '');
         $comments = trim($_POST['comments'] ?? '');
         $source = mw_limit_text($_POST['source'] ?? 'Direct', 18);
-        $status = mw_limit_text($_POST['status'] ?? 'Followup required', 40);
+        $statusPredefined = ['Followup required', 'Phone Busy/Not Picked', 'Important', 'Deal Done', 'Profile Shared', 'Interested', 'Not Interested'];
+        $statusRaw = trim((string)($_POST['status'] ?? 'Followup required'));
+        $status = in_array($statusRaw, $statusPredefined, true)
+            ? mw_limit_text($statusRaw, 40)
+            : mw_limit_text($statusRaw, 18);
         $businessType = mw_limit_text($_POST['business_type'] ?? '', 150);
         $approachedFor = mw_limit_text($_POST['approached_for'] ?? '', 150);
         $followupMethod = mw_limit_text($_POST['followup_method'] ?? '', 150);
@@ -252,60 +294,10 @@ if ($stmtBiz) {
     $stmtBiz->close();
 }
 
-$business_primary_options = [
-    ['value' => '', 'label' => '-- Select Primary Category --']
-];
-$business_primary_seen = [];
-$catSql = "SELECT c.category_name, p.category_name AS parent_name
-    FROM product_categories c
-    LEFT JOIN product_categories p ON c.parent_id = p.id
-    WHERE c.is_active = 1 AND c.category_type = 'business-category' AND c.parent_id IS NOT NULL
-    ORDER BY p.display_order, c.display_order ASC";
-$catRes = @mysqli_query($connect, $catSql);
-if ($catRes) {
-    while ($catRow = mysqli_fetch_assoc($catRes)) {
-        $catName = trim((string)($catRow['category_name'] ?? ''));
-        $parentName = trim((string)($catRow['parent_name'] ?? ''));
-        if ($catName !== '') {
-            $uniqKey = strtolower($parentName . '|' . $catName);
-            if (!isset($business_primary_seen[$uniqKey])) {
-                $business_primary_seen[$uniqKey] = true;
-                $business_primary_options[] = [
-                    'value' => $catName,
-                    'label' => $catName,
-                    'group' => $parentName !== '' ? $parentName : null
-                ];
-            }
-        }
-    }
-}
-if ($owner_id > 0) {
-    $customCatSql = "SELECT category_name
-        FROM user_custom_categories
-        WHERE user_id = " . (int)$owner_id . " AND category_type = 'business-category' AND is_active = 1
-        ORDER BY created_at DESC";
-    $customCatRes = @mysqli_query($connect, $customCatSql);
-    if ($customCatRes) {
-        while ($customCatRow = mysqli_fetch_assoc($customCatRes)) {
-            $catName = trim((string)($customCatRow['category_name'] ?? ''));
-            if ($catName !== '') {
-                $customLabel = '[Custom] ' . $catName;
-                $uniqKey = strtolower('my custom categories|' . $customLabel);
-                if (!isset($business_primary_seen[$uniqKey])) {
-                    $business_primary_seen[$uniqKey] = true;
-                    $business_primary_options[] = [
-                        'value' => $customLabel,
-                        'label' => $customLabel,
-                        'group' => 'My Custom Categories'
-                    ];
-                }
-            }
-        }
-    }
-}
+$business_primary_options = getBusinessPrimaryCategoryOptions($connect, $owner_id);
 
-$default_template = "Hello 😊\nThis is [Business Name] from [Area, City].\n\nWe have added some latest special offers for you.👇\n👉 [MiniWebsite Link]\n\nIf anything interests you, feel free to message us on WhatsApp.\n\nLimited time offers hain, jaldi check karein 👍\n\nThank you 🙏";
-$default_whatsapp_template = "Hello 😊\nHope you are doing well.\n\nWe have added few new products & offers for you.👇\n👉 [MiniWebsite Link]\n\nYou can check. And please let us know if any requirements.\n\nThank you 🙏";
+$default_template = "Hello ðŸ˜Š\nThis is [Business Name] from [Area, City].\n\nWe have added some latest special offers for you.ðŸ‘‡\nðŸ‘‰ [MiniWebsite Link]\n\nIf anything interests you, feel free to message us on WhatsApp.\n\nLimited time offers hain, jaldi check karein ðŸ‘\n\nThank you ðŸ™";
+$default_whatsapp_template = "Hello ðŸ˜Š\nHope you are doing well.\n\nWe have added few new products & offers for you.ðŸ‘‡\nðŸ‘‰ [MiniWebsite Link]\n\nYou can check. And please let us know if any requirements.\n\nThank you ðŸ™";
 $preview_template = str_replace(
     ['[Business Name]', '[Area, City]', '[MiniWebsite Link]'],
     [$business_name, $area_city_business, $mini_link],
@@ -382,7 +374,7 @@ include __DIR__ . '/../includes/header.php';
 #customerTrackerTable tbody td {
     vertical-align: middle;
 }
-/* Default: don’t crush text — scroll instead */
+/* Default: donâ€™t crush text â€” scroll instead */
 #customerTrackerTable thead th {
     white-space: nowrap;
 }
@@ -398,8 +390,7 @@ include __DIR__ . '/../includes/header.php';
     word-break: break-word;
 }
 /* Comments: wrap inside a sensible column width */
-#customerTrackerTable thead th:nth-child(11),
-#customerTrackerTable tbody td:nth-child(11) {
+#customerTrackerTable .ct-table-comment {
     white-space: normal;
     min-width: 11rem;
     max-width: 18rem;
@@ -482,7 +473,7 @@ include __DIR__ . '/../includes/header.php';
     border-radius: 8px;
     color: #4a5678;
 }
-/* Do not use background shorthand on selects — it removes Bootstrap’s caret. */
+/* Do not use background shorthand on selects â€” it removes Bootstrapâ€™s caret. */
 .tracker-modal .form-select {
     font-size: 13px;
     min-height: 40px;
@@ -547,7 +538,7 @@ include __DIR__ . '/../includes/header.php';
 #shareOfferModal .modal-dialog {
     max-width: 1140px;
 }
-/* Mobile: vertical centering clips tall modals — pin to top + safe area */
+/* Mobile: vertical centering clips tall modals â€” pin to top + safe area */
 @media (max-width: 767.98px) {
     #shareOfferModal.modal {
         align-items: flex-start !important;
@@ -780,7 +771,7 @@ include __DIR__ . '/../includes/header.php';
                 <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_by); ?>">
                 <input type="hidden" name="sort_dir" value="<?php echo htmlspecialchars(strtolower($sort_dir)); ?>">
                 <div class="tracker-search-input-wrap">
-                    <input name="search" id="trackerSearchInput" class="form-control" placeholder="Search name, phone, email, company, source…" value="<?php echo htmlspecialchars($search); ?>" autocomplete="off" inputmode="search"<?php echo $search !== '' ? ' aria-label="Search (filter active; use clear to show all)"' : ''; ?>>
+                    <input name="search" id="trackerSearchInput" class="form-control" placeholder="Search name, phone, email, company, sourceâ€¦" value="<?php echo htmlspecialchars($search); ?>" autocomplete="off" inputmode="search"<?php echo $search !== '' ? ' aria-label="Search (filter active; use clear to show all)"' : ''; ?>>
                     <button type="button" class="tracker-search-input-clear" id="trackerSearchInputClear" title="Clear" aria-label="Clear search" hidden><i class="fa fa-times"></i></button>
                 </div>
                 <button type="submit" class="btn btn-outline-secondary flex-shrink-0" title="Search"><i class="fa fa-search"></i></button>
@@ -810,7 +801,7 @@ include __DIR__ . '/../includes/header.php';
                         echo htmlspecialchars($addrMerged !== '' ? $addrMerged : '-');
                     ?></td>
                     <td><?php echo htmlspecialchars(mw_format_last_shared($c['last_shared_at'] ?? null)); ?></td>
-                    <td><?php $comm = (string)($c['comments'] ?? ''); echo trim($comm) === '' ? '-' : htmlspecialchars($comm); ?></td>
+                    <td class="ct-table-comment"><?php $comm = (string)($c['comments'] ?? ''); echo trim($comm) === '' ? '-' : htmlspecialchars($comm); ?></td>
                     <td><?php $st = trim((string)($c['status'] ?? '')); echo htmlspecialchars($st !== '' ? $st : '-'); ?></td>
                     <td>
                         <a class="btn btn-sm btn-outline-primary" href="tel:<?php echo htmlspecialchars($c['phone_number']); ?>"><i class="fa fa-phone"></i></a>
@@ -825,9 +816,9 @@ include __DIR__ . '/../includes/header.php';
             <?php endforeach; endif; ?>
             </tbody>
             <?php else: ?>
-            <thead><tr><th>SN</th><?php echo $trackerThSort('created_at', 'Date Added') . $trackerThSort('customer_name', 'Customer Name') . $trackerThSort('phone_number', 'Phone Number') . $trackerThSort('label_tag', 'Label') . $trackerThSort('source', 'Source') . $trackerThSort('email_id', 'Email ID') . $trackerThSort('company_name', 'Company Name') . $trackerThSort('website', 'Website') . $trackerThSort('address', 'Address') . $trackerThSort('last_shared_at', 'Last shared') . $trackerThSort('status', 'Status'); ?><th>Actions</th><th>Manage</th></tr></thead>
+            <thead><tr><th>SN</th><?php echo $trackerThSort('created_at', 'Date Added') . $trackerThSort('customer_name', 'Customer Name') . $trackerThSort('phone_number', 'Phone Number') . $trackerThSort('label_tag', 'Label') . $trackerThSort('source', 'Source') . $trackerThSort('email_id', 'Email ID') . $trackerThSort('company_name', 'Company Name') . $trackerThSort('website', 'Website') . $trackerThSort('address', 'Address') . $trackerThSort('last_shared_at', 'Last shared') . $trackerThSort('comments', 'Comment') . $trackerThSort('status', 'Status'); ?><th>Actions</th><th>Manage</th></tr></thead>
             <tbody>
-            <?php if (empty($customers)): ?><tr><td colspan="14" class="text-center">No customers found.</td></tr><?php else: $sn=1; foreach($customers as $c): ?>
+            <?php if (empty($customers)): ?><tr><td colspan="15" class="text-center">No customers found.</td></tr><?php else: $sn=1; foreach($customers as $c): ?>
                 <tr>
                     <td><?php echo $sn++; ?></td>
                     <td><?php echo date('d-m-Y', strtotime($c['created_at'])); ?></td>
@@ -845,6 +836,7 @@ include __DIR__ . '/../includes/header.php';
                         echo htmlspecialchars($addrMerged !== '' ? $addrMerged : '-');
                     ?></td>
                     <td><?php echo htmlspecialchars(mw_format_last_shared($c['last_shared_at'] ?? null)); ?></td>
+                    <td class="ct-table-comment"><?php $comm = (string)($c['comments'] ?? ''); echo trim($comm) === '' ? '-' : htmlspecialchars($comm); ?></td>
                     <td><?php $st = trim((string)($c['status'] ?? '')); echo htmlspecialchars($st !== '' ? $st : '-'); ?></td>
                     <td>
                         <a class="btn btn-sm btn-outline-primary" href="tel:<?php echo htmlspecialchars($c['phone_number']); ?>"><i class="fa fa-phone"></i></a>
@@ -870,13 +862,7 @@ include __DIR__ . '/../includes/header.php';
             <li><i class="fa fa-edit text-info"></i> <strong>Edit:</strong> Update customer details (same fields as the add form).</li>
             <li><i class="fa fa-trash text-danger"></i> <strong>Delete:</strong> Permanently removes customer entry from your list.</li>
         </ul>
-        <strong>WhatsApp Safety Tips</strong>
-        <ul class="mb-0 mt-2">
-            <li>Send only to known customers.</li>
-            <li>Avoid sending too many messages at once.</li>
-            <li>Add small gap between messages.</li>
-            <li>Share useful updates only.</li>
-        </ul>
+         
     </div>
 </div>
 </main>
@@ -914,6 +900,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="col-md-6"><label class="form-label">Source</label><select name="source" id="source_select" class="form-select"></select></div>
     <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select" class="form-select"></select></div>
     <?php endif; ?>
+    <div class="col-12"><label class="form-label">Comment</label><textarea name="comments" id="comments_quick" class="form-control" rows="2" placeholder="Notes (optional)"></textarea></div>
 </div>
 <button class="btn btn-link px-0 mt-2" type="button" id="toggleAdditionalBtn">+ Additional Details (Optional)</button>
 </div><div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn tracker-btn-yellow">Save Customer</button></div>
@@ -950,7 +937,7 @@ include __DIR__ . '/../includes/header.php';
     <?php if ($tracker_variant === 'team'): ?>
     <div class="col-md-6"><label class="form-label">Comment</label><textarea name="comments" id="comments_full" class="form-control" rows="2" placeholder="Notes (optional)"></textarea></div>
     <?php else: ?>
-    <input type="hidden" name="comments" id="comments_hidden_customer" value="">
+    <div class="col-md-6"><label class="form-label">Comment</label><textarea name="comments" id="comments_full" class="form-control" rows="2" placeholder="Notes (optional)"></textarea></div>
     <?php endif; ?>
 </div>
 <input type="hidden" name="area_city" id="area_city_hidden" value="">
@@ -964,7 +951,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="col-12 col-lg-7 order-1">
             <label class="form-label" for="offerMessage">Message</label>
             <div class="wa-message-field">
-                <textarea id="offerMessage" class="form-control" rows="12" maxlength="2000" placeholder="Your message…"><?php echo htmlspecialchars($preview_template); ?></textarea>
+                <textarea id="offerMessage" class="form-control" rows="12" maxlength="2000" placeholder="Your messageâ€¦"><?php echo htmlspecialchars($preview_template); ?></textarea>
                 <div class="wa-char-count" id="offerMessageCharWrap" aria-hidden="true"><span id="offerMessageCharCount">0</span>/2000</div>
             </div>
             <p class="small text-muted mt-2 mb-0">Placeholders: [Business Name], [Area, City], [MiniWebsite Link], [Customer Name]</p>
@@ -1070,7 +1057,8 @@ const selectSourceFull = document.getElementById('source_select_full');
 const selectSourceAdvanced = document.getElementById('source_select_advanced');
 const statusSelectFull = document.getElementById('status_select_full');
 const statusSelectQuick = document.getElementById('status_select');
-const commentsHiddenCustomerEl = document.getElementById('comments_hidden_customer');
+const commentsQuickEl = document.getElementById('comments_quick');
+const commentsFullEl = document.getElementById('comments_full');
 const areaCityHiddenEl = document.getElementById('area_city_hidden');
 const waModalEl = document.getElementById('shareOfferModal');
 let activeCustomer = null;
@@ -1169,10 +1157,10 @@ if (trackerVariant === 'customer') {
     if (selectSourceAdvanced) setupCustomizableSelect(selectSourceAdvanced, sourceOptionsList);
 }
 if (statusSelectFull) {
-    setupCustomizableSelect(statusSelectFull, statusOptions, 40);
+    setupCustomizableSelect(statusSelectFull, statusOptions, 18);
 }
 if (statusSelectQuick) {
-    setupCustomizableSelect(statusSelectQuick, statusOptions, 40);
+    setupCustomizableSelect(statusSelectQuick, statusOptions, 18);
 }
 
 function toggleAdditionalDetails() {
@@ -1190,6 +1178,7 @@ function toggleAdditionalDetails() {
             if (fullEl && quickEl) ensureSelectHasOption(fullEl, quickEl.value || '', 80);
         });
     }
+    if (commentsFullEl && commentsQuickEl) commentsFullEl.value = commentsQuickEl.value || '';
     if (statusSelectFull && statusSelectQuick) {
         ensureSelectHasOption(statusSelectFull, statusSelectQuick.value || 'Followup required', 40);
     }
@@ -1406,16 +1395,15 @@ document.getElementById('openCustomerModalBtn').addEventListener('click', functi
         if (selectSource) selectSource.selectedIndex = 0;
         if (selectLabelFull) selectLabelFull.selectedIndex = 0;
         if (selectSourceFull) selectSourceFull.selectedIndex = 0;
-        if (commentsHiddenCustomerEl) commentsHiddenCustomerEl.value = '';
     } else {
         ['business_type_quick', 'business_type_full', 'approached_for_quick', 'approached_for_full', 'followup_method_quick', 'followup_method_full'].forEach(function (tid) {
             const el = document.getElementById(tid);
             if (el) el.selectedIndex = 0;
         });
         if (selectSourceAdvanced) selectSourceAdvanced.selectedIndex = 0;
-        var cfReset = document.getElementById('comments_full');
-        if (cfReset) cfReset.value = '';
     }
+    if (commentsQuickEl) commentsQuickEl.value = '';
+    if (commentsFullEl) commentsFullEl.value = '';
 });
 
 document.querySelectorAll('.edit-btn').forEach(function (btn) {
@@ -1436,12 +1424,15 @@ document.querySelectorAll('.edit-btn').forEach(function (btn) {
             if (apf) ensureSelectHasOption(apf, this.dataset.approachedFor || '', 80);
             if (fmf) ensureSelectHasOption(fmf, this.dataset.followupMethod || '', 80);
             if (selectSourceAdvanced) ensureSelectHasOption(selectSourceAdvanced, this.dataset.source || 'Direct');
-            var cfEd = document.getElementById('comments_full');
-            if (cfEd) cfEd.value = this.dataset.comments || '';
+            var commentValTeam = this.dataset.comments || '';
+            if (commentsFullEl) commentsFullEl.value = commentValTeam;
+            if (commentsQuickEl) commentsQuickEl.value = commentValTeam;
         } else {
             if (selectLabelFull) ensureSelectHasOption(selectLabelFull, this.dataset.label || 'Regular');
             if (selectSourceFull) ensureSelectHasOption(selectSourceFull, this.dataset.source || 'Direct');
-            if (commentsHiddenCustomerEl) commentsHiddenCustomerEl.value = this.dataset.comments || '';
+            var commentVal = this.dataset.comments || '';
+            if (commentsFullEl) commentsFullEl.value = commentVal;
+            if (commentsQuickEl) commentsQuickEl.value = commentVal;
         }
         if (statusSelectFull) ensureSelectHasOption(statusSelectFull, this.dataset.status || 'Followup required', 40);
         const customerFullModal = getModalInstance(customerFullModalEl);

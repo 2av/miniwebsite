@@ -103,6 +103,115 @@ function renderBusinessCategorySelectOptions($connect, $selected_id = null, $use
 }
 
 /**
+ * Business primary category options for JS dropdowns (value / label / group).
+ *
+ * @param array{include_placeholder?: bool, custom_value_mode?: 'prefixed'|'name'} $opts
+ * @return array<int, array{value: string, label: string, group?: string|null}>
+ */
+function getBusinessPrimaryCategoryOptions($connect, $user_id = 0, array $opts = []) {
+    $include_placeholder = $opts['include_placeholder'] ?? true;
+    $custom_value_mode = $opts['custom_value_mode'] ?? 'prefixed';
+
+    $options = [];
+    if ($include_placeholder) {
+        $options[] = ['value' => '', 'label' => '-- Select Primary Category --'];
+    }
+
+    $seen = [];
+
+    if (productCategoriesIsFlatSchema($connect)) {
+        $sql = "SELECT MIN(id) AS id, business_profile_type, business_heading, business_category, business_category_slug,
+                       MIN(directory_priority) AS directory_priority
+                FROM product_categories
+                WHERE is_active = 1
+                GROUP BY business_category_slug, business_heading, business_category, business_profile_type
+                ORDER BY MIN(directory_priority) ASC, business_heading ASC, business_category ASC";
+        $result = mysqli_query($connect, $sql);
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $catName = trim((string) ($row['business_category'] ?? ''));
+                if ($catName === '') {
+                    continue;
+                }
+                $heading = trim((string) ($row['business_heading'] ?? ''));
+                $profile = trim((string) ($row['business_profile_type'] ?? ''));
+                $groupLabel = $heading !== '' ? $heading : ($profile !== '' ? $profile : null);
+                if ($profile !== '' && $heading !== '' && strcasecmp($profile, $heading) !== 0) {
+                    $groupLabel = $profile . ' — ' . $heading;
+                }
+                $uniqKey = strtolower(($groupLabel ?? '') . '|' . $catName);
+                if (isset($seen[$uniqKey])) {
+                    continue;
+                }
+                $seen[$uniqKey] = true;
+                $options[] = [
+                    'value' => $catName,
+                    'label' => $catName,
+                    'group' => $groupLabel,
+                ];
+            }
+        }
+    } else {
+        $sql = "SELECT c.category_name, p.category_name AS parent_name
+                FROM product_categories c
+                LEFT JOIN product_categories p ON c.parent_id = p.id
+                WHERE c.is_active = 1 AND c.category_type = 'business-category' AND c.parent_id IS NOT NULL
+                ORDER BY p.display_order, c.display_order ASC";
+        $result = mysqli_query($connect, $sql);
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $catName = trim((string) ($row['category_name'] ?? ''));
+                $parentName = trim((string) ($row['parent_name'] ?? ''));
+                if ($catName === '') {
+                    continue;
+                }
+                $uniqKey = strtolower($parentName . '|' . $catName);
+                if (isset($seen[$uniqKey])) {
+                    continue;
+                }
+                $seen[$uniqKey] = true;
+                $options[] = [
+                    'value' => $catName,
+                    'label' => $catName,
+                    'group' => $parentName !== '' ? $parentName : null,
+                ];
+            }
+        }
+    }
+
+    $user_id = (int) $user_id;
+    if ($user_id > 0) {
+        $custom_res = mysqli_query($connect, "
+            SELECT category_name FROM user_custom_categories
+            WHERE user_id = $user_id AND category_type = 'business-category' AND is_active = 1
+            ORDER BY created_at DESC
+        ");
+        if ($custom_res) {
+            while ($custom_row = mysqli_fetch_assoc($custom_res)) {
+                $catName = trim((string) ($custom_row['category_name'] ?? ''));
+                if ($catName === '') {
+                    continue;
+                }
+                $customLabel = '[Custom] ' . $catName;
+                $value = ($custom_value_mode === 'name') ? $catName : $customLabel;
+                $uniqKey = strtolower('my custom categories|' . $value);
+                if (isset($seen[$uniqKey])) {
+                    continue;
+                }
+                $seen[$uniqKey] = true;
+                $options[] = [
+                    'value' => $value,
+                    'label' => $customLabel,
+                    'group' => 'My Custom Categories',
+                ];
+            }
+        }
+    }
+
+    return $options;
+}
+
+/**
  * Resolve business category display name by row id.
  */
 /**

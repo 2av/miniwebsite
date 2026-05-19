@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailwind Migration — Step-by-Step Guide | /user Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { DEFAULT: '#2563eb', dark: '#1d4ed8' },
+                        warn: '#d97706',
+                        danger: '#dc2626',
+                        ok: '#16a34a',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        .toc a.active { background: #eff6ff; color: #1d4ed8; font-weight: 600; border-left: 3px solid #2563eb; }
+        pre { overflow-x: auto; }
+        .step-card { scroll-margin-top: 6rem; }
+        .step-num {
+            width: 2.5rem; height: 2.5rem;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 9999px; font-weight: 700; flex-shrink: 0;
+        }
+        @media print { aside { display: none; } main { margin-left: 0 !important; } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-brand">Mini Website — User Portal</p>
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900">Tailwind CSS — Step-by-Step Migration Guide</h1>
+            <p class="text-sm text-slate-500 mt-1">Follow steps in order · 34 steps · 28 pages to migrate</p>
+        </div>
+        <div class="flex gap-2 flex-wrap text-sm">
+            <span class="px-3 py-1 rounded-full bg-red-100 text-red-800 font-medium">0% done</span>
+            <a href="#step-1" class="px-3 py-1 rounded-full bg-brand text-white font-medium hover:bg-brand-dark">Start Step 1 →</a>
+        </div>
+    </div>
+</header>
+
+<div class="max-w-[1400px] mx-auto flex flex-col lg:flex-row">
+
+<aside class="lg:w-72 shrink-0 lg:sticky lg:top-[88px] lg:h-[calc(100vh-88px)] overflow-y-auto border-b lg:border-b-0 lg:border-r border-slate-200 bg-white p-4">
+    <p class="text-xs font-bold uppercase text-slate-400 mb-3">Navigation</p>
+    <nav class="toc space-y-1 text-sm">
+        <a href="#overview" class="block px-3 py-2 rounded-lg hover:bg-slate-100">Overview</a>
+        <a href="#step-by-step" class="block px-3 py-2 rounded-lg font-semibold text-brand bg-blue-50">★ Step-by-step guide</a>
+        <a href="#phase-a" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 pl-6 text-xs">Phase A — Foundation</a>
+        <a href="#phase-b" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 pl-6 text-xs">Phase B — Website builder</a>
+        <a href="#phase-c" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 pl-6 text-xs">Phase C — Dashboard</a>
+        <a href="#phase-d" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 pl-6 text-xs">Phase D — Modules</a>
+        <a href="#phase-e" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 pl-6 text-xs">Phase E — Cleanup</a>
+        <a href="#skip" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 pl-6 text-xs">Files to skip</a>
+        <hr class="my-2 border-slate-200">
+        <a href="#mapping" class="block px-3 py-2 rounded-lg hover:bg-slate-100">Class mapping</a>
+        <a href="#checklist" class="block px-3 py-2 rounded-lg hover:bg-slate-100">Full checklist</a>
+        <a href="#overall" class="block px-3 py-2 rounded-lg hover:bg-slate-100">Audit results</a>
+    </nav>
+    <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-xs text-green-900">
+        <strong>Rule:</strong> Complete each step fully, test in browser, then move to next. Do not skip Step 1–4.
+    </div>
+</aside>
+
+<main class="flex-1 p-4 md:p-8 space-y-10 min-w-0">
+
+<!-- OVERVIEW -->
+<section id="overview" class="scroll-mt-24">
+    <h2 class="text-2xl font-bold mb-4">Overview — What you are doing</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div class="bg-white border rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-danger">0</p>
+            <p class="text-xs text-slate-500">Pages on Tailwind now</p>
+        </div>
+        <div class="bg-white border rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-brand">28</p>
+            <p class="text-xs text-slate-500">Pages to migrate</p>
+        </div>
+        <div class="bg-white border rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-warn">26</p>
+            <p class="text-xs text-slate-500">Pages with inline &lt;style&gt;</p>
+        </div>
+        <div class="bg-white border rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-ok">34</p>
+            <p class="text-xs text-slate-500">Total steps</p>
+        </div>
+    </div>
+
+    <div class="bg-white border rounded-xl p-5 mb-4">
+        <h3 class="font-semibold mb-3">Migration flow (high level)</h3>
+        <div class="flex flex-col md:flex-row gap-2 text-sm">
+            <div class="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-3 text-center"><strong>Phase A</strong><br>Steps 1–4<br><span class="text-slate-500">Foundation</span></div>
+            <div class="hidden md:block text-slate-400 self-center">→</div>
+            <div class="flex-1 bg-amber-50 border border-amber-200 rounded-lg p-3 text-center"><strong>Phase B</strong><br>Steps 5–16<br><span class="text-slate-500">Website (12 pages)</span></div>
+            <div class="hidden md:block text-slate-400 self-center">→</div>
+            <div class="flex-1 bg-green-50 border border-green-200 rounded-lg p-3 text-center"><strong>Phase C–D</strong><br>Steps 17–28<br><span class="text-slate-500">Dashboard + modules</span></div>
+            <div class="hidden md:block text-slate-400 self-center">→</div>
+            <div class="flex-1 bg-slate-100 border rounded-lg p-3 text-center"><strong>Phase E</strong><br>Steps 29–34<br><span class="text-slate-500">Cleanup</span></div>
+        </div>
+    </div>
+
+    <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+        <strong>Reference file:</strong> Copy Tailwind setup from <code class="bg-white px-1 rounded">n.php</code> (project root, lines ~1095–1117).<br>
+        <strong>Test base URL:</strong> <code class="bg-white px-1 rounded">http://localhost/miniwebsite/user/</code>
+    </div>
+</section>
+
+<!-- STEP BY STEP -->
+<section id="step-by-step" class="scroll-mt-24">
+    <h2 class="text-2xl font-bold text-brand mb-2">★ Step-by-step migration guide</h2>
+    <p class="text-slate-600 mb-6">Do steps in exact order. Each step lists the <strong>file to edit</strong>, <strong>what to change</strong>, and <strong>how to test</strong>.</p>
+
+    <!-- PHASE A -->
+    <h3 id="phase-a" class="text-lg font-bold mb-4 flex items-center gap-2 scroll-mt-24">
+        <span class="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm">Phase A</span>
+        Foundation — do this first (Steps 1–4)
+    </h3>
+    <p class="text-sm text-slate-500 mb-4">These 2 files affect <strong>every page</strong> in the portal. Nothing else works correctly until Phase A is done.</p>
+
+    <!-- Step 1 -->
+    <article id="step-1" class="step-card bg-white border-2 border-brand rounded-xl p-5 mb-4 shadow-sm">
+        <div class="flex gap-4">
+            <span class="step-num bg-brand text-white">1</span>
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                    <h4 class="font-bold text-lg">Add Tailwind CDN to shared header</h4>
+                    <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">Required first</span>
+                </div>
+                <p class="font-mono text-sm bg-slate-100 px-2 py-1 rounded inline-block mb-3">user/includes/header.php</p>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="font-semibold text-slate-700 mb-1">What to change</p>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-600">
+                            <li>Open <code>header.php</code>, find <code>&lt;/head&gt;</code></li>
+                            <li>Before <code>&lt;/head&gt;</code>, add Tailwind CDN script (copy from <code>n.php</code>)</li>
+                            <li>Add <code>tailwind.config</code> with your brand colors (Barlow font, primary color)</li>
+                            <li>Set <code>corePlugins: { preflight: false }</code> so Bootstrap does not break</li>
+                            <li><strong>Do NOT remove</strong> Bootstrap or old CSS yet</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 mb-1">Test after step</p>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-600">
+                            <li>Open: <code>/user/dashboard/</code></li>
+                            <li>Page must load with no layout break</li>
+                            <li>Add a test class <code>class="text-red-500"</code> on any element — if text turns red, Tailwind works</li>
+                        </ul>
+                        <p class="mt-2 text-xs text-slate-500">⏱ Est. 30–60 min</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Step 2 -->
+    <article id="step-2" class="step-card bg-white border rounded-xl p-5 mb-4 shadow-sm">
+        <div class="flex gap-4">
+            <span class="step-num bg-blue-600 text-white">2</span>
+            <div class="flex-1">
+                <h4 class="font-bold text-lg mb-2">Convert sidebar & top navigation to Tailwind</h4>
+                <p class="font-mono text-sm bg-slate-100 px-2 py-1 rounded inline-block mb-3">user/includes/header.php</p>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="font-semibold mb-1">What to change</p>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-600">
+                            <li>Sidebar wrapper → <code>flex flex-col w-64 min-h-screen bg-white border-r</code></li>
+                            <li>Menu items → <code>flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-lg</code></li>
+                            <li>Mobile menu toggle → <code>md:hidden</code> / <code>hidden md:flex</code></li>
+                            <li>Profile dropdown area → Tailwind flex/position utilities</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-1">Test after step</p>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-600">
+                            <li>Desktop: sidebar visible, links clickable</li>
+                            <li>Mobile (375px): hamburger/menu works</li>
+                            <li>Test on dashboard + website page</li>
+                        </ul>
+                        <p class="mt-2 text-xs text-slate-500">⏱ Est. 3–5 hours</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Step 3 -->
+    <article id="step-3" class="step-card bg-white border rounded-xl p-5 mb-4 shadow-sm">
+        <div class="flex gap-4">
+            <span class="step-num bg-blue-600 text-white">3</span>
+            <div class="flex-1">
+                <h4 class="font-bold text-lg mb-2">Update shared footer markup</h4>
+                <p class="font-mono text-sm bg-slate-100 px-2 py-1 rounded inline-block mb-3">user/includes/footer.php</p>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="font-semibold mb-1">What to change</p>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-600">
+                            <li>Footer container → Tailwind flex/grid utilities</li>
+                            <li>Keep <code>website-step-nav.css</code> link for now (removed in Step 16)</li>
+                            <li>Script tags — no change needed</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-1">Test after step</p>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-600">
+                            <li>Any website builder page — footer displays correctly</li>
+                        </ul>
+                        <p class="mt-2 text-xs text-slate-500">⏱ Est. 1 hour</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Step 4 -->
+    <article id="step-4" class="step-card bg-white border-2 border-ok rounded-xl p-5 mb-8 shadow-sm">
+        <div class="flex gap-4">
+            <span class="step-num bg-ok text-white">4</span>
+            <div class="flex-1">
+                <h4 class="font-bold text-lg mb-2">✓ Phase A checkpoint — smoke test all areas</h4>
+                <p class="text-sm text-slate-600 mb-2">No file edit. Test these URLs before starting Phase B:</p>
+                <table class="w-full text-sm border rounded-lg overflow-hidden">
+                    <thead class="bg-slate-100"><tr><th class="p-2 text-left">URL</th><th class="p-2 text-left">Must work</th></tr></thead>
+                    <tbody class="divide-y">
+                        <tr><td class="p-2 font-mono text-xs">/user/dashboard/</td><td class="p-2">Layout, sidebar, cards visible</td></tr>
+                        <tr><td class="p-2 font-mono text-xs">/user/website/business-name.php</td><td class="p-2">Form + step buttons visible</td></tr>
+                        <tr><td class="p-2 font-mono text-xs">/user/wallet/</td><td class="p-2">Page loads (if franchisee)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+
+    <!-- PHASE B -->
+    <h3 id="phase-b" class="text-lg font-bold mb-4 flex items-center gap-2 scroll-mt-24">
+        <span class="px-3 py-1 bg-amber-600 text-white rounded-lg text-sm">Phase B</span>
+        Website builder pages (Steps 5–16)
+    </h3>
+    <p class="text-sm text-slate-500 mb-4">Migrate <strong>one page at a time</strong>. On each page: replace Bootstrap/custom classes → remove <code>&lt;style&gt;</code> block at bottom → test mobile.</p>
+
+    <!-- Website steps table -->
+    <div class="overflow-x-auto mb-6">
+        <table class="w-full text-sm bg-white border rounded-xl shadow-sm min-w-[700px]">
+            <thead class="bg-amber-600 text-white">
+                <tr>
+                    <th class="p-3 text-left">Step</th>
+                    <th class="p-3 text-left">Page / file</th>
+                    <th class="p-3 text-left">Lines</th>
+                    <th class="p-3 text-left">What to change on this page</th>
+                    <th class="p-3 text-left">Test URL</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y" id="website-steps">
+                <tr id="step-5" class="step-card bg-amber-50/50"><td class="p-3 font-bold">5</td><td class="p-3 font-mono">website/business-name.php</td><td class="p-3">745</td><td class="p-3">Forms, .Dashboard wrapper, step nav buttons, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/business-name.php</td></tr>
+                <tr id="step-6"><td class="p-3 font-bold">6</td><td class="p-3 font-mono">website/social-links.php</td><td class="p-3">347</td><td class="p-3">Social input grid, save/back/next buttons, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/social-links.php</td></tr>
+                <tr id="step-7"><td class="p-3 font-bold">7</td><td class="p-3 font-mono">website/videos.php</td><td class="p-3">361</td><td class="p-3">Video list, embed area, forms, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/videos.php</td></tr>
+                <tr id="step-8"><td class="p-3 font-bold">8</td><td class="p-3 font-mono">website/select-theme.php</td><td class="p-3">356</td><td class="p-3">Theme preview cards → <code>grid grid-cols-2 md:grid-cols-4 gap-4</code>, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/select-theme.php</td></tr>
+                <tr id="step-9" class="bg-red-50"><td class="p-3 font-bold text-danger">9</td><td class="p-3 font-mono font-semibold">website/company-details.php</td><td class="p-3 font-semibold">3,164</td><td class="p-3"><strong>Largest file.</strong> All forms, tabs, modals, tables, maps section. Remove &lt;style&gt;. Do in sections if needed.</td><td class="p-3 text-xs">/user/website/company-details.php</td></tr>
+                <tr id="step-10"><td class="p-3 font-bold">10</td><td class="p-3 font-mono">website/payment-details.php</td><td class="p-3">1,374</td><td class="p-3">Payment forms, QR/upload areas, modals, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/payment-details.php</td></tr>
+                <tr id="step-11" class="bg-red-50"><td class="p-3 font-bold text-danger">11</td><td class="p-3 font-mono font-semibold">website/products.php</td><td class="p-3 font-semibold">2,085</td><td class="p-3">Product table, add/edit modal, image upload, category dropdowns, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/products.php</td></tr>
+                <tr id="step-12" class="bg-red-50"><td class="p-3 font-bold text-danger">12</td><td class="p-3 font-mono font-semibold">website/services.php</td><td class="p-3 font-semibold">1,676</td><td class="p-3">Same pattern as products.php, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/services.php</td></tr>
+                <tr id="step-13"><td class="p-3 font-bold">13</td><td class="p-3 font-mono">website/special-offers.php</td><td class="p-3">1,670</td><td class="p-3">Offers table + modal, date fields, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/special-offers.php</td></tr>
+                <tr id="step-14"><td class="p-3 font-bold">14</td><td class="p-3 font-mono">website/image-gallery.php</td><td class="p-3">1,258</td><td class="p-3">Gallery grid, upload modal, remove &lt;style&gt; + jQuery .css() calls</td><td class="p-3 text-xs">/user/website/image-gallery.php</td></tr>
+                <tr id="step-15"><td class="p-3 font-bold">15</td><td class="p-3 font-mono">includes/footer.php</td><td class="p-3">60</td><td class="p-3">Migrate <code>.Product-ServicesBtn</code> (Back/Save/Next) to Tailwind in footer or shared partial</td><td class="p-3 text-xs">Any website page — mobile 375px</td></tr>
+                <tr id="step-16" class="bg-green-50"><td class="p-3 font-bold text-ok">16</td><td class="p-3 font-mono">website/css/website-step-nav.css</td><td class="p-3">—</td><td class="p-3"><strong>DELETE file</strong> + remove &lt;link&gt; from footer.php</td><td class="p-3 text-xs">Step buttons still work on mobile</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white border rounded-xl p-4 mb-8 text-sm">
+        <p class="font-semibold mb-2">On every website page (Steps 5–14), repeat this mini-checklist:</p>
+        <ol class="list-decimal pl-5 space-y-1 text-slate-600">
+            <li>Replace <code>class="row"</code> / <code>col-md-*</code> → <code>grid grid-cols-1 md:grid-cols-2 gap-4</code></li>
+            <li>Replace <code>btn btn-primary</code> → Tailwind button classes</li>
+            <li>Replace <code>form-control</code> → Tailwind input classes</li>
+            <li>Replace <code>.Dashboard</code> wrapper → <code>min-h-screen bg-gray-50 p-4</code></li>
+            <li>Delete the <code>&lt;style&gt;...&lt;/style&gt;</code> block at bottom of file</li>
+            <li>Test desktop + mobile (375px width)</li>
+        </ol>
+    </div>
+
+    <!-- PHASE C -->
+    <h3 id="phase-c" class="text-lg font-bold mb-4 flex items-center gap-2 scroll-mt-24">
+        <span class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm">Phase C</span>
+        Dashboard & invoices (Steps 17–21)
+    </h3>
+    <div class="overflow-x-auto mb-8">
+        <table class="w-full text-sm bg-white border rounded-xl shadow-sm min-w-[650px]">
+            <thead class="bg-green-700 text-white"><tr><th class="p-3">Step</th><th class="p-3 text-left">File</th><th class="p-3 text-left">What to change</th><th class="p-3 text-left">Test URL</th></tr></thead>
+            <tbody class="divide-y">
+                <tr id="step-17" class="bg-green-50"><td class="p-3 font-bold">17</td><td class="p-3 font-mono">dashboard/index.php</td><td class="p-3">Stats cards, charts area, tables — remove 2 &lt;style&gt; blocks</td><td class="p-3 text-xs">/user/dashboard/</td></tr>
+                <tr id="step-18"><td class="p-3 font-bold">18</td><td class="p-3 font-mono">dashboard/view_invoice_details.php</td><td class="p-3">Invoice detail layout, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/dashboard/view_invoice_details.php</td></tr>
+                <tr id="step-19"><td class="p-3 font-bold">19</td><td class="p-3 font-mono">dashboard/view_invoice_history.php</td><td class="p-3">History table, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/dashboard/view_invoice_history.php</td></tr>
+                <tr id="step-20" class="bg-green-50"><td class="p-3 font-bold">20</td><td class="p-3 font-mono">customer-tracker-customer/index.php</td><td class="p-3">Large tables, filters, forms (1,489 lines)</td><td class="p-3 text-xs">/user/customer-tracker-customer/</td></tr>
+                <tr id="step-21"><td class="p-3 font-bold">21</td><td class="p-3 font-mono">customer-tracker/index.php</td><td class="p-3">Tracker UI, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/customer-tracker/</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PHASE D -->
+    <h3 id="phase-d" class="text-lg font-bold mb-4 flex items-center gap-2 scroll-mt-24">
+        <span class="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm">Phase D</span>
+        Other user modules (Steps 22–28)
+    </h3>
+    <div class="overflow-x-auto mb-8">
+        <table class="w-full text-sm bg-white border rounded-xl shadow-sm min-w-[650px]">
+            <thead class="bg-purple-700 text-white"><tr><th class="p-3">Step</th><th class="p-3 text-left">File</th><th class="p-3">Lines</th><th class="p-3 text-left">Test URL</th></tr></thead>
+            <tbody class="divide-y">
+                <tr id="step-22"><td class="p-3 font-bold">22</td><td class="p-3 font-mono">verification/index.php</td><td class="p-3">993</td><td class="p-3 text-xs">/user/verification/</td></tr>
+                <tr id="step-23"><td class="p-3 font-bold">23</td><td class="p-3 font-mono">wallet/index.php</td><td class="p-3">517</td><td class="p-3 text-xs">/user/wallet/</td></tr>
+                <tr id="step-24"><td class="p-3 font-bold">24</td><td class="p-3 font-mono">referral/index.php</td><td class="p-3">524</td><td class="p-3 text-xs">/user/referral/</td></tr>
+                <tr id="step-25"><td class="p-3 font-bold">25</td><td class="p-3 font-mono">collaboration/index.php</td><td class="p-3">590</td><td class="p-3 text-xs">/user/collaboration/</td></tr>
+                <tr id="step-26"><td class="p-3 font-bold">26</td><td class="p-3 font-mono">kit/index.php</td><td class="p-3">518</td><td class="p-3 text-xs">/user/kit/</td></tr>
+                <tr id="step-27"><td class="p-3 font-bold">27</td><td class="p-3 font-mono">idcard/index.php</td><td class="p-3">795</td><td class="p-3 text-xs">/user/idcard/</td></tr>
+                <tr id="step-28"><td class="p-3 font-bold">28</td><td class="p-3 font-mono">change-password/index.php</td><td class="p-3">412</td><td class="p-3 text-xs">/user/change-password/</td></tr>
+            </tbody>
+        </table>
+        <p class="text-xs text-slate-500 mt-2 pl-1">Each step: same pattern — replace Bootstrap/custom classes, remove &lt;style&gt; block, test page.</p>
+    </div>
+
+    <!-- PHASE E -->
+    <h3 id="phase-e" class="text-lg font-bold mb-4 flex items-center gap-2 scroll-mt-24">
+        <span class="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm">Phase E</span>
+        Optional print pages + final cleanup (Steps 29–34)
+    </h3>
+    <div class="overflow-x-auto mb-6">
+        <table class="w-full text-sm bg-white border rounded-xl shadow-sm">
+            <thead class="bg-slate-700 text-white"><tr><th class="p-3">Step</th><th class="p-3 text-left">File / action</th><th class="p-3 text-left">Notes</th></tr></thead>
+            <tbody class="divide-y">
+                <tr id="step-29"><td class="p-3 font-bold">29</td><td class="p-3 font-mono">dashboard/download_invoice.php</td><td class="p-3">Optional — print layout can keep minimal inline CSS</td></tr>
+                <tr id="step-30"><td class="p-3 font-bold">30</td><td class="p-3 font-mono">dashboard/download_invoice_new.php</td><td class="p-3">Optional — print layout</td></tr>
+                <tr id="step-31"><td class="p-3 font-bold">31</td><td class="p-3 font-mono">invoice/download_receipt.php</td><td class="p-3">Optional — receipt print</td></tr>
+                <tr id="step-32" class="bg-red-50"><td class="p-3 font-bold text-danger">32</td><td class="p-3 font-mono">includes/header.php</td><td class="p-3"><strong>Remove Bootstrap 4 CSS</strong> CDN link (only when ALL pages migrated)</td></tr>
+                <tr id="step-33"><td class="p-3 font-bold">33</td><td class="p-3">assets/css/*.css</td><td class="p-3">Remove unused rules from styles.css, responsive.css, dashboard-professional.css, common.css</td></tr>
+                <tr id="step-34"><td class="p-3 font-bold">34</td><td class="p-3 font-mono">website/header.php</td><td class="p-3">Merge into includes/header.php or delete if duplicate</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SKIP -->
+    <h3 id="skip" class="text-lg font-bold mb-3 scroll-mt-24">Files you do NOT need to change</h3>
+    <table class="w-full text-sm bg-slate-100 border rounded-xl mb-8">
+        <tbody>
+            <tr><td class="p-3 font-mono">ajax/category_cascade.php</td><td class="p-3">API — no UI</td></tr>
+            <tr><td class="p-3 font-mono">ajax/custom_categories.php</td><td class="p-3">API — no UI</td></tr>
+            <tr><td class="p-3 font-mono">menu_config.json</td><td class="p-3">Menu config only</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- CLASS MAPPING -->
+<section id="mapping" class="scroll-mt-24">
+    <h2 class="text-2xl font-bold mb-4">Bootstrap → Tailwind class mapping</h2>
+    <p class="text-sm text-slate-500 mb-3">Use this on every page while doing Steps 5–28</p>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm bg-white border rounded-xl shadow-sm min-w-[600px]">
+            <thead class="bg-brand text-white"><tr><th class="p-3 text-left">Remove (old)</th><th class="p-3 text-left">Add (Tailwind)</th></tr></thead>
+            <tbody class="divide-y font-mono text-xs md:text-sm">
+                <tr><td class="p-3">row + col-md-6</td><td class="p-3 text-slate-700">grid grid-cols-1 md:grid-cols-2 gap-4</td></tr>
+                <tr><td class="p-3">container-fluid</td><td class="p-3 text-slate-700">max-w-7xl mx-auto px-4</td></tr>
+                <tr><td class="p-3">btn btn-primary</td><td class="p-3 text-slate-700">px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90</td></tr>
+                <tr><td class="p-3">form-control</td><td class="p-3 text-slate-700">w-full border border-gray-300 rounded-lg px-3 py-2</td></tr>
+                <tr><td class="p-3">card / card-body</td><td class="p-3 text-slate-700">bg-white rounded-xl shadow-md p-4</td></tr>
+                <tr><td class="p-3">.Dashboard</td><td class="p-3 text-slate-700">min-h-screen bg-gray-50 p-4</td></tr>
+                <tr><td class="p-3">.Product-ServicesBtn</td><td class="p-3 text-slate-700">flex flex-col md:flex-row gap-3 w-full px-4</td></tr>
+                <tr><td class="p-3">.save_btn</td><td class="p-3 text-slate-700">w-full py-3 bg-amber-500 text-white rounded-lg font-semibold</td></tr>
+                <tr><td class="p-3">d-none d-md-block</td><td class="p-3 text-slate-700">hidden md:block</td></tr>
+                <tr><td class="p-3">&lt;style&gt; block</td><td class="p-3 text-ok font-sans">Delete entire block</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="font-semibold mt-6 mb-2">Code to add in Step 1 (header.php)</h3>
+    <pre class="bg-slate-900 text-green-400 p-4 rounded-xl text-xs overflow-x-auto"><code>&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;
+&lt;script&gt;
+  tailwind.config = {
+    corePlugins: { preflight: false },
+    theme: {
+      extend: {
+        colors: {
+          primary: '#C9A227',
+          secondary: '#1a1a2e',
+        },
+        fontFamily: { sans: ['Barlow', 'sans-serif'] }
+      }
+    }
+  }
+&lt;/script&gt;</code></pre>
+</section>
+
+<!-- FULL CHECKLIST -->
+<section id="checklist" class="scroll-mt-24">
+    <h2 class="text-2xl font-bold mb-4">Progress checklist — tick when done</h2>
+    <div class="grid md:grid-cols-2 gap-4 text-sm">
+        <div class="bg-white border rounded-xl p-4">
+            <p class="font-bold mb-2 text-blue-700">Phase A</p>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 1 — Tailwind CDN in header.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 2 — Sidebar/nav Tailwind</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 3 — Footer markup</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 4 — Smoke test passed</label>
+        </div>
+        <div class="bg-white border rounded-xl p-4">
+            <p class="font-bold mb-2 text-amber-700">Phase B (website)</p>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 5 — business-name.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 6 — social-links.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 7 — videos.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 8 — select-theme.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 9 — company-details.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 10 — payment-details.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 11 — products.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 12 — services.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 13 — special-offers.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 14 — image-gallery.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 15 — step nav in footer</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 16 — delete website-step-nav.css</label>
+        </div>
+        <div class="bg-white border rounded-xl p-4">
+            <p class="font-bold mb-2 text-green-700">Phase C</p>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 17 — dashboard/index.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 18 — view_invoice_details.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 19 — view_invoice_history.php</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 20 — customer-tracker-customer</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 21 — customer-tracker</label>
+        </div>
+        <div class="bg-white border rounded-xl p-4">
+            <p class="font-bold mb-2 text-purple-700">Phase D & E</p>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Steps 22–28 — modules</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Steps 29–31 — print pages (optional)</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 32 — remove Bootstrap CDN</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 33 — clean global CSS</label>
+            <label class="flex gap-2 py-1"><input type="checkbox"> Step 34 — website/header.php</label>
+        </div>
+    </div>
+</section>
+
+<!-- AUDIT RESULTS -->
+<section id="overall" class="scroll-mt-24 pb-12">
+    <h2 class="text-2xl font-bold mb-4">Audit results (reference)</h2>
+    <table class="w-full text-sm bg-white border rounded-xl">
+        <tbody class="divide-y">
+            <tr><td class="p-3 font-medium">Total files in /user</td><td class="p-3">33</td></tr>
+            <tr><td class="p-3 font-medium">Pages using Tailwind</td><td class="p-3 text-danger font-bold">0</td></tr>
+            <tr><td class="p-3 font-medium">Pages using custom CSS</td><td class="p-3">28</td></tr>
+            <tr><td class="p-3 font-medium">Current stack</td><td class="p-3">Bootstrap 4 + styles.css + responsive.css + dashboard-professional.css + common.css</td></tr>
+            <tr><td class="p-3 font-medium">Est. total time</td><td class="p-3 font-bold text-brand">4–6 weeks</td></tr>
+        </tbody>
+    </table>
+</section>
+
+</main>
+</div>
+
+<footer class="border-t bg-white py-4 text-center text-xs text-slate-500">
+    Mini Website · Tailwind Migration Guide ·
+    <a href="CSS-STYLING-AUDIT.md" class="text-brand hover:underline">Markdown version</a> ·
+    Open: <code>/miniwebsite/user/CSS-STYLING-AUDIT.html</code>
+</footer>
+
+<script>
+    const sections = document.querySelectorAll('section[id], tr[id^="step-"]');
+    const links = document.querySelectorAll('.toc a');
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                links.forEach(l => l.classList.remove('active'));
+                const id = e.target.id;
+                const a = document.querySelector('.toc a[href="#' + id + '"]') ||
+                          document.querySelector('.toc a[href="#step-by-step"]');
+                if (a && (id === 'step-by-step' || id.startsWith('phase-') || id.startsWith('step-'))) {
+                    document.querySelector('.toc a[href="#step-by-step"]')?.classList.add('active');
+                } else if (a) {
+                    a.classList.add('active');
+                }
+            }
+        });
+    }, { rootMargin: '-15% 0px -75% 0px' });
+    document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

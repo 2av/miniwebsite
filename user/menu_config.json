@@ -56,9 +56,21 @@
       "id": "customer_tracker",
       "label": "Customer Manager",
       "icon": "Customertracker.png",
-      "url": "/customer-tracker-customer",
-      "roles": ["TEAM"],
+      "url": "/customer-tracker",
+      "roles": ["TEAM", "FRANCHISEE"],
       "always_visible": true
+    },
+    {
+      "id": "customer_tracker_collaboration",
+      "label": "Customer Manager",
+      "icon": "Customertracker.png",
+      "url": "/customer-tracker",
+      "roles": ["CUSTOMER"],
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": true
+        }
+      }
     },
     {
       "id": "customer_tracker_customer",
@@ -66,7 +78,11 @@
       "icon": "Customertracker.png",
       "url": "/customer-tracker-customer",
       "roles": ["CUSTOMER"],
-      "always_visible": true
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": false
+        }
+      }
     },
     {
       "id": "collaboration",

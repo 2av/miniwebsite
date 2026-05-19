@@ -39,6 +39,8 @@ if($current_dir == 'dashboard') {
     $page_title = "Website Builder";
 } elseif($current_dir == 'customer-tracker-customer') {
     $page_title = "Customer Manager";
+} elseif($current_dir == 'customer-tracker') {
+    $page_title = "Customer Tracker";
 } elseif($current_dir == 'profile') {
     $page_title = "Profile";
 }
