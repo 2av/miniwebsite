@@ -189,7 +189,7 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb">
                                 <li class="breadcrumb-item"><a href="#">Mini Website </a></li>
-                                <li class="breadcrumb-item active" aria-current="page">Referral Details</li>
+                                <li class="breadcrumb-item active" aria-current="page">Sales Details</li>
                             </ol>
                         </nav>
                     </div>
