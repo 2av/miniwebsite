@@ -1653,6 +1653,28 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
     setFieldLocked(secondaryEl, secondaryEl.disabled, { requiredWhenUnlocked: false });
     setCategoryButtonsLocked(primaryEl.disabled);
 
+    async function refreshBusinessCategoryDropdowns(selectCategoryId) {
+        const profileType = profileEl.value.trim();
+        const opArea = opAreaEl.value.trim();
+        if (!profileType || !modelEl.value.trim() || !opArea) {
+            return;
+        }
+        const categories = await fetchBusinessCategories(profileType);
+        const prevPrimary = selectCategoryId ? String(selectCategoryId) : primaryEl.value;
+        const prevSecondary = secondaryEl.value;
+        fillBusinessSelect(primaryEl, categories, prevPrimary, '-- Select Primary Category --');
+        fillBusinessSelect(secondaryEl, categories, prevSecondary, '-- Select Secondary Category (Optional) --');
+        setCategoryButtonsLocked(false);
+        if (selectCategoryId) {
+            primaryEl.value = String(selectCategoryId);
+            primaryEl.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+            await refreshProductCategories();
+        }
+    }
+
+    window.MW_refreshBusinessCategoryDropdowns = refreshBusinessCategoryDropdowns;
+
     if (INIT.profile_type) {
         profileEl.value = INIT.profile_type;
         setFieldLocked(modelEl, false, { requiredWhenUnlocked: true });
@@ -3135,11 +3157,28 @@ function saveCustomBusinessCategory() {
             successElement.textContent = data.message || 'Category created successfully!';
             successElement.style.display = 'block';
             errorElement.style.display = 'none';
-            
-            setTimeout(function() {
-                closeCustomBusinessCategoryModal();
-                window.location.reload();
-            }, 1000);
+            var nameInput = document.getElementById('custom_business_category_name');
+            if (nameInput) nameInput.value = '';
+
+            var refreshDropdowns = window.MW_refreshBusinessCategoryDropdowns;
+            if (typeof refreshDropdowns === 'function') {
+                refreshDropdowns(data.category_id).then(function() {
+                    setTimeout(function() {
+                        closeCustomBusinessCategoryModal();
+                        successElement.style.display = 'none';
+                    }, 400);
+                }).catch(function() {
+                    setTimeout(function() {
+                        closeCustomBusinessCategoryModal();
+                        window.location.reload();
+                    }, 400);
+                });
+            } else {
+                setTimeout(function() {
+                    closeCustomBusinessCategoryModal();
+                    window.location.reload();
+                }, 1000);
+            }
         } else {
             errorElement.textContent = data.message || 'Error creating category.';
             errorElement.style.display = 'block';

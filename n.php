@@ -911,19 +911,21 @@ function mw_vcard_resolve_business_category_name($connect, $category_id, $user_i
 
 // vCard payload: raw UTF-8 strings (no HTML entities) for Save Contact / .vcf
 $mw_vcard = [];
-$mw_vcard_note_text = 'Trusted local grocery store offering grains, packaged foods and daily essentials. We provide chips, biscuits, Dal, Rice & all other essential items at discounted prices.';
+$mw_vcard_decode = static function ($value) {
+    return html_entity_decode(trim((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+};
 if ($row) {
-    $raw_owner = trim(trim($row['d_f_name'] ?? '') . ' ' . trim($row['d_l_name'] ?? ''));
-    $raw_org = trim($row['d_comp_name'] ?? '');
-    $raw_email = trim($row['d_email'] ?? '');
-    $raw_website = trim($row['d_website'] ?? '');
+    $raw_owner = $mw_vcard_decode(trim($row['d_f_name'] ?? '') . ' ' . trim($row['d_l_name'] ?? ''));
+    $raw_org = $mw_vcard_decode($row['d_comp_name'] ?? '');
+    $raw_email = $mw_vcard_decode($row['d_email'] ?? '');
+    $raw_website = $mw_vcard_decode($row['d_website'] ?? '');
     $tel_cell = preg_replace('/[^0-9+]/', '', (string) ($row['d_contact'] ?? ''));
     $tel_wa = preg_replace('/[^0-9+]/', '', (string) ($row['d_whatsapp'] ?? ''));
     if ($tel_wa === '') {
         $tel_wa = $tel_cell;
     }
-    $street = trim((string) ($row['d_address'] ?? ''));
-    $ext = trim((string) ($row['d_address2'] ?? ''));
+    $street = $mw_vcard_decode($row['d_address'] ?? '');
+    $ext = $mw_vcard_decode($row['d_address2'] ?? '');
     $adr_street = $street;
     if ($ext !== '' && $street !== '') {
         $adr_street = $street . ', ' . $ext;
@@ -970,12 +972,12 @@ if ($row) {
         $raw_map = 'https://' . $raw_map;
     }
     $social = [
-        'facebook' => trim((string) ($row['d_fb'] ?? '')),
-        'instagram' => trim((string) ($row['d_instagram'] ?? '')),
-        'linkedin' => trim((string) ($row['d_linkedin'] ?? '')),
-        'twitter' => trim((string) ($row['d_twitter'] ?? '')),
-        'youtube' => trim((string) ($row['d_youtube'] ?? '')),
-        'pinterest' => trim((string) ($row['d_pinterest'] ?? '')),
+        'facebook' => $mw_vcard_decode($row['d_fb'] ?? ''),
+        'instagram' => $mw_vcard_decode($row['d_instagram'] ?? ''),
+        'linkedin' => $mw_vcard_decode($row['d_linkedin'] ?? ''),
+        'twitter' => $mw_vcard_decode($row['d_twitter'] ?? ''),
+        'youtube' => $mw_vcard_decode($row['d_youtube'] ?? ''),
+        'pinterest' => $mw_vcard_decode($row['d_pinterest'] ?? ''),
     ];
     $mw_card_user_id = 0;
     if (!empty($row['user_id'])) {
@@ -997,10 +999,16 @@ if ($row) {
         $bc_parts[] = $bc_sec;
     }
     $business_category = implode(', ', $bc_parts);
+    $display_name = $raw_org !== '' ? $raw_org : ($raw_owner !== '' ? $raw_owner : 'Your Name');
+    $raw_title = $mw_vcard_decode($row['d_position'] ?? '');
+    if ($raw_title === '' && $business_category !== '') {
+        $raw_title = $business_category;
+    }
+    $raw_about = $mw_vcard_decode($row['d_about_us'] ?? '');
     $mw_vcard = [
-        'fn' => $raw_owner !== '' ? $raw_owner : ($raw_org !== '' ? $raw_org : 'Your Name'),
-        'org' => $raw_org,
-        'title' => $bc_pri,
+        'fn' => $display_name,
+        'org' => $raw_org !== '' ? $raw_org : $display_name,
+        'title' => $raw_title,
         'businessCategory' => $business_category,
         'telCell' => $tel_cell,
         'telWhatsapp' => $tel_wa,
@@ -1010,25 +1018,30 @@ if ($row) {
         'mapUrl' => $raw_map,
         'adr' => [
             'street' => $adr_street,
-            'locality' => trim((string) ($row['d_city'] ?? '')),
-            'region' => trim((string) ($row['d_state'] ?? '')),
-            'postal' => trim((string) ($row['d_pincode'] ?? '')),
-            'country' => trim((string) ($row['d_country'] ?? '')),
+            'locality' => $mw_vcard_decode($row['d_city'] ?? ''),
+            'region' => $mw_vcard_decode($row['d_state'] ?? ''),
+            'postal' => $mw_vcard_decode($row['d_pincode'] ?? ''),
+            'country' => $mw_vcard_decode($row['d_country'] ?? ''),
         ],
-        'note' => $mw_vcard_note_text,
+        'note' => $raw_about,
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
         'logoUrl' => $logo_url,
         'social' => $social,
     ];
-    $parts = explode(' ', $raw_owner, 2);
-    $mw_vcard['nFamily'] = count($parts) > 1 ? $parts[1] : '';
-    $mw_vcard['nGiven'] = $parts[0] ?? '';
+    if ($raw_owner !== '') {
+        $parts = preg_split('/\s+/', $raw_owner, 2);
+        $mw_vcard['nGiven'] = $parts[0] ?? '';
+        $mw_vcard['nFamily'] = $parts[1] ?? '';
+    } else {
+        $mw_vcard['nGiven'] = '';
+        $mw_vcard['nFamily'] = '';
+    }
 } else {
     $wa_digits = preg_replace('/\D+/', '', $whatsapp);
     $mw_vcard = [
         'fn' => 'Olivia Murray',
         'org' => 'Olivia Culinary',
-        'title' => '',
+        'title' => 'Executive Chef',
         'businessCategory' => '',
         'telCell' => preg_replace('/[^0-9+]/', '', $phone),
         'telWhatsapp' => preg_replace('/[^0-9+]/', '', $whatsapp),
@@ -1043,7 +1056,7 @@ if ($row) {
             'postal' => '10115',
             'country' => 'Germany',
         ],
-        'note' => $mw_vcard_note_text,
+        'note' => '',
         'waMe' => $wa_digits !== '' ? ('https://wa.me/' . $wa_digits) : '',
         'logoUrl' => '',
         'social' => [],
@@ -1804,7 +1817,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="theme/js/app.js?v=15"></script>
+<script src="theme/js/app.js?v=16"></script>
 
 </body>
 </html>

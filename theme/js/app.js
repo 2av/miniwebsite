@@ -619,21 +619,53 @@ Thanks a lot for your support 🙏`;
             .replace(/,/g, '\\,');
     }
 
+    function vcardNeedsCharset(s) {
+        return /[^\x00-\x7F]/.test(String(s || ''));
+    }
+
+    function vcardLine(prop, rawValue, typeParams) {
+        const raw = String(rawValue ?? '').trim();
+        if (!raw) return '';
+        const val = escapeVcardValue(raw);
+        const params = [];
+        if (typeParams) params.push(typeParams);
+        if (vcardNeedsCharset(raw)) params.push('CHARSET=UTF-8');
+        const paramStr = params.length ? `;${params.join(';')}` : '';
+        return `${prop}${paramStr}:${val}`;
+    }
+
+    function normalizeComparableUrl(raw) {
+        const s = String(raw || '').trim();
+        if (!s) return '';
+        const full = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+        try {
+            const u = new URL(full);
+            const host = u.hostname.toLowerCase().replace(/^www\./, '');
+            const path = u.pathname.replace(/\/+$/, '');
+            const query = u.search.replace(/^\?/, '');
+            return `${host}${path}${query ? `?${query}` : ''}`;
+        } catch (_) {
+            return full.toLowerCase().replace(/\/+$/, '');
+        }
+    }
+
+    function isGoogleMapsUrl(raw) {
+        return /(?:google\.com\/maps|maps\.google\.com|goo\.gl\/maps|maps\.app\.goo\.gl)/i.test(String(raw || ''));
+    }
+
     function buildMwVcardLines(v) {
-        const e = escapeVcardValue;
-        const fn = e(v.fn || '');
-        const org = e(v.org || '');
-        const title = e(String(v.title || v.businessCategory || '').trim());
-        const businessCategory = e(String(v.businessCategory || '').trim());
+        const fnRaw = String(v.fn || '').trim();
+        const orgRaw = String(v.org || '').trim();
+        const titleRaw = String(v.title || '').trim();
+        const businessCategoryRaw = String(v.businessCategory || '').trim();
         const cell = String(v.telCell || '').replace(/\s/g, '');
         const wa = String(v.telWhatsapp || '').replace(/\s/g, '');
         const primary = cell || wa;
-        const em = v.email || '';
-        const urlProf = v.urlProfile || shareUrl || '';
+        const em = String(v.email || '').trim();
+        const urlProf = String(v.urlProfile || shareUrl || '').trim();
         const urlWeb = String(v.urlWebsite || '').trim();
         const mapUrl = String(v.mapUrl || '').trim();
         const waMe = String(v.waMe || '').trim();
-        const logoUrl = String(v.logoUrl || '').trim();
         const social = v.social && typeof v.social === 'object' ? v.social : {};
         const socialMap = [
             { key: 'facebook', type: 'facebook', label: 'Facebook' },
@@ -643,98 +675,130 @@ Thanks a lot for your support 🙏`;
             { key: 'youtube', type: 'youtube', label: 'YouTube' },
             { key: 'pinterest', type: 'pinterest', label: 'Pinterest' }
         ];
-        const nFam = e(v.nFamily || '');
-        const nGiv = e(v.nGiven || '');
+        const nFamRaw = String(v.nFamily || '').trim();
+        const nGivRaw = String(v.nGiven || '').trim();
         const adr = v.adr && typeof v.adr === 'object' ? v.adr : {};
-        const street = e(adr.street || '');
-        const locality = e(adr.locality || '');
-        const region = e(adr.region || '');
-        const postal = e(adr.postal || '');
-        const country = e(adr.country || '');
+        const streetRaw = String(adr.street || '').trim();
+        const localityRaw = String(adr.locality || '').trim();
+        const regionRaw = String(adr.region || '').trim();
+        const postalRaw = String(adr.postal || '').trim();
+        const countryRaw = String(adr.country || '').trim();
 
-        const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
-        const normalizeComparableUrl = (raw) => {
-            const s = String(raw || '').trim();
-            if (!s) return '';
-            const full = /^https?:\/\//i.test(s) ? s : `https://${s}`;
-            try {
-                const u = new URL(full);
-                const host = u.hostname.toLowerCase().replace(/^www\./, '');
-                const path = u.pathname.replace(/\/+$/, '');
-                return `${host}${path}`;
-            } catch (_) {
-                return full.toLowerCase().replace(/\/+$/, '');
-            }
+        const lines = [
+            'BEGIN:VCARD',
+            'VERSION:3.0',
+            'PRODID:-//MiniWebsite//EN'
+        ];
+
+        const seenUrls = new Set();
+        const rememberUrl = (raw) => {
+            const key = normalizeComparableUrl(raw);
+            if (!key || seenUrls.has(key)) return false;
+            seenUrls.add(key);
+            return true;
         };
-        if (nFam || nGiv) {
-            lines.push(`N:${nFam};${nGiv};;;`);
-        } else {
-            lines.push(`N:;${fn};;;`);
+
+        if (nGivRaw || nFamRaw) {
+            const nValue = `${escapeVcardValue(nFamRaw)};${escapeVcardValue(nGivRaw)};;;`;
+            const nCharset = vcardNeedsCharset(nFamRaw) || vcardNeedsCharset(nGivRaw);
+            lines.push(nCharset ? `N;CHARSET=UTF-8:${nValue}` : `N:${nValue}`);
+        } else if (fnRaw) {
+            const nValue = `;${escapeVcardValue(fnRaw)};;;`;
+            lines.push(vcardNeedsCharset(fnRaw) ? `N;CHARSET=UTF-8:${nValue}` : `N:${nValue}`);
         }
-        lines.push(`FN:${fn}`);
-        if (org) lines.push(`ORG:${org}`);
-        if (title) lines.push(`TITLE:${title}`);
-        if (businessCategory) {
-            lines.push(`ROLE:${businessCategory}`);
+
+        const fnLine = vcardLine('FN', fnRaw);
+        if (fnLine) lines.push(fnLine);
+
+        const orgLine = vcardLine('ORG', orgRaw);
+        if (orgLine) lines.push(orgLine);
+
+        const titleLine = vcardLine('TITLE', titleRaw);
+        if (titleLine) lines.push(titleLine);
+
+        if (businessCategoryRaw && businessCategoryRaw !== titleRaw) {
+            const roleLine = vcardLine('ROLE', businessCategoryRaw);
+            if (roleLine) lines.push(roleLine);
         }
+
         if (primary) {
-            lines.push(`TEL;TYPE=WORK,VOICE:${primary}`);
+            lines.push(`TEL;TYPE=CELL,VOICE:${primary}`);
         }
-        if (wa) {
-            lines.push(`TEL;TYPE=WHATSAPP:${wa}`);
+        if (wa && wa !== primary) {
+            lines.push(`TEL;TYPE=CELL:${wa}`);
         }
         if (em) {
-            lines.push(`EMAIL;TYPE=INTERNET:${e(em)}`);
+            const emailLine = vcardLine('EMAIL', em, 'TYPE=INTERNET');
+            if (emailLine) lines.push(emailLine);
         }
-        if (urlProf) {
-            lines.push(`URL;TYPE=WORK:${e(urlProf)}`);
+
+        if (urlProf && rememberUrl(urlProf)) {
+            const profileLine = vcardLine('URL', urlProf, 'TYPE=WORK');
+            if (profileLine) lines.push(profileLine);
         }
+
+        let resolvedMapUrl = mapUrl;
+        if (!resolvedMapUrl && urlWeb && isGoogleMapsUrl(urlWeb)) {
+            resolvedMapUrl = urlWeb;
+        }
+
         if (urlWeb) {
-            const full = /^https?:\/\//i.test(urlWeb) ? urlWeb : `https://${urlWeb}`;
-            const profileComparable = normalizeComparableUrl(urlProf);
-            const websiteComparable = normalizeComparableUrl(full);
-            // Avoid duplicate URL entries when website is same as profile link.
-            if (!profileComparable || profileComparable !== websiteComparable) {
-                lines.push(`URL:${e(full)}`);
+            const fullWeb = /^https?:\/\//i.test(urlWeb) ? urlWeb : `https://${urlWeb}`;
+            if (!isGoogleMapsUrl(fullWeb) && rememberUrl(fullWeb)) {
+                const webLine = vcardLine('URL', fullWeb);
+                if (webLine) lines.push(webLine);
             }
         }
-        let itemIdx = 1;
-        if (mapUrl) {
-            const fullMap = /^https?:\/\//i.test(mapUrl) ? mapUrl : `https://${mapUrl}`;
-            lines.push(`item${itemIdx}.URL;type=pref:${e(fullMap)}`);
-            lines.push(`item${itemIdx}.X-ABLabel:Google Maps`);
-            itemIdx += 1;
+
+        if (resolvedMapUrl) {
+            const fullMap = /^https?:\/\//i.test(resolvedMapUrl) ? resolvedMapUrl : `https://${resolvedMapUrl}`;
+            if (rememberUrl(fullMap)) {
+                const mapLine = vcardLine('URL', fullMap, 'TYPE=pref');
+                if (mapLine) lines.push(mapLine);
+            }
         }
-        if (street || locality || region || postal || country) {
-            lines.push(`ADR;TYPE=WORK:;;${street};${locality};${region};${postal};${country}`);
+
+        if (streetRaw || localityRaw || regionRaw || postalRaw || countryRaw) {
+            const adrValue = `;;${escapeVcardValue(streetRaw)};${escapeVcardValue(localityRaw)};${escapeVcardValue(regionRaw)};${escapeVcardValue(postalRaw)};${escapeVcardValue(countryRaw)}`;
+            const adrCharset = [streetRaw, localityRaw, regionRaw, postalRaw, countryRaw].some(vcardNeedsCharset);
+            lines.push(adrCharset ? `ADR;TYPE=WORK;CHARSET=UTF-8:${adrValue}` : `ADR;TYPE=WORK:${adrValue}`);
         }
+
+        const noteParts = [];
         const noteRaw = String(v.note || '').trim();
-        lines.push(`NOTE:${e(noteRaw)}`);
-        if (logoUrl) {
-            const fullLogo = /^https?:\/\//i.test(logoUrl) ? logoUrl : `https://${logoUrl}`;
-            lines.push(`PHOTO;TYPE=PNG;VALUE=URI:${e(fullLogo)}`);
-        }
-        if (waMe) {
-            lines.push(`X-SOCIALPROFILE;TYPE=whatsapp:${e(waMe)}`);
-            lines.push(`item${itemIdx}.URL:${e(waMe)}`);
-            lines.push(`item${itemIdx}.X-ABLabel:WhatsApp`);
-            itemIdx += 1;
-        }
+        if (noteRaw) noteParts.push(noteRaw);
+        if (urlProf) noteParts.push(`MiniWebsite: ${urlProf}`);
+
         socialMap.forEach(({ key, type, label }) => {
             const raw = String(social[key] || '').trim();
             if (!raw) return;
             const full = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-            lines.push(`X-SOCIALPROFILE;TYPE=${type}:${e(full)}`);
-            lines.push(`item${itemIdx}.URL:${e(full)}`);
-            lines.push(`item${itemIdx}.X-ABLabel:${e(label)}`);
-            itemIdx += 1;
+            noteParts.push(`${label}: ${full}`);
+            if (rememberUrl(full)) {
+                lines.push(`X-SOCIALPROFILE;TYPE=${type}:${escapeVcardValue(full)}`);
+                const socialUrlLine = vcardLine('URL', full);
+                if (socialUrlLine) lines.push(socialUrlLine);
+            }
         });
+
+        if (waMe && rememberUrl(waMe)) {
+            lines.push(`X-SOCIALPROFILE;TYPE=whatsapp:${escapeVcardValue(waMe)}`);
+            const waLine = vcardLine('URL', waMe);
+            if (waLine) lines.push(waLine);
+        }
+
+        const noteText = noteParts.join('\n');
+        if (noteText) {
+            const noteLine = vcardLine('NOTE', noteText);
+            if (noteLine) lines.push(noteLine);
+        }
+
         lines.push('END:VCARD');
         return lines;
     }
 
     if (saveContactBtn) {
-        saveContactBtn.addEventListener('click', () => {
+        saveContactBtn.addEventListener('click', async () => {
             const v = window.MW_VCARD;
             let lines;
             if (v && typeof v === 'object' && Object.keys(v).length) {
@@ -744,9 +808,10 @@ Thanks a lot for your support 🙏`;
                 lines = [
                     'BEGIN:VCARD',
                     'VERSION:3.0',
+                    'PRODID:-//MiniWebsite//EN',
                     `N:;${e(heroName)};;;`,
                     `FN:${e(heroName)}`,
-                    phone ? `TEL;TYPE=WORK,VOICE:${phone.replace(/\s/g, '')}` : '',
+                    phone ? `TEL;TYPE=CELL,VOICE:${phone.replace(/\s/g, '')}` : '',
                     email ? `EMAIL;TYPE=INTERNET:${e(email)}` : '',
                     shareUrl ? `URL;TYPE=WORK:${e(shareUrl)}` : '',
                     shareUrl ? `NOTE:${e(`Visit my MiniWebsite for products & offers: ${shareUrl}`)}` : '',
@@ -756,17 +821,34 @@ Thanks a lot for your support 🙏`;
                 showToast('No contact data');
                 return;
             }
-            // Add UTF-8 BOM so phones/contacts apps parse accented chars correctly (e.g. Bārh).
+
             const vcardBody = lines.join('\r\n');
             const utf8Bom = '\uFEFF';
             const blob = new Blob([utf8Bom, vcardBody], { type: 'text/vcard;charset=utf-8' });
+            const baseName = (v && v.org) ? v.org : ((v && v.fn) ? v.fn : heroName);
+            const fileName = `${String(baseName).replace(/\s+/g, '_').replace(/[^\w.-]/g, '') || 'contact'}.vcf`;
+            const file = new File([blob], fileName, { type: 'text/vcard;charset=utf-8' });
+
+            if (navigator.canShare && navigator.share) {
+                try {
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: String(baseName) });
+                        showToast('Contact ready — open the file to save');
+                        return;
+                    }
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return;
+                }
+            }
+
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            const baseName = (v && v.fn) ? v.fn : heroName;
-            a.download = `${String(baseName).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '') || 'contact'}.vcf`;
+            a.download = fileName;
+            document.body.appendChild(a);
             a.click();
+            a.remove();
             URL.revokeObjectURL(a.href);
-            showToast('Contact saved!');
+            showToast('Contact downloaded — open the .vcf file to save');
         });
     }
 

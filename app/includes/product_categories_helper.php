@@ -220,7 +220,7 @@ function getBusinessPrimaryCategoryOptions($connect, $user_id = 0, array $opts =
 /**
  * Business categories for a profile type (JSON / cascade UI).
  */
-function getBusinessCategoriesByProfileType($connect, $profile_type) {
+function getBusinessCategoriesByProfileType($connect, $profile_type, $user_id = 0) {
     $items = [];
     $profile_type = trim((string) $profile_type);
     if ($profile_type === '') {
@@ -244,6 +244,30 @@ function getBusinessCategoriesByProfileType($connect, $profile_type) {
                     'label' => trim((string) ($row['business_category'] ?? '')),
                     'group' => $heading !== '' ? $heading : 'Categories',
                     'slug' => trim((string) ($row['business_category_slug'] ?? '')),
+                ];
+            }
+        }
+    }
+
+    $user_id = (int) $user_id;
+    if ($user_id > 0) {
+        $custom_res = mysqli_query($connect, "
+            SELECT id, category_name FROM user_custom_categories
+            WHERE user_id = $user_id AND category_type = 'business-category' AND is_active = 1
+            ORDER BY created_at DESC
+        ");
+        if ($custom_res) {
+            while ($custom_row = mysqli_fetch_assoc($custom_res)) {
+                $catName = trim((string) ($custom_row['category_name'] ?? ''));
+                if ($catName === '') {
+                    continue;
+                }
+                $items[] = [
+                    'id' => (int) $custom_row['id'],
+                    'label' => '[Custom] ' . $catName,
+                    'group' => 'My Custom Categories',
+                    'slug' => '',
+                    'is_custom' => true,
                 ];
             }
         }

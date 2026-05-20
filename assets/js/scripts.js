@@ -1,8 +1,9 @@
 
 $(document).ready(function () {
-    $(".upload-profile .profile-text, .upload-profile .profile-name-line").click(function (e) {
-        e.preventDefault(); // Prevent default action if inside an <a> tag
-        $(this).closest(".nav-item").find(".dropdown-menu").slideToggle(); // Toggle dropdown
+    $(".upload-profile .profile-text").click(function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).closest(".nav-item").find(".dropdown-menu").slideToggle();
     });
 
     // Optional: Close dropdown when clicking outside

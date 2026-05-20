@@ -17,9 +17,15 @@ if ($action === 'business_categories') {
         echo json_encode(['success' => true, 'categories' => []]);
         exit;
     }
+    $cascade_user_id = 0;
+    $user_email_esc = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $user_q = mysqli_query($connect, "SELECT id FROM user_details WHERE LOWER(TRIM(email)) = LOWER(TRIM('$user_email_esc')) LIMIT 1");
+    if ($user_q && ($user_row = mysqli_fetch_assoc($user_q))) {
+        $cascade_user_id = (int) $user_row['id'];
+    }
     echo json_encode([
         'success' => true,
-        'categories' => getBusinessCategoriesByProfileType($connect, $profile_type),
+        'categories' => getBusinessCategoriesByProfileType($connect, $profile_type, $cascade_user_id),
     ]);
     exit;
 }
