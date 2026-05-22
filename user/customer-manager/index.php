@@ -254,8 +254,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $followupMethod = mw_limit_text($_POST['followup_method'] ?? '', 150);
         $teamFollowupPredefined = ['Call', 'Visited', 'WhatsApp', 'Email'];
         if ($tracker_variant === 'customer') {
-            $followupRaw = trim((string)($_POST['followup_method'] ?? ''));
-            $followupMethod = mw_limit_text($followupRaw, 40);
+            $followupMethod = '';
+            if ($id > 0) {
+                $stmtFollowup = $connect->prepare("SELECT followup_method FROM mw_customers WHERE id = ? AND owner_user_id = ? AND owner_role = ? LIMIT 1");
+                if ($stmtFollowup) {
+                    $stmtFollowup->bind_param('iis', $id, $owner_id, $owner_role_db);
+                    $stmtFollowup->execute();
+                    $resFollowup = $stmtFollowup->get_result();
+                    if ($resFollowup && ($rowFollowup = $resFollowup->fetch_assoc())) {
+                        $followupMethod = mw_limit_text((string)($rowFollowup['followup_method'] ?? ''), 150);
+                    }
+                    $stmtFollowup->close();
+                }
+            }
         } elseif ($tracker_variant === 'team') {
             if ($followupMethod !== '' && !in_array($followupMethod, $teamFollowupPredefined, true)) {
                 $followupMethod = '';
@@ -432,26 +443,32 @@ $trackerThSort = function (string $col, string $label) use ($search, $sort_by, $
 };
 
 if ($tracker_variant === 'team') {
-    $tracker_table_columns = [
-        ['key' => 'created_at', 'label' => 'Date Added'],
-        ['key' => 'customer_name', 'label' => 'Customer Name'],
-        ['key' => 'phone_number', 'label' => 'Phone Number'],
-        ['key' => 'business_type', 'label' => 'Business Type'],
-    ];
-    if ($show_approached_for) {
-        $tracker_table_columns[] = ['key' => 'approached_for', 'label' => 'Approached For'];
-    }
-    $tracker_table_columns = array_merge($tracker_table_columns, [
-        ['key' => 'followup_method', 'label' => 'Followed-Up Method'],
+    $team_table_tail = [
+        ['key' => 'followup_method', 'label' => 'Follow-up Method'],
+        ['key' => 'status', 'label' => 'Status'],
         ['key' => 'source', 'label' => 'Source'],
         ['key' => 'email_id', 'label' => 'Email ID'],
         ['key' => 'company_name', 'label' => 'Company Name'],
         ['key' => 'website', 'label' => 'Website'],
         ['key' => 'address', 'label' => 'Address'],
-        ['key' => 'comments', 'label' => 'Comment'],
-        ['key' => 'status', 'label' => 'Status'],
         ['key' => 'last_updated', 'label' => 'Last updated'],
-    ]);
+        ['key' => 'comments', 'label' => 'Comment'],
+    ];
+    $team_table_lead = [
+        ['key' => 'created_at', 'label' => 'Date Added'],
+        ['key' => 'customer_name', 'label' => 'Customer Name'],
+        ['key' => 'phone_number', 'label' => 'Phone Number'],
+        ['key' => 'business_type', 'label' => 'Business Type'],
+    ];
+    if ($current_role === 'FRANCHISEE') {
+        // Franchisee: no Approached For column
+        $tracker_table_columns = array_merge($team_table_lead, $team_table_tail);
+    } else {
+        // Team / collaboration: Approached For after Business Type
+        $tracker_table_columns = array_merge($team_table_lead, [
+            ['key' => 'approached_for', 'label' => 'Approached For'],
+        ], $team_table_tail);
+    }
 } else {
     $tracker_table_columns = [
         ['key' => 'created_at', 'label' => 'Date Added'],
@@ -459,14 +476,13 @@ if ($tracker_variant === 'team') {
         ['key' => 'phone_number', 'label' => 'Phone Number'],
         ['key' => 'label_tag', 'label' => 'Label'],
         ['key' => 'source', 'label' => 'Source'],
+        ['key' => 'status', 'label' => 'Status'],
+        ['key' => 'comments', 'label' => 'Comment'],
         ['key' => 'email_id', 'label' => 'Email ID'],
         ['key' => 'company_name', 'label' => 'Company Name'],
         ['key' => 'website', 'label' => 'Website'],
         ['key' => 'address', 'label' => 'Address'],
         ['key' => 'last_shared_at', 'label' => 'Last shared'],
-        ['key' => 'comments', 'label' => 'Comment'],
-        ['key' => 'followup_method', 'label' => 'Follow-Up Method'],
-        ['key' => 'status', 'label' => 'Status'],
     ];
 }
 $tracker_action_cols = ($tracker_variant === 'team') ? 1 : 2;
@@ -1090,7 +1106,7 @@ include __DIR__ . '/../includes/header.php';
                 <?php foreach ($tracker_table_columns as $col): ?>
                     <?php echo $trackerThSort($col['key'], $col['label']); ?>
                 <?php endforeach; ?>
-                <th>Actions</th><?php if ($tracker_variant !== 'team'): ?><th>Manage</th><?php endif; ?>
+                <th>Action</th><?php if ($tracker_variant !== 'team'): ?><th>Manage</th><?php endif; ?>
             </tr></thead>
             <tbody>
             <?php if (empty($customers)): ?>
@@ -1104,9 +1120,8 @@ include __DIR__ . '/../includes/header.php';
                     <?php if ($tracker_variant === 'team'): ?>
                     <td class="ct-cell-action">
                         <div class="d-flex flex-wrap gap-1">
-                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewModal<?php echo (int)$c['id']; ?>" title="View"><i class="fa fa-eye"></i> View</button>
-                            <button type="button" class="btn btn-sm btn-warning edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-business-type="<?php echo htmlspecialchars($c['business_type'] ?? ''); ?>" data-approached-for="<?php echo htmlspecialchars($c['approached_for'] ?? ''); ?>" data-followup-method="<?php echo htmlspecialchars($c['followup_method'] ?? ''); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city'] ?? ''); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>" title="Edit"><i class="fa fa-edit"></i> Edit</button>
-                            <button type="button" class="btn btn-sm btn-primary" style="background-color:#278de6;border-color:#278de6;" data-bs-toggle="modal" data-bs-target="#historyModal<?php echo (int)$c['id']; ?>" title="Add Followup"><i class="fa fa-history"></i> Add Followup</button>
+                             <button type="button" class="btn btn-sm btn-warning edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-business-type="<?php echo htmlspecialchars($c['business_type'] ?? ''); ?>" data-approached-for="<?php echo htmlspecialchars($c['approached_for'] ?? ''); ?>" data-followup-method="<?php echo htmlspecialchars($c['followup_method'] ?? ''); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city'] ?? ''); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>" title="Edit"><i class="fa fa-edit"></i> Edit</button>
+                            <button type="button" class="btn btn-sm btn-primary" style="background-color:#278de6;border-color:#278de6;" data-bs-toggle="modal" data-bs-target="#historyModal<?php echo (int)$c['id']; ?>" title="Add Followup"><i class="fa fa-history"></i> Add/View Followup</button>
                         </div>
                     </td>
                     <?php else: ?>
@@ -1116,7 +1131,7 @@ include __DIR__ . '/../includes/header.php';
                         <button class="btn btn-sm btn-outline-warning single-offer-btn" data-id="<?php echo (int)$c['id']; ?>"><i class="fa fa-gift"></i></button>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-outline-info edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-followup-method="<?php echo htmlspecialchars($c['followup_method'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city'] ?? ''); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>"><i class="fa fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-info edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city'] ?? ''); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>"><i class="fa fa-edit"></i></button>
                         <form method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this customer?');"><input type="hidden" name="action" value="delete_customer"><input type="hidden" name="customer_id" value="<?php echo (int)$c['id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button></form>
                     </td>
                     <?php endif; ?>
@@ -1291,7 +1306,6 @@ include __DIR__ . '/../includes/header.php';
     <?php else: ?>
     <div class="col-md-6"><label class="form-label">Label</label><select name="label_tag" id="label_tag" class="form-select"></select></div>
     <div class="col-md-6"><label class="form-label">Source</label><select name="source" id="source_select" class="form-select"></select></div>
-    <div class="col-md-6"><label class="form-label">Follow-Up Method</label><select name="followup_method" id="followup_method_quick" class="form-select"></select></div>
     <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select" class="form-select"></select></div>
     <div class="col-12"><label class="form-label">Comment</label><textarea name="comments" id="comments_quick" class="form-control" rows="2" placeholder="Notes (optional)"></textarea></div>
     <?php endif; ?>
@@ -1317,7 +1331,6 @@ include __DIR__ . '/../includes/header.php';
     <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select_full" class="form-select"></select></div>
     <?php else: ?>
     <div class="col-md-6"><label class="form-label">Label</label><select name="label_tag" id="label_tag_full" class="form-select"></select></div>
-    <div class="col-md-6"><label class="form-label">Follow-Up Method</label><select name="followup_method" id="followup_method_full" class="form-select"></select></div>
     <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select_full" class="form-select"></select></div>
     <?php endif; ?>
 </div>
@@ -1542,7 +1555,6 @@ const businessTypeOptionsList = <?php echo json_encode(!empty($business_primary_
     ['value' => 'Other', 'label' => 'Other']
 ], JSON_UNESCAPED_UNICODE); ?>;
 const approachedForOptionsList = ['MW Sales', 'Franchise Sale'];
-const customerFollowupOptionsList = ['Followup required', 'Phone Busy/Not Picked', 'Important', 'Deal Done', 'Profile Shared', 'Interested', 'Not Interested'];
 const teamFollowupMethodOptionsList = ['Call', 'Visited', 'WhatsApp', 'Email'];
 const customerStatusOptions = ['Followup required', 'Phone Busy/Not Picked', 'Important', 'Deal Done', 'Profile Shared', 'Interested', 'Not Interested'];
 const teamStatusOptions = ['Followup required', 'Phone Busy/Not Picked', 'Important', 'Joined', 'Interested', 'Not Interested'];
@@ -1553,10 +1565,6 @@ if (trackerVariant === 'customer') {
     if (selectSource) setupCustomizableSelect(selectSource, customerSourceOptionsList);
     if (selectLabelFull) setupCustomizableSelect(selectLabelFull, labelOptionsList);
     if (selectSourceFull) setupCustomizableSelect(selectSourceFull, customerSourceOptionsList);
-    ['followup_method_quick', 'followup_method_full'].forEach(function (tid) {
-        const el = document.getElementById(tid);
-        if (el) setupCustomizableSelect(el, customerFollowupOptionsList, 40);
-    });
 } else {
     ['business_type_quick', 'business_type_full'].forEach(function (tid) {
         const el = document.getElementById(tid);
@@ -1589,11 +1597,6 @@ function toggleAdditionalDetails() {
     if (trackerVariant === 'customer') {
         if (selectLabelFull && selectLabel) ensureSelectHasOption(selectLabelFull, selectLabel.value || 'Regular');
         if (selectSourceFull && selectSource) ensureSelectHasOption(selectSourceFull, selectSource.value || 'Direct');
-        [['followup_method_full', 'followup_method_quick']].forEach(function (pair) {
-            const fullEl = document.getElementById(pair[0]);
-            const quickEl = document.getElementById(pair[1]);
-            if (fullEl && quickEl) ensureSelectHasOption(fullEl, quickEl.value || '', 40);
-        });
         if (statusSelectFull && statusSelectQuick) {
             ensureSelectHasOption(statusSelectFull, statusSelectQuick.value || 'Followup required', 40);
         }
@@ -1827,10 +1830,6 @@ document.getElementById('openCustomerModalBtn').addEventListener('click', functi
         if (selectSource) selectSource.selectedIndex = 0;
         if (selectLabelFull) selectLabelFull.selectedIndex = 0;
         if (selectSourceFull) selectSourceFull.selectedIndex = 0;
-        ['followup_method_quick', 'followup_method_full'].forEach(function (tid) {
-            const el = document.getElementById(tid);
-            if (el) el.selectedIndex = 0;
-        });
         if (statusSelectQuick) statusSelectQuick.selectedIndex = 0;
         if (statusSelectFull) statusSelectFull.selectedIndex = 0;
     } else {
@@ -1870,8 +1869,6 @@ document.querySelectorAll('.edit-btn').forEach(function (btn) {
         } else {
             if (selectLabelFull) ensureSelectHasOption(selectLabelFull, this.dataset.label || 'Regular');
             if (selectSourceFull) ensureSelectHasOption(selectSourceFull, this.dataset.source || 'Direct');
-            var fmfCust = document.getElementById('followup_method_full');
-            if (fmfCust) ensureSelectHasOption(fmfCust, this.dataset.followupMethod || '', 40);
             var commentVal = this.dataset.comments || '';
             if (commentsFullEl) commentsFullEl.value = commentVal;
             if (commentsQuickEl) commentsQuickEl.value = commentVal;
