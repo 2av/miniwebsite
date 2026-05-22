@@ -1817,7 +1817,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
     window.MW_EMAIL = <?php echo json_encode($email ?? ''); ?>;
     window.MW_VCARD = <?php echo json_encode($mw_vcard ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="theme/js/app.js?v=16"></script>
+<script src="theme/js/app.js?v=17"></script>
 
 </body>
 </html>

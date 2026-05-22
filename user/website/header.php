@@ -94,7 +94,11 @@ if (!empty($user_email) && isset($connect)) {
         }
     }
     if ($mw_id === null) {
-        $stmt = $connect->prepare("SELECT id FROM digi_card WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+        if ($current_role === 'FRANCHISEE') {
+            $stmt = $connect->prepare("SELECT id FROM digi_card WHERE f_user_email = ? ORDER BY id DESC LIMIT 1");
+        } else {
+            $stmt = $connect->prepare("SELECT id FROM digi_card WHERE user_email = ? ORDER BY id DESC LIMIT 1");
+        }
         if ($stmt) {
             $stmt->bind_param("s", $user_email);
             $stmt->execute();
@@ -104,6 +108,26 @@ if (!empty($user_email) && isset($connect)) {
             }
             $stmt->close();
         }
+    }
+}
+
+// FR ID (user_details.id) for franchisee profile header
+$fr_id = null;
+if ($current_role === 'FRANCHISEE') {
+    $fr_id = get_user_id();
+    if (empty($fr_id) && !empty($user_email) && isset($connect)) {
+        $stmt = $connect->prepare("SELECT id FROM user_details WHERE email = ? AND role = 'FRANCHISEE' LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param("s", $user_email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && ($row = $res->fetch_assoc())) {
+                $fr_id = (int)$row['id'];
+            }
+            $stmt->close();
+        }
+    } else {
+        $fr_id = (int)$fr_id;
     }
 }
 ?>
@@ -151,6 +175,9 @@ if (!empty($user_email) && isset($connect)) {
                                         <?php echo isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : 'Guest'; ?>
                                         <i class="fa fa-angle-double-down"></i>
                                     </div>
+                                    <?php if ($current_role === 'FRANCHISEE' && !empty($fr_id)): ?>
+                                    <span class="profile-mw-id">FR ID: <?php echo (int)$fr_id; ?></span>
+                                    <?php endif; ?>
                                     <?php if (!empty($mw_id)): ?>
                                     <span class="profile-mw-id">MW ID: MW<?php echo (int)$mw_id; ?></span>
                                     <?php endif; ?>

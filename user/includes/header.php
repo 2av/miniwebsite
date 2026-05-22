@@ -150,6 +150,26 @@ if (!empty($user_email) && isset($connect)) {
     }
 }
 
+// FR ID (user_details.id) for franchisee profile header
+$fr_id = null;
+if ($current_role === 'FRANCHISEE') {
+    $fr_id = get_user_id();
+    if (empty($fr_id) && !empty($user_email) && isset($connect)) {
+        $stmt = $connect->prepare("SELECT id FROM user_details WHERE email = ? AND role = 'FRANCHISEE' LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param("s", $user_email);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && ($row = $res->fetch_assoc())) {
+                $fr_id = (int)$row['id'];
+            }
+            $stmt->close();
+        }
+    } else {
+        $fr_id = (int)$fr_id;
+    }
+}
+
 // Dynamic site base URL for referral links (protocol + host from current request)
 $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'miniwebsite.in');
 ?>
@@ -243,6 +263,9 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                         <?php echo htmlspecialchars($user_name ?? 'Guest'); ?>
                                         <i class="fa fa-angle-double-down"></i>
                                     </div>
+                                    <?php if ($current_role === 'FRANCHISEE' && !empty($fr_id)): ?>
+                                    <span class="profile-mw-id">FR ID: <?php echo (int)$fr_id; ?></span>
+                                    <?php endif; ?>
                                     <?php if (!empty($mw_id)): ?>
                                     <span class="profile-mw-id">MW ID: MW<?php echo (int)$mw_id; ?></span>
                                     <?php endif; ?>

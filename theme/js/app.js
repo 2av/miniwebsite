@@ -619,19 +619,32 @@ Thanks a lot for your support 🙏`;
             .replace(/,/g, '\\,');
     }
 
-    function vcardNeedsCharset(s) {
-        return /[^\x00-\x7F]/.test(String(s || ''));
+    /** RFC 2426 line folding (required for Windows Contacts / Outlook). */
+    function foldVcardLine(line) {
+        const s = String(line || '');
+        if (s.length <= 75) return s;
+        const parts = [s.slice(0, 75)];
+        let pos = 75;
+        while (pos < s.length) {
+            parts.push(' ' + s.slice(pos, pos + 74));
+            pos += 74;
+        }
+        return parts.join('\r\n');
     }
 
     function vcardLine(prop, rawValue, typeParams) {
         const raw = String(rawValue ?? '').trim();
         if (!raw) return '';
         const val = escapeVcardValue(raw);
-        const params = [];
-        if (typeParams) params.push(typeParams);
-        if (vcardNeedsCharset(raw)) params.push('CHARSET=UTF-8');
-        const paramStr = params.length ? `;${params.join(';')}` : '';
+        const paramStr = typeParams ? `;${typeParams}` : '';
         return `${prop}${paramStr}:${val}`;
+    }
+
+    function finalizeVcardBody(lines) {
+        return lines
+            .map((line) => foldVcardLine(String(line)))
+            .filter((line) => line.trim() !== '')
+            .join('\r\n') + '\r\n';
     }
 
     function normalizeComparableUrl(raw) {
@@ -698,17 +711,13 @@ Thanks a lot for your support 🙏`;
             return true;
         };
 
+        const displayFn = fnRaw || orgRaw || 'Contact';
         if (nGivRaw || nFamRaw) {
-            const nValue = `${escapeVcardValue(nFamRaw)};${escapeVcardValue(nGivRaw)};;;`;
-            const nCharset = vcardNeedsCharset(nFamRaw) || vcardNeedsCharset(nGivRaw);
-            lines.push(nCharset ? `N;CHARSET=UTF-8:${nValue}` : `N:${nValue}`);
-        } else if (fnRaw) {
-            const nValue = `;${escapeVcardValue(fnRaw)};;;`;
-            lines.push(vcardNeedsCharset(fnRaw) ? `N;CHARSET=UTF-8:${nValue}` : `N:${nValue}`);
+            lines.push(`N:${escapeVcardValue(nFamRaw)};${escapeVcardValue(nGivRaw)};;;`);
+        } else {
+            lines.push(`N:;${escapeVcardValue(displayFn)};;;`);
         }
-
-        const fnLine = vcardLine('FN', fnRaw);
-        if (fnLine) lines.push(fnLine);
+        lines.push(`FN:${escapeVcardValue(displayFn)}`);
 
         const orgLine = vcardLine('ORG', orgRaw);
         if (orgLine) lines.push(orgLine);
@@ -722,7 +731,7 @@ Thanks a lot for your support 🙏`;
         }
 
         if (primary) {
-            lines.push(`TEL;TYPE=CELL,VOICE:${primary}`);
+            lines.push(`TEL;TYPE=CELL;TYPE=VOICE:${primary}`);
         }
         if (wa && wa !== primary) {
             lines.push(`TEL;TYPE=CELL:${wa}`);
@@ -760,8 +769,7 @@ Thanks a lot for your support 🙏`;
 
         if (streetRaw || localityRaw || regionRaw || postalRaw || countryRaw) {
             const adrValue = `;;${escapeVcardValue(streetRaw)};${escapeVcardValue(localityRaw)};${escapeVcardValue(regionRaw)};${escapeVcardValue(postalRaw)};${escapeVcardValue(countryRaw)}`;
-            const adrCharset = [streetRaw, localityRaw, regionRaw, postalRaw, countryRaw].some(vcardNeedsCharset);
-            lines.push(adrCharset ? `ADR;TYPE=WORK;CHARSET=UTF-8:${adrValue}` : `ADR;TYPE=WORK:${adrValue}`);
+            lines.push(`ADR;TYPE=WORK:${adrValue}`);
         }
 
         const noteParts = [];
@@ -775,14 +783,12 @@ Thanks a lot for your support 🙏`;
             const full = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
             noteParts.push(`${label}: ${full}`);
             if (rememberUrl(full)) {
-                lines.push(`X-SOCIALPROFILE;TYPE=${type}:${escapeVcardValue(full)}`);
                 const socialUrlLine = vcardLine('URL', full);
                 if (socialUrlLine) lines.push(socialUrlLine);
             }
         });
 
         if (waMe && rememberUrl(waMe)) {
-            lines.push(`X-SOCIALPROFILE;TYPE=whatsapp:${escapeVcardValue(waMe)}`);
             const waLine = vcardLine('URL', waMe);
             if (waLine) lines.push(waLine);
         }
@@ -805,13 +811,14 @@ Thanks a lot for your support 🙏`;
                 lines = buildMwVcardLines(v);
             } else if (heroName) {
                 const e = escapeVcardValue;
+                const hero = String(heroName).trim();
                 lines = [
                     'BEGIN:VCARD',
                     'VERSION:3.0',
                     'PRODID:-//MiniWebsite//EN',
-                    `N:;${e(heroName)};;;`,
-                    `FN:${e(heroName)}`,
-                    phone ? `TEL;TYPE=CELL,VOICE:${phone.replace(/\s/g, '')}` : '',
+                    `N:;${e(hero)};;;`,
+                    `FN:${e(hero)}`,
+                    phone ? `TEL;TYPE=CELL;TYPE=VOICE:${phone.replace(/\s/g, '')}` : '',
                     email ? `EMAIL;TYPE=INTERNET:${e(email)}` : '',
                     shareUrl ? `URL;TYPE=WORK:${e(shareUrl)}` : '',
                     shareUrl ? `NOTE:${e(`Visit my MiniWebsite for products & offers: ${shareUrl}`)}` : '',
@@ -822,9 +829,8 @@ Thanks a lot for your support 🙏`;
                 return;
             }
 
-            const vcardBody = lines.join('\r\n');
-            const utf8Bom = '\uFEFF';
-            const blob = new Blob([utf8Bom, vcardBody], { type: 'text/vcard;charset=utf-8' });
+            const vcardBody = finalizeVcardBody(lines);
+            const blob = new Blob([vcardBody], { type: 'text/vcard;charset=utf-8' });
             const baseName = (v && v.org) ? v.org : ((v && v.fn) ? v.fn : heroName);
             const fileName = `${String(baseName).replace(/\s+/g, '_').replace(/[^\w.-]/g, '') || 'contact'}.vcf`;
             const file = new File([blob], fileName, { type: 'text/vcard;charset=utf-8' });
