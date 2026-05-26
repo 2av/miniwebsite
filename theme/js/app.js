@@ -775,13 +775,11 @@ Thanks a lot for your support 🙏`;
         const noteParts = [];
         const noteRaw = String(v.note || '').trim();
         if (noteRaw) noteParts.push(noteRaw);
-        if (urlProf) noteParts.push(`MiniWebsite: ${urlProf}`);
 
         socialMap.forEach(({ key, type, label }) => {
             const raw = String(social[key] || '').trim();
             if (!raw) return;
             const full = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-            noteParts.push(`${label}: ${full}`);
             if (rememberUrl(full)) {
                 const socialUrlLine = vcardLine('URL', full);
                 if (socialUrlLine) lines.push(socialUrlLine);
@@ -821,7 +819,6 @@ Thanks a lot for your support 🙏`;
                     phone ? `TEL;TYPE=CELL;TYPE=VOICE:${phone.replace(/\s/g, '')}` : '',
                     email ? `EMAIL;TYPE=INTERNET:${e(email)}` : '',
                     shareUrl ? `URL;TYPE=WORK:${e(shareUrl)}` : '',
-                    shareUrl ? `NOTE:${e(`Visit my MiniWebsite for products & offers: ${shareUrl}`)}` : '',
                     'END:VCARD'
                 ].filter(Boolean);
             } else {
