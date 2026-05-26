@@ -26,7 +26,7 @@
     },
     {
       "id": "franchisee_kit",
-      "label": "Marketing Kit",
+      "label": "Creator Kit",
       "icon": "marketingkit.png",
       "url": "/kit",
       "roles": ["FRANCHISEE"],
@@ -134,7 +134,7 @@
     },
     {
       "id": "marketing_kit",
-      "label": "Marketing Kit",
+      "label": "Creator Kit",
       "icon": "marketingkit.png",
       "url": "/kit",
       "roles": ["CUSTOMER"],
