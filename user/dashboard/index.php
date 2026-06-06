@@ -426,12 +426,12 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 
 <main class="Dashboard">
     <div class="container-fluid  customer_content_area">
-        <div class="main-top">
-            <span class="heading"><?php echo $page_title; ?></span> 
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title"><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></li>
                 </ol>
             </nav>
         </div>
@@ -538,8 +538,8 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                     <!-- Manage Users Section -->
                     <div class="ManageUsers">
                         <h4 class="heading">Manage Users: </h4>
-                        <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                            <table id="ReferredUsers" class="display table" style="text-align: center; min-width: 600px;">
+                        <div class="table-responsive mw-table-scroll mw-table-scroll-wide">
+                            <table id="ReferredUsers" class="display table" style="text-align: center;">
                                 <thead class="bg-secondary">
                                     <tr>
                                         <th class="text-left">User ID</th>
@@ -583,14 +583,14 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                     <tr>
                                         <td class="text-left"><?php echo $user['id']; ?></td>
                                         <td class="text-left"><?php echo $user['card_id'] ?? '-'; ?></td>
-                                        <td class="text-left" style="display:flex; align-items: center; gap: 5px;">
+                                        <td class="text-left"><div class="mw-table-cell-inline">
                                             <?php if($has_cards): ?>
                                                 <a href="https://<?php echo $_SERVER['HTTP_HOST']; ?>/n.php?n=<?php echo $user['card_id']; ?>" target="_blank" style="text-decoration: none; color: inherit; margin-right:6px;">
                                                     <span class="view_icon_style"><i class="fa-regular fa-eye"></i></span>
                                                 </a>
                                             <?php endif; ?>
                                             <?php echo htmlspecialchars($user['user_email']); ?>
-                                        </td>
+                                        </div></td>
                                         <td class="text-left"><?php echo htmlspecialchars($user['user_name']); ?></td>
                                         <td class="text-left"><?php echo htmlspecialchars($user['user_contact']); ?></td>
                                         <td class="text-left"><?php echo date('d-m-Y', strtotime($user['uploaded_date'])); ?></td>
@@ -614,7 +614,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                     <!-- CUSTOMER/TEAM DASHBOARD LAYOUT -->
                     <div class="CustomerDashboard-head">
                     <div class="row">
-                        <div class="col-sm-3 top_section">
+                        <div class="col-auto top_section">
                             <a href="../website/business-name.php?new=1">
                                 <div class="card">
                                     <div class="img">
@@ -630,7 +630,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                 </div>
 
                     <!-- CUSTOMER/TEAM TABLE -->
-                    <div class="table-container">
+                    <div class="table-container mw-table-scroll mw-table-scroll-xl">
                         <table id="ReferredUsers" class="display table" style="text-align: center;">
                             <thead class="bg-secondary">
                                 <tr>
@@ -701,7 +701,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                 <td><?php echo date('d-m-Y', strtotime($row['uploaded_date'])); ?></td>
                                 <td><?php echo $validity_date; ?></td>
                                 <td><span class="<?php echo $status_class; ?>"><?php echo $status_text; ?></span></td>
-                                <td style="display:flex; align-items: center; gap: 5px;">
+                                <td><div class="mw-table-cell-inline">
                                     <?php 
                                     // Check if user is akhilesh@yopmail.com for new flow, otherwise use old flow
                                    // if($_SESSION['user_email'] == 'akhilesh@yopmail.com') {
@@ -725,7 +725,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                         <!-- <img src="../../../assets/images/share.png" width="30px" alt=""> -->
                                         <span class="share_icon_style"><i class="fa-solid fa-share-nodes"></i></span>
                                     </a></span>
-                                </td>
+                                </div></td>
                                 <td>
                                     <?php if($row['complimentary_enabled'] == 'Yes') { ?>
                                         <span class="badge bg-info">Complimentary</span>
@@ -1042,8 +1042,8 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 
 /* Franchisee Dashboard Styles - Matching old dashboard */
 .FranchiseeDashboard-head .row-items-3 {
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: stretch;
     gap: 14px;
 }
 
@@ -1077,6 +1077,8 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 
 .FranchiseeDashboard-head .card .content {
     padding-left: 16px;
+    align-items: flex-start;
+    text-align: left;
 }
 
 .FranchiseeDashboard-head .card .content p {
@@ -1099,6 +1101,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 .FranchiseeDashboard-head .card_area {
     flex: 1 1 280px;
     max-width: 360px;
+    margin-right: auto;
 }
 
 .low_balance_title {
@@ -1117,13 +1120,13 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
     .FranchiseeDashboard-head .row-items-3 {
         flex-direction: column;
         justify-content: flex-start;
-        align-items: center;
+        align-items: flex-start;
         gap: 10px;
     }
     .FranchiseeDashboard-head .card {
         width: 100% !important;
         max-width: 520px;
-        margin: 10px auto !important;
+        margin: 10px 0 !important;
         padding: 10px 15px;
         min-height: 90px;
         height: auto;
@@ -1141,10 +1144,13 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
         padding-left: 4px;
         padding-top: 0;
         width: auto;
+        align-items: flex-start;
+        text-align: left;
     }
     .FranchiseeDashboard-head .card .content p {
         font-size: 17px;
         line-height: 1.2;
+        text-align: left;
     }
     .FranchiseeDashboard-head .card .content h4 {
         font-size: 28px;
@@ -1251,6 +1257,15 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <!-- Invoice History Modal -->
+<style>
+    #invoiceHistoryModal .modal-body {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    #invoiceHistoryModal .mw-table-scroll {
+        max-width: 100%;
+    }
+</style>
 <div class="modal fade" id="invoiceHistoryModal" tabindex="-1" aria-labelledby="invoiceHistoryModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">

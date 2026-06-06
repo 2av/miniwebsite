@@ -28,7 +28,7 @@ if(isset($_POST['submit_bank_details'])) {
     
     // Validate all fields are mandatory
     if(empty($bank_name) || empty($account_holder) || empty($account_number) || empty($ifsc_code) || empty($upi_id) || empty($upi_name)) {
-        $bank_message = '<div class="alert alert-danger">All fields are mandatory. Please fill all the required fields.</div>';
+        $bank_alert = ['type' => 'danger', 'message' => 'All fields are mandatory. Please fill all the required fields.'];
     } else {
         // Check if bank details already exist
         $check_bank = mysqli_query($connect, "SELECT id FROM user_bank_details WHERE user_email='$user_email'");
@@ -46,7 +46,7 @@ if(isset($_POST['submit_bank_details'])) {
                 WHERE user_email='$user_email'");
             
             if($update_bank) {
-                $bank_message = '<div class="alert alert-success">Bank details updated successfully!</div>';
+                $bank_alert = ['type' => 'success', 'message' => 'Bank details updated successfully!'];
             }
         } else {
             // Insert new bank details
@@ -55,13 +55,14 @@ if(isset($_POST['submit_bank_details'])) {
                 VALUES ('$user_email', '$bank_name', '$account_holder', '$account_number', '$ifsc_code', '$upi_id', '$upi_name', NOW())");
             
             if($insert_bank) {
-                $bank_message = '<div class="alert alert-success">Bank details saved successfully!</div>';
+                $bank_alert = ['type' => 'success', 'message' => 'Bank details saved successfully!'];
             }
         }
     }
 }
 
 // Get existing bank details
+$bank_alert = null;
 $bank_query = mysqli_query($connect, "SELECT * FROM user_bank_details WHERE user_email='$user_email'");
 $bank_data = mysqli_fetch_array($bank_query);
 
@@ -176,166 +177,123 @@ Create your own Mini Website in just a few minutes – simple, smart & eco-frien
 Don't miss out – create yours now!";
 
 $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
+
+$page_heading = ($current_role === 'TEAM') ? 'Sales Details' : 'Referral Details';
+$breadcrumb_active = $page_heading;
+
+if ($current_role === 'TEAM') {
+    $referral_stat_cards = [
+        ['label' => 'Total Sales', 'icon' => 'shopping-cart', 'icon_bg' => 'bg-emerald-100', 'icon_color' => 'text-emerald-700', 'value' => (string)(int)$total_sales, 'is_currency' => false],
+        ['label' => 'Total MW Created', 'icon' => 'globe', 'icon_bg' => 'bg-sky-100', 'icon_color' => 'text-sky-700', 'value' => (string)(int)$total_mw_created, 'is_currency' => false],
+    ];
+} else {
+    $referral_stat_cards = [
+        ['label' => 'Pending Amount', 'icon' => 'clock', 'icon_bg' => 'bg-amber-100', 'icon_color' => 'text-amber-700', 'value' => number_format($pending_amount, 0), 'is_currency' => true],
+        ['label' => 'Total Referral Earning', 'icon' => 'credit-card', 'icon_bg' => 'bg-emerald-100', 'icon_color' => 'text-emerald-700', 'value' => number_format($total_earning, 0), 'is_currency' => true],
+        ['label' => 'Referred MW', 'icon' => 'users', 'icon_bg' => 'bg-sky-100', 'icon_color' => 'text-sky-700', 'value' => (string)(int)$total_referrals, 'is_currency' => false],
+    ];
+}
+
+$bank_details_exist = !empty($bank_data['bank_name']) && !empty($bank_data['account_holder_name']) && !empty($bank_data['account_number']) && !empty($bank_data['ifsc_code']) && !empty($bank_data['upi_id']) && !empty($bank_data['upi_name']);
+$is_team_view = ($current_role === 'TEAM');
 ?>
 <meta property="og:title" content="Create Your Own MiniWebsite (Digital Business Card) Today!" />
 <meta property="og:description" content="Say goodbye to paper visiting cards ✋ Create your own Mini Website in just a few minutes – simple, smart & eco-friendly 🌱" />
 <meta property="og:image" content="<?php echo $image_url; ?>" />
 <meta property="og:url" content="https://miniwebsite.in/panel/login/create-account.php?ref=<?php echo $user_referral_code; ?>" />
 <meta property="og:type" content="website" />
-            <main class="Dashboard">
-                <div class="container-fluid customer_content_area">
-                    <div class="main-top">
-                        <!-- <h1 class="heading">Referral Details</h1> -->
-                        <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb">
-                                <li class="breadcrumb-item"><a href="#">Mini Website </a></li>
-                                <li class="breadcrumb-item active" aria-current="page">Sales Details</li>
-                            </ol>
-                        </nav>
-                    </div>
+<main class="Dashboard mw-page">
+    <div class="customer_content_area mw-container">
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title"><?php echo htmlspecialchars($page_heading, ENT_QUOTES, 'UTF-8'); ?></h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($breadcrumb_active, ENT_QUOTES, 'UTF-8'); ?></li>
+                </ol>
+            </nav>
+        </div>
 
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <?php if ($current_role === 'TEAM'): ?>
-                            <div class="CustomerDashboard-head">
-                                <div class="row">
-                                    <div class="col-sm-6 top_section">
-                                        <div class="card">
-                                            <div class="img"><img src="../../assets/images/totalsales.png" alt=""></div>
-                                            <div class="content">
-                                                <p>Total Sales</p>
-                                                 <?php echo (int)$total_sales; ?> 
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6 top_section">
-                                        <div class="card">
-                                            <div class="img"><img src="../../assets/images/TotalMWCreated.png" alt=""></div>
-                                            <div class="content">
-                                                <p>Total MW Created</p>
-                                                 <?php echo (int)$total_mw_created; ?> 
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+        <div class="mw-card mb-4">
+            <div class="mw-card-body">
+                <div class="mw-stat-grid<?php echo count($referral_stat_cards) >= 3 ? ' mw-stat-grid-3' : ''; ?>">
+                    <?php foreach ($referral_stat_cards as $stat): ?>
+                    <div class="mw-stat-card">
+                        <div class="mw-stat-icon <?php echo htmlspecialchars($stat['icon_bg'], ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($stat['icon_color'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <i class="fa-solid fa-<?php echo htmlspecialchars($stat['icon'], ENT_QUOTES, 'UTF-8'); ?>" aria-hidden="true"></i>
+                        </div>
+                        <div class="mw-stat-body">
+                            <p class="mw-stat-label"><?php echo htmlspecialchars($stat['label'], ENT_QUOTES, 'UTF-8'); ?></p>
+                            <p class="mw-stat-value">
+                                <?php if (!empty($stat['is_currency'])): ?>
+                                    <i class="fa fa-inr text-base" aria-hidden="true"></i>
+                                <?php endif; ?>
+                                <?php echo htmlspecialchars($stat['value'], ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($stat['is_currency']) ? '/-' : ''; ?>
+                            </p>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php if (!$is_team_view): ?>
+                <section class="mb-8 pt-6 border-t border-border">
+                    <h2 class="heading mw-section-title">Bank Account Details</h2>
+                    <p class="mw-helper-text mb-4">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>Please submit the bank details where you want us to transfer your referral earnings.</span>
+                    </p>
+
+                    <?php if (!empty($bank_alert)): ?>
+                    <div class="mw-alert mw-alert-<?php echo $bank_alert['type'] === 'success' ? 'success' : 'danger'; ?>" role="alert">
+                        <i class="fa fa-<?php echo $bank_alert['type'] === 'success' ? 'check-circle' : 'exclamation-circle'; ?> mw-alert-icon" aria-hidden="true"></i>
+                        <div class="mw-alert-body"><?php echo htmlspecialchars($bank_alert['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                    </div>
+                    <?php endif; ?>
+
+                    <form method="POST" id="bankDetailsForm" class="mw-form" onsubmit="return validateBankForm()">
+                        <div class="mw-form-grid-2">
+                            <div class="mw-form-group">
+                                <label class="mw-label" for="bank_name">Bank Name <span class="req">*</span></label>
+                                <input type="text" name="bank_name" id="bank_name" placeholder="Enter Bank Name" class="form-control mw-input" value="<?php echo htmlspecialchars($bank_data['bank_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
                             </div>
-                            <?php else: ?>
-                            <div class="ReferralDetails-head">
-                                <div class="row">
-                                    <div class="col-sm-4">
-                                        <div class="card">
-                                            <div class="img"><img src="../../assets/images/PendingAmt.png" alt=""></div>
-                                            <div class="content">
-                                                <p>Pending Amount</p>
-                                                <h4>
-                                                    <i class="fa fa-inr" aria-hidden="true"></i>
-                                                    <?php echo number_format($pending_amount, 0); ?>/-
-                                                </h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="card">
-                                            <div class="img"><img src="../../assets/images/TotalEarning.png" alt=""></div>
-                                            <div class="content">
-                                                <p>Total Refferal earning</p>
-                                                <h4>
-                                                    <i class="fa fa-inr" aria-hidden="true"></i>
-                                                    <?php echo number_format($total_earning, 0); ?>/-
-                                                </h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="card">
-                                            <div class="img"><img src="../../assets/images/ReferredUsers.png" alt=""></div>
-                                            <div class="content">
-                                                <p>Referred MW</p>
-                                                <h4><?php echo $total_referrals; ?></h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="mw-form-group">
+                                <label class="mw-label" for="account_holder">Account Holder Name <span class="req">*</span></label>
+                                <input type="text" name="account_holder" id="account_holder" placeholder="Account Holder Name" class="form-control mw-input" value="<?php echo htmlspecialchars($bank_data['account_holder_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
                             </div>
-                            <div class="Bank-Details">
-                                <div class="card">
-                                    <h4 class="heading">Bank Account Details:</h4>
-                                    <p>Please submit the bank details where you want us to transfer your referral earnings.</p>
-                                    
-                                    <?php if(isset($bank_message)) echo $bank_message; ?>
-                                    
-                                    <?php 
-                                    // Check if bank details exist
-                                    $bank_details_exist = !empty($bank_data['bank_name']) && !empty($bank_data['account_holder_name']) && !empty($bank_data['account_number']) && !empty($bank_data['ifsc_code']) && !empty($bank_data['upi_id']) && !empty($bank_data['upi_name']);
-                                    ?>
-                                    
-                                    <form method="POST" id="bankDetailsForm" onsubmit="return validateBankForm()">
-                                        <div class="row">
-                                            <div class="col-sm-6">
-                                                <div class="form-group">
-                                                    <label for="">Bank Name <span class="text-danger">*</span></label>
-                                                    <input type="text" name="bank_name" placeholder="Enter Bank Name" class="form-control" value="<?php echo $bank_data['bank_name'] ?? ''; ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-6">
-                                                <div class="form-group">
-                                                    <label for="">Account Holder Name <span class="text-danger">*</span></label>
-                                                    <input type="text" name="account_holder" placeholder="Account Holder Name" class="form-control" value="<?php echo $bank_data['account_holder_name'] ?? ''; ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-6">
-                                                <div class="form-group">
-                                                    <label for="">Bank Account Number <span class="text-danger">*</span></label>
-                                                    <input type="text" name="account_number" placeholder="Enter Your Bank Account Number" class="form-control" value="<?php echo $bank_data['account_number'] ?? ''; ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-6">
-                                                <div class="form-group">
-                                                    <label for="">Bank IFSC Code <span class="text-danger">*</span></label>
-                                                    <input type="text" name="ifsc_code" placeholder="Enter IFSC Code" class="form-control" value="<?php echo $bank_data['ifsc_code'] ?? ''; ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-6">
-                                                <div class="form-group">
-                                                    <label for="">UPI ID <span class="text-danger">*</span></label>
-                                                    <input type="text" name="upi_id" placeholder="Enter UPI ID (e.g., user@paytm)" class="form-control" value="<?php echo $bank_data['upi_id'] ?? ''; ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-6">
-                                                <div class="form-group">
-                                                    <label for="">UPI Name <span class="text-danger">*</span></label>
-                                                    <input type="text" name="upi_name" placeholder="Enter UPI Name" class="form-control" value="<?php echo $bank_data['upi_name'] ?? ''; ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <?php if($bank_details_exist): ?>
-                                            <div class="">
-                                                <i class="fa fa-info-circle"></i> Bank details have been saved successfully. Contact support if you need to make changes.
-                                            </div>
-                                            <button type="button" class="btn btn-secondary" disabled>BANK DETAILS SAVED</button>
-                                        <?php else: ?>
-                                            <button type="submit" name="submit_bank_details" class="btn btn-primary">SUBMIT</button>
-                                        <?php endif; ?>
-                                    </form>
-                                </div>
+                            <div class="mw-form-group">
+                                <label class="mw-label" for="account_number">Bank Account Number <span class="req">*</span></label>
+                                <input type="text" name="account_number" id="account_number" placeholder="Enter Your Bank Account Number" class="form-control mw-input" value="<?php echo htmlspecialchars($bank_data['account_number'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
                             </div>
-                            <?php endif; ?>
-                            <div class="ReferredUsers">
-                                <h4 class="heading">Referred Users:</h4>
-                                <style>
-                                    /* Make headers single-line and enable horizontal scroll */
-                                    div.ref-users-scroll { overflow-x: auto; }
-                                    table[id^="ReferredUsers"] { min-width: 1200px; }
-                                    table[id^="ReferredUsers"] th { white-space: nowrap; }
-                                    table[id^="ReferredUsers"] td { white-space: nowrap; }
-                                </style>
-                                <?php $is_team_view = ($current_role === 'TEAM'); ?>
-                                <div class="ref-users-scroll">
-                                <table id="ReferredUsers" class="display table">
+                            <div class="mw-form-group">
+                                <label class="mw-label" for="ifsc_code">Bank IFSC Code <span class="req">*</span></label>
+                                <input type="text" name="ifsc_code" id="ifsc_code" placeholder="Enter IFSC Code" class="form-control mw-input" value="<?php echo htmlspecialchars($bank_data['ifsc_code'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
+                            </div>
+                            <div class="mw-form-group">
+                                <label class="mw-label" for="upi_id">UPI ID <span class="req">*</span></label>
+                                <input type="text" name="upi_id" id="upi_id" placeholder="Enter UPI ID (e.g., user@paytm)" class="form-control mw-input" value="<?php echo htmlspecialchars($bank_data['upi_id'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
+                            </div>
+                            <div class="mw-form-group">
+                                <label class="mw-label" for="upi_name">UPI Name <span class="req">*</span></label>
+                                <input type="text" name="upi_name" id="upi_name" placeholder="Enter UPI Name" class="form-control mw-input" value="<?php echo htmlspecialchars($bank_data['upi_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required <?php echo $bank_details_exist ? 'readonly' : ''; ?>>
+                            </div>
+                        </div>
+                        <?php if ($bank_details_exist): ?>
+                            <p class="mw-helper-text !mb-4">
+                                <i class="fa fa-info-circle" aria-hidden="true"></i>
+                                <span>Bank details have been saved successfully. Contact support if you need to make changes.</span>
+                            </p>
+                            <button type="button" class="mw-btn mw-btn-secondary" disabled>Bank Details Saved</button>
+                        <?php else: ?>
+                            <button type="submit" name="submit_bank_details" class="mw-btn mw-btn-save">Submit</button>
+                        <?php endif; ?>
+                    </form>
+                </section>
+                <?php endif; ?>
+
+                <section class="<?php echo $is_team_view ? '' : 'pt-6 border-t border-border'; ?>">
+                    <h2 class="heading mw-section-title mb-4">Referred Users</h2>
+                    <div class="mw-table-scroll mw-table-scroll-xl">
+                        <table id="ReferredUsers" class="display table w-full mb-0">
                                     <thead>
                                         <tr>
                                             <th class="text-center">User ID</th>
@@ -369,8 +327,8 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                                                 echo '<td class="text-center">';
                                                 if (!empty($row['card_id'])) {
                                                     $cardId = (int)$row['card_id'];
-                                                    echo '<a href="https://' . $_SERVER['HTTP_HOST'] . '/n.php?n=' . $cardId . '" target="_blank" style="text-decoration:none;color:inherit;">';
-                                                    echo '<img src="../../../assets/images/eye.png" class="img-fluid" width="28px" alt=""> ' . $cardId;
+                                                    echo '<a href="https://' . $_SERVER['HTTP_HOST'] . '/n.php?n=' . $cardId . '" target="_blank" rel="noopener noreferrer" class="mw-table-cell-inline text-primary hover:text-primary-dark !no-underline">';
+                                                    echo '<i class="fa fa-eye" aria-hidden="true"></i> ' . $cardId;
                                                     echo '</a>';
                                                 } else {
                                                     echo 'N/A';
@@ -455,13 +413,13 @@ $image_url = "YOUR_IMAGE_LINK_HERE"; // Add your image link here
                                         }
                                         ?>
                                     </tbody>
-                                </table>
-                                </div>
-                                
-
-                              
-     
-   </div>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</main>
 
 <script>
 function copyToClipboard(elementId) {
@@ -507,16 +465,6 @@ function validateBankForm() {
 }
 </script>
 
-                        </div>
-                        
-                    </div>
-                    
-                </div>
-
-                
-            </main>
-
-           
 <?php include '../includes/footer.php'; ?>
 
 

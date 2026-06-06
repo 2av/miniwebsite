@@ -656,50 +656,63 @@ if(isset($_POST['product'])){
 }
 
 include '../includes/header.php';
-// Include the common image upload/crop modal
-require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
+require_once(__DIR__ . '/../../common/mw_modal.php');
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-        <div class="main-top">
-        <span class="heading">Details & Pricing</span>
+<!-- Phase B · Step 11 — products.php page chrome uses .mw-* design system.
+     Products table, filter dropdowns (.product-th-with-filter / .product-filter-*), the
+     60×inputs hidden #productForm, product add/edit #productModal + custom-category
+     modals via mw_modal.php (image crop via MwModal globally). JS hooks intact:
+     openProductModal(), editProductFromRow(), removeData(), saveProducts(). -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Details &amp; Pricing</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
-        
+
         <?php if(isset($_SESSION['save_success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($_SESSION['save_error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
-        <div class="card mb-4">
-            <div class="card-body">
-                <label class="heading">Details & Pricing:</label>
-                <p class="sub_title">You can add up to 60 services or Details & Pricing with pricing details to showcase on your MiniWebsite.</p>
-                <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
-                <br>
-                <div id="status_remove_img"></div>
-                <button type="button" id="addProductBtn" class="btn btn-primary add_product" onclick="openProductModal()" <?php echo (count($products_data ?? []) >= 60) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Item</span></button>
 
-                <div class="Product-ServicesTable">
+        <div class="card mb-4 mw-card">
+            <div class="card-body mw-card-body">
+                <div class="pr-section-head">
+                    <h2 class="heading mw-section-title pr-section-heading">Details &amp; Pricing</h2>
+                    <p class="sub_title mw-helper-text">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>You can add up to <strong style="color:var(--mw-color-text);font-weight:600">60 items</strong> with pricing details to showcase on your MiniWebsite. <span class="text-muted">Image formats: jpg, jpeg, png, gif, webp.</span></span>
+                    </p>
+                </div>
+
+                <div id="status_remove_img"></div>
+
+                <div class="pr-toolbar">
+                    <button type="button" id="addProductBtn" class="btn btn-primary add_product mw-btn mw-btn-save" onclick="openProductModal()" <?php echo (count($products_data ?? []) >= 60) ? 'disabled' : ''; ?>>
+                        <i class="fa fa-plus" aria-hidden="true"></i>
+                        <span>Add Item</span>
+                    </button>
+                </div>
+
+                <div class="Product-ServicesTable mw-table-scroll mw-table-scroll-xl">
                     <table class="display table">
-                        <thead class="bg-secondary">
+                        <thead class="mw-table-header">
                             <tr>
                                 <th>Image Details</th>
                                 <th class="product-th-with-filter">
@@ -851,32 +864,29 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
                    
                 </div>
-                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                            <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
-                            <span>Back</span>
-                        </a>
-                        <button type="button" class="btn btn-primary align-center save_btn" onclick="saveProducts()">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
-                            <span>Save</span>
-                        </button>
-                        <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
-                            <span>Next</span>
-                            <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
-                        </a>
-                    </div>
+                <div class="Product-ServicesBtn mw-btn-row">
+                    <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                        <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                        <span>Back</span>
+                    </a>
+                    <button type="button" class="btn btn-primary align-center save_btn mw-btn mw-btn-save" onclick="saveProducts()">
+                        <img src="../../assets/images/Save.png" alt="" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
+                        <span>Save</span>
+                    </button>
+                    <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right mw-btn mw-btn-next">
+                        <span>Next</span>
+                        <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Product Modal -->
-<div class="modal fade website-step-modal" id="productModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content website-step-modal-content">
-            <button type="button" class="website-step-modal-close close" onclick="closeProductModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <div class="modal-body">
-                <form id="modalProductForm">
+<?php
+ob_start();
+?>
+                <form id="modalProductForm" class="mw-form pr-product-modal-form">
                     <input type="hidden" id="modal_product_id" value="">
                     <input type="hidden" id="modal_product_number" value="">
                     <div class="form-group">
@@ -1006,18 +1016,84 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </small>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="productModalSubmitBtn" onclick="addProductToForm()">Add Item</button>
-            </div>
-        </div>
-    </div>
-</div>
+<?php
+$product_modal_body = ob_get_clean();
+
+mw_modal_render([
+    'id'       => 'productModal',
+    'size'     => 'lg',
+    'title'    => 'Add Item',
+    'subtitle' => 'Image, category, pricing, and CTA',
+    'icon'     => 'fa-cube',
+    'body'     => $product_modal_body,
+    'body_class' => 'pr-product-modal-body',
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Item', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="productModalSubmitBtn"'],
+    ]),
+    'static'   => true,
+    'hidden'   => true,
+]);
+
+$custom_product_category_body = '<form id="customProductCategoryForm" class="mw-form">'
+    . '<div class="form-group mb-3">'
+    . '<label for="custom_product_category_name" class="form-label">Category Name <span class="text-danger">*</span></label>'
+    . '<input type="text" class="form-control" id="custom_product_category_name" placeholder="Enter category name (max 30)" maxlength="30" required>'
+    . '<small class="form-text text-muted">Max 30 characters. This category will only be visible to you.</small>'
+    . '</div>'
+    . '<div id="customProductCategoryError" class="alert alert-danger mw-alert mw-alert-danger" style="display: none;" role="alert"></div>'
+    . '<div id="customProductCategorySuccess" class="alert alert-success mw-alert mw-alert-success" style="display: none;" role="alert"></div>'
+    . '</form>';
+
+mw_modal_render([
+    'id'       => 'customProductCategoryModal',
+    'size'     => 'sm',
+    'title'    => 'Add Custom Category',
+    'subtitle' => 'Create a category only you can see',
+    'icon'     => 'fa-plus-circle',
+    'body'     => $custom_product_category_body,
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Category', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="customProductCategorySaveBtn"'],
+    ]),
+    'static'   => true,
+    'hidden'   => true,
+]);
+?>
 
 <script>
 var currentProductId = null;
 var processedProductImageData = null;
+
+var PRODUCT_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+
+function setProductModalMode(isEdit) {
+    var titleEl = document.getElementById('productModalTitle');
+    var saveBtn = document.getElementById('productModalSubmitBtn');
+    if (titleEl) {
+        titleEl.textContent = isEdit ? 'Edit Item' : 'Add Item';
+    }
+    if (saveBtn) {
+        saveBtn.textContent = isEdit ? 'Update Product' : 'Add Item';
+    }
+}
+
+function showProductModal() {
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('productModal');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var saveBtn = document.getElementById('productModalSubmitBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', addProductToForm);
+    }
+    var customCatSaveBtn = document.getElementById('customProductCategorySaveBtn');
+    if (customCatSaveBtn) {
+        customCatSaveBtn.addEventListener('click', saveCustomProductCategory);
+    }
+});
 
 // Update character count display (max 400 characters) - updates live while typing
 function updateCharCount() {
@@ -1119,11 +1195,8 @@ function openProductModal() {
         // Reset image preview
         var imgPreview = document.getElementById('modal_product_image_preview');
         if(imgPreview) {
-            imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+            imgPreview.src = PRODUCT_MODAL_PLACEHOLDER_IMG;
         }
-
-        var submitBtn = document.getElementById('productModalSubmitBtn');
-        if(submitBtn) submitBtn.textContent = 'Add Item';
 
         if(typeof updateCharCount === 'function') updateCharCount();
         if(typeof updatePriceFieldByType === 'function') updatePriceFieldByType();
@@ -1132,25 +1205,8 @@ function openProductModal() {
         if(modalProductCtaFieldDefault) modalProductCtaFieldDefault.value = 'Enquire';
         if(typeof updateCtaField === 'function') updateCtaField();
 
-        // Show modal
-        var productModalEl = document.getElementById('productModal');
-        if(!productModalEl) {
-            console.error('Product modal element not found');
-            return;
-        }
-        if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-            jQuery('#productModal').modal('show');
-        } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            bootstrap.Modal.getOrCreateInstance(productModalEl, { backdrop: 'static', keyboard: false }).show();
-        } else {
-            productModalEl.style.display = 'block';
-            productModalEl.classList.add('show');
-            document.body.classList.add('modal-open');
-            var backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop fade show';
-            backdrop.id = 'modalBackdrop';
-            document.body.appendChild(backdrop);
-        }
+        setProductModalMode(false);
+        showProductModal();
     } catch(e) {
         console.error('Error opening product modal:', e);
         alert('Could not open the form. Please refresh the page and try again.');
@@ -1266,31 +1322,16 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
         if(img && img.src) {
             imgPreview.src = img.src;
         } else {
-            imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+            imgPreview.src = PRODUCT_MODAL_PLACEHOLDER_IMG;
         }
-    }
-    
-    var submitBtn = document.getElementById('productModalSubmitBtn');
-    if(submitBtn) {
-        submitBtn.textContent = 'Update Product';
     }
     
     updateCharCount();
     if(typeof updatePriceFieldByType === 'function') updatePriceFieldByType();
     if(typeof updatePricingUnitField === 'function') updatePricingUnitField();
     if(typeof updateCtaField === 'function') updateCtaField();
-    
-    // Show modal
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery('#productModal').modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('productModal');
-        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
-    } else {
-        document.getElementById('productModal').style.display = 'block';
-        document.getElementById('productModal').classList.add('show');
-        document.body.classList.add('modal-open');
-    }
+    setProductModalMode(true);
+    showProductModal();
 }
 
 function handleProductImageUpload(input) {
@@ -1299,13 +1340,23 @@ function handleProductImageUpload(input) {
         var allowedTypes = ['image/jpeg','image/png','image/gif','image/webp'];
         var maxSize = 10 * 1024 * 1024;
         if(allowedTypes.indexOf(file.type) === -1) {
-            alert('Only JPG, PNG, GIF, and WEBP images are allowed.');
+            var typeMsg = 'Only JPG, PNG, GIF, and WEBP images are allowed.';
+            if (window.MwModal && window.MwModal.alert) {
+                window.MwModal.alert({ title: 'Product Image', message: typeMsg });
+            } else {
+                alert(typeMsg);
+            }
             input.value = '';
             processedProductImageData = null;
             return;
         }
         if(file.size > maxSize) {
-            alert('Image size must be 10MB or less. The image will be automatically optimized to 250KB.');
+            var sizeMsg = 'Image size must be 10MB or less. The image will be automatically optimized to 250KB.';
+            if (window.MwModal && window.MwModal.alert) {
+                window.MwModal.alert({ title: 'Product Image', message: sizeMsg });
+            } else {
+                alert(sizeMsg);
+            }
             input.value = '';
             processedProductImageData = null;
             return;
@@ -1336,7 +1387,12 @@ function handleProductImageUpload(input) {
                     if (window.productImageCropCallback) window.productImageCropCallback(base64Data);
                 },
                 onError: function(msg) {
-                    alert(msg || 'Error processing image. Please try again.');
+                    var errMsg = msg || 'Error processing image. Please try again.';
+                    if (window.MwModal && window.MwModal.alert) {
+                        window.MwModal.alert({ title: 'Product Image', message: errMsg });
+                    } else {
+                        alert(errMsg);
+                    }
                     input.value = '';
                     processedProductImageData = null;
                 }
@@ -1505,7 +1561,7 @@ function saveProducts() {
 }
 
 function removeData(productId) {
-    if(confirm('Are you sure you want to remove this product?')) {
+    function doDelete() {
         var statusElement = document.getElementById('status_remove_img');
         if(statusElement) {
             statusElement.style.color = 'blue';
@@ -1554,40 +1610,40 @@ function removeData(productId) {
             }
         });
     }
+    if (window.MwModal && typeof window.MwModal.confirm === 'function') {
+        window.MwModal.confirm({
+            title: 'Remove product?',
+            message: 'Are you sure you want to remove this product?',
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
+            confirmClass: 'mw-btn mw-btn-danger',
+            onConfirm: doDelete
+        });
+    } else if (confirm('Are you sure you want to remove this product?')) {
+        doDelete();
+    }
 }
 
 function closeProductModal() {
-    var productModalEl = document.getElementById('productModal');
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery('#productModal').modal('hide');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal && productModalEl) {
-        var modal = bootstrap.Modal.getInstance(productModalEl);
-        if(modal) modal.hide();
-        else {
-            productModalEl.classList.remove('show');
-            productModalEl.style.display = 'none';
-            productModalEl.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
-        }
-    } else if(productModalEl) {
-        productModalEl.style.display = 'none';
-        productModalEl.classList.remove('show');
-        productModalEl.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('modal-open');
-        document.body.style.paddingRight = '';
-        document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('productModal');
     }
-    
     var modalProductIdField = document.getElementById('modal_product_id');
     var modalProductNumberField = document.getElementById('modal_product_number');
-    
     if(modalProductIdField) modalProductIdField.value = '';
     if(modalProductNumberField) modalProductNumberField.value = '';
-    
     processedProductImageData = null;
+    currentProductId = null;
 }
+
+(function() {
+    var modalEl = document.getElementById('productModal');
+    if (!modalEl) return;
+    modalEl.addEventListener('mw-modal:closed', function() {
+        currentProductId = null;
+        processedProductImageData = null;
+    });
+})();
 
 // ============= Custom Category Functions =============
 
@@ -1601,49 +1657,15 @@ function openCustomProductCategoryModal() {
     if(errorElement) errorElement.style.display = 'none';
     if(successElement) successElement.style.display = 'none';
     
-    var modalElement = document.getElementById('customProductCategoryModal');
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery(modalElement).modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
-    } else {
-        modalElement.style.display = 'block';
-        modalElement.classList.add('show');
-        document.body.classList.add('modal-open');
-        var backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop fade show';
-        document.body.appendChild(backdrop);
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('customProductCategoryModal');
+        if (nameField) setTimeout(function() { nameField.focus(); }, 150);
     }
 }
 
 function closeCustomProductCategoryModal() {
-    var modalElement = document.getElementById('customProductCategoryModal');
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery(modalElement).modal('hide');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modal = bootstrap.Modal.getInstance(modalElement);
-        if(modal) modal.hide();
-        else {
-            modalElement.classList.remove('show');
-            modalElement.style.display = 'none';
-            modalElement.setAttribute('aria-hidden', 'true');
-            var bds = document.querySelectorAll('.modal-backdrop');
-            if (bds.length) bds[bds.length - 1].remove();
-            if (!document.querySelector('.modal.show')) {
-                document.body.classList.remove('modal-open');
-                document.body.style.paddingRight = '';
-            }
-        }
-    } else {
-        modalElement.style.display = 'none';
-        modalElement.classList.remove('show');
-        var bds = document.querySelectorAll('.modal-backdrop');
-        if (bds.length) bds[bds.length - 1].remove();
-        if (!document.querySelector('.modal.show')) {
-            document.body.classList.remove('modal-open');
-        }
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('customProductCategoryModal');
     }
 }
 
@@ -1854,82 +1876,6 @@ if (document.readyState === 'loading') {
 
 </script>
 <style>
-    .Product-ServicesBtn{
-        padding: 0px 40px;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 30px;
-    }
-    .Product-ServicesBtn button,
-    .Product-ServicesBtn a{
-        display: flex !important;
-        color: #fff !important;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-    .Product-ServicesBtn button .angle,
-    .Product-ServicesBtn a .angle{
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #fff !important;
-        color:#000;
-        font-weight:bold;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .Product-ServicesBtn button span:not(.angle),
-    .Product-ServicesBtn a span:not(.angle){
-        font-weight:500;
-        font-size:16px;
-    }
-    .Product-ServicesBtn .align-center{
-        padding: 4px 10px;
-    }
-    .Product-ServicesBtn .align-center img{
-        width: 23px;
-    }
-    .Product-ServicesBtn .align-center span{
-        color:#000;
-    }
-    .Product-ServicesBtn .btn{
-        line-height:24px !important;
-    }
-    .Product-ServicesBtn button {
-        padding: 7px !important;
-        margin-top: 22px !important;
-    }
-    @media screen and (max-width: 768px) {
-        .card-body {
-            padding-bottom: 100px !important;
-        }
-        .Product-ServicesBtn{
-            width: 80% !important;
-            padding:0px !important;
-            margin-top: 40px !important;
-        }
-        .save_btn{
-            position: absolute;
-            bottom: 150px;
-            width: 145px !important;
-            left: 96px;
-            height: 36px;
-        }
-        .Copyright-left,
-        .Copyright-right{
-            padding:0px;
-        }
-    }
-    .save_btn{
-        width: 115px !important;
-    }
-    #imageCropModal{
-        z-index: 10000 !important;
-    }
-
     select.form-control {
         appearance: none !important;
         -webkit-appearance: none !important;
@@ -1989,7 +1935,7 @@ if (document.readyState === 'loading') {
         max-width: 16rem;
     }
     .Product-ServicesTable {
-        overflow: visible;
+        overflow-x: auto;
     }
     .Product-ServicesTable .display.table thead th.product-th-with-filter {
         position: relative;
@@ -2056,30 +2002,111 @@ if (document.readyState === 'loading') {
     }
 </style>
 
-<!-- Custom Product Category Modal -->
-<div class="modal fade website-step-modal" id="customProductCategoryModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content website-step-modal-content">
-            <button type="button" class="website-step-modal-close close" onclick="closeCustomProductCategoryModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <div class="modal-body">
-                <form id="customProductCategoryForm">
-                    <div class="form-group">
-                        <label for="custom_product_category_name">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="custom_product_category_name" placeholder="Enter category name (max 30)" maxlength="30" required>
-                        <small class="form-text text-muted">Max 30 characters. This category will only be visible to you.</small>
-                    </div>
-                    <div id="customProductCategoryError" class="alert alert-danger" style="display: none;"></div>
-                    <div id="customProductCategorySuccess" class="alert alert-success" style="display: none;"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeCustomProductCategoryModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveCustomProductCategory()">Add Category</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Phase B · Step 11 — design-system chrome overrides for products.
+     Sit AFTER the page-local <style> so they win the cascade for chrome elements. -->
+<style>
+    /* Section heading — promote .heading to design-system style */
+    main.Dashboard .heading.mw-section-title.pr-section-heading {
+        font-size: var(--mw-font-section-title);
+        line-height: 1.3;
+        color: var(--mw-color-text);
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        display: inline-block;
+        position: relative;
+        padding-bottom: 0.5rem;
+        background: transparent;
+    }
+    @media (min-width: 768px) {
+        main.Dashboard .heading.mw-section-title.pr-section-heading { font-size: var(--mw-font-section-title-lg); }
+    }
+    main.Dashboard .heading.mw-section-title.pr-section-heading::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 3rem;
+        height: 2px;
+        background: var(--mw-color-primary);
+        border-radius: 9999px;
+    }
+    main.Dashboard .pr-section-head { margin-bottom: 1.25rem; }
 
+    /* Toolbar (Add Item + count pill) */
+    main.Dashboard .pr-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0.5rem 0 1.25rem; }
+    main.Dashboard .pr-toolbar .add_product.mw-btn.mw-btn-save { margin: 0 !important; }
+    main.Dashboard .pr-toolbar .pr-count-pill { padding: 0.375rem 0.75rem; }
+
+    /* Product modal (MwModal) */
+    #productModal .pr-product-modal-body {
+        max-height: min(600px, 65vh);
+        overflow-y: auto;
+    }
+
+    /* Button row — neutralize legacy rules; layout from .mw-btn-row in header.php */
+    main.Dashboard .Product-ServicesBtn.mw-btn-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin-top: 1.5rem !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        position: relative !important;
+        box-sizing: border-box !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn,
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .save_btn {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 3rem !important;
+        margin: 0 !important;
+        margin-top: 0 !important;
+        padding: var(--mw-btn-padding-y) var(--mw-btn-padding-x) !important;
+        flex: 0 0 auto !important;
+        order: unset !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .align-center img {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+    }
+    @media screen and (max-width: 767.98px) {
+        main.Dashboard .card-body.mw-card-body {
+            padding-bottom: 1.5rem !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row {
+            flex-wrap: wrap !important;
+            justify-content: stretch !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-save {
+            order: 1 !important;
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-back {
+            order: 2 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-next {
+            order: 3 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+    }
+</style>
 
 <?php include '../includes/footer.php'; ?>
 

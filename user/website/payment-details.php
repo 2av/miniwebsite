@@ -404,45 +404,56 @@ if(isset($_POST['process4'])){
 include '../includes/header.php';
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-    
-        <div class="main-top">
-        <span class="heading">Payment Details</span>
+<!-- Phase B · Step 10 — payment-details.php page chrome uses .mw-* design system.
+     Interactive components (QR uploaders / .paysection inner cards / .logo-placeholder /
+     .file-upload / .choose-btn / .delImg / .BankDetails / .form-control) all preserved
+     so the existing inline <style> block and JS handlers (clickFocus2/3/10, readURL2/3/10,
+     removeData) keep working unchanged. -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Payment Details</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
-        
+
         <?php if(isset($_SESSION['save_success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($_SESSION['save_error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
+            <div class="alert mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $error_message; ?></div>
+            </div>
         <?php endif; ?>
-        
+
         <div id="status_remove_img"></div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <label class="heading">Payment Through UPI/QR Scanner</label>
-                <small>You can add multiple QR codes as well as Bank Details For your customers so that you can easily receive payments.</small>
+        <div class="card mb-4 mw-card">
+            <div class="card-body mw-card-body">
+                <div class="pd-section-head">
+                    <h2 class="heading mw-section-title pd-section-heading">Payment Through UPI / QR Scanner</h2>
+                    <p class="mw-helper-text">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>You can add multiple QR codes and bank details so your customers can pay you easily.</span>
+                    </p>
+                </div>
                 <form action="" method="POST" enctype="multipart/form-data" id="card_form">
                     <!-- Hidden fields to store processed image data -->
                     <input type="hidden" name="processed_qr_paytm_data" id="processed_qr_paytm_data" value="">
@@ -528,7 +539,7 @@ include '../includes/header.php';
                         </div>
                     </div>
                     <div class="BankDetails" style="display:none">
-                        <label class="heading1">Bank Account Details:</label>
+                        <h2 class="heading1 mw-section-title pd-section-heading">Bank Account Details</h2>
                         <div class="form-group">
                             <label for="d_bank_name">Bank Name (Optional)</label>
                             <input type="text" name="d_bank_name" id="d_bank_name" maxlength="100" class="form-control" placeholder="Enter Bank Name" value="<?php echo !empty($cardRow['d_bank_name']) ? htmlspecialchars($cardRow['d_bank_name']) : ''; ?>">
@@ -548,24 +559,24 @@ include '../includes/header.php';
                     </div>
                     
                     <div class="BankDetails" style="display:none">
-                        <label class="heading2">GST Identification Number:</label>
+                        <h2 class="heading2 mw-section-title pd-section-heading">GST Identification Number</h2>
                         <div class="form-group">
                             <label for="d_ac_type">GST Number (Optional)</label>
                             <input type="text" name="d_ac_type" id="d_ac_type" maxlength="100" class="form-control" placeholder="Enter GST Number" value="<?php echo !empty($cardRow['d_ac_type']) ? htmlspecialchars($cardRow['d_ac_type']) : ''; ?>">
                         </div>
                     </div>
-                    <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="image-gallery.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                            <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
+                    <div class="Product-ServicesBtn mw-btn-row">
+                        <a href="image-gallery.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                            <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
                             <span>Back</span>
                         </a>
-                        <button type="submit" name="process4" class="btn btn-primary align-center save_btn">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                        <button type="submit" name="process4" class="btn btn-primary align-center save_btn mw-btn mw-btn-save">
+                            <img src="../../assets/images/Save.png" alt="" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
                             <span>Save</span>
                         </button>
-                        <a href="social-links.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                        <a href="social-links.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right mw-btn mw-btn-next">
                             <span>Next</span>
-                            <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
+                            <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
                         </a>
                     </div>
                 </form>
@@ -1250,16 +1261,6 @@ function removeData(qr_id, qr_num){
     font-size: 24px;
     
 }
-.Dashboard .main-top {
-    justify-content: flex-start;
-        margin-left: 2px;
-        padding: 20px 0px;
-        padding-bottom: 5px;
-    }
-    .Dashboard .heading {
-        font-size: 20px !important;
-        
-    }
     .Dashboard small {
         
         font-size: 16px;
@@ -1291,80 +1292,114 @@ function removeData(qr_id, qr_num){
         font-size: 22px !important;
         
     }
-    .Product-ServicesBtn{
-    width: 75% !important;
-    padding:0px !important;
-            margin-top: 40px !important;
-            margin:auto;
-}
-.save_btn{
-    position: absolute;
-        bottom: 150px;
-        width: 138px !important;
-        left: 87px;
-        height: 36px;
-}
-.Copyright-left,
-.Copyright-right{
-    padding:0px;
-}
     }
 
-    
-    .Product-ServicesBtn{
-        padding: 0px 40px;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 30px;
-    }
-    .Product-ServicesBtn button,
-    .Product-ServicesBtn a{
-        display: flex !important;
-        color: #fff !important;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-    .Product-ServicesBtn button .angle,
-    .Product-ServicesBtn a .angle{
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #fff !important;
-        color:#000;
-        font-weight:bold;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .Product-ServicesBtn button span:not(.angle),
-    .Product-ServicesBtn a span:not(.angle){
-        font-weight:500;
-        font-size:16px;
-    }
-    .Product-ServicesBtn .align-center{
-        padding: 4px 10px;
-    }
-    .Product-ServicesBtn .align-center img{
-        width: 23px;
-    }
-    .Product-ServicesBtn .align-center span{
-        color:#000;
-    }
-
-    .Product-ServicesBtn  .btn{
-        line-height:24px !important;
-    }
-    .Product-ServicesBtn button {
-        padding: 7px !important;
-        margin-top: 22px !important;
-    }
-    .save_btn{
-    width: 115px !important;
-}
 </style>
 
+<!-- Phase B · Step 10 — design-system chrome overrides for payment-details.
+     Sit AFTER the page-local <style> so they win the cascade for chrome elements. -->
+<style>
+    /* Section headings — promote .heading / .heading1 / .heading2 to design-system style */
+    main.Dashboard .heading.mw-section-title.pd-section-heading,
+    main.Dashboard .heading1.mw-section-title.pd-section-heading,
+    main.Dashboard .heading2.mw-section-title.pd-section-heading {
+        font-size: var(--mw-font-section-title);
+        line-height: 1.3;
+        color: var(--mw-color-text);
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        display: inline-block;
+        position: relative;
+        padding-bottom: 0.5rem;
+        background: transparent;
+    }
+    @media (min-width: 768px) {
+        main.Dashboard .heading.mw-section-title.pd-section-heading,
+        main.Dashboard .heading1.mw-section-title.pd-section-heading,
+        main.Dashboard .heading2.mw-section-title.pd-section-heading {
+            font-size: var(--mw-font-section-title-lg);
+        }
+    }
+    main.Dashboard .heading.mw-section-title.pd-section-heading::after,
+    main.Dashboard .heading1.mw-section-title.pd-section-heading::after,
+    main.Dashboard .heading2.mw-section-title.pd-section-heading::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 3rem;
+        height: 2px;
+        background: var(--mw-color-primary);
+        border-radius: 9999px;
+    }
+    main.Dashboard .pd-section-head { margin-bottom: 1.5rem; }
+    /* Reset hidden BankDetails block when ever it gets unhidden — top border for separation */
+    main.Dashboard .BankDetails { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--mw-color-border); }
+
+    /* Button row — neutralize legacy rules; layout from .mw-btn-row in header.php */
+    main.Dashboard .Product-ServicesBtn.mw-btn-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin-top: 1.5rem !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        position: relative !important;
+        box-sizing: border-box !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn,
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .save_btn {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 3rem !important;
+        margin: 0 !important;
+        margin-top: 0 !important;
+        padding: var(--mw-btn-padding-y) var(--mw-btn-padding-x) !important;
+        flex: 0 0 auto !important;
+        order: unset !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .align-center img {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+    }
+    @media screen and (max-width: 767.98px) {
+        main.Dashboard .card-body.mw-card-body {
+            padding-bottom: 1.5rem !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row {
+            flex-wrap: wrap !important;
+            justify-content: stretch !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-save {
+            order: 1 !important;
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-back {
+            order: 2 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-next {
+            order: 3 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+    }
+</style>
 
 <?php include '../includes/footer.php'; ?>
 

@@ -834,48 +834,58 @@ if(isset($_POST['process2'])){
 include '../includes/header.php';
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-    
-        <div class="main-top">
-        <span class="heading">Company Details</span>
+<!-- Phase B · Step 9 — company-details.php page chrome uses .mw-* design system.
+     Interactive components (image upload, cascade selects, tag input, business hours,
+     custom-category modal uses common/mw_modal.php; image crop uses MwModal via image_upload_crop_modal.php.
+     Other page-local class names & inline <style> rules so
+     all JS continues to work unchanged.
+     JS hooks preserved: form#card_form, .form-control, .mw-cascade-field, .upload-container,
+     .logo-placeholder, .choose-btn, .file-upload, .bh-*, .operation-locations-*, all input
+     names + IDs (d_f_name, d_l_name, d_position_primary, d_business_profile_type, etc.),
+     openCustomBusinessCategoryModal(), clickFocusLogo(), clickFocusHero(). -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Company Details</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
-        
+
         <?php if(isset($_SESSION['save_success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($_SESSION['save_error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
+            <div class="alert mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $error_message; ?></div>
+            </div>
         <?php endif; ?>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <label class="heading heading1">Company Visuals:</label>
+        <div class="card mb-4 mw-card">
+            <div class="card-body mw-card-body">
+                <h2 class="heading heading1 mw-section-title cd-section-heading">Company Visuals</h2>
                 <form action="" method="POST" enctype="multipart/form-data" id="card_form">
                     <!-- Hidden field to store processed image data -->
-                     <div class="row">
-                        <div class="col-sm-6">
+                     <div class="cd-company-visuals row">
+                        <div class="col-12 col-md-6">
                         <input type="hidden" name="processed_logo_data" id="processed_logo_data" value="">
-                        <div class="upload-container">
+                        <div class="upload-container cd-upload-block">
                         <div class="logo-placeholder" id="logoPreview" onclick="clickFocusLogo()">
                             <?php if(!empty($cardRow['d_logo'])): ?>
                                 <img id="showPreviewLogo" src="data:image/*;base64,<?php echo base64_encode($cardRow['d_logo']); ?>" alt="Logo Preview">
@@ -896,9 +906,9 @@ include '../includes/header.php';
                         </div>
                         </div>
 
-                        <div class="col-sm-6">
+                        <div class="col-12 col-md-6">
                         <input type="hidden" name="processed_hero_image_data" id="processed_hero_image_data" value="">
-                        <div class="upload-container">
+                        <div class="upload-container cd-upload-block">
                         <div class="logo-placeholder" id="heroImagePreview" onclick="clickFocusHero()">
                             <?php if(!empty($cardRow['d_hero_image_location'])): ?>
                                 <img id="showPreviewHero" src="../../assets/upload/websites/company_details/<?php echo htmlspecialchars($cardRow['d_hero_image_location']); ?>" alt="Hero Image Preview">
@@ -921,8 +931,8 @@ include '../includes/header.php';
                         </div>
                     </div>
                    
-                    <div class="Personal-Details">
-                        <label class="heading heading2">Business Information:</label>
+                    <div class="Personal-Details cd-personal-details">
+                        <h2 class="heading heading2 mw-section-title cd-section-heading">Business Information</h2>
                         <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
@@ -1250,18 +1260,18 @@ include '../includes/header.php';
                             </div>
                         </div>
 
-                        <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                            <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                                <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
+                        <div class="Product-ServicesBtn mw-btn-row">
+                            <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                                <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
                                 <span>Back</span>
                             </a>
-                            <button type="submit" name="process2" class="btn btn-primary align-center save_btn">
-                                <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                            <button type="submit" name="process2" class="btn btn-primary align-center save_btn mw-btn mw-btn-save">
+                                <img src="../../assets/images/Save.png" alt="" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
                                 <span>Save</span>
                             </button>
-                            <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
+                            <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right mw-btn mw-btn-next">
                                 <span>Next</span>
-                                <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
+                                <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
                             </a>
                         </div>
                     </div>
@@ -1300,7 +1310,10 @@ include '../includes/header.php';
                     cropWidth: 600,
                     cropHeight: 600,
                     onSuccess: function() {},
-                    onError: function(msg) { alert(msg); }
+                    onError: function(msg) {
+                        if (window.MwModal && window.MwModal.alert) window.MwModal.alert({ title: 'Logo', message: msg });
+                        else alert(msg);
+                    }
                 });
                 $(this).val('');
             });
@@ -1321,7 +1334,10 @@ include '../includes/header.php';
                     cropWidth: 1200,
                     cropHeight: 600,
                     onSuccess: function() {},
-                    onError: function(msg) { alert(msg); }
+                    onError: function(msg) {
+                        if (window.MwModal && window.MwModal.alert) window.MwModal.alert({ title: 'Hero Image', message: msg });
+                        else alert(msg);
+                    }
                 });
                 $(this).val('');
             });
@@ -2499,7 +2515,6 @@ font-size: 24px !important;
     }
     .Personal-Details .form-group .form-control{
         min-height:55px !important;
-        font-weight:100;
         font-size:16px;
     }
     .Personal-Details .form-group .form-control:focus{
@@ -2630,7 +2645,6 @@ padding-bottom:0px;
 }
 .Personal-Details .form-group .form-control {
     min-height: 50px !important;
-    font-weight: 100;
     font-size: 18px;
 }
 .Personal-Details .form-group label {
@@ -3039,31 +3053,235 @@ padding-bottom:0px;
             padding-right: 12px;
         }
     }
+
+    /* Company Visuals — responsive logo & hero upload (all screen sizes) */
+    .cd-company-visuals {
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .cd-company-visuals > [class*="col-"] {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    .cd-company-visuals .cd-upload-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 22rem;
+        margin-left: auto;
+        margin-right: auto;
+        padding: clamp(1rem, 3vw, 1.5rem) clamp(0.75rem, 2vw, 1.25rem) !important;
+        box-sizing: border-box;
+    }
+    .cd-company-visuals .logo-placeholder {
+        width: min(100%, 12.5rem);
+        height: auto;
+        aspect-ratio: 1;
+        max-height: none;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .cd-company-visuals #heroImagePreview.logo-placeholder {
+        width: min(100%, 17.5rem);
+        height: auto;
+        aspect-ratio: 2 / 1;
+        max-height: none;
+    }
+    .cd-company-visuals #heroImagePreview #showPreviewHero,
+    .cd-company-visuals #heroImagePreview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .cd-company-visuals #showPreviewLogo {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+    }
+    .cd-company-visuals #logoPreview span,
+    .cd-company-visuals #heroImagePreview span {
+        font-size: clamp(0.8125rem, 2.8vw, 1rem) !important;
+        line-height: 1.3;
+        text-align: center;
+        padding: 0 0.5rem;
+    }
+    .cd-company-visuals .upload-container .file-info {
+        width: 100%;
+        text-align: center;
+        font-size: clamp(0.75rem, 2.5vw, 0.875rem) !important;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+        padding-top: 0.25rem;
+    }
+    .cd-company-visuals .upload-container .addlogo {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-top: 0.75rem !important;
+        margin-bottom: 0.5rem !important;
+        text-align: center;
+        font-size: clamp(0.9375rem, 3vw, 1.125rem) !important;
+        line-height: 1.35;
+    }
+    .cd-company-visuals .file-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        width: 100%;
+        max-width: 100%;
+        height: auto !important;
+        min-height: 0;
+        padding: 0.625rem 0.75rem !important;
+        margin-top: 0.25rem;
+        border: 1px solid var(--mw-color-border, #e2e8f0);
+        border-radius: 8px;
+        background: #fff;
+        box-sizing: border-box;
+    }
+    .cd-company-visuals .file-upload #fileContainer,
+    .cd-company-visuals .file-upload #fileContainerHero {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+    }
+    .cd-company-visuals .file-upload #fileName,
+    .cd-company-visuals .file-upload #fileNameHero {
+        display: block;
+        padding-left: 0 !important;
+        font-size: 0.8125rem !important;
+        line-height: 1.35;
+        color: var(--mw-color-text-muted, #64748b);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cd-company-visuals .file-upload .choose-btn {
+        flex-shrink: 0;
+        align-self: stretch;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0.5rem 1rem !important;
+        font-size: 0.875rem !important;
+        font-weight: 600;
+        line-height: 1.25;
+        white-space: nowrap;
+        text-align: center;
+        border-radius: 8px;
+        background: var(--mw-modal-accent, #ffc107);
+        border: 1px solid var(--mw-modal-accent, #ffc107);
+        color: #1a2b4b;
+        cursor: pointer;
+    }
+    .cd-company-visuals .file-upload .choose-btn:hover {
+        background: var(--mw-modal-accent-hover, #e6ac00);
+        border-color: var(--mw-modal-accent-hover, #e6ac00);
+    }
+    @media (min-width: 480px) {
+        .cd-company-visuals .file-upload {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .cd-company-visuals .file-upload .choose-btn {
+            align-self: center;
+            width: auto;
+            min-width: 7.5rem;
+        }
+    }
+    @media (min-width: 768px) {
+        .cd-company-visuals .cd-upload-block {
+            max-width: none;
+            margin-left: 0;
+            margin-right: 0;
+            padding: 1.25rem 1.5rem !important;
+        }
+        .cd-company-visuals > [class*="col-"]:first-child .cd-upload-block {
+            margin-right: auto;
+        }
+        .cd-company-visuals > [class*="col-"]:last-child .cd-upload-block {
+            margin-left: auto;
+        }
+    }
 </style>
 
-<!-- Custom Business Category Modal -->
-<div class="modal fade website-step-modal" id="customBusinessCategoryModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content website-step-modal-content">
-            <button type="button" class="website-step-modal-close close" onclick="closeCustomBusinessCategoryModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <div class="modal-body">
-                <form id="customBusinessCategoryForm">
-                    <div class="form-group">
-                        <label for="custom_business_category_name">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="custom_business_category_name" placeholder="Enter category name" maxlength="255" required>
-                        <small class="form-text text-muted">This category will only be visible to you</small>
-                    </div>
-                    <div id="customBusinessCategoryError" class="alert alert-danger" style="display: none;"></div>
-                    <div id="customBusinessCategorySuccess" class="alert alert-success" style="display: none;"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeCustomBusinessCategoryModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveCustomBusinessCategory()">Add Category</button>
-            </div>
-        </div>
+<!-- Phase B · Step 9 — design-system chrome overrides for company-details.
+     These rules sit AFTER the page-local <style> block so they win the cascade
+     for the page chrome (section headings, alerts inside this page, button row).
+     Interactive components (image upload, business hours, tag inputs, cascades)
+     keep their existing visual rules from the block above. -->
+<style>
+    /* Section headings — promote .heading.heading1/2 to design-system style */
+    main.Dashboard .heading.heading1.mw-section-title,
+    main.Dashboard .heading.heading2.mw-section-title {
+        font-size: var(--mw-font-section-title);
+        line-height: 1.3;
+        color: var(--mw-color-text);
+        font-weight: 600;
+        margin: 0 0 1.25rem;
+        display: inline-block;
+        position: relative;
+        padding-bottom: 0.5rem;
+        background: transparent;
+    }
+    @media (min-width: 768px) {
+        main.Dashboard .heading.heading1.mw-section-title,
+        main.Dashboard .heading.heading2.mw-section-title {
+            font-size: var(--mw-font-section-title-lg);
+        }
+    }
+    main.Dashboard .heading.heading1.mw-section-title::after,
+    main.Dashboard .heading.heading2.mw-section-title::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 3rem;
+        height: 2px;
+        background: var(--mw-color-primary);
+        border-radius: 9999px;
+    }
+    /* Breathing room between the two big sections of the form */
+    main.Dashboard .cd-personal-details { margin-top: 2.25rem; padding-top: 1.5rem; border-top: 1px solid var(--mw-color-border); }
+
+    /* Button row — neutralize the legacy inline width/margin so .mw-btn-row controls layout */
+    main.Dashboard .Product-ServicesBtn.mw-btn-row { width: 100% !important; padding: 0 !important; margin-top: 1.5rem !important; }
+
+    /* Tighten the alerts on this page (the page-local rules add extra padding) */
+    main.Dashboard .mw-alert { margin-bottom: 1rem; }
+</style>
+
+<?php
+require_once __DIR__ . '/../../common/mw_modal.php';
+
+$custom_business_category_body = '
+<form id="customBusinessCategoryForm" class="mw-form">
+    <div class="form-group mb-3">
+        <label for="custom_business_category_name" class="form-label">Category Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="custom_business_category_name" placeholder="Enter category name" maxlength="255" required>
+        <small class="form-text text-muted">This category will only be visible to you</small>
     </div>
-</div>
+    <div id="customBusinessCategoryError" class="alert alert-danger mw-alert mw-alert-danger" style="display: none;" role="alert"></div>
+    <div id="customBusinessCategorySuccess" class="alert alert-success mw-alert mw-alert-success" style="display: none;" role="alert"></div>
+</form>';
+
+mw_modal_render([
+    'id'       => 'customBusinessCategoryModal',
+    'size'     => 'sm',
+    'title'    => 'Add Custom Category',
+    'subtitle' => 'Create a category only you can see',
+    'icon'     => 'fa-plus-circle',
+    'body'     => $custom_business_category_body,
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Category', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="customBusinessCategorySaveBtn"'],
+    ]),
+]);
+?>
 
 <script>
 function openCustomBusinessCategoryModal() {
@@ -3072,54 +3290,32 @@ function openCustomBusinessCategoryModal() {
         return;
     }
     var nameField = document.getElementById('custom_business_category_name');
-    if(nameField) nameField.value = '';
-    
+    if (nameField) nameField.value = '';
+
     var errorElement = document.getElementById('customBusinessCategoryError');
     var successElement = document.getElementById('customBusinessCategorySuccess');
-    
-    if(errorElement) errorElement.style.display = 'none';
-    if(successElement) successElement.style.display = 'none';
-    
-    var modalElement = document.getElementById('customBusinessCategoryModal');
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery(modalElement).modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        bootstrap.Modal.getOrCreateInstance(modalElement).show();
-    } else {
-        // Fallback: show modal manually
-        modalElement.style.display = 'block';
-        modalElement.classList.add('show');
-        document.body.classList.add('modal-open');
-        var backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop fade show';
-        document.body.appendChild(backdrop);
+
+    if (errorElement) errorElement.style.display = 'none';
+    if (successElement) successElement.style.display = 'none';
+
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('customBusinessCategoryModal');
+        if (nameField) setTimeout(function() { nameField.focus(); }, 150);
     }
 }
 
 function closeCustomBusinessCategoryModal() {
-    var modalElement = document.getElementById('customBusinessCategoryModal');
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery(modalElement).modal('hide');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modal = bootstrap.Modal.getInstance(modalElement);
-        if(modal) modal.hide();
-        else {
-            modalElement.classList.remove('show');
-            modalElement.style.display = 'none';
-            modalElement.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
-        }
-    } else {
-        modalElement.style.display = 'none';
-        modalElement.classList.remove('show');
-        document.body.classList.remove('modal-open');
-        document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('customBusinessCategoryModal');
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var saveBtn = document.getElementById('customBusinessCategorySaveBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveCustomBusinessCategory);
+    }
+});
 
 function saveCustomBusinessCategory() {
     var categoryName = document.getElementById('custom_business_category_name').value.trim();

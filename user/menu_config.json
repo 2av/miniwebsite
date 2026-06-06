@@ -1,9 +1,25 @@
 {
+  "theme": {
+    "nav_icon_active": "#2b4ba9"
+  },
+  "website_menu_items": [
+    { "id": "ws_dashboard", "label": "Dashboard", "icon": "tachometer", "path": "/dashboard" },
+    { "id": "ws_business_name", "label": "Business Name", "icon": "edit", "path": "/website/business-name.php", "separator_before": true },
+    { "id": "ws_select_theme", "label": "Select Theme", "icon": "paint-brush", "path": "/website/select-theme.php" },
+    { "id": "ws_company_details", "label": "Company Details", "icon": "building", "path": "/website/company-details.php" },
+    { "id": "ws_services", "label": "Services", "icon": "cogs", "path": "/website/services.php" },
+    { "id": "ws_special_offers", "label": "Special Offers", "icon": "tag", "path": "/website/special-offers.php" },
+    { "id": "ws_products", "label": "Details & Pricing", "icon": "shopping-cart", "path": "/website/products.php" },
+    { "id": "ws_videos", "label": "Videos", "icon": "video-camera", "path": "/website/videos.php" },
+    { "id": "ws_image_gallery", "label": "Image Gallery", "icon": "image", "path": "/website/image-gallery.php" },
+    { "id": "ws_payment_details", "label": "Payment Details", "icon": "credit-card", "path": "/website/payment-details.php" },
+    { "id": "ws_social_links", "label": "Social Links", "icon": "share-alt", "path": "/website/social-links.php" }
+  ],
   "menu_items": [
     {
       "id": "dashboard",
       "label": "Dashboard",
-      "icon": "Dashboard.png",
+      "icon": "chart-line",
       "url": "/dashboard",
       "roles": ["CUSTOMER", "FRANCHISEE", "TEAM"],
       "always_visible": true
@@ -11,7 +27,7 @@
     {
       "id": "verification",
       "label": "Verification",
-      "icon": "Verification.png",
+      "icon": "check-square-o",
       "url": "/verification",
       "roles": ["FRANCHISEE"],
       "always_visible": true
@@ -19,7 +35,7 @@
     {
       "id": "wallet",
       "label": "Wallet",
-      "icon": "wallet.png",
+      "icon": "money",
       "url": "/wallet",
       "roles": ["FRANCHISEE"],
       "always_visible": true
@@ -27,7 +43,7 @@
     {
       "id": "franchisee_kit",
       "label": "Creator Kit",
-      "icon": "marketingkit.png",
+      "icon": "briefcase",
       "url": "/kit",
       "roles": ["FRANCHISEE"],
       "always_visible": true
@@ -35,7 +51,7 @@
     {
       "id": "referral_customer",
       "label": "Referral Details",
-      "icon": "ReferralDetails.png",
+      "icon": "share-alt",
       "url": "/referral",
       "roles": ["CUSTOMER"],
       "conditions": {
@@ -47,7 +63,7 @@
     {
       "id": "sales_details_team",
       "label": "Sales Details",
-      "icon": "ReferralDetails.png",
+      "icon": "bar-chart",
       "url": "/referral",
       "roles": ["TEAM"],
       "always_visible": true
@@ -55,7 +71,7 @@
     {
       "id": "customer_tracker",
       "label": "Customer Manager",
-      "icon": "Customertracker.png",
+      "icon": "users",
       "url": "/customer-manager",
       "roles": ["TEAM", "FRANCHISEE"],
       "always_visible": true
@@ -63,7 +79,7 @@
     {
       "id": "customer_tracker_collaboration",
       "label": "Customer Manager",
-      "icon": "Customertracker.png",
+      "icon": "users",
       "url": "/customer-manager",
       "roles": ["CUSTOMER"],
       "conditions": {
@@ -75,7 +91,7 @@
     {
       "id": "customer_tracker_customer",
       "label": "Customer Manager",
-      "icon": "Customertracker.png",
+      "icon": "users",
       "url": "/customer-manager",
       "roles": ["CUSTOMER"],
       "conditions": {
@@ -87,7 +103,7 @@
     {
       "id": "collaboration",
       "label": "Collaboration Details",
-      "icon": "collaboration.png",
+      "icon": "exchange",
       "url": "/collaboration",
       "roles": ["CUSTOMER"],
       "conditions": {
@@ -99,7 +115,7 @@
     {
       "id": "kit",
       "label": "Sales Kit",
-      "icon": "SalesKit.png",
+      "icon": "folder-open",
       "url": "/kit",
       "roles": ["TEAM"],
       "always_visible": true
@@ -107,7 +123,7 @@
     {
       "id": "franchisee_sales_kit_team",
       "label": "Franchisee Sales Kit",
-      "icon": "FranchiseeSalesKit.png",
+      "icon": "suitcase",
       "url": "/kit?kit=franchise_sales",
       "roles": ["TEAM"],
       "always_visible": true
@@ -115,7 +131,7 @@
     {
       "id": "sales_kit_customer",
       "label": "Sales Kit",
-      "icon": "saleskit.png",
+      "icon": "folder-open",
       "url": "/kit",
       "roles": ["CUSTOMER"],
       "conditions": {
@@ -127,7 +143,7 @@
     {
       "id": "idcard",
       "label": "ID Card",
-      "icon": "IDCard.png",
+      "icon": "vcard",
       "url": "/idcard",
       "roles": ["TEAM"],
       "always_visible": true
@@ -135,7 +151,7 @@
     {
       "id": "marketing_kit",
       "label": "Creator Kit",
-      "icon": "marketingkit.png",
+      "icon": "bullhorn",
       "url": "/kit",
       "roles": ["CUSTOMER"],
       "conditions": {

@@ -110,62 +110,82 @@ if (!in_array($selected_theme_number, $available_theme_numbers, true)) {
 $theme_css_value = 'panel/card_css' . ($selected_theme_number + 1) . '.css';
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-        <div class="main-top">
-        <span class="heading">Theme</span>
+<!-- Phase B · Step 8 — select-theme.php uses the central .mw-* design system (header.php).
+     JS hooks preserved: .theme-item, .selected, .selected-overlay, data-theme,
+     #selectedTheme, .theme-select-link, .theme_img, form#themeForm, name="d_css", name="save_theme". -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Theme</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
-        
-        <div class="card mb-4">
-            <div class="card-body SelectTheme">
-                <label>Select Your Mini Website Template*</label>
+
+        <div class="card mb-4 mw-card">
+            <div class="card-body SelectTheme mw-card-body">
+                <div class="mb-6">
+                    <h2 class="mw-section-title">Select Your Mini Website Template<span class="req">*</span></h2>
+                    <p class="mw-helper-text">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>Tap a theme to preview its layout. Click <strong style="color:var(--mw-color-text);font-weight:600">Save</strong> to apply.</span>
+                    </p>
+                </div>
+
                 <?php if(isset($_SESSION['save_success'])): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                        <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                        <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                        <button type="button" class="btn-close mw-alert-close" data-bs-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
                 <?php endif; ?>
                 <?php if(isset($_SESSION['save_error'])): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                        <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                        <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                        <button type="button" class="btn-close mw-alert-close" data-bs-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
                 <?php endif; ?>
-                <form id="themeForm" method="POST" action="">
+
+                <form id="themeForm" method="POST" action="" class="mw-form">
                     <input type="hidden" name="d_css" id="selectedTheme" value="<?php echo htmlspecialchars($theme_css_value); ?>">
                     <input type="hidden" name="save_theme" value="1">
-                    <div class="d-flex flex-wrap w-100 theme_section row-items-4">
+
+                    <div class="theme_section" role="radiogroup" aria-label="Theme templates">
                         <?php foreach($themes as $theme): ?>
                             <?php $is_selected = ($theme_css_value === $theme['css']); ?>
-                            <div class="col theme-item <?php echo $is_selected ? 'selected' : ''; ?>" data-theme="<?php echo htmlspecialchars($theme['css']); ?>">
+                            <div class="theme-item <?php echo $is_selected ? 'selected' : ''; ?>" data-theme="<?php echo htmlspecialchars($theme['css']); ?>" role="radio" aria-checked="<?php echo $is_selected ? 'true' : 'false'; ?>" tabindex="0">
                                 <a href="javascript:void(0);" class="theme-select-link">
-                                    <img class="img-fluid theme_img" src="<?php echo htmlspecialchars($theme['image']); ?>" alt="<?php echo htmlspecialchars($theme['name']); ?>">
-                                    <div style="margin-top: 8px; text-align: center; font-weight: 600;"><?php echo htmlspecialchars($theme['name']); ?></div>
+                                    <div class="theme-item-thumb">
+                                        <img class="theme_img" src="<?php echo htmlspecialchars($theme['image']); ?>" alt="<?php echo htmlspecialchars($theme['name']); ?> preview" loading="lazy">
+                                    </div>
+                                    <div class="theme-item-name"><?php echo htmlspecialchars($theme['name']); ?></div>
                                     <?php if($is_selected): ?>
-                                        <div class="selected-overlay">Selected</div>
+                                        <div class="selected-overlay mw-pill mw-pill-primary">
+                                            <i class="fa fa-check" aria-hidden="true"></i>
+                                            <span class="selected-overlay-text">Selected</span>
+                                        </div>
                                     <?php endif; ?>
                                 </a>
                             </div>
                         <?php endforeach; ?>
                     </div>
-                    <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="business-name.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                            <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
+
+                    <div class="Product-ServicesBtn mw-btn-row">
+                        <a href="business-name.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                            <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
                             <span>Back</span>
                         </a>
-                        <button type="submit" class="btn btn-primary align-center save_btn">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                        <button type="submit" class="btn btn-primary align-center save_btn mw-btn mw-btn-save">
+                            <img src="../../assets/images/Save.png" alt="" class="img-fluid" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
                             <span>Save</span>
                         </button>
-                        <a href="company-details.php?card_number=<?php echo $_SESSION['card_id_inprocess']; ?>" class="btn btn-secondary align-right">
+                        <a href="company-details.php?card_number=<?php echo $_SESSION['card_id_inprocess']; ?>" class="btn btn-secondary align-right mw-btn mw-btn-next">
                             <span>Next</span>
-                            <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
+                            <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
                         </a>
                     </div>
                 </form>
@@ -175,175 +195,138 @@ $theme_css_value = 'panel/card_css' . ($selected_theme_number + 1) . '.css';
 </main>
 
 <style>
-.theme-item {
-    position: relative;
-    margin-bottom: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.theme-item:hover {
-    transform: scale(1.05);
-}
-
-.theme-item a {
-    display: block;
-    position: relative;
-    border: 2px solid transparent;
-    border-radius: 8px;
-    overflow: hidden;
-}
-.SelectTheme label{
-    font-size:24px !important; 
-}
-
-.theme-item.selected a {
-    border-color: #007bff;
-    box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
-}
-
-.selected-overlay {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #007bff;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 12px;
-    font-weight: bold;
-    z-index: 10;
-}
-
-.theme-item img {
-    width: 100%;
-    height: auto;
-    border-radius: 6px;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    margin-top: 20px;
-}
-
-@media (max-width: 768px) {
-    .theme_section .theme-item{
-        display: contents !important;
+    /* Theme picker grid — cards stretch to fill cells; preview fills thumb with inner padding */
+    .SelectTheme .theme_section {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        width: 100%;
+        align-items: stretch;
     }
-    .theme_section {
-    gap:25px;
+    @media (min-width: 576px) {
+        .SelectTheme .theme_section { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
     }
-
-    .theme_section .theme-item .theme_img{
-        width: 100%; !important;
-        max-width: 100% !important;
+    @media (min-width: 992px) {
+        .SelectTheme .theme_section { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; }
     }
-    .SelectTheme label {
-    font-size: 22px !important;
-}
-
-.Product-ServicesBtn{
-    width: 80% !important;
-    padding:0px !important;
-            margin-top: 40px !important;
-}
-.save_btn{
-        position: absolute;
-    bottom: 150px;
-    width: 145px !important;
-    left: 96px;
-    height: 36px;
-}
-.Copyright-left,
-.Copyright-right{
-    padding:0px;
-}
-
-}
-.Product-ServicesBtn{
-    padding: 0px 40px;
-    display: flex;
-    justify-content: space-between;
-    margin-top: 30px;
-}
-.Product-ServicesBtn button,
-.Product-ServicesBtn a{
-    display: flex !important;
-    color: #fff !important;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-}
-.Product-ServicesBtn button .angle,
-.Product-ServicesBtn a .angle{
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #fff !important;
-    color:#000;
-    font-weight:bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.Product-ServicesBtn button span:not(.angle),
-.Product-ServicesBtn a span:not(.angle){
-    font-weight:500;
-    font-size:16px;
-}
-.Product-ServicesBtn .align-center{
-    padding: 4px 10px;
-}
-.Product-ServicesBtn .align-center img{
-    width: 23px;
-}
-.Product-ServicesBtn .align-center span{
-    color:#000;
-}
-
-.Product-ServicesBtn  .btn{
-        line-height:24px !important;
+    .SelectTheme .theme-item {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        box-sizing: border-box;
+        cursor: pointer;
+        background: var(--mw-color-surface);
+        border: 2px solid var(--mw-color-border);
+        border-radius: var(--mw-radius-chip);
+        padding: clamp(0.5rem, 2vw, 0.75rem);
+        transition: border-color .15s, box-shadow .15s, transform .1s, background .15s;
     }
-    .Product-ServicesBtn button {
-        padding: 7px !important;
-        margin-top: 22px !important;
+    .SelectTheme .theme-item:hover {
+        border-color: var(--mw-color-border-strong);
+        box-shadow: var(--mw-shadow-soft);
+        transform: translateY(-2px);
     }
-    .save_btn{
-    width: 115px !important;
-}
+    .SelectTheme .theme-item:focus-visible { outline: none; box-shadow: var(--mw-ring-focus); }
+    .SelectTheme .theme-item.selected {
+        border-color: var(--mw-color-primary);
+        background: rgb(201 162 39 / 0.06);
+        box-shadow: var(--mw-shadow-card), 0 0 0 2px rgb(201 162 39 / 0.30);
+    }
+    .SelectTheme .theme-item .theme-select-link {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        position: relative;
+        text-decoration: none;
+        color: inherit;
+    }
+    .SelectTheme .theme-item-thumb {
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: 9.5rem;
+        aspect-ratio: 3 / 4;
+        box-sizing: border-box;
+        padding: clamp(0.375rem, 1.5vw, 0.625rem);
+        border-radius: 0.5rem;
+        background: #f1f5f9;
+        overflow: hidden;
+    }
+    .SelectTheme .theme-item-thumb img.theme_img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        object-fit: cover;
+        object-position: top center;
+        border-radius: 0.375rem;
+    }
+    .SelectTheme .theme-item-name {
+        flex-shrink: 0;
+        margin-top: 0.5rem;
+        padding: 0 0.125rem;
+        text-align: center;
+        font-size: var(--mw-font-body);
+        font-weight: 600;
+        color: var(--mw-color-text-muted);
+        line-height: 1.3;
+    }
+    .SelectTheme .theme-item.selected .theme-item-name { color: var(--mw-color-primary-dark); }
+    .SelectTheme .selected-overlay { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2; }
+    @media (max-width: 639px) {
+        .SelectTheme .selected-overlay-text { display: none; }
+        .SelectTheme .theme-item-thumb { min-height: 8.5rem; }
+    }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const themeItems = document.querySelectorAll('.theme-item');
     const selectedThemeInput = document.getElementById('selectedTheme');
-    
+
+    // Phase B · Step 8 — uses central .mw-pill .mw-pill-primary classes so styling
+    // stays consistent with the server-rendered overlay and the rest of the design system.
+    const OVERLAY_CLASSES = 'selected-overlay mw-pill mw-pill-primary';
+    const OVERLAY_HTML = '<i class="fa fa-check" aria-hidden="true"></i><span class="selected-overlay-text">Selected</span>';
+
     themeItems.forEach(function(item) {
         item.addEventListener('click', function() {
             const themeValue = this.getAttribute('data-theme');
-            
+
             // Remove selected class from all items
             themeItems.forEach(function(themeItem) {
                 themeItem.classList.remove('selected');
+                themeItem.setAttribute('aria-checked', 'false');
                 const overlay = themeItem.querySelector('.selected-overlay');
                 if(overlay) {
                     overlay.remove();
                 }
             });
-            
+
             // Add selected class to clicked item
             this.classList.add('selected');
-            
-            // Add selected overlay
+            this.setAttribute('aria-checked', 'true');
+
+            // Add selected overlay (matches server-rendered Tailwind classes for visual parity)
             const overlay = document.createElement('div');
-            overlay.className = 'selected-overlay';
-            overlay.textContent = 'Selected';
+            overlay.className = OVERLAY_CLASSES;
+            overlay.innerHTML = OVERLAY_HTML;
             this.querySelector('a').appendChild(overlay);
-            
+
             // Update hidden input
             selectedThemeInput.value = themeValue;
+        });
+
+        // Keyboard accessibility — Space/Enter selects the focused theme card
+        item.addEventListener('keydown', function(e) {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                this.click();
+            }
         });
     });
 });

@@ -276,18 +276,24 @@ if (!isset($_GET['card_number']) || empty($_GET['card_number'])) {
 }
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-        <div class="main-top">
-        <span class="heading">Business Name</span>
+<!-- Phase B · Step 5 — business-name.php uses central .mw-* design system + mw_button helpers.
+     JS hooks: .business_name_form, .save_btn, .preview_url_text, .business_name_preview, etc. -->
+<?php
+$mw_step_next_href = 'select-theme.php' . (!empty($_SESSION['card_id_inprocess']) ? '?card_number=' . (int)$_SESSION['card_id_inprocess'] : '');
+$mw_save_icon = '../../assets/images/Save.png';
+?>
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area px-4">
+        <div class="main-top mw-page-header">
+            <h1 class="mw-page-title">Business Name</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
-        
+
         <?php if(isset($_GET['card_number'])): ?>
             <?php
             $_SESSION['card_id_inprocess'] = $_GET['card_number'];
@@ -315,47 +321,44 @@ if (!isset($_GET['card_number']) || empty($_GET['card_number'])) {
                     $row_previous_slug = (string) ($rps['previous_slug'] ?? '');
                 }
             }
-            
+
             if(mysqli_num_rows($query) == 0): ?>
-                <div class="alert alert-danger">Card id Removed/Not available.</div>
+                <div class="alert alert-danger mw-alert mw-alert-danger" role="alert">
+                    <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                    <div class="mw-alert-body">Card id Removed/Not available.</div>
+                </div>
             <?php else: ?>
                 <?php if(isset($_SESSION['save_success'])): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                    <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                        <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                        <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                        <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
                 <?php endif; ?>
                 <?php if(isset($_SESSION['save_error'])): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                    <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                        <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                        <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                        <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
                 <?php endif; ?>
-                <div class="card mb-4">
-                    <div class="card-body">
-                        
-                        <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="<?php echo isset($_GET['card_number']) ? (int)$_GET['card_number'] : ''; ?>">
-                            <div class="form-group top_header_section">
-                                <label for="d_display_name">Business Name: <span class="text-danger">*</span></label>
-                                <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" value="<?php echo htmlspecialchars($display_name_value); ?>" placeholder="Enter Business Name*" required>
+
+                <div class="card mb-4 mw-card">
+                    <div class="card-body mw-card-body">
+                        <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form mw-form mw-business-name-form" data-card-number="<?php echo isset($_GET['card_number']) ? (int)$_GET['card_number'] : ''; ?>">
+                            <div class="mw-business-name-fields-row">
+                                <div class="form-group top_header_section mw-form-group">
+                                    <label class="mw-label mw-label-lg" for="d_display_name">Business Name<span class="req">*</span></label>
+                                    <input type="text" id="d_display_name" name="d_display_name" class="form-control d_display_name mw-input mw-input-lg" maxlength="199" value="<?php echo htmlspecialchars($display_name_value); ?>" placeholder="Enter Business Name" required>
+                                </div>
+                                <div class="form-group top_header_section mw-form-group">
+                                    <label class="mw-label mw-label-lg" for="d_comp_name">Business URL<span class="req">*</span></label>
+                                    <input type="text" id="d_comp_name" name="d_comp_name" class="form-control d_comp_name mw-input mw-input-lg" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business URL" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
+                                </div>
                             </div>
-                            <div class="form-group top_header_section">
-                                <label for="d_comp_name">Business URL: <span class="text-danger">*</span></label>
-                                <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" value="<?php echo htmlspecialchars($row['d_comp_name']); ?>" placeholder="Enter Your Business URL*" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
-                                <div class="business_name_preview mt-2 d-none" aria-live="polite">
-                                    <strong>Preview:</strong> <span class="preview_url_text"><?php echo htmlspecialchars($business_url); ?></span>
-                                </div>
-                                <div class="business_name_exists_msg mt-2 d-none text-danger" role="alert">
-                                    This URL is already taken. Please choose something else.
-                                </div>
-                                <br/>
+                            <div class="mw-business-name-url-extra">
                                 <?php
                                     // Build public business URL (based on current host)
-                                    // Use n.php?n=slug for preview pages (consistent with site preview router)
                                     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                                     $site_url = $protocol . '://' . $_SERVER['HTTP_HOST'];
                                     $business_slug = !empty($row['card_id']) ? $row['card_id'] : preg_replace('/[^A-Za-z0-9\-]/', '-', strtolower(trim($row['d_comp_name'])));
@@ -363,96 +366,151 @@ if (!isset($_GET['card_number']) || empty($_GET['card_number'])) {
                                     $change_count = isset($row['d_name_change_count']) ? intval($row['d_name_change_count']) : 0;
                                     $remaining = max(0, 2 - $change_count);
                                 ?>
-                                <sup>URL: <a href="<?php echo htmlspecialchars($business_url); ?>" target="_blank"><?php echo htmlspecialchars($business_url); ?></a></sup>
-                                <?php if (!empty($row_previous_slug)):
-                                    $prev_slug = $row_previous_slug;
-                                    $prev_url = $site_url . '/' . urlencode($prev_slug);
-                                ?>
-                                <br>
-                                <sup>Previous URL (reference): <a href="<?php echo htmlspecialchars($prev_url); ?>" target="_blank"><?php echo htmlspecialchars($prev_url); ?></a></sup>
-                                <?php endif; ?>
-                                <br>
-                                <sup>
-                                    <?php if($remaining > 0): ?>
-                                        You can change your business url <?php echo $remaining; ?> more time<?php echo ($remaining > 1) ? 's' : ''; ?>.
-                                    <?php else: ?>
-                                        You have reached the maximum of 2 business name changes.
+                                <div class="business_name_preview mt-2 d-none mw-alert mw-alert-info mw-alert-compact" aria-live="polite">
+                                    <i class="fa fa-eye mw-alert-icon" aria-hidden="true"></i>
+                                    <div class="mw-alert-body"><strong>Preview:</strong>
+                                        <span class="preview_url_text" style="margin-left:0.25rem;word-break:break-all;"><?php echo htmlspecialchars($business_url); ?></span>
+                                    </div>
+                                </div>
+                                <div class="business_name_exists_msg mt-2 d-none mw-alert mw-alert-danger mw-alert-compact" role="alert">
+                                    <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                                    <div class="mw-alert-body">This URL is already taken. Please choose something else.</div>
+                                </div>
+                                <div class="mw-meta">
+                                    <p class="mw-meta-line">
+                                        <i class="fa fa-link" aria-hidden="true"></i>
+                                        <span class="mw-meta-label">URL:</span>
+                                        <a class="mw-meta-link" href="<?php echo htmlspecialchars($business_url); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($business_url); ?></a>
+                                    </p>
+                                    <?php if (!empty($row_previous_slug)):
+                                        $prev_slug = $row_previous_slug;
+                                        $prev_url = $site_url . '/' . urlencode($prev_slug);
+                                    ?>
+                                    <p class="mw-meta-line">
+                                        <i class="fa fa-history" aria-hidden="true"></i>
+                                        <span class="mw-meta-label">Previous URL (reference):</span>
+                                        <a class="mw-meta-link mw-meta-link--muted" href="<?php echo htmlspecialchars($prev_url); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($prev_url); ?></a>
+                                    </p>
                                     <?php endif; ?>
-                                </sup>
-                                
-                                
+                                    <p class="mw-meta-line <?php echo $remaining > 0 ? 'is-warning' : 'is-danger'; ?>">
+                                        <i class="fa <?php echo $remaining > 0 ? 'fa-info-circle' : 'fa-lock'; ?>" aria-hidden="true"></i>
+                                        <?php if($remaining > 0): ?>
+                                            <span>You can change your business URL <strong><?php echo $remaining; ?></strong> more time<?php echo ($remaining > 1) ? 's' : ''; ?>.</span>
+                                        <?php else: ?>
+                                            <span>You have reached the maximum of 2 business name changes.</span>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
                             </div>
-                            <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                                <a href="../dashboard/" class="btn btn-secondary align-left">
-                                    <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
-                                    <span>Back</span>
-                                </a>
-                                <button type="submit" name="process2" class="btn btn-primary align-center save_btn">
-                                    <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
-                                    <span>Save</span>
-                                </button>
-                                <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
-                                    <span>Next</span>
-                                    <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
-                                </a>
-                            </div>
+
+                            <?php
+                            echo mw_button_row_step([
+                                'back' => ['href' => '../dashboard/', 'label' => 'Back'],
+                                'save' => ['type' => 'submit', 'name' => 'process2', 'label' => 'Save', 'class' => 'save_btn', 'img' => $mw_save_icon],
+                                'next' => ['href' => $mw_step_next_href, 'label' => 'Next'],
+                            ]);
+                            ?>
                         </form>
                     </div>
                 </div>
             <?php endif; ?>
         <?php else: ?>
             <?php if(isset($_SESSION['save_error'])): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                    <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                    <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                    <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
             <?php endif; ?>
-            <div class="card mb-4">
-                <div class="card-body">
-                    
-                    <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form" data-card-number="">
-                        <div class="form-group top_header_section">
-                            <label for="d_display_name">Business Name: <span class="text-danger">*</span></label>
-                            <input type="text" name="d_display_name" class="form-control d_display_name" maxlength="199" placeholder="Enter Business Name*" value="<?php echo htmlspecialchars($default_business_name); ?>" required>
-                        </div>
-                        <div class="form-group top_header_section">
-                            <label for="d_comp_name">Business URL: <span class="text-danger">*</span></label>
-                            <input type="text" name="d_comp_name" class="form-control d_comp_name" maxlength="199" placeholder="Enter Your Business URL*" value="<?php echo htmlspecialchars($default_business_name); ?>" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
-                            <div class="business_name_preview mt-2 d-none" aria-live="polite">
-                                <strong>Preview:</strong> <span class="preview_url_text">—</span>
+            <div class="card mb-4 mw-card">
+                <div class="card-body mw-card-body">
+                    <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form mw-form mw-business-name-form" data-card-number="">
+                        <div class="mw-business-name-fields-row">
+                            <div class="form-group top_header_section mw-form-group">
+                                <label class="mw-label mw-label-lg" for="d_display_name">Business Name<span class="req">*</span></label>
+                                <input type="text" id="d_display_name" name="d_display_name" class="form-control d_display_name mw-input mw-input-lg" maxlength="199" placeholder="Enter Business Name" value="<?php echo htmlspecialchars($default_business_name); ?>" required>
                             </div>
-                            <div class="business_name_exists_msg mt-2 d-none text-danger" role="alert">
-                                This URL is already taken. Please choose something else.
+                            <div class="form-group top_header_section mw-form-group">
+                                <label class="mw-label mw-label-lg" for="d_comp_name">Business URL<span class="req">*</span></label>
+                                <input type="text" id="d_comp_name" name="d_comp_name" class="form-control d_comp_name mw-input mw-input-lg" maxlength="199" placeholder="Enter Your Business URL" value="<?php echo htmlspecialchars($default_business_name); ?>" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                             </div>
                         </div>
-                        <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                            <a href="../dashboard/" class="btn btn-secondary align-left">
-                                <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
-                                <span>Back</span>
-                            </a>
-                            <button type="submit" name="process1" class="btn btn-primary align-center save_btn">
-                                <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
-                                <span>Save</span>
-                            </button>
-                            <a href="select-theme.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
-                                <span>Skip</span>
-                                <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
-                            </a>
+                        <div class="mw-business-name-url-extra">
+                            <div class="business_name_preview mt-2 d-none mw-alert mw-alert-info mw-alert-compact" aria-live="polite">
+                                <i class="fa fa-eye mw-alert-icon" aria-hidden="true"></i>
+                                <div class="mw-alert-body"><strong>Preview:</strong>
+                                    <span class="preview_url_text" style="margin-left:0.25rem;word-break:break-all;">&mdash;</span>
+                                </div>
+                            </div>
+                            <div class="business_name_exists_msg mt-2 d-none mw-alert mw-alert-danger mw-alert-compact" role="alert">
+                                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                                <div class="mw-alert-body">This URL is already taken. Please choose something else.</div>
+                            </div>
                         </div>
+                        <?php
+                        echo mw_button_row_step([
+                            'back' => ['href' => '../dashboard/', 'label' => 'Back'],
+                            'save' => ['type' => 'submit', 'name' => 'process1', 'label' => 'Save', 'class' => 'save_btn', 'img' => $mw_save_icon],
+                            'next' => ['href' => $mw_step_next_href, 'label' => 'Skip'],
+                        ]);
+                        ?>
                     </form>
                 </div>
             </div>
         <?php endif; ?>
+    </div>
 </main>
+
+<style>
+.mw-business-name-form {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+}
+.mw-business-name-fields-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem 1.5rem;
+    width: 100%;
+}
+.mw-business-name-fields-row > .mw-form-group {
+    flex: 1 1 0;
+    min-width: min(100%, 16rem);
+    margin-bottom: 0;
+}
+.mw-business-name-fields-row > .mw-form-group:first-child {
+    padding-right: 0.5rem;
+}
+.mw-business-name-fields-row > .mw-form-group:last-child {
+    padding-left: 0.5rem;
+}
+.mw-business-name-fields-row .form-control {
+    width: 100%;
+}
+.mw-business-name-url-extra {
+    width: 100%;
+    margin-top: 1rem;
+}
+@media (max-width: 767.98px) {
+    .mw-business-name-fields-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .mw-business-name-fields-row > .mw-form-group:first-child,
+    .mw-business-name-fields-row > .mw-form-group:last-child {
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var urlInput = document.querySelector('input[name="d_comp_name"]');
     var businessNameInput = document.querySelector('input[name="d_display_name"]');
     var form = urlInput ? urlInput.closest('form') : null;
-    var saveNextBtn = form ? form.querySelector('button.btn.btn-primary.align-center') : null;
+    var saveNextBtn = form ? form.querySelector('.save_btn') : null;
     var previewEl = form ? form.querySelector('.preview_url_text') : null;
     var previewContainer = form ? form.querySelector('.business_name_preview') : null;
     var existsMsgEl = form ? form.querySelector('.business_name_exists_msg') : null;
@@ -462,6 +520,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var nameExists = false;
     var originalValue = urlInput ? urlInput.value.trim() : '';
     var urlManuallyEdited = false;
+    var userStartedTyping = false;
 
     // Build URL slug from business name (same logic as PHP: space . & / [ ] )
     function nameToSlug(name) {
@@ -469,13 +528,17 @@ document.addEventListener('DOMContentLoaded', function () {
         return name.replace(/\s/g, '-').replace(/\./g, '').replace(/&/g, '').replace(/\//g, '-').replace(/\[/g, '').replace(/\]/g, '').trim();
     }
 
-    // Update preview as user types; show preview only when typing, hide when empty or after save
+    function hidePreview() {
+        if (previewContainer) previewContainer.classList.add('d-none');
+        if (previewEl) previewEl.textContent = '—';
+    }
+
+    // Show preview only after user starts typing; hide when field is empty
     function updatePreview() {
         if (!urlInput || !previewEl) return;
         var name = urlInput.value.trim();
-        if (name === '') {
-            if (previewContainer) previewContainer.classList.add('d-none');
-            previewEl.textContent = '—';
+        if (!userStartedTyping || name === '') {
+            hidePreview();
             return;
         }
         if (previewContainer) previewContainer.classList.remove('d-none');
@@ -566,6 +629,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Auto-fill business URL with business name if user hasn't manually edited it
     if (businessNameInput) {
         businessNameInput.addEventListener('input', function () {
+            userStartedTyping = true;
             if (urlInput && !urlManuallyEdited) {
                 urlInput.value = this.value;
                 updatePreview();
@@ -576,6 +640,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (urlInput) {
         urlInput.addEventListener('input', function () {
+            userStartedTyping = true;
             // Mark as manually edited if user types something different from what auto-fill would provide
             if (businessNameInput && this.value !== businessNameInput.value) {
                 urlManuallyEdited = true;
@@ -601,13 +666,14 @@ document.addEventListener('DOMContentLoaded', function () {
             toggleSaveNextVisibility();
         });
         urlInput.addEventListener('change', function () {
+            if (this.value.trim() !== '') userStartedTyping = true;
             var sanitized = sanitizeBusinessName(this.value);
             if (sanitized !== this.value) this.value = sanitized;
             updatePreview();
             scheduleCheck();
             toggleSaveNextVisibility();
         });
-        updatePreview();
+        hidePreview();
         toggleSaveNextVisibility();
         // Disable button on page load
         setSaveDisabled(true);
@@ -616,125 +682,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-
-<style>
-    .business_name_form{
-        display: flex;
-        align-items: center;
-         gap: 20px;
-         flex-direction: column;
-    }
-    .business_name_form label{
-       font-size:24px !important;
-    }
-    .business_name_form button{
-        padding: 8px;
-        margin-top: 5px !important;
-        width: 165px;
-        font-size: 17px !important;
-    }
-
-    .business_name_form sup{
-        font-size: 20px;
-        top: 5px;
-        left: 3px;
-    }
-    .Product-ServicesBtn{
-        padding: 0px 40px;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 30px;
-    }
-    .Product-ServicesBtn button,
-    .Product-ServicesBtn a{
-        display: flex !important;
-        color: #fff !important;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-    .Product-ServicesBtn button .angle,
-    .Product-ServicesBtn a .angle{
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #fff !important;
-        color:#000;
-        font-weight:bold;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .top_header_section{
-        width: 80%; margin-top: 20px; margin-bottom: 0px;
-    }
-    .Product-ServicesBtn button span:not(.angle),
-    .Product-ServicesBtn a span:not(.angle){
-        font-weight:500;
-        font-size:16px;
-    }
-    .Product-ServicesBtn .align-center{
-        padding: 4px 10px;
-    }
-    .Product-ServicesBtn .align-center img{
-        width: 23px;
-    }
-    .Product-ServicesBtn .align-center span{
-        color:#000;
-    }
-
-    .Product-ServicesBtn  .btn{
-        line-height:24px !important;
-    }
-    .Product-ServicesBtn button {
-        padding: 7px !important;
-        margin-top: 22px !important;
-    }
-
-    @media screen and (max-width: 768px) {
-.top_header_section{
-        width: 100%; margin-top: 0px; margin-bottom: 0px;
-    }
-    .card-body {
-    padding: 30px 20px!important;
-    padding-bottom: 100px !important;
-}
-.business_name_form label {
-    font-size: 22px !important;
-}
-.d_comp_name{
-    padding:20px 10px;
-    font-size:16px;
-}
-.business_name_form sup {
-    font-size: 16px;
-    top: 5px;
-    left: 3px;
-}
-.Product-ServicesBtn{
-    width: 80% !important;
-    padding:0px;
-            margin-top: 40px !important;
-}
-.save_btn{
-        position: absolute;
-    bottom: 150px;
-    width: 145px !important;
-    left: 96px;
-    height: 36px;
-}
-.Copyright-left,
-.Copyright-right{
-    padding:0px;
-}
-
-    }
-    .save_btn{
-    width: 115px !important;
-  
-}
-</style>
 
 <?php include '../includes/footer.php'; ?>
 

@@ -97,9 +97,13 @@ table tr td{
     transition: 0.3s;
 }
 .CustomerDashboard-head .card .img{
-    width: 100px !important;
+    flex: 0 0 58px;
+    width: 58px !important;
     height: 100px !important;
-    margin-left: 15px;
+    margin-left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .CustomerDashboard-head .card .img img {    
     object-fit: contain;
@@ -107,14 +111,14 @@ table tr td{
 .CustomerDashboard-head .card .content p {
     font-size: 23px;
     line-height: 33px;    
-    margin: auto;
+    margin: 0;
     line-height: 1.2;
 }
 .CustomerDashboard-head .card .content p {
     padding-left: 0px;
 }
 .CustomerDashboard-head .card {
-    padding:0px 10px;
+    padding:10px 20px;
     
 }
 .CustomerDashboard-head .card {
@@ -144,10 +148,22 @@ padding: 0px;
     color: #fff;
 }
 
+/* Top nav brand logos (desktop default; mobile override below) */
+.sb-topnav .navbar-brand .mw-logo {
+    width: auto;
+    height: auto;
+}
+.sb-topnav .navbar-brand .mw-logo--mobile { display: none; }
+.sb-topnav .navbar-brand .mw-logo--desktop {
+    display: block;
+    max-height: 3.25rem;
+    max-width: 16.25rem;
+}
+
 /* Style For Small Devices */
 @media screen and (max-width: 768px) {
     .sb-nav-fixed #layoutSidenav #layoutSidenav_nav {
-         width: 225px; 
+         width: 280px; 
         
     }
     .sb-nav-fixed #layoutSidenav #layoutSidenav_content{
@@ -198,7 +214,7 @@ padding: 0px;
     .CustomerDashboard-head .card .content p{
         padding-left: 0px;
         width: 100%;
-        margin: auto;
+        margin: 0;
         text-align: left;
     }
     .CustomerDashboard-head .card .img img{
@@ -208,21 +224,32 @@ padding: 0px;
         min-height: 50px;
     }
     .sb-nav-fixed .head-left {
-        width: 57%;
+        width: auto;
+        max-width: none;
     }
    .head-left .img-fluid {
-        max-width: 104% !important;
+        max-width: 100% !important;
         height: auto;
     }
     .sb-topnav .navbar-brand {
-        width: 200px;
+        width: auto;
+        max-width: 7.5rem;
         margin: 0;
+    }
+    .sb-topnav .navbar-brand .mw-logo--desktop { display: none; }
+    .sb-topnav .navbar-brand .mw-logo--mobile {
+        display: block;
+        max-height: 2rem;
+        max-width: 7.5rem;
+        width: auto;
+        height: auto;
     }
     #sidebarToggle i{
         font-size: 23px !important;
     }
     .head-left .navbar-brand{
-        width: 140px;
+        width: auto;
+        max-width: none;
     }
     
     .Dashboard .main-top{
@@ -253,12 +280,26 @@ padding: 0px;
         padding: 2px;
         padding-left: 11px;
     }
-    .Copyright-left,.Copyright-right{
-        font-size: 16px;
-        color: #fff;
+    footer[role="contentinfo"] .Copyright {
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
     }
-    .Copyright-right p{
-        font-size: 16px!important;
+    footer[role="contentinfo"] .Copyright-left,
+    footer[role="contentinfo"] .Copyright-right {
+        font-size: 16px;
+        width: 100%;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        text-align: center !important;
+    }
+    footer[role="contentinfo"] .Copyright-left a {
+        justify-content: center !important;
+    }
+    footer[role="contentinfo"] .Copyright-right,
+    footer[role="contentinfo"] .Copyright-right p {
+        font-size: 12px !important;
+        color: #2b4ba9 !important;
     }
     /*Franchisee Style For Small Devices */
 
@@ -268,11 +309,44 @@ padding: 0px;
         -webkit-flex-basis: calc(100% / 3);
     }
 .CustomerDashboard-head .top_section{
-    display:flex ;
-    justify-content: center;
+    display: flex;
+    justify-content: flex-start;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
 }
 .CustomerDashboard-head .card{
-    margin:20px auto;
+    margin:20px 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: min(320px, 100%);
+    min-width: 280px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.CustomerDashboard-head .card .img {
+    flex: 0 0 60px;
+    width: 60px !important;
+    height: 100px !important;
+    margin-left: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.CustomerDashboard-head .card .content {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-left: 16px;
+}
+.CustomerDashboard-head .card .content p {
+    font-size: 20px;
+    line-height: 1.25;
+    word-break: normal;
+    overflow-wrap: normal;
 }
 #sidebarToggle{
     margin-top: 85px !important;
@@ -489,12 +563,13 @@ padding: 0px;
     font-size: 22px;
     line-height: 27px;
     margin-bottom: 5px;
+    text-align: left;
 }
 
 .FranchiseeDashboard-head .card {
     padding: 10px;
     font-weight: 600;
-    margin: 30px auto;
+    margin: 30px 0;
     height: 14vh;
 }
 .FranchiseeDashboard-head .card .content h4 {
@@ -599,12 +674,12 @@ padding: 0px;
 
 @media screen and (max-width: 768px) {
     .FranchiseeDashboard-head .card {
-        margin: 10px auto;
+        margin: 10px 0;
         height: 16vh;
         display: flex;
         flex-direction: row;
         align-items: center;
-        justify-content: space-evenly;
+        justify-content: flex-start;
     }
     .FranchiseeDashboard-head .row-items-3 {
         flex-direction: column;
@@ -612,7 +687,9 @@ padding: 0px;
     .FranchiseeDashboard-head .card .content {
         padding-left: 0;
         padding-top: 10px;
-        width: 20rem;
+        width: auto;
+        align-items: flex-start;
+        text-align: left;
     }
     .low_balance_title {
         color: #ff6b6b;
@@ -624,8 +701,10 @@ padding: 0px;
     }
     .CustomerDashboard-head .card
     {
-    width: 260px !important;
-    padding: 0px 20px;
+    width: min(320px, 100%) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding:10px 20px !important;
     margin-left: 0px;
     }
     
@@ -649,6 +728,7 @@ padding: 0px;
         font-size: 19px;
     }
     .CustomerDashboard-head .card .img {
+        flex: 0 0 60px;
         width: 60px !important;
         height: 100px !important;
         margin-left: 0px;
@@ -701,7 +781,8 @@ padding: 0px;
     }
     .ReferralDetails-head .card, .FranchiseeDashboard-head .card {
         width: 31rem !important;
-        margin: 20px auto !important;
+        max-width: 100%;
+        margin: 20px 0 !important;
     }
     .ReferralDetails-head .row.d_flex{
         justify-content: center !important;
@@ -731,7 +812,9 @@ padding: 0px;
 
 .CustomerDashboard-head .card
 {
-    width: 300px;
+    width: min(320px, 100%);
+    min-width: 280px;
+    max-width: 100%;
     border-radius: 2px;
     margin-left: 0px;
 }
@@ -778,14 +861,22 @@ padding: 0px;
 #ReferredUsers tr td:first-child{
     padding-left: 30px !important;
 }
-.Copyright-left {
+footer[role="contentinfo"] .Copyright-left {
     padding-left: 40px;
 }
-.Copyright-right p{
-    font-size: 16px!important;
+footer[role="contentinfo"] .Copyright-right p {
+    font-size: 12px !important;
+    color: #2b4ba9;
 }
-.Copyright-right{
+footer[role="contentinfo"] .Copyright-right {
     padding-right: 40px;
+}
+@media screen and (max-width: 768px) {
+    footer[role="contentinfo"] .Copyright-left,
+    footer[role="contentinfo"] .Copyright-right {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
 }
 
 .Dashboard .breadcrumb{
@@ -827,7 +918,8 @@ padding: 0px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    text-align: left;
 }
 /* .ReferralDetails-head .content.width140,
 .ReferralDetails-head .content.width120{
@@ -877,12 +969,15 @@ padding: 0px;
 }
 
 .CustomerDashboard-head .card .img {
+    flex: 0 0 58px;
     width: 58px !important;
     height: 100px !important;
     margin-left: 0px;
 }
 .CustomerDashboard-head .card {
-    width: 280px;
+    width: min(320px, 100%);
+    min-width: 280px;
+    max-width: 100%;
     border-radius: 2px;
     margin-left: 0px ;
 }
@@ -966,10 +1061,6 @@ width: 150%;
         background-color: #ffbe17ad;
     }
 
-
-    .sb-sidenav-toggled #layoutSidenav #layoutSidenav_content {
-        margin-left: -260px !important;
-    }
 
     .sb-topnav.navbar {
         padding-left: 0;
@@ -1064,4 +1155,51 @@ width: 150%;
 
 .modal.website-step-modal .modal-footer {
     flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar collapse — main content must fill the page (not shift left).
+   Overrides styles.css negative margin-left when .sb-sidenav-toggled.
+   -------------------------------------------------------------------------- */
+.sb-nav-fixed #layoutSidenav #layoutSidenav_content {
+    transition: padding-left 0.15s ease-in-out, margin-left 0.15s ease-in-out;
+    box-sizing: border-box;
+}
+
+@media (min-width: 992px) {
+    body.sb-sidenav-toggled.sb-nav-fixed #layoutSidenav #layoutSidenav_content {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+    body.sb-sidenav-toggled #layoutSidenav #layoutSidenav_nav {
+        transform: translateX(-260px) !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    body.sb-sidenav-toggled #layoutSidenav #layoutSidenav_content {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    #layoutSidenav {
+        display: block !important;
+    }
+    #layoutSidenav #layoutSidenav_nav {
+        position: fixed !important;
+        transform: translateX(-100%) !important;
+    }
+    body.sb-sidenav-toggled #layoutSidenav #layoutSidenav_nav {
+        transform: translateX(0) !important;
+    }
+    #layoutSidenav #layoutSidenav_content,
+    .sb-nav-fixed #layoutSidenav #layoutSidenav_content {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
 }

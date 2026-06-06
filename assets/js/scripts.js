@@ -3,13 +3,24 @@ $(document).ready(function () {
     $(".upload-profile .profile-text").click(function (e) {
         e.preventDefault();
         e.stopPropagation();
-        $(this).closest(".nav-item").find(".dropdown-menu").slideToggle();
+        var $wrap = $(this).closest(".upload-profile-wrap");
+        var $menu = $wrap.find(".mw-profile-dropdown");
+        var isOpen = $menu.hasClass("show");
+
+        $(".mw-profile-dropdown").removeClass("show");
+        $(".upload-profile-wrap > .nav-link").attr("aria-expanded", "false");
+
+        if (!isOpen) {
+            $menu.addClass("show");
+            $wrap.find("> .nav-link").attr("aria-expanded", "true");
+        }
     });
 
-    // Optional: Close dropdown when clicking outside
+    // Close dropdown when clicking outside
     $(document).click(function (event) {
-        if (!$(event.target).closest(".nav-item").length) {
-            $(".dropdown-menu").slideUp();
+        if (!$(event.target).closest(".upload-profile-wrap").length) {
+            $(".mw-profile-dropdown").removeClass("show");
+            $(".upload-profile-wrap > .nav-link").attr("aria-expanded", "false");
         }
     });
 });

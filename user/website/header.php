@@ -151,13 +151,33 @@ if ($current_role === 'FRANCHISEE') {
     <link rel="stylesheet" href="../../assets/css/dashboard-professional.css">
     <link rel="stylesheet" href="../../assets/css/common.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        @media screen and (max-width: 767.98px) {
+            .mw-website-topnav #sidebarToggle {
+                width: 1.65rem !important;
+                height: 1.65rem !important;
+                min-width: 1.65rem !important;
+                min-height: 1.65rem !important;
+                padding: 0 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .mw-website-topnav #sidebarToggle .fa,
+            .mw-website-topnav #sidebarToggle i {
+                font-size: calc(23px * 0.6) !important;
+                line-height: 1 !important;
+            }
+        }
+    </style>
 </head>
 
 <body class="sb-nav-fixed">
-    <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
+    <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark mw-website-topnav">
         <div class="head-left">
             <a class="navbar-brand ps-3" href="index.php">
-                <img src="../../../assets/images/logo.png" class="img-fluid" alt="" srcset="">
+                <img src="../../../assets/images/mw_logo_mobile.png" class="mw-logo mw-logo--mobile img-fluid" alt="Mini Website" width="120" height="32">
+                <img src="../../../assets/images/logo.png" class="mw-logo mw-logo--desktop img-fluid" alt="Mini Website" width="200" height="40">
             </a>
             <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!">
                 <i class="fa fa-bars"></i>

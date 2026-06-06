@@ -572,6 +572,7 @@ $preview_template = str_replace(
     $default_template
 );
 include __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../../common/mw_modal.php';
 ?>
 <style>
 #customerTrackerSafetyTips {
@@ -689,126 +690,16 @@ include __DIR__ . '/../includes/header.php';
 #customerTrackerTable td:nth-child(13) { min-width: 8.5rem; }
 #customerTrackerTable th:nth-child(14),
 #customerTrackerTable td:nth-child(14) { min-width: 7rem; }
-.tracker-modal .modal-header {
-    background: #001b78;
-    color: #fff;
-    padding: 12px 16px;
+#customerModal .mw-modal-panel {
+    max-width: 29.375rem;
 }
-.tracker-modal .modal-header .modal-title {
-    color: #fff;
-    font-size: 17px;
-    font-weight: 600;
-}
-.tracker-modal .modal-header .btn-close {
-    filter: invert(1);
-}
-.tracker-modal .modal-content {
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #e4e8f0;
-    background: #f4f6fb;
-}
-#customerModal .modal-body {
-    background: #f4f6fb;
-}
-#customerModal .modal-dialog {
-    max-width: 470px;
-}
-#customerModal.expanded-view .modal-dialog {
+#customerModal.expanded-view .mw-modal-panel {
     max-width: 860px;
 }
 #customerModal:not(.expanded-view) #customerNameCol,
 #customerModal:not(.expanded-view) #phoneNumberCol {
     flex: 0 0 100%;
     max-width: 100%;
-}
-#customerModal .modal-footer,
-.tracker-modal .modal-footer {
-    background: #f4f6fb;
-    border-top: 0;
-    padding: 14px 16px 16px;
-}
-.tracker-modal .modal-body {
-    background: #f4f6fb;
-}
-.tracker-modal .followup-history-table {
-    margin-bottom: 0;
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-}
-.tracker-modal .followup-history-table thead th {
-    background: #001b78;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    border: none;
-    padding: 10px 12px;
-}
-.tracker-modal .followup-history-table tbody td {
-    font-size: 13px;
-    color: #4a5678;
-    padding: 10px 12px;
-    vertical-align: middle;
-    background: #fff;
-    border-color: #e4e8f0;
-}
-.tracker-modal .followup-history-table tbody tr:nth-child(even) td {
-    background: #f8faff;
-}
-.tracker-modal .followup-empty-text {
-    color: #6e7a97;
-    font-size: 13px;
-}
-.tracker-modal .modal-footer .btn.btn-light.border,
-.tracker-modal .modal-footer .btn-followup-close {
-    background: #f7f8fb;
-    border: 1px solid #c8cfdd !important;
-    color: #4e5873;
-    border-radius: 8px;
-    min-width: 80px;
-    font-weight: 500;
-}
-.tracker-modal .modal-header .btn-add-followup-from-view {
-    background: #f8c21c;
-    border-color: #f8c21c;
-    color: #212529;
-    font-weight: 600;
-    border-radius: 8px;
-    font-size: 13px;
-}
-.tracker-modal .modal-header .btn-add-followup-from-view:hover {
-    background: #efb400;
-    border-color: #efb400;
-    color: #212529;
-}
-.tracker-modal .form-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #27345a;
-    margin-bottom: 6px;
-}
-.tracker-modal .form-control {
-    font-size: 13px;
-    min-height: 40px;
-    background: #fff;
-    border: 1px solid #d8deea;
-    border-radius: 8px;
-    color: #4a5678;
-}
-/* Do not use background shorthand on selects â€” it removes Bootstrapâ€™s caret. */
-.tracker-modal .form-select {
-    font-size: 13px;
-    min-height: 40px;
-    border: 1px solid #d8deea;
-    border-radius: 8px;
-    color: #4a5678;
-    background-color: #fff;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234a5678' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.7' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.65rem center;
-    background-size: 14px 10px;
-    padding-right: 2.25rem;
 }
 .tracker-input-wrap {
     position: relative;
@@ -840,68 +731,6 @@ include __DIR__ . '/../includes/header.php';
 .phone-group .phone-input {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
-}
-.tracker-modal .form-control::placeholder {
-    color: #8b96b2;
-}
-.section-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #0d4fbf;
-    margin-bottom: 8px;
-    border-bottom: 1px solid #e8edf6;
-    padding-bottom: 6px;
-}
-#shareOfferModal .modal-body {
-    background: #fff;
-}
-#shareOfferModal .modal-content {
-    background: #fff;
-}
-#shareOfferModal .modal-dialog {
-    max-width: 1140px;
-}
-/* Mobile: vertical centering clips tall modals â€” pin to top + safe area */
-@media (max-width: 767.98px) {
-    #shareOfferModal.modal {
-        align-items: flex-start !important;
-        padding-top: max(12px, env(safe-area-inset-top, 0px));
-        padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-        padding-left: max(8px, env(safe-area-inset-left, 0px));
-        padding-right: max(8px, env(safe-area-inset-right, 0px));
-        overflow-y: auto !important;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-    }
-    #shareOfferModal .modal-dialog {
-        max-width: calc(100% - 1rem);
-        margin: 0 auto !important;
-        min-height: 0 !important;
-        align-items: flex-start !important;
-        display: flex;
-    }
-    #shareOfferModal .modal-dialog.modal-dialog-centered {
-        min-height: 0 !important;
-    }
-    #shareOfferModal .modal-content {
-        max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 40px);
-        max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 40px);
-        display: flex;
-        flex-direction: column;
-    }
-    #shareOfferModal .modal-header {
-        flex-shrink: 0;
-    }
-    #shareOfferModal .modal-body {
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-    #shareOfferModal .wa-popup-footer,
-    #shareOfferModal .modal-footer.wa-popup-footer {
-        flex-shrink: 0;
-    }
 }
 .wa-message-field {
     position: relative;
@@ -966,30 +795,6 @@ include __DIR__ . '/../includes/header.php';
     border-radius: 4px;
     padding: 2px 6px;
 }
-.wa-popup-footer {
-    background: #fff !important;
-    border-top: 1px solid #e4e8f0 !important;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: flex-end;
-}
-.wa-popup-footer .btn-success {
-    font-weight: 600;
-}
-.wa-popup-footer .btn-outline-primary {
-    border-color: #2d6adf;
-    color: #2d6adf;
-    font-weight: 600;
-    background: #fff;
-}
-.wa-popup-footer .btn-outline-primary:hover {
-    background: #f0f6ff;
-    border-color: #1f58c6;
-    color: #1f58c6;
-}
-.wa-popup-footer .btn-danger {
-    font-weight: 600;
-}
 .tracker-subtle-box {
     background: #f2f7ff;
     border: 1px solid #d9e7ff;
@@ -1001,26 +806,6 @@ include __DIR__ . '/../includes/header.php';
 .tracker-subtle-box ul {
     margin-bottom: 0;
     padding-left: 18px;
-}
-.tracker-btn-yellow {
-    background: #f8c21c;
-    border-color: #f8c21c;
-    color: #212529;
-    font-weight: 600;
-    min-width: 92px;
-    border-radius: 8px;
-}
-.tracker-btn-yellow:hover {
-    background: #efb400;
-    border-color: #efb400;
-    color: #212529;
-}
-#customerModal .btn.btn-light.border {
-    background: #f7f8fb;
-    border: 1px solid #c8cfdd !important;
-    color: #4e5873;
-    border-radius: 8px;
-    min-width: 80px;
 }
 #toggleAdditionalBtn {
     width: 100%;
@@ -1043,44 +828,17 @@ include __DIR__ . '/../includes/header.php';
 #customerModal.expanded-view .expanded-only {
     display: block;
 }
-.wa-action-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.wa-action-title .fa-whatsapp {
-    color: #25d366;
-    font-size: 18px;
-}
 @media (max-width: 767.98px) {
-    .tracker-modal .modal-dialog {
-        margin: 0.5rem;
-    }
-    .tracker-modal .modal-title {
-        font-size: 16px;
-    }
-    .tracker-modal .form-label,
-    .tracker-modal .form-control,
-    .tracker-modal .form-select,
     #offerMessage {
         font-size: 13px;
-    }
-    .tracker-modal .modal-footer .btn {
-        font-size: 13px;
-    }
-    .wa-popup-footer {
-        flex-direction: column;
-        align-items: stretch !important;
-    }
-    .wa-popup-footer .btn {
-        width: 100%;
-        min-height: 44px;
     }
 }
 </style>
 <main class="Dashboard">
 <div class="container-fluid customer_content_area">
-    <div class="main-top"><span class="heading">Customer Tracker</span></div>
+    <div class="main-top mw-page-header">
+        <h1 class="heading mw-page-title">Customer Tracker</h1>
+    </div>
     <?php if ($message !== ''): ?>
         <div id="trackerFlashMessage" class="alert alert-<?php echo htmlspecialchars($message_type); ?> alert-dismissible fade show" role="alert">
             <?php echo htmlspecialchars($message); ?>
@@ -1089,7 +847,7 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
     <div class="card mb-4"><div class="card-body">
         <div class="d-flex flex-wrap flex-md-nowrap justify-content-between align-items-center gap-2 mb-3">
-            <button id="openCustomerModalBtn" class="btn btn-primary flex-shrink-0" data-bs-toggle="modal" data-bs-target="#customerModal"><i class="fa fa-plus"></i>Add Customer</button>
+            <button id="openCustomerModalBtn" class="btn btn-primary flex-shrink-0" type="button" data-mw-modal-open="customerModal"><i class="fa fa-plus"></i>Add Customer</button>
             <form method="get" id="customerTrackerSearchForm" class="d-flex flex-nowrap align-items-stretch ms-md-auto" style="gap:8px;min-width:0;">
                 <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_by); ?>">
                 <input type="hidden" name="sort_dir" value="<?php echo htmlspecialchars(strtolower($sort_dir)); ?>">
@@ -1121,7 +879,7 @@ include __DIR__ . '/../includes/header.php';
                     <td class="ct-cell-action">
                         <div class="d-flex flex-wrap gap-1">
                              <button type="button" class="btn btn-sm btn-warning edit-btn" data-id="<?php echo (int)$c['id']; ?>" data-name="<?php echo htmlspecialchars($c['customer_name']); ?>" data-label="<?php echo htmlspecialchars($c['label_tag']); ?>" data-business-type="<?php echo htmlspecialchars($c['business_type'] ?? ''); ?>" data-approached-for="<?php echo htmlspecialchars($c['approached_for'] ?? ''); ?>" data-followup-method="<?php echo htmlspecialchars($c['followup_method'] ?? ''); ?>" data-phone="<?php echo htmlspecialchars($c['phone_number']); ?>" data-email="<?php echo htmlspecialchars($c['email_id'] ?? ''); ?>" data-company="<?php echo htmlspecialchars($c['company_name'] ?? ''); ?>" data-website="<?php echo htmlspecialchars($c['website'] ?? ''); ?>" data-source="<?php echo htmlspecialchars($c['source'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($c['status'] ?? ''); ?>" data-line1="<?php echo htmlspecialchars($c['address_line1']); ?>" data-areacity="<?php echo htmlspecialchars($c['area_city'] ?? ''); ?>" data-comments="<?php echo htmlspecialchars($c['comments']); ?>" title="Edit"><i class="fa fa-edit"></i> Edit</button>
-                            <button type="button" class="btn btn-sm btn-primary" style="background-color:#278de6;border-color:#278de6;" data-bs-toggle="modal" data-bs-target="#historyModal<?php echo (int)$c['id']; ?>" title="Add Followup"><i class="fa fa-history"></i> Add/View Followup</button>
+                            <button type="button" class="btn btn-sm btn-primary" style="background-color:#278de6;border-color:#278de6;" data-mw-modal-open="historyModal<?php echo (int)$c['id']; ?>" title="Add Followup"><i class="fa fa-history"></i> Add/View Followup</button>
                         </div>
                     </td>
                     <?php else: ?>
@@ -1145,22 +903,22 @@ include __DIR__ . '/../includes/header.php';
             $cid = (int)$c['id'];
             $followups = mw_get_customer_followups($connect, $cid, $owner_id, $owner_role_db);
         ?>
-        <div class="modal fade tracker-modal" id="viewModal<?php echo $cid; ?>" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <h5 class="modal-title mb-0"><i class="fa fa-eye me-1"></i> Followup History — <?php echo htmlspecialchars($c['customer_name']); ?></h5>
+        <div class="mw-modal" id="viewModal<?php echo $cid; ?>" role="dialog" aria-modal="true" aria-labelledby="viewModalTitle<?php echo $cid; ?>" hidden>
+            <div class="mw-modal-backdrop" data-mw-modal-close aria-hidden="true"></div>
+            <div class="mw-modal-panel mw-modal-lg">
+                    <div class="mw-modal-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <h2 class="mw-modal-title mb-0" id="viewModalTitle<?php echo $cid; ?>"><i class="fa fa-eye me-1"></i> Followup History — <?php echo htmlspecialchars($c['customer_name']); ?></h2>
                         <div class="d-flex align-items-center gap-2 ms-auto">
-                            <button type="button" class="btn btn-sm btn-add-followup-from-view" data-history-modal="#historyModal<?php echo $cid; ?>" data-bs-dismiss="modal">Add Followup</button>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn btn-sm btn-add-followup-from-view" data-history-modal="historyModal<?php echo $cid; ?>">Add Followup</button>
+                            <button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
                         </div>
                     </div>
-                    <div class="modal-body">
+                    <div class="mw-modal-body">
                         <?php if (empty($followups)): ?>
-                            <p class="followup-empty-text mb-0">No followups recorded yet.</p>
+                            <p class="mw-followup-empty-text mb-0">No followups recorded yet.</p>
                         <?php else: ?>
                             <div class="table-responsive">
-                                <table class="table table-sm table-bordered followup-history-table">
+                                <table class="table table-sm table-bordered mw-followup-history-table">
                                     <thead><tr><th>Date &amp; Time</th><th>Method</th><th>Status</th><th>Comments</th></tr></thead>
                                     <tbody>
                                     <?php foreach ($followups as $f): ?>
@@ -1176,24 +934,23 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         <?php endif; ?>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light border btn-followup-close" data-bs-dismiss="modal">Close</button>
+                    <div class="mw-modal-footer">
+                        <button type="button" class="btn btn-light border btn-followup-close" data-mw-modal-close>Close</button>
                     </div>
-                </div>
             </div>
         </div>
-        <div class="modal fade tracker-modal" id="historyModal<?php echo $cid; ?>" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content">
-                    <form method="post">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fa fa-history me-1"></i> Add Followup — <?php echo htmlspecialchars($c['customer_name']); ?></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="mw-modal" id="historyModal<?php echo $cid; ?>" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle<?php echo $cid; ?>" hidden>
+            <div class="mw-modal-backdrop" data-mw-modal-close aria-hidden="true"></div>
+            <div class="mw-modal-panel mw-modal-lg">
+                    <form method="post" class="mw-modal-form">
+                    <div class="mw-modal-header">
+                        <h2 class="mw-modal-title" id="historyModalTitle<?php echo $cid; ?>"><i class="fa fa-history me-1"></i> Add Followup — <?php echo htmlspecialchars($c['customer_name']); ?></h2>
+                        <button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="mw-modal-body">
                             <input type="hidden" name="action" value="add_followup">
                             <input type="hidden" name="customer_id" value="<?php echo $cid; ?>">
-                            <div class="section-title"><i class="fa fa-plus-circle me-1"></i> New followup</div>
+                            <div class="mw-modal-section-title"><i class="fa fa-plus-circle me-1"></i> New followup</div>
                             <div class="row g-2">
                             <div class="col-md-6">
                                 <label class="form-label">Date &amp; Time <span class="text-danger">*</span></label>
@@ -1226,9 +983,9 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                             </div>
                         <?php if (!empty($followups)): ?>
-                            <div class="section-title mt-3"><i class="fa fa-list me-1"></i> Previous followups</div>
+                            <div class="mw-modal-section-title mt-3"><i class="fa fa-list me-1"></i> Previous followups</div>
                             <div class="table-responsive">
-                                <table class="table table-sm table-bordered followup-history-table">
+                                <table class="table table-sm table-bordered mw-followup-history-table">
                                     <thead><tr><th>Date &amp; Time</th><th>Method</th><th>Status</th><th>Comments</th></tr></thead>
                                     <tbody>
                                     <?php foreach ($followups as $f): ?>
@@ -1244,40 +1001,35 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         <?php endif; ?>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn tracker-btn-yellow">Save Followup</button>
+                    <div class="mw-modal-footer">
+                        <button type="button" class="btn btn-light border" data-mw-modal-close>Cancel</button>
+                        <button type="submit" class="btn mw-btn-accent">Save Followup</button>
                     </div>
                     </form>
-                </div>
             </div>
         </div>
         <?php endforeach; ?>
     <?php endif; ?>
-    <div class="alert alert-light border mt-3 mb-0" id="customerTrackerSafetyTips">
-        <strong>Action Button Details</strong>
-        <ul class="mb-3 mt-2">
-            <?php if ($tracker_variant === 'team'): ?>
-            <li><i class="fa fa-eye text-info"></i> <strong>View:</strong> See followup history for this customer.</li>
-            <li><i class="fa fa-edit text-warning"></i> <strong>Edit:</strong> Update customer details.</li>
-            <li><i class="fa fa-history text-primary"></i> <strong>Add Followup:</strong> Log a new followup; updates <strong>Last updated</strong> and status.</li>
-            <?php else: ?>
-            <li><i class="fa fa-phone text-primary"></i> <strong>Call:</strong> Opens phone dialer with customer number.</li>
-            <li><i class="fa-brands fa-whatsapp text-success"></i> <strong>WhatsApp:</strong> Opens normal WhatsApp message window.</li>
-            <li><i class="fa fa-gift text-warning"></i> <strong>Share Offer:</strong> Opens offer preview and sends selected offer message.</li>
-            <li><i class="fa fa-edit text-info"></i> <strong>Edit:</strong> Update customer details (same fields as the add form).</li>
-            <li><i class="fa fa-trash text-danger"></i> <strong>Delete:</strong> Permanently removes customer entry from your list.</li>
-            <?php endif; ?>
-        </ul>
-    </div>
+     
 </div>
 </main>
 
-<div class="modal fade tracker-modal" id="customerModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><form method="post">
-<div class="modal-header"><h5 class="modal-title">Quick Add Customer</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body">
+<div class="mw-modal" id="customerModal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle" hidden>
+<div class="mw-modal-backdrop" data-mw-modal-close aria-hidden="true"></div>
+<div class="mw-modal-panel mw-modal-sm"><form method="post" class="mw-modal-form">
+<div class="mw-modal-header">
+    <div class="mw-modal-header-main">
+        <span class="mw-modal-header-icon" aria-hidden="true"><i class="fa fa-bolt"></i></span>
+        <div class="mw-modal-header-text-wrap">
+            <h2 class="mw-modal-title" id="customerModalTitle">Quick Add Customer</h2>
+            <p class="mw-modal-subtitle">Add a new customer in seconds</p>
+        </div>
+    </div>
+    <button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
+</div>
+<div class="mw-modal-body">
 <input type="hidden" name="action" value="save_customer"><input type="hidden" name="customer_id" id="customer_id">
-<div class="section-title"><i class="fa fa-bolt me-1"></i> Quick action</div>
+<?php echo mw_modal_callout('Quick action', 'Fill in the details below to quickly add a customer.'); ?>
 <div class="row g-2">
     <div class="col-12 col-md-6" id="customerNameCol">
         <label class="form-label">Customer Name *</label>
@@ -1310,15 +1062,26 @@ include __DIR__ . '/../includes/header.php';
     <div class="col-12"><label class="form-label">Comment</label><textarea name="comments" id="comments_quick" class="form-control" rows="2" placeholder="Notes (optional)"></textarea></div>
     <?php endif; ?>
 </div>
-<button class="btn btn-link px-0 mt-2" type="button" id="toggleAdditionalBtn">+ Additional Details (Optional)</button>
-</div><div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn tracker-btn-yellow">Save Customer</button></div>
-</form></div></div></div>
+<button class="mw-modal-expand-trigger border-0" type="button" id="toggleAdditionalBtn"><i class="fa fa-plus-circle" aria-hidden="true"></i> Additional Details (Optional)</button>
+</div><div class="mw-modal-footer"><button type="button" class="btn btn-light border" data-mw-modal-close>Cancel</button><button class="btn mw-btn-accent" type="submit"><i class="fa fa-save me-1" aria-hidden="true"></i> Save Customer</button></div>
+</form></div></div>
 
-<div class="modal fade tracker-modal" id="customerFullModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content"><form method="post">
-<div class="modal-header"><h5 class="modal-title">Add Customer</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body">
+<div class="mw-modal" id="customerFullModal" role="dialog" aria-modal="true" aria-labelledby="customerFullModalTitle" hidden>
+<div class="mw-modal-backdrop" data-mw-modal-close aria-hidden="true"></div>
+<div class="mw-modal-panel mw-modal-lg"><form method="post" class="mw-modal-form">
+<div class="mw-modal-header">
+    <div class="mw-modal-header-main">
+        <span class="mw-modal-header-icon" aria-hidden="true"><i class="fa fa-user-plus"></i></span>
+        <div class="mw-modal-header-text-wrap">
+            <h2 class="mw-modal-title" id="customerFullModalTitle">Add Customer</h2>
+            <p class="mw-modal-subtitle">Complete customer profile</p>
+        </div>
+    </div>
+    <button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
+</div>
+<div class="mw-modal-body">
 <input type="hidden" name="action" value="save_customer"><input type="hidden" name="customer_id" id="customer_id_full">
-<div class="section-title"><i class="fa fa-user-circle me-1"></i> Basic Information</div>
+<div class="mw-modal-section-title"><i class="fa fa-user-circle me-1"></i> Basic Information</div>
 <div class="row g-2">
     <div class="col-md-6"><label class="form-label">Customer Name *</label><div class="tracker-input-wrap"><i class="fa fa-user field-icon"></i><input name="customer_name" id="customer_name_full" class="form-control" placeholder="Enter customer name" required></div></div>
     <div class="col-md-6"><label class="form-label">Phone Number *</label><div class="input-group phone-group"><span class="input-group-text bg-white border-end-0"><i class="fa fa-phone text-muted"></i></span><select class="form-select country-code-select border-start-0 border-end-0"><option value="+91" selected>+91</option></select><input name="phone_number" id="phone_number_full" class="form-control phone-input" placeholder="Enter phone number" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"></div></div>
@@ -1334,7 +1097,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="col-md-6"><label class="form-label">Status</label><select name="status" id="status_select_full" class="form-select"></select></div>
     <?php endif; ?>
 </div>
-<div class="section-title mt-3"><i class="fa fa-list-check me-1"></i> Additional Details (Optional)</div>
+<div class="mw-modal-section-title mt-3"><i class="fa fa-list-check me-1"></i> Additional Details (Optional)</div>
 <div class="row g-2">
     <?php if ($tracker_variant === 'team'): ?>
     <div class="col-md-6"><label class="form-label">Source</label><select name="source" id="source_select_advanced" class="form-select"></select></div>
@@ -1352,12 +1115,14 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 </div>
 <input type="hidden" name="area_city" id="area_city_hidden" value="">
-</div><div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn tracker-btn-yellow">Save Customer</button></div>
-</form></div></div></div>
+</div><div class="mw-modal-footer"><button type="button" class="btn btn-light border" data-mw-modal-close>Cancel</button><button class="btn mw-btn-accent">Save Customer</button></div>
+</form></div></div>
 
-<div class="modal fade tracker-modal" id="shareOfferModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content">
-<div class="modal-header"><h5 class="modal-title wa-action-title"><i class="fa-brands fa-whatsapp"></i> <span id="waPopupTitleText">Send WhatsApp Message</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-<div class="modal-body">
+<div class="mw-modal mw-modal-light" id="shareOfferModal" role="dialog" aria-modal="true" aria-labelledby="shareOfferModalTitle" hidden>
+<div class="mw-modal-backdrop" data-mw-modal-close aria-hidden="true"></div>
+<div class="mw-modal-panel mw-modal-xl">
+<div class="mw-modal-header"><h2 class="mw-modal-title mw-modal-action-title" id="shareOfferModalTitle"><i class="fa-brands fa-whatsapp"></i> <span id="waPopupTitleText">Send WhatsApp Message</span></h2><button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+<div class="mw-modal-body">
     <div class="row g-3 g-lg-4">
         <div class="col-12 col-lg-7 order-1">
             <label class="form-label" for="offerMessage">Message</label>
@@ -1382,32 +1147,27 @@ include __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
-<div class="modal-footer wa-popup-footer flex-column flex-md-row align-items-stretch align-items-md-center justify-content-md-end">
+<div class="mw-modal-footer wa-popup-footer flex-column flex-md-row align-items-stretch align-items-md-center justify-content-md-end">
     <button type="button" id="sendCurrentBtn" class="btn btn-success order-md-1"><i class="fa-brands fa-whatsapp me-1"></i>Send on WhatsApp</button>
     <button type="button" id="saveAsTemplateBtn" class="btn btn-outline-primary order-md-2">Save Template</button>
     <button type="button" id="setDefaultTemplateBtn" class="btn btn-outline-primary order-md-3">Save as Default</button>
-    <button type="button" class="btn btn-danger order-md-4" data-bs-dismiss="modal">Cancel</button>
+    <button type="button" class="btn btn-danger order-md-4" data-mw-modal-close>Cancel</button>
 </div>
-</div></div></div>
+</div></div>
 
-<div class="modal fade" id="leadCaptureModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form method="post">
-<div class="modal-header"><h5 class="modal-title">New customer inquiry received</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body"><p>Save this customer?</p><input type="hidden" name="action" value="save_customer"><input type="hidden" name="source" value="WhatsApp"><div class="mb-2"><label>Name</label><input name="customer_name" class="form-control" value="New Inquiry"></div><div class="mb-2"><label>Label</label><input name="label_tag" class="form-control" maxlength="18" value="New"></div><div class="mb-2"><label>Phone Number *</label><input name="phone_number" class="form-control" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"></div></div>
-
-
-
-
-
-
-
-<div class="modal-footer"><button class="btn btn-primary">Save Customer</button></div>
-</form></div></div></div>
+<div class="mw-modal" id="leadCaptureModal" role="dialog" aria-modal="true" aria-labelledby="leadCaptureModalTitle" hidden>
+<div class="mw-modal-backdrop" data-mw-modal-close aria-hidden="true"></div>
+<div class="mw-modal-panel mw-modal-sm"><form method="post" class="mw-modal-form">
+<div class="mw-modal-header"><h2 class="mw-modal-title" id="leadCaptureModalTitle">New customer inquiry received</h2><button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+<div class="mw-modal-body"><p>Save this customer?</p><input type="hidden" name="action" value="save_customer"><input type="hidden" name="source" value="WhatsApp"><div class="mb-2"><label>Name</label><input name="customer_name" class="form-control" value="New Inquiry"></div><div class="mb-2"><label>Label</label><input name="label_tag" class="form-control" maxlength="18" value="New"></div><div class="mb-2"><label>Phone Number *</label><input name="phone_number" class="form-control" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"></div></div>
+<div class="mw-modal-footer"><button class="btn btn-primary">Save Customer</button></div>
+</form></div></div>
 
 <script>
-// Keep Bootstrap modals attached to <body> so they center against full viewport,
+// Keep modals attached to <body> so they center against full viewport,
 // not inside sidebar/content container.
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('#customerModal, #customerFullModal, #shareOfferModal, #leadCaptureModal, .tracker-modal[id^="viewModal"], .tracker-modal[id^="historyModal"]').forEach(function (modalEl) {
+    document.querySelectorAll('#customerModal, #customerFullModal, #shareOfferModal, #leadCaptureModal, .mw-modal[id^="viewModal"], .mw-modal[id^="historyModal"]').forEach(function (modalEl) {
         if (modalEl && modalEl.parentElement !== document.body) {
             document.body.appendChild(modalEl);
         }
@@ -1477,9 +1237,15 @@ let activeContext = 'share_offer';
 let selectedTemplateId = '';
 let waTemplates = null;
 
-function getModalInstance(modalEl) {
-    if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return null;
-    return bootstrap.Modal.getOrCreateInstance(modalEl);
+function mwOpen(modalId) {
+    if (typeof MwModal !== 'undefined' && MwModal.open) {
+        MwModal.open(modalId);
+    }
+}
+function mwClose(modalId) {
+    if (typeof MwModal !== 'undefined' && MwModal.close) {
+        MwModal.close(modalId);
+    }
 }
 
 function safeSlice(v, max) { return (v || '').toString().trim().slice(0, max); }
@@ -1617,10 +1383,8 @@ function toggleAdditionalDetails() {
     if (statusSelectFull && statusSelectQuick) {
         ensureSelectHasOption(statusSelectFull, statusSelectQuick.value || 'Followup required', 40);
     }
-    const quickModal = getModalInstance(customerModalEl);
-    if (quickModal) quickModal.hide();
-    const fullModal = getModalInstance(customerFullModalEl);
-    if (fullModal) fullModal.show();
+    mwClose('customerModal');
+    mwOpen('customerFullModal');
 }
 
 if (toggleAdditionalBtn && customerModalEl) {
@@ -1805,8 +1569,7 @@ function openWaComposer(customer, contextType) {
     if (titleEl) titleEl.textContent = contextType === 'whatsapp' ? 'Send WhatsApp Message' : 'Share Offer on WhatsApp';
     waTemplates = loadTemplates();
     applyTemplateText();
-    const waModal = getModalInstance(waModalEl);
-    if (waModal) waModal.show();
+    mwOpen('shareOfferModal');
 }
 
 document.getElementById('openCustomerModalBtn').addEventListener('click', function () {
@@ -1876,8 +1639,7 @@ document.querySelectorAll('.edit-btn').forEach(function (btn) {
         if (statusSelectFull) {
             ensureSelectHasOption(statusSelectFull, this.dataset.status || 'Followup required', 40);
         }
-        const customerFullModal = getModalInstance(customerFullModalEl);
-        if (customerFullModal) customerFullModal.show();
+        mwOpen('customerFullModal');
     });
 });
 
@@ -1920,13 +1682,13 @@ document.getElementById('sendCurrentBtn').addEventListener('click', function () 
 
 document.querySelectorAll('.btn-add-followup-from-view').forEach(function (btn) {
     btn.addEventListener('click', function () {
-        const sel = this.getAttribute('data-history-modal');
-        if (!sel) return;
-        const historyEl = document.querySelector(sel);
-        if (!historyEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+        const historyId = this.getAttribute('data-history-modal');
+        if (!historyId) return;
+        const viewModal = this.closest('.mw-modal');
+        if (viewModal) mwClose(viewModal.id);
         setTimeout(function () {
-            bootstrap.Modal.getOrCreateInstance(historyEl).show();
-        }, 300);
+            mwOpen(historyId);
+        }, 200);
     });
 });
 </script>

@@ -673,49 +673,61 @@ if(isset($_POST['offer'])){
 }
 
 include '../includes/header.php';
-require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
+require_once(__DIR__ . '/../../common/mw_modal.php');
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-        <div class="main-top">
-        <span class="heading">Special Offers</span>
+<!-- Phase B · Step 13 — special-offers.php page chrome uses .mw-* design system.
+     Offers table, hidden #offerForm with 5 sets of inputs, #offerModal via mw_modal.php.
+     JS hooks intact: openOfferModal(), editOfferFromRow(), removeOffer(), saveOffers(). -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Special Offers</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Special Offers</li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page">Special Offers</li>
                 </ol>
             </nav>
         </div>
-        
+
         <?php if(isset($_SESSION['save_success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($_SESSION['save_error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
-        <div class="card mb-4">
-            <div class="card-body">
-                <label class="heading">Special Offers:</label>
-                <p class="sub_title">You can add upto 5 special offers to showcase on your Mini Website.</p>
-                <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
-                <br>
-                <div id="status_remove_img"></div>
-                <button type="button" id="addOfferBtn" class="btn btn-primary add_product" onclick="openOfferModal()" <?php echo (count($offers_data ?? []) >= 5) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Offer</span></button>
 
-                <div class="Product-ServicesTable">
+        <div class="card mb-4 mw-card">
+            <div class="card-body mw-card-body">
+                <div class="so-section-head">
+                    <h2 class="heading mw-section-title so-section-heading">Special Offers</h2>
+                    <p class="sub_title mw-helper-text">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>You can add up to <strong style="color:var(--mw-color-text);font-weight:600">5 special offers</strong> to showcase on your Mini Website. <span class="text-muted">Image formats: jpg, jpeg, png, gif, webp.</span></span>
+                    </p>
+                </div>
+
+                <div id="status_remove_img"></div>
+
+                <div class="so-toolbar">
+                    <button type="button" id="addOfferBtn" class="btn btn-primary add_product mw-btn mw-btn-save" onclick="openOfferModal()" <?php echo (count($offers_data ?? []) >= 5) ? 'disabled' : ''; ?>>
+                        <i class="fa fa-plus" aria-hidden="true"></i>
+                        <span>Add Offer</span>
+                    </button>
+                 </div>
+
+                <div class="Product-ServicesTable mw-table-scroll mw-table-scroll-wide">
                     <table class="display table">
-                        <thead class="bg-secondary">
+                        <thead class="mw-table-header">
                             <tr>
                                 <th>Image</th>
                                 <th>Badge</th>
@@ -822,32 +834,29 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                     </form>
                    
                 </div>
-                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                            <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
-                            <span>Back</span>
-                        </a>
-                        <button type="button" class="btn btn-primary align-center save_btn" onclick="saveOffers()">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
-                            <span>Save</span>
-                        </button>
-                        <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
-                            <span>Next</span>
-                            <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
-                        </a>
-                    </div>
+                <div class="Product-ServicesBtn mw-btn-row">
+                    <a href="services.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                        <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                        <span>Back</span>
+                    </a>
+                    <button type="button" class="btn btn-primary align-center save_btn mw-btn mw-btn-save" onclick="saveOffers()">
+                        <img src="../../assets/images/Save.png" alt="" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
+                        <span>Save</span>
+                    </button>
+                    <a href="products.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right mw-btn mw-btn-next">
+                        <span>Next</span>
+                        <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Offer Modal -->
-<div class="modal fade website-step-modal" id="offerModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content website-step-modal-content">
-            <button type="button" class="website-step-modal-close close" onclick="closeOfferModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
-                <form id="modalOfferForm">
+<?php
+ob_start();
+?>
+                <form id="modalOfferForm" class="mw-form so-offer-modal-form">
                     <input type="hidden" id="modal_offer_id" value="">
                     <input type="hidden" id="modal_offer_discount" value="0">
 
@@ -952,92 +961,27 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </select>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeOfferModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="offerModalSubmitBtn" onclick="addOfferToForm()">Add Offer</button>
-            </div>
-        </div>
-    </div>
-</div>
+<?php
+$offer_modal_body = ob_get_clean();
+
+mw_modal_render([
+    'id'       => 'offerModal',
+    'size'     => 'lg',
+    'title'    => 'Add Special Offer',
+    'subtitle' => 'Banner, title, dates, and status',
+    'icon'     => 'fa-tag',
+    'body'     => $offer_modal_body,
+    'body_class' => 'so-offer-modal-body',
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Offer', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="offerModalSubmitBtn"'],
+    ]),
+    'static'   => true,
+    'hidden'   => true,
+]);
+?>
 
 <style>
-    .Product-ServicesBtn{
-        padding: 0px 40px;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 30px;
-    }
-    .Product-ServicesBtn button,
-    .Product-ServicesBtn a{
-        display: flex !important;
-        color: #fff !important;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-    .Product-ServicesBtn button .angle,
-    .Product-ServicesBtn a .angle{
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #fff !important;
-        color:#000;
-        font-weight:bold;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .Product-ServicesBtn button span:not(.angle),
-    .Product-ServicesBtn a span:not(.angle){
-        font-weight:500;
-        font-size:16px;
-    }
-    .Product-ServicesBtn .align-center{
-        padding: 4px 10px;
-    }
-    .Product-ServicesBtn .align-center img{
-        width: 23px;
-    }
-    .Product-ServicesBtn .align-center span{
-        color:#000;
-    }
-    .Product-ServicesBtn .btn{
-        line-height:24px !important;
-    }
-    .Product-ServicesBtn button {
-        padding: 7px !important;
-        margin-top: 22px !important;
-    }
-    @media screen and (max-width: 768px) {
-        .card-body {
-            padding-bottom: 100px !important;
-        }
-        .Product-ServicesBtn{
-            width: 80% !important;
-            padding:0px !important;
-            margin-top: 40px !important;
-        }
-        .save_btn{
-            position: absolute;
-            bottom: 150px;
-            width: 145px !important;
-            left: 96px;
-            height: 36px;
-        }
-        .Copyright-left,
-        .Copyright-right{
-            padding:0px;
-        }
-    }
-    .save_btn{
-        width: 115px !important;
-    }
-    #imageCropModal {
-        z-index: 10000 !important;
-    }
-
     select.form-control {
         appearance: none !important;
         -webkit-appearance: none !important;
@@ -1064,6 +1008,114 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
     }
 </style>
 
+<!-- Phase B · Step 13 — design-system chrome overrides for special-offers. -->
+<style>
+    main.Dashboard .heading.mw-section-title.so-section-heading {
+        font-size: var(--mw-font-section-title);
+        line-height: 1.3;
+        color: var(--mw-color-text);
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        display: inline-block;
+        position: relative;
+        padding-bottom: 0.5rem;
+        background: transparent;
+    }
+    @media (min-width: 768px) {
+        main.Dashboard .heading.mw-section-title.so-section-heading { font-size: var(--mw-font-section-title-lg); }
+    }
+    main.Dashboard .heading.mw-section-title.so-section-heading::after {
+        content: ''; position: absolute; left: 0; bottom: 0;
+        width: 3rem; height: 2px; background: var(--mw-color-primary); border-radius: 9999px;
+    }
+    main.Dashboard .so-section-head { margin-bottom: 1.25rem; }
+    main.Dashboard .so-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0.5rem 0 1.25rem; }
+    main.Dashboard .so-toolbar .add_product.mw-btn.mw-btn-save { margin: 0 !important; }
+    main.Dashboard .so-toolbar .so-count-pill { padding: 0.375rem 0.75rem; }
+    /* Offer modal (MwModal) */
+    #offerModal .so-offer-modal-body {
+        max-height: min(600px, 65vh);
+        overflow-y: auto;
+    }
+    #offerModal .so-offer-modal-form .offer-image-preview-modal {
+        max-width: 280px;
+        margin: 0 auto 15px;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border: 2px dashed var(--mw-color-border, #e2e8f0);
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+    }
+
+    /* Button row — neutralize legacy rules; layout from .mw-btn-row in header.php */
+    main.Dashboard .Product-ServicesBtn.mw-btn-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin-top: 1.5rem !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        position: relative !important;
+        box-sizing: border-box !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn,
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .save_btn {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 3rem !important;
+        margin: 0 !important;
+        margin-top: 0 !important;
+        padding: var(--mw-btn-padding-y) var(--mw-btn-padding-x) !important;
+        flex: 0 0 auto !important;
+        order: unset !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .align-center img {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+    }
+    @media screen and (max-width: 767.98px) {
+        main.Dashboard .card-body.mw-card-body {
+            padding-bottom: 1.5rem !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row {
+            flex-wrap: wrap !important;
+            justify-content: stretch !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-save {
+            order: 1 !important;
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-back {
+            order: 2 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-next {
+            order: 3 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+    }
+</style>
+
 <script>
 var currentOfferId = null;
 var processedOfferImageData = null;
@@ -1075,6 +1127,25 @@ var EDITABLE_BADGE_PRESETS = [
     'Under ₹499',
     'Under ₹999'
 ];
+
+var OFFER_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+
+function setOfferModalMode(isEdit) {
+    var titleEl = document.getElementById('offerModalTitle');
+    var saveBtn = document.getElementById('offerModalSubmitBtn');
+    if (titleEl) {
+        titleEl.textContent = isEdit ? 'Edit Special Offer' : 'Add Special Offer';
+    }
+    if (saveBtn) {
+        saveBtn.textContent = isEdit ? 'Update Offer' : 'Add Offer';
+    }
+}
+
+function showOfferModal() {
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('offerModal');
+    }
+}
 
 function updateCharCount() {
     var textarea = document.getElementById('modal_offer_description');
@@ -1111,6 +1182,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var badgeSelect = document.getElementById('modal_offer_badge_select');
     if(badgeSelect) {
         badgeSelect.addEventListener('change', onBadgeSelectChange);
+    }
+    var saveBtn = document.getElementById('offerModalSubmitBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', addOfferToForm);
     }
 });
 
@@ -1226,35 +1301,18 @@ function openOfferModal() {
         }
     });
     
-    var submitBtn = document.getElementById('offerModalSubmitBtn');
-    if(submitBtn) submitBtn.textContent = 'Add Offer';
-    
     var imgPreview = document.getElementById('modal_offer_image_preview');
     if(imgPreview) {
-        imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+        imgPreview.src = OFFER_MODAL_PLACEHOLDER_IMG;
     }
     var wrapper = document.querySelector('.offer-image-preview-modal');
     if(wrapper) wrapper.style.border = '2px dashed #ddd';
     
-    var modalLabel = document.getElementById('offerModalLabel');
-    if(modalLabel) {
-        modalLabel.textContent = 'Add Special Offer';
-    }
-    
     updateCharCount();
     updateBadgeCharCount();
     updateBadgeInputVisibility(false);
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery('#offerModal').modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('offerModal');
-        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
-    } else {
-        document.getElementById('offerModal').style.display = 'block';
-        document.getElementById('offerModal').classList.add('show');
-        document.body.classList.add('modal-open');
-    }
+    setOfferModalMode(false);
+    showOfferModal();
 }
 
 function editOfferFromRow(editLink) {
@@ -1313,34 +1371,15 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
         if(img && img.src) {
             imgPreview.src = img.src;
         } else {
-            imgPreview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+            imgPreview.src = OFFER_MODAL_PLACEHOLDER_IMG;
         }
-    }
-    
-    var modalLabel = document.getElementById('offerModalLabel');
-    if(modalLabel) {
-        modalLabel.textContent = 'Edit Special Offer';
-    }
-    
-    var submitBtn = document.getElementById('offerModalSubmitBtn');
-    if(submitBtn) {
-        submitBtn.textContent = 'Update Offer';
     }
     
     updateCharCount();
     updateBadgeCharCount();
     syncBadgeSelectFromInput();
-    
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery('#offerModal').modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('offerModal');
-        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
-    } else {
-        document.getElementById('offerModal').style.display = 'block';
-        document.getElementById('offerModal').classList.add('show');
-        document.body.classList.add('modal-open');
-    }
+    setOfferModalMode(true);
+    showOfferModal();
 }
 
 function handleOfferImageUpload(input) {
@@ -1350,14 +1389,24 @@ function handleOfferImageUpload(input) {
         var maxSize = 10 * 1024 * 1024;
         
         if(allowedTypes.indexOf(file.type) === -1) {
-            alert('Only JPG, PNG, GIF, and WEBP images are allowed.');
+            var typeMsg = 'Only JPG, PNG, GIF, and WEBP images are allowed.';
+            if (window.MwModal && window.MwModal.alert) {
+                window.MwModal.alert({ title: 'Offer Image', message: typeMsg });
+            } else {
+                alert(typeMsg);
+            }
             input.value = '';
             processedOfferImageData = null;
             return;
         }
         
         if(file.size > maxSize) {
-            alert('Image size must be 10MB or less. The image will be automatically optimized to 250KB.');
+            var sizeMsg = 'Image size must be 10MB or less. The image will be automatically optimized to 250KB.';
+            if (window.MwModal && window.MwModal.alert) {
+                window.MwModal.alert({ title: 'Offer Image', message: sizeMsg });
+            } else {
+                alert(sizeMsg);
+            }
             input.value = '';
             processedOfferImageData = null;
             return;
@@ -1377,11 +1426,6 @@ function handleOfferImageUpload(input) {
                     var wrapper = imgPreview.closest('.offer-image-preview-modal');
                     if(wrapper) wrapper.style.border = '2px solid #28a745';
                 }
-                // Ensure modal remains open after crop
-                var modalElement = document.getElementById('offerModal');
-                if(modalElement && typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-                    jQuery(modalElement).modal('show');
-                }
             };
             
             ImageCropUpload.open(file, {
@@ -1394,14 +1438,14 @@ function handleOfferImageUpload(input) {
                     if (window.offerImageCropCallback) window.offerImageCropCallback(base64Data);
                 },
                 onError: function(msg) {
-                    alert(msg || 'Error processing image. Please try again.');
+                    var errMsg = msg || 'Error processing image. Please try again.';
+                    if (window.MwModal && window.MwModal.alert) {
+                        window.MwModal.alert({ title: 'Offer Image', message: errMsg });
+                    } else {
+                        alert(errMsg);
+                    }
                     input.value = '';
                     processedOfferImageData = null;
-                    // Ensure modal remains open on error
-                    var modalElement = document.getElementById('offerModal');
-                    if(modalElement && typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-                        jQuery(modalElement).modal('show');
-                    }
                 }
             });
             input.value = '';
@@ -1582,7 +1626,7 @@ function saveOffers() {
 }
 
 function removeOffer(offerId) {
-    if(confirm('Are you sure you want to remove this offer?')) {
+    function doDelete() {
         var statusElement = document.getElementById('status_remove_img');
         if(statusElement) {
             statusElement.style.color = 'blue';
@@ -1631,39 +1675,38 @@ function removeOffer(offerId) {
             }
         });
     }
+    if (window.MwModal && typeof window.MwModal.confirm === 'function') {
+        window.MwModal.confirm({
+            title: 'Remove offer?',
+            message: 'Are you sure you want to remove this offer?',
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
+            confirmClass: 'mw-btn mw-btn-danger',
+            onConfirm: doDelete
+        });
+    } else if (confirm('Are you sure you want to remove this offer?')) {
+        doDelete();
+    }
 }
 
 function closeOfferModal() {
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery('#offerModal').modal('hide');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('offerModal');
-        var modal = bootstrap.Modal.getInstance(modalElement);
-        if(modal) modal.hide();
-        else if(modalElement) {
-            modalElement.classList.remove('show');
-            modalElement.style.display = 'none';
-            modalElement.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
-        }
-    } else {
-        var el = document.getElementById('offerModal');
-        if(el) {
-            el.style.display = 'none';
-            el.classList.remove('show');
-        }
-        document.body.classList.remove('modal-open');
-        var backdrop = document.getElementById('modalBackdrop');
-        if(backdrop) backdrop.remove();
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('offerModal');
     }
-    
     var modalOfferIdField = document.getElementById('modal_offer_id');
     if(modalOfferIdField) modalOfferIdField.value = '';
-    
     processedOfferImageData = null;
+    currentOfferId = null;
 }
+
+(function() {
+    var modalEl = document.getElementById('offerModal');
+    if (!modalEl) return;
+    modalEl.addEventListener('mw-modal:closed', function() {
+        currentOfferId = null;
+        processedOfferImageData = null;
+    });
+})();
 
 </script>
 

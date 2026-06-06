@@ -1,18 +1,98 @@
         
       
       
-      <footer class="py-4 bg-blue mt-auto">
-    <div class="container-fluid px-4">
-        <div class="d-flex align-items-center justify-content-between Copyright">
-            <div class="Copyright-left"><a href="https://www.miniwebsite.in" target="_blank" rel="noopener noreferrer">www.miniwebsite.in</a></div>
-            <div class="Copyright-right">
-                <p>Copyright &copy; <?php echo date('Y'); ?>. All Rights Reserved.</p>
-            </div>
+      <!-- Footer (modernized in Phase A · Step 3) -->
+      <footer class="py-4 bg-blue mt-auto !bg-white !border-t !border-border" role="contentinfo">
+          <div class="container-fluid px-4 !max-w-7xl !mx-auto">
+              <div class="Copyright !flex !flex-col sm:!flex-row !items-center !justify-center sm:!justify-between !gap-2 !text-sm !text-center sm:!text-left">
+                  <div class="Copyright-left !w-full sm:!w-auto">
+                      <a class="!inline-flex !items-center !justify-center sm:!justify-start !gap-1.5 !w-full sm:!w-auto !font-normal !text-slate-600 hover:!text-[var(--mw-color-nav-active,#2b4ba9)] !no-underline focus:outline-none focus-visible:!ring-2 focus-visible:!ring-primary/50 !rounded-md transition-colors"
+                         href="https://www.miniwebsite.in"
+                         target="_blank"
+                         rel="noopener noreferrer">
+                          <i class="fa fa-globe" aria-hidden="true"></i>
+                          <span>www.miniwebsite.in</span>
+                      </a>
+                  </div>
+                  <div class="Copyright-right !w-full sm:!w-auto">
+                      <p class="!m-0">
+                          &copy; <?php echo date('Y'); ?> Mini Website. All Rights Reserved.
+                      </p>
+                  </div>
+              </div>
+          </div>
+      </footer>
         </div>
     </div>
-</footer>
-        </div>
-    </div>
+
+    <?php if (isset($current_dir) && $current_dir === 'website'): ?>
+    <style id="mw-website-form-controls-foot">
+        /* Overrides page-level legacy styles in user/website/*.php */
+        body.mw-website-builder .form-control,
+        body.mw-website-builder input.form-control,
+        body.mw-website-builder select.form-control,
+        body.mw-website-builder textarea.form-control,
+        body.mw-website-builder .form-control-sm,
+        body.mw-website-builder .operation-locations-chips-field.form-control,
+        body.mw-website-builder .Personal-Details .form-group .form-control,
+        body.mw-website-builder .paysection .form-control,
+        body.mw-website-builder .BankDetails .form-control,
+        body.mw-website-builder .modal .form-control {
+            font-weight: 400 !important;
+        }
+        body.mw-website-builder .form-control::placeholder {
+            font-weight: 400 !important;
+        }
+        body.mw-website-builder select.form-control option {
+            font-weight: 400;
+        }
+        body.mw-website-builder .mw-btn-row .mw-btn-back,
+        body.mw-website-builder .mw-btn-row a.mw-btn-back,
+        body.mw-website-builder .mw-btn-row .mw-btn-next,
+        body.mw-website-builder .mw-btn-row a.mw-btn-next,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .mw-btn-back,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .mw-btn-next,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row a.mw-btn-back,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row a.mw-btn-next {
+            background-color: #5c6b7a !important;
+            border-color: #5c6b7a !important;
+            color: #fff !important;
+            font-size: 20px !important;
+        }
+        body.mw-website-builder .mw-btn-row .mw-btn-back:hover,
+        body.mw-website-builder .mw-btn-row a.mw-btn-back:hover,
+        body.mw-website-builder .mw-btn-row .mw-btn-next:hover,
+        body.mw-website-builder .mw-btn-row a.mw-btn-next:hover,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .mw-btn-back:hover,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .mw-btn-next:hover {
+            background-color: #4d5966 !important;
+            border-color: #4d5966 !important;
+            color: #fff !important;
+        }
+        body.mw-website-builder .mw-btn-row .mw-btn-save,
+        body.mw-website-builder .mw-btn-row .save_btn,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .mw-btn-save,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .save_btn {
+            background-color: #ffbe17 !important;
+            border-color: #ffbe17 !important;
+            color: #0f172a !important;
+            font-size: 20px !important;
+        }
+        body.mw-website-builder .mw-btn-row .mw-btn-save:hover,
+        body.mw-website-builder .mw-btn-row .save_btn:hover,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .mw-btn-save:hover,
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .save_btn:hover {
+            background-color: #e6ab15 !important;
+            border-color: #e6ab15 !important;
+            color: #0f172a !important;
+        }
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .mw-btn span:not(.mw-btn-angle):not(.angle),
+        body.mw-website-builder .Product-ServicesBtn.mw-btn-row .save_btn span:not(.mw-btn-angle):not(.angle) {
+            font-size: inherit !important;
+            color: inherit !important;
+        }
+    </style>
+    <?php endif; ?>
 
     <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -33,15 +113,17 @@
     $assets_base = get_assets_base_path();
     ?>
     <?php
-    $__step_nav_dir = basename(dirname($_SERVER['SCRIPT_NAME'] ?? ''));
-    if ($__step_nav_dir === 'website') {
-        $step_nav_css = htmlspecialchars($assets_base . '/user/website/css/website-step-nav.css', ENT_QUOTES, 'UTF-8');
-        echo '<link rel="stylesheet" href="' . $step_nav_css . '">';
-    }
+    /* Phase B · Step 16 — Legacy website-step-nav.css was deleted; its rules
+       now live in the design system in user/includes/header.php
+       (mobile .mw-btn-row layout + Product-ServicesTable scroll rules). */
     ?>
+    <script src="<?php echo $assets_base; ?>/assets/js/mw_modal.js"></script>
     <script src="<?php echo $assets_base; ?>/assets/js/image_upload_crop.js"></script>
     <script src="<?php echo $assets_base; ?>/assets/js/scripts.js"></script>
     <?php
+    // Mount point for JS-created modals (MwModal.create / confirm / alert)
+    echo '<div id="mw-modal-root" aria-hidden="true"></div>';
+
     // Get referral code if available (for customers)
     $user_referral_code = '';
     if (isset($current_role) && $current_role == 'CUSTOMER') {

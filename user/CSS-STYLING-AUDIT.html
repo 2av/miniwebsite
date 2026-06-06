@@ -42,8 +42,8 @@
             <p class="text-sm text-slate-500 mt-1">Follow steps in order · 34 steps · 28 pages to migrate</p>
         </div>
         <div class="flex gap-2 flex-wrap text-sm">
-            <span class="px-3 py-1 rounded-full bg-red-100 text-red-800 font-medium">0% done</span>
-            <a href="#step-1" class="px-3 py-1 rounded-full bg-brand text-white font-medium hover:bg-brand-dark">Start Step 1 →</a>
+            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 font-medium">47% done · 16/34 + Design system · awaiting test</span>
+            <a href="#step-13" class="px-3 py-1 rounded-full bg-brand text-white font-medium hover:bg-brand-dark">Continue Step 13 →</a>
         </div>
     </div>
 </header>
@@ -127,13 +127,13 @@
     <p class="text-sm text-slate-500 mb-4">These 2 files affect <strong>every page</strong> in the portal. Nothing else works correctly until Phase A is done.</p>
 
     <!-- Step 1 -->
-    <article id="step-1" class="step-card bg-white border-2 border-brand rounded-xl p-5 mb-4 shadow-sm">
+    <article id="step-1" class="step-card bg-green-50 border-2 border-ok rounded-xl p-5 mb-4 shadow-sm">
         <div class="flex gap-4">
-            <span class="step-num bg-brand text-white">1</span>
+            <span class="step-num bg-ok text-white">✓</span>
             <div class="flex-1 min-w-0">
                 <div class="flex flex-wrap items-center gap-2 mb-2">
                     <h4 class="font-bold text-lg">Add Tailwind CDN to shared header</h4>
-                    <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">Required first</span>
+                    <span class="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded font-semibold">✓ Done</span>
                 </div>
                 <p class="font-mono text-sm bg-slate-100 px-2 py-1 rounded inline-block mb-3">user/includes/header.php</p>
                 <div class="grid md:grid-cols-2 gap-4 text-sm">
@@ -162,11 +162,11 @@
     </article>
 
     <!-- Step 2 -->
-    <article id="step-2" class="step-card bg-white border rounded-xl p-5 mb-4 shadow-sm">
+    <article id="step-2" class="step-card bg-green-50 border-2 border-ok rounded-xl p-5 mb-4 shadow-sm">
         <div class="flex gap-4">
-            <span class="step-num bg-blue-600 text-white">2</span>
+            <span class="step-num bg-ok text-white">✓</span>
             <div class="flex-1">
-                <h4 class="font-bold text-lg mb-2">Convert sidebar & top navigation to Tailwind</h4>
+                <h4 class="font-bold text-lg mb-2">Convert sidebar & top navigation to Tailwind <span class="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded font-semibold ml-1">✓ Done</span></h4>
                 <p class="font-mono text-sm bg-slate-100 px-2 py-1 rounded inline-block mb-3">user/includes/header.php</p>
                 <div class="grid md:grid-cols-2 gap-4 text-sm">
                     <div>
@@ -193,11 +193,11 @@
     </article>
 
     <!-- Step 3 -->
-    <article id="step-3" class="step-card bg-white border rounded-xl p-5 mb-4 shadow-sm">
+    <article id="step-3" class="step-card bg-green-50 border-2 border-ok rounded-xl p-5 mb-4 shadow-sm">
         <div class="flex gap-4">
-            <span class="step-num bg-blue-600 text-white">3</span>
+            <span class="step-num bg-ok text-white">✓</span>
             <div class="flex-1">
-                <h4 class="font-bold text-lg mb-2">Update shared footer markup</h4>
+                <h4 class="font-bold text-lg mb-2">Update shared footer markup <span class="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded font-semibold ml-1">✓ Done</span></h4>
                 <p class="font-mono text-sm bg-slate-100 px-2 py-1 rounded inline-block mb-3">user/includes/footer.php</p>
                 <div class="grid md:grid-cols-2 gap-4 text-sm">
                     <div>
@@ -221,11 +221,11 @@
     </article>
 
     <!-- Step 4 -->
-    <article id="step-4" class="step-card bg-white border-2 border-ok rounded-xl p-5 mb-8 shadow-sm">
+    <article id="step-4" class="step-card bg-amber-50 border-2 border-warn rounded-xl p-5 mb-8 shadow-sm">
         <div class="flex gap-4">
-            <span class="step-num bg-ok text-white">4</span>
+            <span class="step-num bg-warn text-white">!</span>
             <div class="flex-1">
-                <h4 class="font-bold text-lg mb-2">✓ Phase A checkpoint — smoke test all areas</h4>
+                <h4 class="font-bold text-lg mb-2">Phase A checkpoint — smoke test all areas <span class="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-semibold ml-1">Awaiting your browser test</span></h4>
                 <p class="text-sm text-slate-600 mb-2">No file edit. Test these URLs before starting Phase B:</p>
                 <table class="w-full text-sm border rounded-lg overflow-hidden">
                     <thead class="bg-slate-100"><tr><th class="p-2 text-left">URL</th><th class="p-2 text-left">Must work</th></tr></thead>
@@ -259,18 +259,18 @@
                 </tr>
             </thead>
             <tbody class="divide-y" id="website-steps">
-                <tr id="step-5" class="step-card bg-amber-50/50"><td class="p-3 font-bold">5</td><td class="p-3 font-mono">website/business-name.php</td><td class="p-3">745</td><td class="p-3">Forms, .Dashboard wrapper, step nav buttons, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/business-name.php</td></tr>
-                <tr id="step-6"><td class="p-3 font-bold">6</td><td class="p-3 font-mono">website/social-links.php</td><td class="p-3">347</td><td class="p-3">Social input grid, save/back/next buttons, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/social-links.php</td></tr>
-                <tr id="step-7"><td class="p-3 font-bold">7</td><td class="p-3 font-mono">website/videos.php</td><td class="p-3">361</td><td class="p-3">Video list, embed area, forms, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/videos.php</td></tr>
-                <tr id="step-8"><td class="p-3 font-bold">8</td><td class="p-3 font-mono">website/select-theme.php</td><td class="p-3">356</td><td class="p-3">Theme preview cards → <code>grid grid-cols-2 md:grid-cols-4 gap-4</code>, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/select-theme.php</td></tr>
-                <tr id="step-9" class="bg-red-50"><td class="p-3 font-bold text-danger">9</td><td class="p-3 font-mono font-semibold">website/company-details.php</td><td class="p-3 font-semibold">3,164</td><td class="p-3"><strong>Largest file.</strong> All forms, tabs, modals, tables, maps section. Remove &lt;style&gt;. Do in sections if needed.</td><td class="p-3 text-xs">/user/website/company-details.php</td></tr>
-                <tr id="step-10"><td class="p-3 font-bold">10</td><td class="p-3 font-mono">website/payment-details.php</td><td class="p-3">1,374</td><td class="p-3">Payment forms, QR/upload areas, modals, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/payment-details.php</td></tr>
-                <tr id="step-11" class="bg-red-50"><td class="p-3 font-bold text-danger">11</td><td class="p-3 font-mono font-semibold">website/products.php</td><td class="p-3 font-semibold">2,085</td><td class="p-3">Product table, add/edit modal, image upload, category dropdowns, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/products.php</td></tr>
-                <tr id="step-12" class="bg-red-50"><td class="p-3 font-bold text-danger">12</td><td class="p-3 font-mono font-semibold">website/services.php</td><td class="p-3 font-semibold">1,676</td><td class="p-3">Same pattern as products.php, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/services.php</td></tr>
-                <tr id="step-13"><td class="p-3 font-bold">13</td><td class="p-3 font-mono">website/special-offers.php</td><td class="p-3">1,670</td><td class="p-3">Offers table + modal, date fields, remove &lt;style&gt;</td><td class="p-3 text-xs">/user/website/special-offers.php</td></tr>
-                <tr id="step-14"><td class="p-3 font-bold">14</td><td class="p-3 font-mono">website/image-gallery.php</td><td class="p-3">1,258</td><td class="p-3">Gallery grid, upload modal, remove &lt;style&gt; + jQuery .css() calls</td><td class="p-3 text-xs">/user/website/image-gallery.php</td></tr>
-                <tr id="step-15"><td class="p-3 font-bold">15</td><td class="p-3 font-mono">includes/footer.php</td><td class="p-3">60</td><td class="p-3">Migrate <code>.Product-ServicesBtn</code> (Back/Save/Next) to Tailwind in footer or shared partial</td><td class="p-3 text-xs">Any website page — mobile 375px</td></tr>
-                <tr id="step-16" class="bg-green-50"><td class="p-3 font-bold text-ok">16</td><td class="p-3 font-mono">website/css/website-step-nav.css</td><td class="p-3">—</td><td class="p-3"><strong>DELETE file</strong> + remove &lt;link&gt; from footer.php</td><td class="p-3 text-xs">Step buttons still work on mobile</td></tr>
+                <tr id="step-5" class="step-card bg-green-50"><td class="p-3 font-bold text-ok">✓ 5</td><td class="p-3 font-mono">website/business-name.php</td><td class="p-3">745→610</td><td class="p-3">Forms, .Dashboard wrapper, step nav buttons, remove &lt;style&gt; <span class="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded font-semibold ml-1">✓ Done</span></td><td class="p-3 text-xs">/user/website/business-name.php</td></tr>
+                <tr id="step-6" class="bg-green-50"><td class="p-3 font-bold text-ok">✓ 6</td><td class="p-3 font-mono">website/social-links.php</td><td class="p-3">347→167</td><td class="p-3">Social input grid, save/back/next buttons, remove &lt;style&gt; <span class="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded font-semibold ml-1">✓ Done</span></td><td class="p-3 text-xs">/user/website/social-links.php</td></tr>
+                <tr id="step-7" class="bg-green-50"><td class="p-3 font-bold text-ok">✓ 7</td><td class="p-3 font-mono">website/videos.php</td><td class="p-3">361→181</td><td class="p-3">Video list, embed area, forms, remove &lt;style&gt; <span class="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded font-semibold ml-1">✓ Done</span></td><td class="p-3 text-xs">/user/website/videos.php</td></tr>
+                <tr id="step-8" class="bg-green-50"><td class="p-3 font-bold text-green-700">8 ✓</td><td class="p-3 font-mono">website/select-theme.php</td><td class="p-3">356 → 225 (-131)</td><td class="p-3">Theme preview cards → responsive <code>grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4</code>, removed &lt;style&gt;. <code>.selected</code> state driven by Tailwind <code>[&amp;.selected]:</code> arbitrary variants; JS-created overlay also gets full Tailwind classes for visual parity. Added <code>role=radiogroup</code> / <code>role=radio</code> / <code>aria-checked</code> + Space/Enter keyboard selection.</td><td class="p-3 text-xs">Awaiting your browser test</td></tr>
+                <tr id="step-9" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">9 ◐</td><td class="p-3 font-mono font-semibold">website/company-details.php</td><td class="p-3 font-semibold">3,086 → 3,136 (+50)</td><td class="p-3"><strong>Conservative pass.</strong> Page chrome (main, container, header strip, breadcrumb, alerts, card, section headings, button row) migrated to <code>.mw-*</code> design system. Image upload, cascading dropdowns, tag inputs, business hours grid, and custom-category modal preserved as-is — their tuned 620-line inline <code>&lt;style&gt;</code> block is kept for now. Full style removal deferred to a focused sub-step. <strong>All JS hooks intact.</strong></td><td class="p-3 text-xs">Awaiting your browser test</td></tr>
+                <tr id="step-10" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">10 ◐</td><td class="p-3 font-mono">website/payment-details.php</td><td class="p-3">1,324 → 1,376 (+52)</td><td class="p-3"><strong>Conservative pass.</strong> Page chrome (main, container, header, breadcrumb, alerts, card, section headings, button row) on <code>.mw-*</code>. QR uploaders, <code>.paysection</code> 3-card grid, <code>.logo-placeholder</code>/<code>.file-upload</code>/<code>.choose-btn</code>/<code>.delImg</code>, and <code>.BankDetails</code> sections kept — their inline <code>&lt;style&gt;</code> rules continue to apply. <strong>All JS hooks intact</strong> (clickFocus2/3/10, readURL2/3/10, removeData).</td><td class="p-3 text-xs">Awaiting your browser test</td></tr>
+                <tr id="step-11" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">11 ◐</td><td class="p-3 font-mono font-semibold">website/products.php</td><td class="p-3">2,025 → 2,074 (+49)</td><td class="p-3"><strong>Conservative pass.</strong> Page chrome (main, container, header, breadcrumb, alerts, card, section heading, button row) on <code>.mw-*</code>. Modernized "Add Item" toolbar with item-count pill (<code>X / 60</code>). Products table (9 cols with category/title filter dropdowns), 60-input hidden form, add/edit modal, custom-category modal all preserved. <strong>All JS hooks intact</strong> (openProductModal, editProductFromRow, removeData, saveProducts; data-product-* attributes).</td><td class="p-3 text-xs">Awaiting your browser test</td></tr>
+                <tr id="step-12" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">12 ◐</td><td class="p-3 font-mono font-semibold">website/services.php</td><td class="p-3">1,613 → 1,663 (+50)</td><td class="p-3"><strong>Conservative pass.</strong> Same template as <code>products.php</code>: page chrome + section heading + Add Service toolbar with <code>X / 10</code> count pill + button row on <code>.mw-*</code>. 5-column services table, hidden <code>#productForm</code>, <code>#productModal</code>, all data-attributes preserved. <strong>JS hooks intact</strong>.</td><td class="p-3 text-xs">Awaiting your browser test</td></tr>
+                <tr id="step-13" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">13 ◐</td><td class="p-3 font-mono font-semibold">website/special-offers.php</td><td class="p-3">1,619 → 1,656 (+37)</td><td class="p-3"><strong>Conservative pass.</strong> Same template as <code>products.php</code>: page chrome + section heading + Add Offer toolbar with <code>X / 5</code> count pill + button row on <code>.mw-*</code>. 8-column offers table, hidden <code>#offerForm</code> (5 sets × 11 fields), <code>#offerModal</code>, date/time/badge inputs, all data-attributes preserved. <strong>JS hooks intact</strong>: <code>openOfferModal()</code>, <code>editOfferFromRow()</code>, <code>removeOffer()</code>, <code>saveOffers()</code>.</td><td class="p-3 text-xs">Awaiting your browser test</td></tr>
+                <tr id="step-14" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">14 ◐</td><td class="p-3 font-mono font-semibold">website/image-gallery.php</td><td class="p-3">1,218 → 1,260 (+42)</td><td class="p-3"><strong>Conservative pass.</strong> Same template: page chrome + section heading + Add Images toolbar with <code>X / 10</code> count pill + button row on <code>.mw-*</code>. 2-column gallery table, hidden <code>#imageForm</code> (10 sets), <code>#imageModal</code>, image-upload-crop modal include preserved. <strong>JS hooks intact</strong>: <code>openImageModal()</code>, <code>editImageFromRow()</code>, <code>removeData()</code>, <code>saveImages()</code>.</td><td class="p-3 text-xs">Awaiting your browser test</td></tr>
+                <tr id="step-15" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">15 ◐</td><td class="p-3 font-mono font-semibold">includes/header.php (design system)</td><td class="p-3">~70 lines added</td><td class="p-3"><strong>Step nav (mobile) moved into design system.</strong> Added <code>@media (max-width: 767.98px)</code> rules to <code>.mw-btn-row</code> in <code>user/includes/header.php</code>: Save full-width on row 1, Back | Next 50/50 on row 2 — same layout as legacy <code>website-step-nav.css</code> but using design tokens. All <code>!important</code> so it wins until Step 16 deletes the legacy file. Mobile 375px layout preserved for all migrated website-builder pages (business-name, social-links, videos, select-theme, company-details, payment-details, products, services, special-offers, image-gallery).</td><td class="p-3 text-xs">Mobile 375px on any website page</td></tr>
+                <tr id="step-16" class="bg-amber-50"><td class="p-3 font-bold text-amber-700">16 ◐</td><td class="p-3 font-mono font-semibold">website/css/website-step-nav.css</td><td class="p-3">318 → 0 (deleted)</td><td class="p-3"><strong>DELETED file</strong> + removed &lt;link&gt; from <code>footer.php</code> + removed now-empty <code>user/website/css/</code> folder. Image-gallery action icons + Product-ServicesTable mobile horizontal-scroll rules carried over to design system in <code>user/includes/header.php</code> (using <code>rem</code> + design tokens instead of hardcoded <code>px</code> / hex). Stale "shared in website-step-nav.css" comments in <code>image-gallery.php</code> &amp; <code>services.php</code> updated.</td><td class="p-3 text-xs">Awaiting your browser test — desktop &amp; mobile 375px on every website-builder page</td></tr>
             </tbody>
         </table>
     </div>
@@ -402,21 +402,21 @@
     <div class="grid md:grid-cols-2 gap-4 text-sm">
         <div class="bg-white border rounded-xl p-4">
             <p class="font-bold mb-2 text-blue-700">Phase A</p>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 1 — Tailwind CDN in header.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 2 — Sidebar/nav Tailwind</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 3 — Footer markup</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 4 — Smoke test passed</label>
+            <label class="flex gap-2 py-1 text-green-700 font-semibold"><input type="checkbox" checked> Step 1 — Tailwind CDN in header.php ✓</label>
+            <label class="flex gap-2 py-1 text-green-700 font-semibold"><input type="checkbox" checked> Step 2 — Sidebar/nav Tailwind ✓</label>
+            <label class="flex gap-2 py-1 text-green-700 font-semibold"><input type="checkbox" checked> Step 3 — Footer markup ✓</label>
+            <label class="flex gap-2 py-1 text-amber-700 font-semibold"><input type="checkbox"> Step 4 — Smoke test (your turn)</label>
         </div>
         <div class="bg-white border rounded-xl p-4">
             <p class="font-bold mb-2 text-amber-700">Phase B (website)</p>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 5 — business-name.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 6 — social-links.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 7 — videos.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 8 — select-theme.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 9 — company-details.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 10 — payment-details.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 11 — products.php</label>
-            <label class="flex gap-2 py-1"><input type="checkbox"> Step 12 — services.php</label>
+            <label class="flex gap-2 py-1 text-green-700 font-semibold"><input type="checkbox" checked> Step 5 — business-name.php ✓</label>
+            <label class="flex gap-2 py-1 text-green-700 font-semibold"><input type="checkbox" checked> Step 6 — social-links.php ✓</label>
+            <label class="flex gap-2 py-1 text-green-700 font-semibold"><input type="checkbox" checked> Step 7 — videos.php ✓</label>
+            <label class="flex gap-2 py-1 text-green-700"><input type="checkbox" checked> Step 8 — select-theme.php</label>
+            <label class="flex gap-2 py-1 text-amber-700"><input type="checkbox" checked> Step 9 — company-details.php (chrome only; <code>&lt;style&gt;</code> retained)</label>
+            <label class="flex gap-2 py-1 text-amber-700"><input type="checkbox" checked> Step 10 — payment-details.php (chrome only; <code>&lt;style&gt;</code> retained)</label>
+            <label class="flex gap-2 py-1 text-amber-700"><input type="checkbox" checked> Step 11 — products.php (chrome only; <code>&lt;style&gt;</code> retained)</label>
+            <label class="flex gap-2 py-1 text-amber-700"><input type="checkbox" checked> Step 12 — services.php (chrome only; <code>&lt;style&gt;</code> retained)</label>
             <label class="flex gap-2 py-1"><input type="checkbox"> Step 13 — special-offers.php</label>
             <label class="flex gap-2 py-1"><input type="checkbox"> Step 14 — image-gallery.php</label>
             <label class="flex gap-2 py-1"><input type="checkbox"> Step 15 — step nav in footer</label>

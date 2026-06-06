@@ -460,12 +460,6 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
         
         padding-top: 0px;
     }
-     .main-top {
-        justify-content: flex-start;
-        margin-left: 2px;
-        padding: 20px 0px;
-        padding-bottom: 0px;
-    }
      .customer_content_area {
         padding: 0px 20px !important;
         margin-top: 33px;

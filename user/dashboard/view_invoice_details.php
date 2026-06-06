@@ -150,7 +150,7 @@ $invoice = mysqli_fetch_array($invoice_query);
     <!-- Service Details -->
     <div class="service-section">
         <h3><i class="fas fa-cogs"></i> Service Details</h3>
-        <div class="service-table">
+        <div class="service-table mw-table-scroll">
             <table>
                 <thead>
                     <tr>

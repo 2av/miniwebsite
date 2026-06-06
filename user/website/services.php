@@ -636,51 +636,66 @@ if(isset($_POST['process4'])){
 // Include header (output buffer is already started at the top)
 include '../includes/header.php';
 
-// Include the common image upload/crop modal
-require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
+// Image crop modal is included globally from user/includes/header.php
+require_once(__DIR__ . '/../../common/mw_modal.php');
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-        <div class="main-top">
-        <span class="heading">Services</span>
+<!-- Phase B · Step 12 — services.php page chrome uses .mw-* design system.
+     Services table, hidden #productForm, add/edit #productModal, all data-attributes preserved.
+     JS hooks intact: openProductModal(), editProductFromRow(), removeData(), saveProducts().
+     Add/Edit #productModal + delete confirm use common/mw_modal.php (image crop via MwModal globally). -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Services</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
-        
+
         <?php if(isset($_SESSION['save_success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($error_message)): ?>
-            <div><?php echo $error_message; ?></div>
+            <div class="alert mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $error_message; ?></div>
+            </div>
         <?php endif; ?>
-        
+
         <div id="status_remove_img"></div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <label class="heading font-sm-22 font-sm-24">Services:</label>
-                <p class="sub_title">You can add up to 10 services which you want to showcase on your Mini Website.</p>
-                <p class="text-muted"><small>(Image Format: jpg, jpeg, png, gif, webp.)</small></p>
-                <br>
-                <button type="button" id="addServiceBtn" class="btn btn-primary add_product" onclick="openProductModal()" <?php echo (count($products ?? []) >= 10) ? 'disabled' : ''; ?>><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Service</span></button>
+        <div class="card mb-4 mw-card">
+            <div class="card-body mw-card-body">
+                <div class="sv-section-head">
+                    <h2 class="heading font-sm-22 font-sm-24 mw-section-title sv-section-heading">Services</h2>
+                    <p class="sub_title mw-helper-text">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>You can add up to <strong style="color:var(--mw-color-text);font-weight:600">10 services</strong> to showcase on your Mini Website. <span class="text-muted">Image formats: jpg, jpeg, png, gif, webp.</span></span>
+                    </p>
+                </div>
+
+                <div class="sv-toolbar">
+                    <button type="button" id="addServiceBtn" class="btn btn-primary add_product mw-btn mw-btn-save" onclick="openProductModal()" <?php echo (count($products ?? []) >= 10) ? 'disabled' : ''; ?>>
+                        <i class="fa fa-plus" aria-hidden="true"></i>
+                        <span>Add Service</span>
+                    </button>
+                 </div>
 
                 <form action="" method="POST" enctype="multipart/form-data" id="productForm" style="display:none;">
                     <!-- Hidden form fields for product data (will be populated dynamically) -->
                 </form>
 
-                <div class="Product-ServicesTable">
+                <div class="Product-ServicesTable mw-table-scroll">
                     <table class="display table">
-                        <thead class="bg-secondary">
+                        <thead class="mw-table-header">
                             <tr>
                                 <th>Service Image</th>
                                 <th>Category</th>
@@ -768,32 +783,29 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
                    
                 </div>
-                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="company-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                            <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
-                            <span>Back</span>
-                        </a>
-                        <button type="button" class="btn btn-primary align-center save_btn" onclick="saveProducts()">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
-                            <span>Save</span>
-                        </button>
-                        <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
-                            <span>Next</span>
-                            <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
-                        </a>
-                    </div>
+                <div class="Product-ServicesBtn mw-btn-row">
+                    <a href="company-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                        <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                        <span>Back</span>
+                    </a>
+                    <button type="button" class="btn btn-primary align-center save_btn mw-btn mw-btn-save" onclick="saveProducts()">
+                        <img src="../../assets/images/Save.png" alt="" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
+                        <span>Save</span>
+                    </button>
+                    <a href="special-offers.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right mw-btn mw-btn-next">
+                        <span>Next</span>
+                        <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Product Add/Edit Modal -->
-<div class="modal fade website-step-modal" id="productModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content website-step-modal-content">
-            <button type="button" class="website-step-modal-close close" onclick="closeProductModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <div class="modal-body">
-                <form id="modalProductForm">
+<?php
+ob_start();
+?>
+                <form id="modalProductForm" class="mw-form sv-product-modal-form">
                     <input type="hidden" id="modal_product_number" value="">
                     <div class="form-group">
                         <label>Service Image</label>
@@ -873,14 +885,23 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         </small>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addProductToForm()">Add Service</button>
-            </div>
-        </div>
-    </div>
-</div>
+<?php
+$product_modal_body = ob_get_clean();
+
+mw_modal_render([
+    'id'       => 'productModal',
+    'size'     => 'lg',
+    'title'    => 'Add Service',
+    'subtitle' => 'Upload image and select a service name',
+    'icon'     => 'fa-cogs',
+    'body'     => $product_modal_body,
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Service', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="productModalSaveBtn"'],
+    ]),
+    'hidden'   => true,
+]);
+?>
 
 <script>
 var currentProductId = null;
@@ -902,7 +923,40 @@ function updateCharCount() {
 // Also bind via jQuery when DOM ready (fallback)
 $(document).ready(function() {
     $('#modal_product_description').on('input paste keyup', updateCharCount);
+    var saveBtn = document.getElementById('productModalSaveBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', addProductToForm);
+    }
 });
+
+var PRODUCT_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+
+function setProductModalMode(isEdit) {
+    var titleEl = document.getElementById('productModalTitle');
+    var saveBtn = document.getElementById('productModalSaveBtn');
+    if (titleEl) {
+        titleEl.textContent = isEdit ? 'Edit Service' : 'Add Service';
+    }
+    if (saveBtn) {
+        saveBtn.textContent = isEdit ? 'Update Service' : 'Add Service';
+    }
+}
+
+function showProductModal() {
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('productModal');
+    }
+}
+
+function resetProductModalForm() {
+    $('#modal_product_number').val('');
+    $('#modal_service_name_select').val('');
+    $('#modal_product_description').val('');
+    $('#modal_product_image').val('');
+    $('#modal_product_image_preview').attr('src', PRODUCT_MODAL_PLACEHOLDER_IMG);
+    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
+    updateCharCount();
+}
 
 // Open product modal
 function openProductModal() {
@@ -912,36 +966,10 @@ function openProductModal() {
         return;
     }
     currentProductId = null;
-    processedProductImageData = null; // Reset processed image data
-    $('#modal_product_number').val('');
-    $('#modal_service_name_select').val('');
-    $('#modal_product_description').val('');
-    $('#modal_product_image').val('');
-    $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
-    $('#productModalLabel').text('Add Service');
-    $('.modal-footer button:last').text('Add Service');
-    updateCharCount();
-    
-    // Try Bootstrap 4 method first
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#productModal').modal('show');
-    } 
-    // Try Bootstrap 5 method
-    else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('productModal');
-        bootstrap.Modal.getOrCreateInstance(modalElement).show();
-    }
-    // Fallback: show directly
-    else {
-        document.getElementById('productModal').style.display = 'block';
-        document.getElementById('productModal').classList.add('show');
-        document.body.classList.add('modal-open');
-        var backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop fade show';
-        backdrop.id = 'modalBackdrop';
-        document.body.appendChild(backdrop);
-    }
+    processedProductImageData = null;
+    resetProductModalForm();
+    setProductModalMode(false);
+    showProductModal();
 }
 
 // Edit product from row (reads data attributes + img src to avoid HTML attribute size limits)
@@ -989,23 +1017,14 @@ function editProduct(productId, productName, productImageData, productDescriptio
             $('#modal_product_image_preview').attr('src', 'data:image/*;base64,' + productImageData);
         }
     } else {
-        $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
+        $('#modal_product_image_preview').attr('src', PRODUCT_MODAL_PLACEHOLDER_IMG);
+        $('.product-image-preview-modal').css('border', '2px dashed #ddd');
     }
-    
-    $('#productModalLabel').text('Edit Service');
-    $('.modal-footer button:last').text('Update Service');
 
+    setProductModalMode(true);
     selectServiceOptionByCategoryAndName(categoryVal || '', productName || '');
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#productModal').modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('productModal')).show();
-    } else {
-        var el = document.getElementById('productModal');
-        if(el) { el.style.display = 'block'; el.classList.add('show'); document.body.classList.add('modal-open'); }
-    }
     updateCharCount();
+    showProductModal();
 }
 
 // Store processed image data for form submission
@@ -1082,7 +1101,12 @@ function handleProductImageUpload(input) {
                     }
                 },
                 onError: function(msg) {
-                    alert(msg || 'Error processing image. Please try again.');
+                    var errMsg = msg || 'Error processing image. Please try again.';
+                    if (window.MwModal && window.MwModal.alert) {
+                        window.MwModal.alert({ title: 'Service Image', message: errMsg });
+                    } else {
+                        alert(errMsg);
+                    }
                     $(input).val('');
                     processedProductImageData = null;
                 }
@@ -1312,7 +1336,7 @@ function saveProducts() {
 
 // Remove product
 function removeData(productId) {
-    if(confirm('Are you sure you want to remove this service?')) {
+    function doDelete() {
         $('#status_remove_img').css('color','blue');
         
         $.ajax({
@@ -1346,69 +1370,35 @@ function removeData(productId) {
             }
         });
     }
+    if (window.MwModal && typeof window.MwModal.confirm === 'function') {
+        window.MwModal.confirm({
+            title: 'Remove service?',
+            message: 'Are you sure you want to remove this service?',
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
+            confirmClass: 'mw-btn mw-btn-danger',
+            onConfirm: doDelete
+        });
+    } else if (confirm('Are you sure you want to remove this service?')) {
+        doDelete();
+    }
 }
 
 // Close product modal
 function closeProductModal() {
-    // Try Bootstrap 4 method first
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#productModal').modal('hide');
-    } 
-    // Try Bootstrap 5 method
-    else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('productModal');
-        var modal = bootstrap.Modal.getInstance(modalElement);
-        if(modal) {
-            modal.hide();
-        } else if(modalElement) {
-            modalElement.classList.remove('show');
-            modalElement.style.display = 'none';
-            modalElement.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
-        }
-    }
-    // Fallback: hide directly
-    else {
-        var el = document.getElementById('productModal');
-        if(el) {
-            el.style.display = 'none';
-            el.classList.remove('show');
-        }
-        document.body.classList.remove('modal-open');
-        var backdrop = document.getElementById('modalBackdrop');
-        if(backdrop) backdrop.remove();
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('productModal');
     }
     currentProductId = null;
 }
 
-// Reset modal when opened for new product
-if(typeof jQuery !== 'undefined') {
-    $('#productModal').on('show.bs.modal', function() {
-        if(!currentProductId) {
-            $('#modal_product_number').val('');
-            $('#modal_service_name_select').val('');
-            $('#modal_product_image').val('');
-            $('#modal_product_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
-            $('#productModalLabel').text('Add Service');
-            $('.modal-footer button:last').text('Add Service');
-        }
-    });
-
-    $('#productModal').on('hidden.bs.modal', function() {
+(function() {
+    var modalEl = document.getElementById('productModal');
+    if (!modalEl) return;
+    modalEl.addEventListener('mw-modal:closed', function() {
         currentProductId = null;
     });
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    var modal = document.getElementById('productModal');
-    if(event.target === modal) {
-        closeProductModal();
-    }
-});
+})();
 </script>
 
 <style>
@@ -1475,29 +1465,7 @@ document.addEventListener('click', function(event) {
     .Product-ServicesTable {
     margin: 20px auto;
 }
-.Product-ServicesTable table th,
-.Product-ServicesTable table td{
-    text-align:left !important;
-    
-}
-.Product-ServicesTable table th:first-child,
-.Product-ServicesTable table td:first-child{
-    padding-left:40px;
-    padding-right: 155px;
-}
-.Product-ServicesTable table th,
-.Product-ServicesTable table td{
-    width: 25%;
-}
-.Product-ServicesTable table th:nth-child(2),
-.Product-ServicesTable table th:nth-child(3),
-.Product-ServicesTable table th:nth-child(4),
-.Product-ServicesTable table td:nth-child(2),
-.Product-ServicesTable table td:nth-child(3),
-.Product-ServicesTable table td:nth-child(4){
-    text-align:center !important;
-}
-
+/* Table header/cell styles: design system in user/includes/header.php */
 .Product-ServicesTable .text-truncate {
     display: inline-block;
     max-width: 200px;
@@ -1540,15 +1508,8 @@ document.addEventListener('click', function(event) {
 .add_product i, .add_product span {
     font-size: 22px !important;
 }
-/* Mobile table scroll: shared in user/website/css/website-step-nav.css */
+/* Mobile table scroll + .main-top: design system in user/includes/header.php */
 
-.Dashboard .main-top {
-        padding:0px;
-    }
-    .Dashboard .heading {
-        font-size: 22px !important;
-        
-    }
     .card-body p {
         font-size: 16px;
         line-height: 20px;
@@ -1557,35 +1518,11 @@ document.addEventListener('click', function(event) {
         font-size: 20px !important;
     }
 
-    .Product-ServicesBtn{
-    width: 80% !important;
-    padding:0px !important;
-            margin-top: 40px !important;
-}
-.save_btn{
-    position: absolute;
-        bottom: 150px;
-        width: 145px !important;
-        left: 96px;
-        height: 36px;
-}
 .Copyright-left,
 .Copyright-right{
     padding:0px;
 }
-.Dashboard .main-top {
-        justify-content: flex-start;
-        margin-left: 2px;
-        padding: 20px 0px;
-        padding-bottom: 5px;
     }
-    }
-    .Product-ServicesTable table th,
- .Product-ServicesTable table td {
-    
-    font-weight:500 !important;
-}
-
 .add_product:hover{
 background-color: #ffbe17a6;
 }
@@ -1641,13 +1578,9 @@ background-color: #ffbe17a6;
     .Product-ServicesBtn  .btn{
         line-height:24px !important;
     }
-    .Product-ServicesBtn button {
+    .Product-ServicesBtn:not(.mw-btn-row) button {
         padding: 7px !important;
-        margin-top: 22px !important;
     }
-    .save_btn{
-    width: 115px !important;
-}
     .card-body .heading{
         font-size:24px ;
         font-weight: 500;
@@ -1657,18 +1590,129 @@ background-color: #ffbe17a6;
         z-index: 10000 !important;
     }
 
-    #modal_service_name_select {
-        appearance: none !important;
-        -webkit-appearance: none !important;
-        -moz-appearance: none !important;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
-        background-repeat: no-repeat !important;
-        background-position: right 10px center !important;
-        background-size: 20px !important;
-        padding-right: 40px !important;
-        background-color: white !important;
-        border: 1px solid #ced4da !important;
-        cursor: pointer !important;
+</style>
+
+<!-- Phase B · Step 12 — design-system chrome overrides for services.
+     Sit AFTER the page-local <style> so they win the cascade for chrome elements. -->
+<style>
+    /* Section heading — promote .heading to design-system style */
+    main.Dashboard .heading.mw-section-title.sv-section-heading {
+        font-size: var(--mw-font-section-title);
+        line-height: 1.3;
+        color: var(--mw-color-text);
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        display: inline-block;
+        position: relative;
+        padding-bottom: 0.5rem;
+        background: transparent;
+    }
+    @media (min-width: 768px) {
+        main.Dashboard .heading.mw-section-title.sv-section-heading { font-size: var(--mw-font-section-title-lg); }
+    }
+    main.Dashboard .heading.mw-section-title.sv-section-heading::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 3rem;
+        height: 2px;
+        background: var(--mw-color-primary);
+        border-radius: 9999px;
+    }
+    main.Dashboard .sv-section-head { margin-bottom: 1.25rem; }
+
+    /* Toolbar (Add Service + count pill) */
+    main.Dashboard .sv-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0.5rem 0 1.25rem; }
+    main.Dashboard .sv-toolbar .add_product.mw-btn.mw-btn-save { margin: 0 !important; }
+    main.Dashboard .sv-toolbar .sv-count-pill { padding: 0.375rem 0.75rem; }
+
+    /* Add/Edit service modal (MwModal) */
+    #productModal .sv-product-modal-form .product-image-preview-modal {
+        max-width: 280px;
+        margin: 0 auto 15px;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border: 2px dashed var(--mw-color-border, #e2e8f0);
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+    }
+    #productModal .sv-product-modal-form #modal_service_name_select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a94a6' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.65rem center;
+        background-size: 1rem;
+        padding-right: 2.25rem;
+    }
+
+    /* Button row — neutralize legacy rules; layout from .mw-btn-row in header.php */
+    main.Dashboard .Product-ServicesBtn.mw-btn-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin-top: 1.5rem !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        position: relative !important;
+        box-sizing: border-box !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn,
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .save_btn {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 3rem !important;
+        margin: 0 !important;
+        margin-top: 0 !important;
+        padding: var(--mw-btn-padding-y) var(--mw-btn-padding-x) !important;
+        flex: 0 0 auto !important;
+        order: unset !important;
+    }
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .align-center img {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+    }
+    @media screen and (max-width: 767.98px) {
+        main.Dashboard .card-body.mw-card-body {
+            padding-bottom: 1.5rem !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row {
+            flex-wrap: wrap !important;
+            justify-content: stretch !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-save {
+            order: 1 !important;
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-back {
+            order: 2 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-next {
+            order: 3 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
     }
 </style>
 

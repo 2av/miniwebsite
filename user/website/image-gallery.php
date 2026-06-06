@@ -385,33 +385,47 @@ if(isset($_POST['process5'])){
 }
 
 include '../includes/header.php';
-// Include the common image upload/crop modal
-require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
+require_once(__DIR__ . '/../../common/mw_modal.php');
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-        <div class="main-top">
-        <span class="heading">Image Gallary</span>
+<!-- Phase B · Step 14 — image-gallery.php page chrome uses .mw-* design system.
+     Hidden #imageForm with 10 sets of inputs, #imageModal via mw_modal.php,
+     table rows with data-image-id / data-card-id preserved. JS hooks intact:
+     openImageModal(), editImageFromRow(), removeData(), saveImages(). -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Image Gallery</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
 
-        <div class="card mb-4">
-                        <div class="card-body">
-                            <label class="heading">Image Gallery:</label>
-                            <p class="sub_title">You can add upto 10 images of your choice which you want to showcase on your Mini Website page.</p>
-                            <br>
-                <div id="status_remove_img"></div>
-                <button class="btn btn-primary add_image" onclick="openImageModal()" style="width: auto;"><i class="fa fa-plus" aria-hidden="true"></i> <span>Add Images</span></button>
+        <div class="card mb-4 mw-card">
+            <div class="card-body mw-card-body">
+                <div class="ig-section-head">
+                    <h2 class="heading mw-section-title ig-section-heading">Image Gallery</h2>
+                    <p class="sub_title mw-helper-text">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>You can add up to <strong style="color:var(--mw-color-text);font-weight:600">10 images</strong> to showcase on your Mini Website page.</span>
+                    </p>
+                </div>
 
-                            <div class="Product-ServicesTable image-gallery-table-compact">
+                <div id="status_remove_img"></div>
+
+                <div class="ig-toolbar">
+                    <button class="btn btn-primary add_image mw-btn mw-btn-save" onclick="openImageModal()">
+                        <i class="fa fa-plus" aria-hidden="true"></i>
+                        <span>Add Images</span>
+                    </button>
+                   </div>
+
+                            <div class="Product-ServicesTable image-gallery-table-compact mw-table-scroll">
                                 <table class="display table table-image-gallery">
-                                    <thead class="bg-secondary">
+                                    <thead class="mw-table-header">
                                         <tr>
                                             <th>Image Details</th>
                                             <th class="text-right">Manage</th>
@@ -473,32 +487,29 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
 
                           
                                 </div>
-                                <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                            <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
-                            <span>Back</span>
-                        </a>
-                        <button type="button" class="btn btn-primary align-center save_btn" onclick="saveImages()">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt="">
-                            <span>Save</span>
-                        </button>
-                        <a href="payment-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right">
-                            <span>Next</span>
-                            <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
-                        </a>
-                    </div>
+                <div class="Product-ServicesBtn mw-btn-row">
+                    <a href="videos.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                        <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                        <span>Back</span>
+                    </a>
+                    <button type="button" class="btn btn-primary align-center save_btn mw-btn mw-btn-save" onclick="saveImages()">
+                        <img src="../../assets/images/Save.png" alt="" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
+                        <span>Save</span>
+                    </button>
+                    <a href="payment-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-right mw-btn mw-btn-next">
+                        <span>Next</span>
+                        <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
+                    </a>
+                </div>
                             </div>
                        </div>
                     </div>
 </main>
  
-<!-- Image Modal -->
-<div class="modal fade website-step-modal" id="imageModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content website-step-modal-content">
-            <button type="button" class="website-step-modal-close close" onclick="closeImageModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <div class="modal-body">
-                <form id="modalImageForm">
+<?php
+ob_start();
+?>
+                <form id="modalImageForm" class="mw-form ig-image-modal-form">
                     <input type="hidden" id="modal_image_id" value="">
                     <input type="hidden" id="modal_image_number" value="">
                     <div class="form-group">
@@ -514,19 +525,55 @@ require_once(__DIR__ . '/../../common/image_upload_crop_modal.php');
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_image').click()">Choose Image</button>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeImageModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="imageModalSubmitBtn" onclick="addImageToForm()">Add Image</button>
-            </div>
-        </div>
-    </div>
-</div>
+<?php
+$image_modal_body = ob_get_clean();
+
+mw_modal_render([
+    'id'       => 'imageModal',
+    'size'     => 'lg',
+    'title'    => 'Add Gallery Image',
+    'subtitle' => 'Upload and crop your gallery image',
+    'icon'     => 'fa-picture-o',
+    'body'     => $image_modal_body,
+    'body_class' => 'ig-image-modal-body',
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Image', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="imageModalSubmitBtn"'],
+    ]),
+    'static'   => true,
+    'hidden'   => true,
+]);
+?>
 
 <script>
 var imageFiles = {};
-// Store processed image data for form submission
 var processedGalleryImageData = null;
+
+var IMAGE_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+
+function setImageModalMode(isEdit) {
+    var titleEl = document.getElementById('imageModalTitle');
+    var saveBtn = document.getElementById('imageModalSubmitBtn');
+    if (titleEl) {
+        titleEl.textContent = isEdit ? 'Edit Gallery Image' : 'Add Gallery Image';
+    }
+    if (saveBtn) {
+        saveBtn.textContent = isEdit ? 'Update Image' : 'Add Image';
+    }
+}
+
+function showImageModal() {
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('imageModal');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var saveBtn = document.getElementById('imageModalSubmitBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', addImageToForm);
+    }
+});
 
 // Find next available image slot (for backward compatibility)
 function findNextAvailableSlot() {
@@ -539,33 +586,21 @@ function findNextAvailableSlot() {
     return existingCount + 1;
 }
 
-// Open image modal
-function openImageModal() {
-    processedGalleryImageData = null; // Reset processed image data
+function resetImageModalForm() {
+    processedGalleryImageData = null;
     $('#modal_image_id').val('');
     $('#modal_image_number').val('');
     $('#modal_image').val('');
-    $('#modal_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-    $('#imageModalLabel').text('Add Gallery Image');
-    var submitBtn = document.getElementById('imageModalSubmitBtn');
-    if(submitBtn) submitBtn.textContent = 'Add Image';
-    
-    // Try to open modal using different methods
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#imageModal').modal('show');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('imageModal');
-        bootstrap.Modal.getOrCreateInstance(modalElement, { backdrop: 'static', keyboard: false }).show();
-    } else {
-        // Fallback: direct DOM manipulation
-        document.getElementById('imageModal').style.display = 'block';
-        document.getElementById('imageModal').classList.add('show');
-        document.body.classList.add('modal-open');
-        var backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop fade show';
-        backdrop.id = 'modalBackdrop';
-        document.body.appendChild(backdrop);
-    }
+    $('#modal_image_preview').attr('src', IMAGE_MODAL_PLACEHOLDER_IMG).css({
+        border: '2px dashed #ddd',
+        borderRadius: '8px'
+    });
+}
+
+function openImageModal() {
+    resetImageModalForm();
+    setImageModalMode(false);
+    showImageModal();
 }
 
 function editImageFromRow(editLink) {
@@ -620,25 +655,16 @@ function editImage(imageId) {
         }
     }
     
-    // Open modal first
-    openImageModal();
-    
-    // Set values after modal is opened (use setTimeout to ensure modal is fully rendered)
-    setTimeout(function() {
-        $('#modal_image_id').val(imageId);
-        $('#modal_image_number').val(''); // Clear slot number for edit
-        
-        // Set existing image if available
-        if(existingImgSrc) {
-            $('#modal_image_preview').attr('src', existingImgSrc);
-        } else {
-            $('#modal_image_preview').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+');
-        }
-        
-        $('#imageModalLabel').text('Edit Gallery Image');
-        var submitBtn = document.getElementById('imageModalSubmitBtn');
-        if(submitBtn) submitBtn.textContent = 'Update Image';
-    }, 200); // Increased timeout to ensure modal is fully rendered
+    resetImageModalForm();
+    $('#modal_image_id').val(imageId);
+    $('#modal_image_number').val('');
+
+    if(existingImgSrc) {
+        $('#modal_image_preview').attr('src', existingImgSrc);
+    }
+
+    setImageModalMode(true);
+    showImageModal();
 }
 
 // Handle gallery image upload - use common ImageCropUpload modal
@@ -649,14 +675,24 @@ function handleGalleryImageUpload(input) {
         var maxSize = 10 * 1024 * 1024; // 10MB (will be auto-optimized to 250KB)
         
         if(allowedTypes.indexOf(file.type) === -1) {
-            alert('Only JPG, PNG, GIF, and WEBP images are allowed.');
+            var typeMsg = 'Only JPG, PNG, GIF, and WEBP images are allowed.';
+            if (window.MwModal && window.MwModal.alert) {
+                window.MwModal.alert({ title: 'Gallery Image', message: typeMsg });
+            } else {
+                alert(typeMsg);
+            }
             $(input).val('');
             processedGalleryImageData = null;
             return;
         }
         
         if(file.size > maxSize) {
-            alert('Image size must be 10MB or less. The image will be automatically optimized to 250KB.');
+            var sizeMsg = 'Image size must be 10MB or less. The image will be automatically optimized to 250KB.';
+            if (window.MwModal && window.MwModal.alert) {
+                window.MwModal.alert({ title: 'Gallery Image', message: sizeMsg });
+            } else {
+                alert(sizeMsg);
+            }
             $(input).val('');
             processedGalleryImageData = null;
             return;
@@ -711,7 +747,12 @@ function handleGalleryImageUpload(input) {
                     }
                 },
                 onError: function(msg) {
-                    alert(msg || 'Error processing image. Please try again.');
+                    var errMsg = msg || 'Error processing image. Please try again.';
+                    if (window.MwModal && window.MwModal.alert) {
+                        window.MwModal.alert({ title: 'Gallery Image', message: errMsg });
+                    } else {
+                        alert(errMsg);
+                    }
                     $(input).val('');
                     processedGalleryImageData = null;
                 }
@@ -951,7 +992,7 @@ function saveImages() {
 
 // Remove image (numb is now image_id)
 function removeData(cardId, imageId) {
-    if(confirm('Are you sure you want to remove this image?')) {
+    function doDelete() {
         $('#status_remove_img').css('color','blue');
         
         $.ajax({
@@ -962,10 +1003,8 @@ function removeData(cardId, imageId) {
             success: function(data){
                 $('#status_remove_img').html(data);
                 if(data.includes('success')){
-                    // Remove the row from table
                     $('tr[data-image-id="' + imageId + '"]').remove();
                     
-                    // Check if table is now empty
                     var tableBody = $('.Product-ServicesTable tbody');
                     if(tableBody.find('tr[data-image-id]').length === 0) {
                         tableBody.html('<tr><td colspan="2" class="text-center text-muted">No images added yet. Click "Add Images" to add.</td></tr>');
@@ -982,36 +1021,34 @@ function removeData(cardId, imageId) {
             }
         });
     }
-}
-
-// Close image modal
-function closeImageModal() {
-    if(typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        $('#imageModal').modal('hide');
-    } else if(typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        var modalElement = document.getElementById('imageModal');
-        var modal = bootstrap.Modal.getInstance(modalElement);
-        if(modal) {
-            modal.hide();
-        } else if(modalElement) {
-            modalElement.classList.remove('show');
-            modalElement.style.display = 'none';
-            modalElement.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-            document.querySelectorAll('.modal-backdrop').forEach(function(b) { b.remove(); });
-        }
-    } else {
-        var el = document.getElementById('imageModal');
-        if(el) {
-            el.style.display = 'none';
-            el.classList.remove('show');
-        }
-        document.body.classList.remove('modal-open');
-        var backdrop = document.getElementById('modalBackdrop');
-        if(backdrop) backdrop.remove();
+    if (window.MwModal && typeof window.MwModal.confirm === 'function') {
+        window.MwModal.confirm({
+            title: 'Remove image?',
+            message: 'Are you sure you want to remove this image?',
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
+            confirmClass: 'mw-btn mw-btn-danger',
+            onConfirm: doDelete
+        });
+    } else if (confirm('Are you sure you want to remove this image?')) {
+        doDelete();
     }
 }
+
+function closeImageModal() {
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('imageModal');
+    }
+    processedGalleryImageData = null;
+}
+
+(function() {
+    var modalEl = document.getElementById('imageModal');
+    if (!modalEl) return;
+    modalEl.addEventListener('mw-modal:closed', function() {
+        processedGalleryImageData = null;
+    });
+})();
 </script>
 
 
@@ -1075,24 +1112,7 @@ function closeImageModal() {
     .Product-ServicesTable {
     margin: 20px auto;
 }
-.Product-ServicesTable table th,
-.Product-ServicesTable table td{
-    text-align:left !important;
-    
-}
-.Product-ServicesTable table th:first-child,
-.Product-ServicesTable table td:first-child{
-    padding-left:40px;
-    padding-right: 60px;
-}
-
-.Product-ServicesTable table th:nth-child(2),
-.Product-ServicesTable table th:nth-child(3),
-.Product-ServicesTable table td:nth-child(2),
-.Product-ServicesTable table td:nth-child(3){
-    text-align:center !important;
-}
-.image-gallery-table-compact table th:nth-child(2),
+/* Table header/cell styles: design system in user/includes/header.php */
 .image-gallery-table-compact table td:nth-child(2) {
     text-align: right !important;
 }
@@ -1103,23 +1123,6 @@ function closeImageModal() {
 .card-body {
     padding: 25px !important;
     padding-bottom: 100px !important;
-}
-
-.Product-ServicesBtn{
-    width: 80% !important;
-    padding:0px !important;
-            margin-top: 40px !important;
-}
-.save_btn{
-    position: absolute;
-        bottom: 150px;
-        width: 145px !important;
-        left: 96px;
-        height: 36px;
-}
-.Copyright-left,
-.Copyright-right{
-    padding:0px;
 }
 
 .submitBtnSection{
@@ -1142,23 +1145,7 @@ function closeImageModal() {
 .add_product i, .add_product span {
     font-size: 16px !important;
 }
-/* Mobile table scroll: shared in user/website/css/website-step-nav.css */
-.Product-ServicesTable table th:first-child, .Product-ServicesTable table td:first-child {
-    padding-left: 10px;
-    padding-top:10px;
-    padding-bottom:10px;
-    padding-right: 20px;
-    font-weight:500 !important;
-}
-.Product-ServicesTable table th,
- .Product-ServicesTable table td {
-    padding-left: 10px;
-    padding-top:10px;
-    padding-bottom:10px;
-    padding-right: 20px;
-    font-weight:500 !important;
-}
-
+/* Mobile table scroll: design system in user/includes/header.php */
 .headingTop {
     font-size: 28px;
     padding: 0px;
@@ -1181,73 +1168,104 @@ function closeImageModal() {
         font-size: 20px !important;
     }
     }
-    .Product-ServicesTable table th,
- .Product-ServicesTable table td {
-    
-    font-weight:500 !important;
-}
 .Product-ServicesTable table td:last-child img{
         width: 20px;
     }
 
     
-.Product-ServicesBtn{
-        padding: 0px 40px;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 30px;
+</style>
+
+<!-- Phase B · Step 14 — design-system chrome overrides for image-gallery. -->
+<style>
+    main.Dashboard .heading.mw-section-title.ig-section-heading {
+        font-size: var(--mw-font-section-title);
+        line-height: 1.3;
+        color: var(--mw-color-text);
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        display: inline-block;
+        position: relative;
+        padding-bottom: 0.5rem;
+        background: transparent;
     }
-    .Product-ServicesBtn button,
-    .Product-ServicesBtn a{
-        display: flex !important;
-        color: #fff !important;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
+    @media (min-width: 768px) {
+        main.Dashboard .heading.mw-section-title.ig-section-heading { font-size: var(--mw-font-section-title-lg); }
     }
-    .Product-ServicesBtn button .angle,
-    .Product-ServicesBtn a .angle{
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #fff !important;
-        color:#000;
-        font-weight:bold;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    main.Dashboard .heading.mw-section-title.ig-section-heading::after {
+        content: ''; position: absolute; left: 0; bottom: 0;
+        width: 3rem; height: 2px; background: var(--mw-color-primary); border-radius: 9999px;
     }
-    .Product-ServicesBtn button span:not(.angle),
-    .Product-ServicesBtn a span:not(.angle){
-        font-weight:500;
-        font-size:16px;
-    }
-    .Product-ServicesBtn .align-center{
-        padding: 4px 10px;
-    }
-    .Product-ServicesBtn .align-center img{
-        width: 23px;
-    }
-    .Product-ServicesBtn .align-center span{
-        color:#000;
+    main.Dashboard .ig-section-head { margin-bottom: 1.25rem; }
+    main.Dashboard .ig-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0.5rem 0 1.25rem; }
+    main.Dashboard .ig-toolbar .add_image.mw-btn.mw-btn-save { margin: 0 !important; }
+    main.Dashboard .ig-toolbar .ig-count-pill { padding: 0.375rem 0.75rem; }
+    #imageModal .ig-image-modal-body {
+        max-height: min(500px, 60vh);
+        overflow-y: auto;
     }
 
-    .Product-ServicesBtn  .btn{
-        line-height:24px !important;
+    main.Dashboard .Product-ServicesBtn.mw-btn-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin-top: 1.5rem !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        position: relative !important;
+        box-sizing: border-box !important;
     }
-    .Product-ServicesBtn button {
-        padding: 7px !important;
-        margin-top: 22px !important;
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn,
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .save_btn {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 3rem !important;
+        margin: 0 !important;
+        margin-top: 0 !important;
+        padding: var(--mw-btn-padding-y) var(--mw-btn-padding-x) !important;
+        flex: 0 0 auto !important;
+        order: unset !important;
     }
-    .save_btn{
-    width: 115px !important;
-}
-    
-    #imageCropModal{
-        z-index: 10000 !important;
+    main.Dashboard .Product-ServicesBtn.mw-btn-row .align-center img {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
     }
-    
+    @media screen and (max-width: 767.98px) {
+        main.Dashboard .card-body.mw-card-body {
+            padding-bottom: 1.5rem !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row {
+            flex-wrap: wrap !important;
+            justify-content: stretch !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-save {
+            order: 1 !important;
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-back {
+            order: 2 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+        main.Dashboard .Product-ServicesBtn.mw-btn-row .mw-btn-next {
+            order: 3 !important;
+            flex: 1 1 calc(50% - 0.375rem) !important;
+            max-width: calc(50% - 0.375rem) !important;
+        }
+    }
 </style>
 
 <?php include '../includes/footer.php'; ?>

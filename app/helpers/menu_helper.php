@@ -39,6 +39,22 @@ function load_menu_config() {
 }
 
 /**
+ * Website builder sidebar items from user/menu_config.json → website_menu_items.
+ */
+function load_website_menu_config() {
+    $config_file = __DIR__ . '/../../user/menu_config.json';
+
+    if (!file_exists($config_file)) {
+        return [];
+    }
+
+    $json = file_get_contents($config_file);
+    $config = json_decode($json, true);
+
+    return is_array($config['website_menu_items'] ?? null) ? $config['website_menu_items'] : [];
+}
+
+/**
  * Check if a menu item should be visible for the current user
  */
 function is_menu_visible($menu_item, $current_role, $user_conditions = []) {
@@ -134,6 +150,74 @@ function get_visible_menu_items($current_role, $user_conditions = []) {
     }
     
     return $visible_items;
+}
+
+/**
+ * Theme tokens from user/menu_config.json (sidebar nav active color, etc.).
+ */
+function get_menu_theme() {
+    static $theme = null;
+    if ($theme !== null) {
+        return $theme;
+    }
+
+    $defaults = [
+        'nav_icon_active' => '#2b4ba9',
+    ];
+
+    $config_file = __DIR__ . '/../../user/menu_config.json';
+    if (!file_exists($config_file)) {
+        $theme = $defaults;
+        return $theme;
+    }
+
+    $json = json_decode(file_get_contents($config_file), true);
+    $theme = array_merge($defaults, is_array($json['theme'] ?? null) ? $json['theme'] : []);
+
+    return $theme;
+}
+
+/**
+ * Validated hex color for active sidebar menu icons (from menu_config theme).
+ */
+function get_menu_nav_active_color() {
+    $color = get_menu_theme()['nav_icon_active'] ?? '#2b4ba9';
+    if (!is_string($color) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+        return '#2b4ba9';
+    }
+    return $color;
+}
+
+/**
+ * Render a sidebar nav icon (Font Awesome 4.x class names).
+ * Accepts bare icon names ("tachometer") or prefixed ("fa-tachometer").
+ * Legacy image filenames (*.png, etc.) still render as <img> for backward compatibility.
+ */
+function render_nav_icon($icon, $assets_base = '') {
+    $icon = trim((string) $icon);
+    if ($icon === '') {
+        return '<i class="fa fa-circle-o mw-nav-icon" aria-hidden="true"></i>';
+    }
+
+    if (preg_match('/\.(png|jpe?g|gif|webp|svg)$/i', $icon)) {
+        $src = htmlspecialchars(rtrim((string) $assets_base, '/') . '/assets/images/' . $icon, ENT_QUOTES, 'UTF-8');
+        return '<img src="' . $src . '" class="img-fluid h-5 w-5 object-contain" alt="" srcset="">';
+    }
+
+    $fa = preg_replace('/^fa-/', '', $icon);
+    // FA4 names that break when FA7 is loaded without v4 shims (see header FA v4-font-face).
+    $fa_aliases = [
+        'pencil-square-o' => 'edit',
+        'picture-o'       => 'image',
+        'clock-o'         => 'clock',
+        'money'           => 'credit-card',
+    ];
+    if (isset($fa_aliases[$fa])) {
+        $fa = $fa_aliases[$fa];
+    }
+    $fa = htmlspecialchars($fa, ENT_QUOTES, 'UTF-8');
+
+    return '<i class="fa fa-' . $fa . ' mw-nav-icon" aria-hidden="true"></i>';
 }
 
 ?>

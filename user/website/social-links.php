@@ -72,80 +72,98 @@ if(isset($_POST['process3'])){
 include '../includes/header.php';
 ?>
 
-<main class="Dashboard">
-    <div class="container-fluid customer_content_area">
-        <div class="main-top">
-        <span class="heading">Social Media Links</span>
+<!-- Phase B · Step 6 — social-links.php uses the central .mw-* design system (header.php).
+     JS hooks preserved: form#card_form, name="d_fb|d_twitter|d_instagram|d_linkedin|d_youtube|d_pinterest",
+     name="process3", .btn.btn-primary.align-center, .save_btn. -->
+<main class="Dashboard mw-page">
+    <div class="container-fluid customer_content_area mw-container">
+        <div class="main-top mw-page-header">
+            <h1 class="heading mw-page-title">Social Media Links</h1>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#">Mini Website</a></li>
-                    <li class="breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
+                <ol class="breadcrumb mw-breadcrumb">
+                    <li class="breadcrumb-item mw-breadcrumb-item"><a href="#">Mini Website</a></li>
+                    <li class="breadcrumb-item mw-breadcrumb-item active" aria-current="page"><?php echo $page_title; ?></li>
                 </ol>
             </nav>
         </div>
-        
+
         <?php if(isset($_SESSION['save_success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-success" role="alert">
+                <i class="fa fa-check-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_success']; unset($_SESSION['save_success']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($_SESSION['save_error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="alert alert-dismissible fade show mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $_SESSION['save_error']; unset($_SESSION['save_error']); ?></div>
+                <button type="button" class="close mw-alert-close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
         <?php endif; ?>
         <?php if(isset($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
+            <div class="alert mw-alert mw-alert-danger" role="alert">
+                <i class="fa fa-exclamation-circle mw-alert-icon" aria-hidden="true"></i>
+                <div class="mw-alert-body"><?php echo $error_message; ?></div>
+            </div>
         <?php endif; ?>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <label class="heading">Social Media Links:</label>
-                <form action="" method="POST" enctype="multipart/form-data" id="card_form">
-                    <div class="form-group">
-                        <label for="d_fb">Facebook  <img src="../../../assets/images/facebook.png" width="30" alt=""></label>
-                        <input type="text" name="d_fb" id="d_fb" maxlength="200" class="form-control" placeholder="Enter Your Facebook Business Page/Profile Link" value="<?php echo !empty($cardRow['d_fb']) ? htmlspecialchars($cardRow['d_fb']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_instagram">Instagram  <img src="../../../assets/images/instagram.png" width="30" alt=""></label>
-                        <input type="text" name="d_instagram" id="d_instagram" maxlength="200" class="form-control" placeholder="Enter Your Instagram Link" value="<?php echo !empty($cardRow['d_instagram']) ? htmlspecialchars($cardRow['d_instagram']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_youtube">YouTube  <img src="../../../assets/images/youtube.png" width="30" alt=""></label>
-                        <input type="text" name="d_youtube" id="d_youtube" maxlength="200" class="form-control" placeholder="Enter Your YouTube Channel Link" value="<?php echo !empty($cardRow['d_youtube']) ? htmlspecialchars($cardRow['d_youtube']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_twitter">X (Twitter)  <img src="../../../assets/images/twitter.png" width="30" alt=""></label>
-                        <input type="text" name="d_twitter" id="d_twitter" maxlength="200" class="form-control" placeholder="Enter Your X Link" value="<?php echo !empty($cardRow['d_twitter']) ? htmlspecialchars($cardRow['d_twitter']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_linkedin">LinkedIn  <img src="../../../assets/images/linkedin.png" width="30" alt=""></label>
-                        <input type="text" name="d_linkedin" id="d_linkedin" maxlength="200" class="form-control" placeholder="Enter Your LinkedIn Profile Link" value="<?php echo !empty($cardRow['d_linkedin']) ? htmlspecialchars($cardRow['d_linkedin']) : ''; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="d_pinterest">Pinterest  <img src="../../../assets/images/pinterest.png" width="30" alt=""></label>
-                        <input type="text" name="d_pinterest" id="d_pinterest" maxlength="200" class="form-control" placeholder="Enter Your Pinterest Link" value="<?php echo !empty($cardRow['d_pinterest']) ? htmlspecialchars($cardRow['d_pinterest']) : ''; ?>">
+        <div class="card mb-4 mw-card">
+            <div class="card-body mw-card-body">
+                <div class="mb-6">
+                    <h2 class="heading mw-section-title">Social Media Links</h2>
+                    <p class="mw-helper-text">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>Add the URLs of your business pages &mdash; they'll appear on your public Mini Website.</span>
+                    </p>
+                </div>
+
+                <form action="" method="POST" enctype="multipart/form-data" id="card_form" class="mw-form">
+                    <?php
+                    // DRY config of all 6 social inputs
+                    $social_fields = [
+                        ['name' => 'd_fb',        'label' => 'Facebook',    'icon' => 'facebook.png',  'placeholder' => 'Enter Your Facebook Business Page/Profile Link'],
+                        ['name' => 'd_instagram', 'label' => 'Instagram',   'icon' => 'instagram.png', 'placeholder' => 'Enter Your Instagram Link'],
+                        ['name' => 'd_youtube',   'label' => 'YouTube',     'icon' => 'youtube.png',   'placeholder' => 'Enter Your YouTube Channel Link'],
+                        ['name' => 'd_twitter',   'label' => 'X (Twitter)', 'icon' => 'twitter.png',   'placeholder' => 'Enter Your X Link'],
+                        ['name' => 'd_linkedin',  'label' => 'LinkedIn',    'icon' => 'linkedin.png',  'placeholder' => 'Enter Your LinkedIn Profile Link'],
+                        ['name' => 'd_pinterest', 'label' => 'Pinterest',   'icon' => 'pinterest.png', 'placeholder' => 'Enter Your Pinterest Link'],
+                    ];
+                    ?>
+                    <div class="mw-form-grid-2">
+                        <?php foreach ($social_fields as $f): ?>
+                            <?php $f_value = !empty($cardRow[$f['name']]) ? htmlspecialchars($cardRow[$f['name']]) : ''; ?>
+                            <div class="form-group mw-form-group">
+                                <label for="<?php echo $f['name']; ?>" class="mw-label">
+                                    <img src="../../assets/images/<?php echo $f['icon']; ?>" style="width:var(--mw-icon);height:var(--mw-icon);object-fit:contain;" alt="<?php echo $f['label']; ?> icon">
+                                    <span><?php echo $f['label']; ?></span>
+                                </label>
+                                <div class="mw-input-icon-wrap">
+                                    <span class="mw-input-icon"><i class="fa fa-link" aria-hidden="true"></i></span>
+                                    <input type="text"
+                                           name="<?php echo $f['name']; ?>"
+                                           id="<?php echo $f['name']; ?>"
+                                           maxlength="200"
+                                           class="form-control mw-input"
+                                           placeholder="<?php echo $f['placeholder']; ?>"
+                                           value="<?php echo $f_value; ?>">
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
 
-                    <div class="Product-ServicesBtn" style="margin-top: 20px; width: 86%;">
-                        <a href="payment-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left">
-                            <span class="left_angle angle"><i class="fa fa-angle-left"></i></span>
+                    <div class="Product-ServicesBtn mw-btn-row">
+                        <a href="payment-details.php<?php echo !empty($_SESSION['card_id_inprocess']) ? '?card_number=' . $_SESSION['card_id_inprocess'] : ''; ?>" class="btn btn-secondary align-left mw-btn mw-btn-back">
+                            <span class="left_angle angle mw-btn-angle"><i class="fa fa-angle-left" aria-hidden="true"></i></span>
                             <span>Back</span>
                         </a>
-                        <button type="submit" name="process3" class="btn btn-primary align-center save_btn">
-                            <img src="../../assets/images/Save.png" class="img-fluid" width="35px" alt=""> 
+                        <button type="submit" name="process3" class="btn btn-primary align-center save_btn mw-btn mw-btn-save">
+                            <img src="../../assets/images/Save.png" alt="" style="width:1.25rem;height:1.25rem;flex-shrink:0;">
                             <span>Save</span>
                         </button>
-                       
-                        <a href="../dashboard/" class="btn btn-secondary align-right">
+                        <a href="../dashboard/" class="btn btn-secondary align-right mw-btn mw-btn-next">
                             <span>Finish</span>
-                            <span class="right_angle angle"><i class="fa fa-angle-right"></i></span>
+                            <span class="right_angle angle mw-btn-angle"><i class="fa fa-angle-right" aria-hidden="true"></i></span>
                         </a>
                     </div>
                 </form>
@@ -153,191 +171,6 @@ include '../includes/header.php';
         </div>
     </div>
 </main>
-
-<style>
-     .submitBtnSection{
-        margin-top:100px;
-    }
-     footer{
-        margin-bottom:54px;
-    }
-    .savebutton span{
-        font-size:27px;
-    }
-    .savebutton{
-        display: flex !important;
-    margin: auto !important;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    }
-    
-    .Dashboard .heading,.Dashboard .heading2{
-        font-size:24px !important;
-    }
-    .Dashboard label{
-        font-size:22px !important;
-    }
-    .Dashboard input:focus{
-        outline:none;
-        box-shadow:none;
-    }
-
-    .Dashboard input{
-        padding: 15px;
-        height: 55px;
-        font-size:16px;
-    }
-    
-    .text-center button{
-        width:120px !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center;
-        gap:10px !important;
-        margin: auto !important;
-    }
-    .card-body form{
-        padding:0px 35px;
-    }
-    .card-body form label:not(.heading){
-        margin-left:5px;
-    }
-    .card-body .heading{
-        margin-top: 15px;
-    margin-left: 40px;
-    margin-bottom: 20px;
-    position:relative;
-    font-weight: 500;
-    }
-    .card-body .heading2{
-        margin-top: 30px;
-    
-    margin-bottom: 20px;
-    position:relative;
-    font-weight: 500;
-    }
-    .card-body .heading:after
-    {
-        content: '';
-    width: 175px;
-    height: 2px;
-    background: #ffb300;
-    position: absolute;
-    left: 3px;
-    bottom: 0px;
-    }
-    .card-body .heading2:after
-    {
-        content: '';
-    width: 175px;
-    height: 2px;
-    background: #ffb300;
-    position: absolute;
-    left: 3px;
-    bottom: 1px;
-    }
-    @media screen and (max-width: 768px) {
-        .card-body form {
-    padding: 0px 15px;
-}
-.card-body {
-    padding: 10px !important;
-    padding-bottom: 100px !important;
-}
-.card-body .heading {
-    margin-top: 15px;
-    margin-left: 20px;
-    margin-bottom: 20px;
-    position: relative;
-    font-weight: 500;
-}
-.submitBtnSection{
-        margin-top:45px;
-    }
-
-    .Dashboard .heading, .Dashboard .heading2 {
-    font-size: 22px !important;
-}
-.Dashboard label {
-    font-size: 20px !important;
-}
-#card_form img{
-    width: 22px;
-}
-
-    .Copyright-left,
-.Copyright-right{
-    padding:0px;
-}
-.Product-ServicesBtn{
-    width: 80% !important;
-    padding:0px !important;
-            margin-top: 40px !important;
-}
-.save_btn{
-    position: absolute;
-        bottom: 150px;
-        width: 145px !important;
-        left: 96px;
-        height: 36px;
-}
-    }
-
-    .Product-ServicesBtn{
-        padding: 0px 40px;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 30px;
-    }
-    .Product-ServicesBtn button,
-    .Product-ServicesBtn a{
-        display: flex !important;
-        color: #fff !important;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-    .Product-ServicesBtn button .angle,
-    .Product-ServicesBtn a .angle{
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #fff !important;
-        color:#000;
-        font-weight:bold;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .Product-ServicesBtn button span:not(.angle),
-    .Product-ServicesBtn a span:not(.angle){
-        font-weight:500;
-        font-size:16px;
-    }
-    .Product-ServicesBtn .align-center{
-        padding: 4px 10px;
-    }
-    .Product-ServicesBtn .align-center img{
-        width: 23px;
-    }
-    .Product-ServicesBtn .align-center span{
-        color:#000;
-    }
-
-    .Product-ServicesBtn  .btn{
-        line-height:24px !important;
-    }
-    .Product-ServicesBtn button {
-        padding: 7px !important;
-        margin-top: 22px !important;
-    }
-    .save_btn{
-    width: 115px !important;
-}
-
-</style>
 
 <?php include '../includes/footer.php'; ?>
 
