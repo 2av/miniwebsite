@@ -887,12 +887,9 @@ include '../includes/header.php';
                         <input type="hidden" name="processed_logo_data" id="processed_logo_data" value="">
                         <div class="upload-container cd-upload-block">
                         <div class="logo-placeholder" id="logoPreview" onclick="clickFocusLogo()">
-                            <?php if(!empty($cardRow['d_logo'])): ?>
-                                <img id="showPreviewLogo" src="data:image/*;base64,<?php echo base64_encode($cardRow['d_logo']); ?>" alt="Logo Preview">
-                            <?php else: ?>
-                                <span>YOUR LOGO</span>
-                                <img id="showPreviewLogo" style="display:none;">
-                            <?php endif; ?>
+                            <span id="logoPreviewPlaceholder"<?php echo !empty($cardRow['d_logo']) ? ' style="display:none;"' : ''; ?>>YOUR LOGO</span>
+                            <img id="showPreviewLogo"<?php echo empty($cardRow['d_logo']) ? ' style="display:none;"' : ''; ?> <?php if(!empty($cardRow['d_logo'])): ?>src="data:image/*;base64,<?php echo base64_encode($cardRow['d_logo']); ?>" alt="Logo Preview"<?php else: ?>src="" alt="Logo Preview"<?php endif; ?>>
+                            <div class="delImg<?php echo !empty($cardRow['d_logo']) ? ' is-visible' : ''; ?>" id="logoClearBtn" onclick="event.stopPropagation(); clearCompanyLogo();" title="Remove logo" aria-label="Remove logo"><i class="fa fa-times"></i></div>
                         </div>
                         
                         <p class="addlogo">Add your Logo</p>
@@ -910,12 +907,9 @@ include '../includes/header.php';
                         <input type="hidden" name="processed_hero_image_data" id="processed_hero_image_data" value="">
                         <div class="upload-container cd-upload-block">
                         <div class="logo-placeholder" id="heroImagePreview" onclick="clickFocusHero()">
-                            <?php if(!empty($cardRow['d_hero_image_location'])): ?>
-                                <img id="showPreviewHero" src="../../assets/upload/websites/company_details/<?php echo htmlspecialchars($cardRow['d_hero_image_location']); ?>" alt="Hero Image Preview">
-                            <?php else: ?>
-                                <span>YOUR HERO IMAGE</span>
-                                <img id="showPreviewHero" style="display:none;">
-                            <?php endif; ?>
+                            <span id="heroPreviewPlaceholder"<?php echo !empty($cardRow['d_hero_image_location']) ? ' style="display:none;"' : ''; ?>>YOUR HERO IMAGE</span>
+                            <img id="showPreviewHero"<?php echo empty($cardRow['d_hero_image_location']) ? ' style="display:none;"' : ''; ?> <?php if(!empty($cardRow['d_hero_image_location'])): ?>src="../../assets/upload/websites/company_details/<?php echo htmlspecialchars($cardRow['d_hero_image_location']); ?>" alt="Hero Image Preview"<?php else: ?>src="" alt="Hero Image Preview"<?php endif; ?>>
+                            <div class="delImg<?php echo !empty($cardRow['d_hero_image_location']) ? ' is-visible' : ''; ?>" id="heroClearBtn" onclick="event.stopPropagation(); clearCompanyHeroImage();" title="Remove hero image" aria-label="Remove hero image"><i class="fa fa-times"></i></div>
                         </div>
                         <div class="file-info">Size: 1200×600px</div>
                         
@@ -1247,14 +1241,7 @@ include '../includes/header.php';
                                     </div>
                                     <?php endforeach; ?>
                                     <p class="bh-tz-note text-muted small mt-3 mb-4">Note: Time is set in your local time zone.</p>
-                                    <div class="bh-quick-tips">
-                                        <strong class="d-block mb-2">Quick Tips</strong>
-                                        <ul class="bh-tip-list list-unstyled mb-0">
-                                            <li><span class="bh-tip-icon"><i class="fa fa-check"></i></span> Set your correct working hours to avoid unnecessary calls.</li>
-                                            <li><span class="bh-tip-icon"><i class="fa fa-check"></i></span> Timings will be shown to customers in your local time.</li>
-                                            <li><span class="bh-tip-icon"><i class="fa fa-check"></i></span> Add special holidays to keep your customers informed.</li>
-                                        </ul>
-                                    </div>
+                                     
                                     <input type="hidden" name="business_hours_json" id="business_hours_json" value="<?php echo htmlspecialchars($bh_json_initial, ENT_QUOTES, 'UTF-8'); ?>">
                                 </div>
                             </div>
@@ -1303,13 +1290,17 @@ include '../includes/header.php';
                     method: 'base64',
                     hiddenField: '#processed_logo_data',
                     previewSelector: '#showPreviewLogo',
-                    spanSelector: '#logoPreview span',
+                    spanSelector: '#logoPreviewPlaceholder',
                     title: 'Adjust & Crop Logo',
                     outputFormat: 'png',
                     aspectRatio: 1,
                     cropWidth: 600,
                     cropHeight: 600,
-                    onSuccess: function() {},
+                    onSuccess: function() {
+                        var img = document.getElementById('showPreviewLogo');
+                        if (img) img.style.display = '';
+                        if (typeof mwShowUploadClear === 'function') mwShowUploadClear('#logoClearBtn');
+                    },
                     onError: function(msg) {
                         if (window.MwModal && window.MwModal.alert) window.MwModal.alert({ title: 'Logo', message: msg });
                         else alert(msg);
@@ -1327,13 +1318,17 @@ include '../includes/header.php';
                     method: 'base64',
                     hiddenField: '#processed_hero_image_data',
                     previewSelector: '#showPreviewHero',
-                    spanSelector: '#heroImagePreview span',
+                    spanSelector: '#heroPreviewPlaceholder',
                     title: 'Adjust & Crop Hero Image (1200×600)',
                     outputFormat: 'jpeg',
                     aspectRatio: 2,
                     cropWidth: 1200,
                     cropHeight: 600,
-                    onSuccess: function() {},
+                    onSuccess: function() {
+                        var img = document.getElementById('showPreviewHero');
+                        if (img) img.style.display = '';
+                        if (typeof mwShowUploadClear === 'function') mwShowUploadClear('#heroClearBtn');
+                    },
                     onError: function(msg) {
                         if (window.MwModal && window.MwModal.alert) window.MwModal.alert({ title: 'Hero Image', message: msg });
                         else alert(msg);
@@ -1349,6 +1344,34 @@ include '../includes/header.php';
     }
     window.clickFocusLogo = function() { if (window.jQuery) window.jQuery('#clickMeImage').click(); };
     window.clickFocusHero = function() { if (window.jQuery) window.jQuery('#clickMeImageHero').click(); };
+
+    window.clearCompanyLogo = function() {
+        if (typeof mwClearUploadedImage !== 'function') return;
+        mwClearUploadedImage({
+            fileInput: '#clickMeImage',
+            hiddenField: '#processed_logo_data',
+            previewImg: '#showPreviewLogo',
+            clearBtn: '#logoClearBtn',
+            hidePreview: true,
+            placeholderEl: '#logoPreviewPlaceholder',
+            fileNameEl: '#fileName',
+            emptyFileName: 'No File Chosen'
+        });
+    };
+
+    window.clearCompanyHeroImage = function() {
+        if (typeof mwClearUploadedImage !== 'function') return;
+        mwClearUploadedImage({
+            fileInput: '#clickMeImageHero',
+            hiddenField: '#processed_hero_image_data',
+            previewImg: '#showPreviewHero',
+            clearBtn: '#heroClearBtn',
+            hidePreview: true,
+            placeholderEl: '#heroPreviewPlaceholder',
+            fileNameEl: '#fileNameHero',
+            emptyFileName: 'No File Chosen'
+        });
+    };
 })();
 </script>
 
@@ -1511,11 +1534,17 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
         setFieldLocked(sel, locked, { requiredWhenUnlocked: sel === primaryEl });
     }
 
-    function fillBusinessSelect(sel, categories, selectedId, placeholder) {
+    function fillBusinessSelect(sel, categories, selectedId, placeholder, excludeId) {
         resetSelect(sel, placeholder, false);
         let currentGroup = null;
         let og = null;
+        const selectedStr = selectedId ? String(selectedId) : '';
+        const excludeStr = excludeId ? String(excludeId) : '';
         categories.forEach(function(c) {
+            const idStr = String(c.id);
+            if (sel === secondaryEl && excludeStr && idStr === excludeStr) {
+                return;
+            }
             if (c.group && c.group !== currentGroup) {
                 if (og) sel.appendChild(og);
                 og = document.createElement('optgroup');
@@ -1523,14 +1552,36 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
                 currentGroup = c.group;
             }
             const opt = document.createElement('option');
-            opt.value = String(c.id);
+            opt.value = idStr;
             opt.textContent = c.label;
-            if (selectedId && String(selectedId) === String(c.id)) opt.selected = true;
+            if (selectedStr && selectedStr === idStr) opt.selected = true;
             if (og) og.appendChild(opt);
             else sel.appendChild(opt);
         });
         if (og) sel.appendChild(og);
         setFieldLocked(sel, false, { requiredWhenUnlocked: sel === primaryEl });
+    }
+
+    async function populateBusinessCategoryDropdowns(preservePrimary, preserveSecondary, opts) {
+        opts = opts || {};
+        const profileType = profileEl.value.trim();
+        const opArea = opAreaEl.value.trim();
+        if (!profileType || !modelEl.value.trim() || !opArea) {
+            lockCategories();
+            return;
+        }
+        const categories = await fetchBusinessCategories(profileType);
+        let primaryId = preservePrimary != null && preservePrimary !== '' ? String(preservePrimary) : primaryEl.value;
+        let secondaryId = preserveSecondary != null && preserveSecondary !== '' ? String(preserveSecondary) : secondaryEl.value;
+        if (secondaryId && primaryId && secondaryId === primaryId) {
+            secondaryId = '';
+        }
+        fillBusinessSelect(primaryEl, categories, primaryId, '-- Select Primary Category --');
+        fillBusinessSelect(secondaryEl, categories, secondaryId, '-- Select Secondary Category (Optional) --', primaryId);
+        setCategoryButtonsLocked(false);
+        if (!opts.skipProductRefresh) {
+            await refreshProductCategories();
+        }
     }
 
     async function fetchBusinessCategories(profileType) {
@@ -1582,22 +1633,26 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
         lockOperationArea();
     }
 
-    async function onOperationAreaChange() {
+    async function onOperationAreaChange(ev) {
         const profileType = profileEl.value.trim();
         const opArea = opAreaEl.value.trim();
         if (!profileType || !modelEl.value.trim() || !opArea) {
+            lastOperationArea = '';
             lockCategories();
             return;
         }
-        const categories = await fetchBusinessCategories(profileType);
-        fillBusinessSelect(primaryEl, categories, '', '-- Select Primary Category --');
-        fillBusinessSelect(secondaryEl, categories, '', '-- Select Secondary Category (Optional) --');
-        setCategoryButtonsLocked(false);
-        if (productJsonEl) productJsonEl.value = '';
+        const userTriggered = !!(ev && ev.isTrusted);
+        const opAreaChanged = userTriggered && lastOperationArea !== '' && lastOperationArea !== opArea;
+        lastOperationArea = opArea;
+        const keepPrimary = opAreaChanged ? '' : primaryEl.value;
+        const keepSecondary = opAreaChanged ? '' : secondaryEl.value;
+        await populateBusinessCategoryDropdowns(keepPrimary, keepSecondary, opAreaChanged ? {} : { skipProductRefresh: false });
+        if (opAreaChanged && productJsonEl) productJsonEl.value = '';
     }
 
     let lastProfileType = INIT.profile_type || '';
     let lastBusinessModel = INIT.business_model || '';
+    let lastOperationArea = INIT.operation_area || '';
 
     function onBusinessModelChange() {
         const model = modelEl.value.trim();
@@ -1650,7 +1705,25 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
     profileEl.addEventListener('change', onProfileTypeChange);
     modelEl.addEventListener('change', onBusinessModelChange);
     opAreaEl.addEventListener('change', onOperationAreaChange);
-    primaryEl.addEventListener('change', refreshProductCategories);
+    primaryEl.addEventListener('change', async function() {
+        if (secondaryEl.value && secondaryEl.value === primaryEl.value) {
+            secondaryEl.value = '';
+        }
+        const profileType = profileEl.value.trim();
+        if (!profileType) {
+            await refreshProductCategories();
+            return;
+        }
+        const categories = await fetchBusinessCategories(profileType);
+        fillBusinessSelect(
+            secondaryEl,
+            categories,
+            secondaryEl.value,
+            '-- Select Secondary Category (Optional) --',
+            primaryEl.value
+        );
+        await refreshProductCategories();
+    });
     secondaryEl.addEventListener('change', refreshProductCategories);
 
     const cardForm = document.getElementById('card_form');
@@ -1675,18 +1748,9 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
         if (!profileType || !modelEl.value.trim() || !opArea) {
             return;
         }
-        const categories = await fetchBusinessCategories(profileType);
-        const prevPrimary = selectCategoryId ? String(selectCategoryId) : primaryEl.value;
-        const prevSecondary = secondaryEl.value;
-        fillBusinessSelect(primaryEl, categories, prevPrimary, '-- Select Primary Category --');
-        fillBusinessSelect(secondaryEl, categories, prevSecondary, '-- Select Secondary Category (Optional) --');
-        setCategoryButtonsLocked(false);
-        if (selectCategoryId) {
-            primaryEl.value = String(selectCategoryId);
-            primaryEl.dispatchEvent(new Event('change', { bubbles: true }));
-        } else {
-            await refreshProductCategories();
-        }
+        const preservePrimary = selectCategoryId ? String(selectCategoryId) : primaryEl.value;
+        const preserveSecondary = secondaryEl.value;
+        await populateBusinessCategoryDropdowns(preservePrimary, preserveSecondary);
     }
 
     window.MW_refreshBusinessCategoryDropdowns = refreshBusinessCategoryDropdowns;
@@ -1701,13 +1765,8 @@ window.MW_CATEGORY_CASCADE_INIT = <?php echo json_encode($category_cascade_init,
             setPlaceholderOption(opAreaEl, '-- Select Operation Area --');
             if (INIT.operation_area) {
                 opAreaEl.value = INIT.operation_area;
-                opAreaEl.dispatchEvent(new Event('change', { bubbles: true }));
-                fetchBusinessCategories(INIT.profile_type).then(function(categories) {
-                    fillBusinessSelect(primaryEl, categories, INIT.primary_id || '', '-- Select Primary Category --');
-                    fillBusinessSelect(secondaryEl, categories, INIT.secondary_id || '', '-- Select Secondary Category (Optional) --');
-                    setCategoryButtonsLocked(false);
-                    refreshProductCategories();
-                });
+                lastOperationArea = INIT.operation_area;
+                populateBusinessCategoryDropdowns(INIT.primary_id || '', INIT.secondary_id || '');
             }
         }
     }
@@ -2669,6 +2728,7 @@ padding-bottom:0px;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 #heroImagePreview.logo-placeholder {
     width: 90%;

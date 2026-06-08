@@ -223,42 +223,47 @@
                     return;
                 }
 
-                if (currentOptions.method === 'base64') {
-                    var outputFormat = (currentOptions.outputFormat || 'jpeg').toLowerCase();
+                // Capture callbacks before close — mw-modal:closed runs destroyCropper() which clears currentOptions.
+                var opts = currentOptions;
+                var onSuccessCb = opts.onSuccess;
+                var onErrorCb = opts.onError;
+
+                if (opts.method === 'base64') {
+                    var outputFormat = (opts.outputFormat || 'jpeg').toLowerCase();
                     var mime = outputFormat === 'png' ? 'image/png' : 'image/jpeg';
                     var quality = outputFormat === 'png' ? undefined : 0.95;
                     var dataUrl = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
                     var base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
-                    setFieldValue(currentOptions.hiddenField, base64);
-                    var previewEl = currentOptions.previewSelector
-                        ? document.querySelector(currentOptions.previewSelector)
+                    setFieldValue(opts.hiddenField, base64);
+                    var previewEl = opts.previewSelector
+                        ? document.querySelector(opts.previewSelector)
                         : null;
                     if (previewEl) {
                         previewEl.setAttribute('src', dataUrl);
                         previewEl.style.display = '';
                     }
-                    if (currentOptions.spanSelector) {
-                        var spanEl = document.querySelector(currentOptions.spanSelector);
+                    if (opts.spanSelector) {
+                        var spanEl = document.querySelector(opts.spanSelector);
                         if (spanEl) spanEl.style.display = 'none';
                     }
                     closeCropModal();
-                    if (currentOptions.onSuccess) currentOptions.onSuccess(base64);
+                    if (onSuccessCb) onSuccessCb(base64);
                     return;
                 }
 
-                if (currentOptions.method === 'upload' && currentOptions.uploadUrl) {
+                if (opts.method === 'upload' && opts.uploadUrl) {
                     canvas.toBlob(function(blob) {
                         if (!blob) {
-                            if (currentOptions.onError) currentOptions.onError('Failed to process image.');
+                            if (onErrorCb) onErrorCb('Failed to process image.');
                             return;
                         }
                         var formData = new FormData();
-                        var fieldName = currentOptions.uploadFieldName || 'image';
+                        var fieldName = opts.uploadFieldName || 'image';
                         var fileName = (currentFile && currentFile.name) ? currentFile.name : 'cropped.png';
                         formData.append(fieldName, blob, fileName);
 
                         var loading = null;
-                        if (currentOptions.showLoading) {
+                        if (opts.showLoading) {
                             loading = document.createElement('div');
                             loading.className = 'alert alert-info';
                             loading.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;';
@@ -267,18 +272,18 @@
                         }
 
                         var xhr = new XMLHttpRequest();
-                        xhr.open('POST', currentOptions.uploadUrl, true);
-                        xhr.timeout = currentOptions.timeout || 30000;
+                        xhr.open('POST', opts.uploadUrl, true);
+                        xhr.timeout = opts.timeout || 30000;
                         xhr.onload = function() {
                             if (loading) loading.remove();
                             var response = null;
                             try { response = JSON.parse(xhr.responseText); } catch (e) {}
                             if (xhr.status >= 200 && xhr.status < 300) {
                                 closeCropModal();
-                                if (currentOptions.onSuccess) currentOptions.onSuccess(response);
+                                if (onSuccessCb) onSuccessCb(response);
                             } else {
                                 var msg = (response && response.message) ? response.message : 'Upload failed. Please try again.';
-                                if (currentOptions.onError) currentOptions.onError(msg);
+                                if (onErrorCb) onErrorCb(msg);
                                 else if (window.MwModal && window.MwModal.alert) window.MwModal.alert({ title: 'Upload failed', message: msg });
                                 else alert(msg);
                             }
@@ -286,7 +291,7 @@
                         xhr.onerror = function() {
                             if (loading) loading.remove();
                             var msg = 'Upload failed. Please try again.';
-                            if (currentOptions.onError) currentOptions.onError(msg);
+                            if (onErrorCb) onErrorCb(msg);
                             else alert(msg);
                         };
                         xhr.send(formData);

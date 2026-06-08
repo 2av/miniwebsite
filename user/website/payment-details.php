@@ -615,7 +615,6 @@ function readURL10(input){
 
         // Use common ImageCropUpload cropper when available
         if (typeof ImageCropUpload !== 'undefined') {
-            alert('[PAYTM] File OK. Opening crop. Size=' + file.size + ' bytes, type=' + file.type);
             var fileName = file.name;
             var maxLength = 25;
             if (fileName.length > maxLength) {
@@ -631,10 +630,6 @@ function readURL10(input){
                 previewSelector: '#showPreviewLogo10',
                 spanSelector: '#paytmPreview small',
                 title: 'Adjust & Crop Paytm QR',
-                onSuccess: function(){
-                    var len = $('#processed_qr_paytm_data').val().length;
-                    alert('[PAYTM] Crop saved. Hidden length=' + len);
-                },
                 onError: function(msg){ alert(msg); }
             });
 
@@ -738,7 +733,6 @@ function readURL3(input){
 
         // Use common ImageCropUpload cropper when available
         if (typeof ImageCropUpload !== 'undefined') {
-            alert('[GPAY] File OK. Opening crop. Size=' + file.size + ' bytes, type=' + file.type);
             var fileName = file.name;
             var maxLength = 25;
             if (fileName.length > maxLength) {
@@ -754,10 +748,6 @@ function readURL3(input){
                 previewSelector: '#showPreviewLogo3',
                 spanSelector: '#gpayPreview small',
                 title: 'Adjust & Crop Google Pay QR',
-                onSuccess: function(){
-                    var len = $('#processed_qr_google_pay_data').val().length;
-                    alert('[GPAY] Crop saved. Hidden length=' + len);
-                },
                 onError: function(msg){ alert(msg); }
             });
 

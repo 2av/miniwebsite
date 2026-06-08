@@ -868,6 +868,7 @@ ob_start();
                                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
                                  alt="Offer Image" 
                                  style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                            <div class="delImg" id="modal_offer_image_clear" onclick="event.stopPropagation(); clearOfferModalImage();" title="Remove image" aria-label="Remove image"><i class="fa fa-times"></i></div>
                         </div>
                         <input type="file" id="modal_offer_image" onchange="handleOfferImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_offer_image').click()">Choose Image</button>
@@ -1130,6 +1131,29 @@ var EDITABLE_BADGE_PRESETS = [
 
 var OFFER_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
 
+function clearOfferModalImage() {
+    if (typeof mwClearUploadedImage !== 'function') return;
+    mwClearUploadedImage({
+        processedKey: 'processedOfferImageData',
+        fileInput: '#modal_offer_image',
+        previewImg: '#modal_offer_image_preview',
+        placeholderSrc: OFFER_MODAL_PLACEHOLDER_IMG,
+        clearBtn: '#modal_offer_image_clear',
+        previewWrap: '.offer-image-preview-modal',
+        resetWrapStyle: { border: '2px dashed #ddd' },
+        resetImgStyle: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
+    });
+}
+
+function syncOfferModalClearBtn(src) {
+    if (typeof mwShowUploadClear !== 'function' || typeof mwHideUploadClear !== 'function') return;
+    if (src && src.indexOf('data:image/svg+xml') !== 0 && src.indexOf('Click to Upload') === -1) {
+        mwShowUploadClear('#modal_offer_image_clear');
+    } else {
+        mwHideUploadClear('#modal_offer_image_clear');
+    }
+}
+
 function setOfferModalMode(isEdit) {
     var titleEl = document.getElementById('offerModalTitle');
     var saveBtn = document.getElementById('offerModalSubmitBtn');
@@ -1302,11 +1326,7 @@ function openOfferModal() {
     });
     
     var imgPreview = document.getElementById('modal_offer_image_preview');
-    if(imgPreview) {
-        imgPreview.src = OFFER_MODAL_PLACEHOLDER_IMG;
-    }
-    var wrapper = document.querySelector('.offer-image-preview-modal');
-    if(wrapper) wrapper.style.border = '2px dashed #ddd';
+    clearOfferModalImage();
     
     updateCharCount();
     updateBadgeCharCount();
@@ -1370,8 +1390,9 @@ function editOffer(offerId, offerTitle, offerBadge, offerDiscount, offerDescript
         var img = row.querySelector('img');
         if(img && img.src) {
             imgPreview.src = img.src;
+            syncOfferModalClearBtn(img.src);
         } else {
-            imgPreview.src = OFFER_MODAL_PLACEHOLDER_IMG;
+            clearOfferModalImage();
         }
     }
     
@@ -1425,6 +1446,7 @@ function handleOfferImageUpload(input) {
                     imgPreview.style.display = 'block';
                     var wrapper = imgPreview.closest('.offer-image-preview-modal');
                     if(wrapper) wrapper.style.border = '2px solid #28a745';
+                    syncOfferModalClearBtn(previewDataUri);
                 }
             };
             

@@ -814,6 +814,7 @@ ob_start();
                                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+" 
                                  alt="Product Image" 
                                  style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                            <div class="delImg" id="modal_product_image_clear" onclick="event.stopPropagation(); clearServiceModalImage();" title="Remove image" aria-label="Remove image"><i class="fa fa-times"></i></div>
                         </div>
                         <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
@@ -821,7 +822,8 @@ ob_start();
                     <div class="form-group">
                         <label for="modal_service_name_select">Service name <span class="text-danger">*</span></label>
                         <small class="form-text text-muted d-block mb-1">Same category list as Products. Selected category name will be saved as service name.</small>
-                        <select class="form-control" id="modal_service_name_select" name="modal_service_name_select">
+                        <div style="display: flex; gap: 10px; align-items: stretch;">
+                        <select class="form-control" id="modal_service_name_select" name="modal_service_name_select" style="flex: 1;">
                             <option value="">Select service name</option>
                             <?php
                             // Same product category source as products.php (flat + legacy via helper).
@@ -876,6 +878,10 @@ ob_start();
                             }
                             ?>
                         </select>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomServiceCategoryModal()" style="min-width: 40px; padding: 0;" title="Add Custom Service Name" aria-label="Add Custom Service Name">
+                            <i class="fa fa-plus" aria-hidden="true"></i>
+                        </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="modal_product_description">Service Description</label>
@@ -897,8 +903,33 @@ mw_modal_render([
     'body'     => $product_modal_body,
     'footer'   => mw_modal_footer([
         ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
-        ['label' => 'Add Service', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="productModalSaveBtn"'],
+        ['label' => 'Add Service', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="productModalSaveBtn" onclick="addProductToForm(); return false;"'],
     ]),
+    'hidden'   => true,
+]);
+
+$custom_service_category_body = '<form id="customServiceCategoryForm" class="mw-form">'
+    . '<div class="form-group mb-3">'
+    . '<label for="custom_service_category_name" class="form-label">Service Name <span class="text-danger">*</span></label>'
+    . '<input type="text" class="form-control" id="custom_service_category_name" placeholder="Enter service name (max 30)" maxlength="30" required>'
+    . '<small class="form-text text-muted">Max 30 characters. This name will only be visible to you.</small>'
+    . '</div>'
+    . '<div id="customServiceCategoryError" class="alert alert-danger mw-alert mw-alert-danger" style="display: none;" role="alert"></div>'
+    . '<div id="customServiceCategorySuccess" class="alert alert-success mw-alert mw-alert-success" style="display: none;" role="alert"></div>'
+    . '</form>';
+
+mw_modal_render([
+    'id'       => 'customServiceCategoryModal',
+    'size'     => 'sm',
+    'title'    => 'Add Custom Service Name',
+    'subtitle' => 'Create a service name only you can see',
+    'icon'     => 'fa-plus-circle',
+    'body'     => $custom_service_category_body,
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Name', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="customServiceCategorySaveBtn"'],
+    ]),
+    'static'   => true,
     'hidden'   => true,
 ]);
 ?>
@@ -906,6 +937,10 @@ mw_modal_render([
 <script>
 var currentProductId = null;
 var productImageFiles = {};
+var processedProductImageData = null;
+var addProductSubmitting = false;
+var MAX_SERVICES = 10;
+var PRODUCT_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
 
 // Update character count display (max 400 characters) - updates live while typing
 function updateCharCount() {
@@ -919,17 +954,23 @@ function updateCharCount() {
     }
 }
 
-// Bind character count - inline oninput/onpaste/onkeyup on textarea for reliable live updates
-// Also bind via jQuery when DOM ready (fallback)
-$(document).ready(function() {
-    $('#modal_product_description').on('input paste keyup', updateCharCount);
+// Bind after DOM ready — do not use jQuery here; this script runs before footer loads jQuery.
+document.addEventListener('DOMContentLoaded', function() {
+    var textarea = document.getElementById('modal_product_description');
+    if (textarea) {
+        textarea.addEventListener('input', updateCharCount);
+        textarea.addEventListener('paste', updateCharCount);
+        textarea.addEventListener('keyup', updateCharCount);
+    }
     var saveBtn = document.getElementById('productModalSaveBtn');
     if (saveBtn) {
         saveBtn.addEventListener('click', addProductToForm);
     }
+    var customSvcSaveBtn = document.getElementById('customServiceCategorySaveBtn');
+    if (customSvcSaveBtn) {
+        customSvcSaveBtn.addEventListener('click', saveCustomServiceCategory);
+    }
 });
-
-var PRODUCT_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIxMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
 
 function setProductModalMode(isEdit) {
     var titleEl = document.getElementById('productModalTitle');
@@ -949,13 +990,40 @@ function showProductModal() {
 }
 
 function resetProductModalForm() {
+    addProductSubmitting = false;
     $('#modal_product_number').val('');
     $('#modal_service_name_select').val('');
     $('#modal_product_description').val('');
-    $('#modal_product_image').val('');
-    $('#modal_product_image_preview').attr('src', PRODUCT_MODAL_PLACEHOLDER_IMG);
-    $('.product-image-preview-modal').css('border', '2px dashed #ddd');
+    clearServiceModalImage();
     updateCharCount();
+}
+
+function clearServiceModalImage() {
+    if (typeof mwClearUploadedImage !== 'function') return;
+    mwClearUploadedImage({
+        processedKey: 'processedProductImageData',
+        fileInput: '#modal_product_image',
+        previewImg: '#modal_product_image_preview',
+        placeholderSrc: PRODUCT_MODAL_PLACEHOLDER_IMG,
+        clearBtn: '#modal_product_image_clear',
+        previewWrap: '#productModal .product-image-preview-modal',
+        resetWrapStyle: { border: '2px dashed #ddd' },
+        resetImgStyle: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
+    });
+}
+
+function serviceModalHasCustomImage(src) {
+    if (!src) return false;
+    return src.indexOf('data:image/svg+xml') !== 0 && src.indexOf('Click to Upload') === -1;
+}
+
+function syncServiceModalClearBtn(src) {
+    if (typeof mwShowUploadClear !== 'function' || typeof mwHideUploadClear !== 'function') return;
+    if (serviceModalHasCustomImage(src)) {
+        mwShowUploadClear('#modal_product_image_clear');
+    } else {
+        mwHideUploadClear('#modal_product_image_clear');
+    }
 }
 
 // Open product modal
@@ -997,6 +1065,7 @@ function editProductFromRow(editLink) {
 // Edit product
 function editProduct(productId, productName, productImageData, productDescription, categoryVal) {
     currentProductId = productId;
+    addProductSubmitting = false;
     processedProductImageData = null; // Reset processed image data
     $('#modal_product_number').val(productId);
     $('#modal_product_description').val(productDescription || '');
@@ -1016,9 +1085,10 @@ function editProduct(productId, productName, productImageData, productDescriptio
             // It's base64 data
             $('#modal_product_image_preview').attr('src', 'data:image/*;base64,' + productImageData);
         }
+        $('#modal_product_image_preview').closest('.product-image-preview-modal').css('border', '2px solid #28a745');
+        syncServiceModalClearBtn($('#modal_product_image_preview').attr('src'));
     } else {
-        $('#modal_product_image_preview').attr('src', PRODUCT_MODAL_PLACEHOLDER_IMG);
-        $('.product-image-preview-modal').css('border', '2px dashed #ddd');
+        clearServiceModalImage();
     }
 
     setProductModalMode(true);
@@ -1027,10 +1097,6 @@ function editProduct(productId, productName, productImageData, productDescriptio
     showProductModal();
 }
 
-// Store processed image data for form submission
-var processedProductImageData = null;
-
-// Handle product image upload - use common ImageCropUpload modal
 function handleProductImageUpload(input) {
     if(input.files && input.files[0]) {
         var file = input.files[0];
@@ -1062,20 +1128,10 @@ function handleProductImageUpload(input) {
         
         // Use common ImageCropUpload modal (from common/image_upload_crop_modal.php)
         if (typeof ImageCropUpload !== 'undefined') {
-            // Set up the success callback before opening the modal
             window.productImageCropCallback = function(base64Data) {
-                // base64Data from ImageCropUpload is already clean (no data URI prefix)
-                // Store it for form submission
                 processedProductImageData = base64Data;
-                
-                // Build the data URI for preview display
                 var previewDataUri = 'data:image/jpeg;base64,' + base64Data;
-                console.log('Image crop successful, stored base64 data');
-                
-                // Update preview image with the cropped image
                 $('#modal_product_image_preview').attr('src', previewDataUri);
-                
-                // Add visual feedback with green border (4:3 ratio display)
                 $('#modal_product_image_preview').css({
                     'width': '100%',
                     'height': '100%',
@@ -1083,19 +1139,19 @@ function handleProductImageUpload(input) {
                     'display': 'block'
                 });
                 $('#modal_product_image_preview').closest('.product-image-preview-modal').css('border', '2px solid #28a745');
+                syncServiceModalClearBtn(previewDataUri);
             };
             
             ImageCropUpload.open(file, {
                 method: 'base64',
-                hiddenField: null,  // We'll handle the base64 data in onSuccess
-                previewSelector: null,  // Don't auto-update preview
+                hiddenField: null,
+                previewSelector: null,
                 spanSelector: null,
                 title: 'Adjust & Crop Service Image (4:3 ratio)',
                 aspectRatio: 4/3,
                 cropWidth: 1200,
                 cropHeight: 900,
                 onSuccess: function(base64Data) {
-                    // Call our custom callback
                     if (window.productImageCropCallback) {
                         window.productImageCropCallback(base64Data);
                     }
@@ -1117,10 +1173,6 @@ function handleProductImageUpload(input) {
         }
     }
 }
-
-// Add product to form and save immediately (with double-submit prevention)
-var addProductSubmitting = false;
-var MAX_SERVICES = 10;
 
 function updateAddButtonState() {
     var btn = document.getElementById('addServiceBtn');
@@ -1199,12 +1251,12 @@ function addProductToForm() {
             return;
         }
     }
-    addProductSubmitting = true;
-    
     var productDescription = $('#modal_product_description').val().trim();
     if(productDescription.length > 400) {
         productDescription = productDescription.substring(0, 400);
     }
+    
+    addProductSubmitting = true;
     
     // Create FormData for AJAX submission
     var formData = new FormData();
@@ -1239,8 +1291,6 @@ function addProductToForm() {
     var loadingMsg = '<div class="alert alert-info">Saving service...</div>';
     $('#status_remove_img').html(loadingMsg);
     
-    // Get image preview first (before AJAX)
-    var imagePreview = '';
     var updateTableCallback = function() {
         // Submit via AJAX
         $.ajax({
@@ -1294,35 +1344,30 @@ function addProductToForm() {
         });
     };
     
-    // Use processed image if available, otherwise use file preview
-    if(processedProductImageData) {
-        // processedProductImageData is already clean base64 from ImageCropUpload
-        imagePreview = '<img src="data:image/jpeg;base64,' + processedProductImageData + '" class="img-fluid" width="100px" alt="">';
-        updateTableCallback();
-    } else {
-        var imageFile = document.getElementById('modal_product_image').files[0];
-        if(imageFile) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                // For unprocessed files, show a preview
-                imagePreview = '<img src="' + e.target.result + '" class="img-fluid" width="100px" alt="">';
-                updateTableCallback();
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            // No new image selected - use existing image from modal preview
-            var previewSrc = $('#modal_product_image_preview').attr('src');
-            if(previewSrc && previewSrc !== '') {
-                imagePreview = '<img src="' + previewSrc + '" class="img-fluid" width="100px" alt="">';
-            } else {
-                imagePreview = '<span class="text-muted">No Image</span>';
-            }
+    try {
+        // Avoid duplicating large base64 strings in memory (matches products.php)
+        if(processedProductImageData) {
             updateTableCallback();
+        } else {
+            var imageFile = document.getElementById('modal_product_image').files[0];
+            if(imageFile) {
+                var reader = new FileReader();
+                reader.onload = function() { updateTableCallback(); };
+                reader.onerror = function() {
+                    addProductSubmitting = false;
+                    $('#status_remove_img').html('<div class="alert alert-danger">Could not read image file. Please try again.</div>');
+                };
+                reader.readAsDataURL(imageFile);
+            } else {
+                updateTableCallback();
+            }
         }
+        closeProductModal();
+    } catch (e) {
+        addProductSubmitting = false;
+        console.error('addProductToForm error:', e);
+        $('#status_remove_img').html('<div class="alert alert-danger">Could not save service. Please try again.</div>');
     }
-    
-    // Close modal immediately
-    closeProductModal();
 }
 
 // Save products - just show success message (no redirect)
@@ -1399,6 +1444,123 @@ function closeProductModal() {
         currentProductId = null;
     });
 })();
+
+function openCustomServiceCategoryModal() {
+    var nameField = document.getElementById('custom_service_category_name');
+    if (nameField) nameField.value = '';
+    var errorElement = document.getElementById('customServiceCategoryError');
+    var successElement = document.getElementById('customServiceCategorySuccess');
+    if (errorElement) errorElement.style.display = 'none';
+    if (successElement) successElement.style.display = 'none';
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('customServiceCategoryModal');
+        if (nameField) setTimeout(function() { nameField.focus(); }, 150);
+    }
+}
+
+function closeCustomServiceCategoryModal() {
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('customServiceCategoryModal');
+    }
+}
+
+function addCustomServiceNameToSelect(categoryId, categoryName) {
+    var sel = document.getElementById('modal_service_name_select');
+    if (!sel || categoryId == null || categoryId === '') return;
+    var catVal = 'c_' + String(parseInt(categoryId, 10));
+    var name = String(categoryName || '').replace(/^\[Custom\]\s*/i, '').trim();
+    if (!name) return;
+    var payload = JSON.stringify({ c: catVal, n: name });
+    var i;
+    for (i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === payload) {
+            sel.selectedIndex = i;
+            return;
+        }
+    }
+    var optgroup = null;
+    for (i = 0; i < sel.children.length; i++) {
+        var node = sel.children[i];
+        if (node.tagName === 'OPTGROUP' && node.label === 'My Custom Categories') {
+            optgroup = node;
+            break;
+        }
+    }
+    if (!optgroup) {
+        optgroup = document.createElement('optgroup');
+        optgroup.label = 'My Custom Categories';
+        sel.appendChild(optgroup);
+    }
+    var opt = document.createElement('option');
+    opt.value = payload;
+    opt.textContent = '[Custom] ' + name;
+    optgroup.appendChild(opt);
+    sel.value = payload;
+}
+
+function saveCustomServiceCategory() {
+    var nameField = document.getElementById('custom_service_category_name');
+    var categoryName = nameField ? nameField.value.trim() : '';
+    var errorElement = document.getElementById('customServiceCategoryError');
+    var successElement = document.getElementById('customServiceCategorySuccess');
+    if (!categoryName) {
+        if (errorElement) {
+            errorElement.textContent = 'Service name is required.';
+            errorElement.style.display = 'block';
+        }
+        return;
+    }
+    if (categoryName.length > 30) {
+        if (errorElement) {
+            errorElement.textContent = 'Service name must be 30 characters or less.';
+            errorElement.style.display = 'block';
+        }
+        return;
+    }
+    if (errorElement) errorElement.style.display = 'none';
+    if (successElement) {
+        successElement.textContent = 'Creating service name...';
+        successElement.style.display = 'block';
+    }
+    var formData = new FormData();
+    formData.append('category_name', categoryName);
+    formData.append('category_type', 'product-category');
+    fetch('../../user/ajax/custom_categories.php?action=create', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(response) {
+        if (!response.ok) throw new Error('HTTP error, status = ' + response.status);
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            if (successElement) {
+                successElement.textContent = 'Service name added.';
+                successElement.style.display = 'block';
+            }
+            if (errorElement) errorElement.style.display = 'none';
+            addCustomServiceNameToSelect(data.category_id, data.category_name || categoryName);
+            if (nameField) nameField.value = '';
+            setTimeout(function() {
+                closeCustomServiceCategoryModal();
+                if (successElement) successElement.style.display = 'none';
+            }, 500);
+        } else if (errorElement) {
+            errorElement.textContent = data.message || 'Error creating service name.';
+            errorElement.style.display = 'block';
+            if (successElement) successElement.style.display = 'none';
+        }
+    })
+    .catch(function() {
+        if (errorElement) {
+            errorElement.textContent = 'Network error. Please check your connection and try again.';
+            errorElement.style.display = 'block';
+        }
+        if (successElement) successElement.style.display = 'none';
+    });
+}
 </script>
 
 <style>
@@ -1644,6 +1806,8 @@ background-color: #ffbe17a6;
     #productModal .sv-product-modal-form #modal_service_name_select {
         appearance: none;
         -webkit-appearance: none;
+        flex: 1;
+        min-width: 0;
         background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a94a6' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
         background-repeat: no-repeat;
         background-position: right 0.65rem center;

@@ -897,6 +897,7 @@ ob_start();
                                  alt="Product Image" 
                                  onclick="document.getElementById('modal_product_image').click()" 
                                  style="max-width: 200px; width: auto; max-height: 200px; height: auto; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px; object-fit: contain;">
+                            <div class="delImg" id="modal_product_image_clear" onclick="event.stopPropagation(); clearProductModalImage();" title="Remove image" aria-label="Remove image"><i class="fa fa-times"></i></div>
                         </div>
                         <input type="file" id="modal_product_image" onchange="handleProductImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_product_image').click()">Choose Image</button>
@@ -1067,6 +1068,36 @@ var processedProductImageData = null;
 
 var PRODUCT_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
 
+function clearProductModalImage() {
+    if (typeof mwClearUploadedImage !== 'function') return;
+    mwClearUploadedImage({
+        processedKey: 'processedProductImageData',
+        fileInput: '#modal_product_image',
+        previewImg: '#modal_product_image_preview',
+        placeholderSrc: PRODUCT_MODAL_PLACEHOLDER_IMG,
+        clearBtn: '#modal_product_image_clear',
+        resetImgStyle: {
+            border: '2px dashed #ddd',
+            borderRadius: '8px',
+            maxWidth: '200px',
+            width: 'auto',
+            maxHeight: '200px',
+            height: 'auto',
+            padding: '10px',
+            objectFit: 'contain'
+        }
+    });
+}
+
+function syncProductModalClearBtn(src) {
+    if (typeof mwShowUploadClear !== 'function' || typeof mwHideUploadClear !== 'function') return;
+    if (src && src.indexOf('data:image/svg+xml') !== 0 && src.indexOf('Click to Upload') === -1) {
+        mwShowUploadClear('#modal_product_image_clear');
+    } else {
+        mwHideUploadClear('#modal_product_image_clear');
+    }
+}
+
 function setProductModalMode(isEdit) {
     var titleEl = document.getElementById('productModalTitle');
     var saveBtn = document.getElementById('productModalSubmitBtn');
@@ -1193,10 +1224,7 @@ function openProductModal() {
         }
 
         // Reset image preview
-        var imgPreview = document.getElementById('modal_product_image_preview');
-        if(imgPreview) {
-            imgPreview.src = PRODUCT_MODAL_PLACEHOLDER_IMG;
-        }
+        clearProductModalImage();
 
         if(typeof updateCharCount === 'function') updateCharCount();
         if(typeof updatePriceFieldByType === 'function') updatePriceFieldByType();
@@ -1321,8 +1349,9 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
         var img = row.querySelector('img');
         if(img && img.src) {
             imgPreview.src = img.src;
+            syncProductModalClearBtn(img.src);
         } else {
-            imgPreview.src = PRODUCT_MODAL_PLACEHOLDER_IMG;
+            clearProductModalImage();
         }
     }
     
@@ -1375,6 +1404,7 @@ function handleProductImageUpload(input) {
                     imgPreview.style.maxHeight = '200px';
                     imgPreview.style.height = 'auto';
                     imgPreview.style.padding = '10px';
+                    syncProductModalClearBtn(previewDataUri);
                 }
             };
             ImageCropUpload.open(file, {

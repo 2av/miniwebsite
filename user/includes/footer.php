@@ -91,6 +91,37 @@
             font-size: inherit !important;
             color: inherit !important;
         }
+        /* Upload preview clear (×) — same as payment-details .delImg */
+        body.mw-website-builder .logo-placeholder,
+        body.mw-website-builder .product-image-preview-modal,
+        body.mw-website-builder .image-preview-modal,
+        body.mw-website-builder .offer-image-preview-modal {
+            position: relative;
+        }
+        body.mw-website-builder .delImg {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            z-index: 3;
+            width: 28px;
+            height: 28px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #f6364a;
+            color: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+        body.mw-website-builder .delImg.is-visible {
+            display: flex;
+        }
+        body.mw-website-builder .delImg:hover {
+            background: #d92d40;
+        }
     </style>
     <?php endif; ?>
 
@@ -118,6 +149,7 @@
        (mobile .mw-btn-row layout + Product-ServicesTable scroll rules). */
     ?>
     <script src="<?php echo $assets_base; ?>/assets/js/mw_modal.js"></script>
+    <script src="<?php echo $assets_base; ?>/assets/js/mw_upload_clear.js"></script>
     <script src="<?php echo $assets_base; ?>/assets/js/image_upload_crop.js"></script>
     <script src="<?php echo $assets_base; ?>/assets/js/scripts.js"></script>
     <?php

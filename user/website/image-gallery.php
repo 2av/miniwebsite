@@ -520,6 +520,7 @@ ob_start();
                                  alt="Gallery Image" 
                                  onclick="document.getElementById('modal_image').click()" 
                                  style="max-width: 200px; width: auto; max-height: 200px; height: auto; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer; padding: 10px; object-fit: contain;">
+                            <div class="delImg" id="modal_image_clear" onclick="event.stopPropagation(); clearGalleryModalImage();" title="Remove image" aria-label="Remove image"><i class="fa fa-times"></i></div>
                         </div>
                         <input type="file" id="modal_image" onchange="handleGalleryImageUpload(this);" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modal_image').click()">Choose Image</button>
@@ -550,6 +551,36 @@ var imageFiles = {};
 var processedGalleryImageData = null;
 
 var IMAGE_MODAL_PLACEHOLDER_IMG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DbGljayB0byBVcGxvYWQ8L3RleHQ+PC9zdmc+';
+
+function clearGalleryModalImage() {
+    if (typeof mwClearUploadedImage !== 'function') return;
+    mwClearUploadedImage({
+        processedKey: 'processedGalleryImageData',
+        fileInput: '#modal_image',
+        previewImg: '#modal_image_preview',
+        placeholderSrc: IMAGE_MODAL_PLACEHOLDER_IMG,
+        clearBtn: '#modal_image_clear',
+        resetImgStyle: {
+            border: '2px dashed #ddd',
+            borderRadius: '8px',
+            maxWidth: '200px',
+            width: 'auto',
+            maxHeight: '200px',
+            height: 'auto',
+            padding: '10px',
+            objectFit: 'contain'
+        }
+    });
+}
+
+function syncGalleryModalClearBtn(src) {
+    if (typeof mwShowUploadClear !== 'function' || typeof mwHideUploadClear !== 'function') return;
+    if (src && src.indexOf('data:image/svg+xml') !== 0 && src.indexOf('Click to Upload') === -1) {
+        mwShowUploadClear('#modal_image_clear');
+    } else {
+        mwHideUploadClear('#modal_image_clear');
+    }
+}
 
 function setImageModalMode(isEdit) {
     var titleEl = document.getElementById('imageModalTitle');
@@ -590,11 +621,7 @@ function resetImageModalForm() {
     processedGalleryImageData = null;
     $('#modal_image_id').val('');
     $('#modal_image_number').val('');
-    $('#modal_image').val('');
-    $('#modal_image_preview').attr('src', IMAGE_MODAL_PLACEHOLDER_IMG).css({
-        border: '2px dashed #ddd',
-        borderRadius: '8px'
-    });
+    clearGalleryModalImage();
 }
 
 function openImageModal() {
@@ -661,6 +688,7 @@ function editImage(imageId) {
 
     if(existingImgSrc) {
         $('#modal_image_preview').attr('src', existingImgSrc);
+        syncGalleryModalClearBtn(existingImgSrc);
     }
 
     setImageModalMode(true);
@@ -732,6 +760,7 @@ function handleGalleryImageUpload(input) {
                     'height': 'auto',
                     'padding': '10px'
                 });
+                syncGalleryModalClearBtn(previewDataUri);
             };
             
             ImageCropUpload.open(file, {
@@ -925,7 +954,11 @@ function addImageToForm() {
     
     // Use processed image if available, otherwise use file preview
     if(processedGalleryImageData) {
-        imagePreview = '<img src="data:image/jpeg;base64,' + processedGalleryImageData + '" class="img-fluid" width="30px" alt="">';
+        var galleryPreviewEl = document.getElementById('modal_image_preview');
+        var galleryPreviewSrc = galleryPreviewEl ? galleryPreviewEl.src : '';
+        imagePreview = galleryPreviewSrc
+            ? '<img src="' + galleryPreviewSrc + '" class="img-fluid" width="30px" alt="">'
+            : '<span class="text-muted">No Image</span>';
         updateTableCallback();
     } else {
         var imageFile = document.getElementById('modal_image').files[0];
