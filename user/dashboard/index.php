@@ -461,66 +461,51 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                     <?php endif; ?>
                     
                     <div class="FranchiseeDashboard-head">
-                        <div class="d-flex flex-wrap w-100 grid row-items-3" data-itemcount="3">
-                            <!-- Create New Mini Website Card -->
+                        <div class="mw-dash-card-grid">
+                            <!-- Create New Mini Website -->
                             <div class="card_area">
-                                <?php if($is_verified): ?>
-                                    <?php if($has_sufficient_balance): ?>
-                                        <a href="#" onclick="openCreateAccountModal(); return false;">
-                                            <div class="card">
-                                                <div class="img">
-                                                    <img class="img-fluid" style="height:auto" src="<?php echo $assets_base; ?>/assets/images/Edit-icon.png" alt="">
-                                                </div>
-                                                <div class="content">
-                                                    <p> Create New<br>Mini Website</p>
-                                                </div>
+                                <?php if ($is_verified && $has_sufficient_balance): ?>
+                                    <a href="#" onclick="openCreateAccountModal(); return false;">
+                                        <div class="card">
+                                            <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
+                                                <i class="fa-solid fa-pen-to-square"></i>
                                             </div>
-                                        </a>
-                                    <?php else: ?>
-                                        <div style="position: relative;">
-                                            <div class="card" style="opacity: 0.6; cursor: not-allowed;">
-                                                <div class="img">
-                                                    <img class="img-fluid" style="height:auto" src="<?php echo $assets_base; ?>/assets/images/Edit-icon.png" alt="">
-                                                </div>
-                                                <div class="content">
-                                                    <p> Create New<br>Mini Website</p>
-                                                </div>
+                                            <div class="content">
+                                                <p>Create New<br>Mini Website</p>
                                             </div>
                                         </div>
-                                    <?php endif; ?>
+                                    </a>
                                 <?php else: ?>
-                                    <div class="card" style="opacity: 0.6; cursor: not-allowed;" title="Document verification required">
-                                        <div class="img">
-                                            <img class="img-fluid" style="height:auto" src="<?php echo $assets_base; ?>/assets/images/Edit-icon.png" alt="">
+                                    <div class="card is-disabled" title="<?php echo !$is_verified ? 'Document verification required' : 'Insufficient wallet balance'; ?>">
+                                        <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
+                                            <i class="fa-solid fa-pen-to-square"></i>
                                         </div>
                                         <div class="content">
-                                            <p> Create New<br>Mini Website</p>
+                                            <p>Create New<br>Mini Website</p>
                                         </div>
                                     </div>
                                 <?php endif; ?>
                             </div>
-                            
-                            <!-- MW Created Card -->
+
+                            <!-- MW Created -->
                             <div class="card_area">
-                                <a href="">
-                                    <div class="card">
-                                        <div class="img">
-                                            <img class="img-fluid" style="height:auto" src="<?php echo $assets_base; ?>/assets/images/check.png" alt="">
-                                        </div>
-                                        <div class="content">
-                                            <p> MW Created</p>
-                                            <h4 class="marginbottom5"><?php echo $total_cards; ?></h4>
-                                        </div>
+                                <div class="card">
+                                    <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
+                                        <i class="fa-solid fa-circle-check"></i>
                                     </div>
-                                </a>
+                                    <div class="content">
+                                        <p>MW Created</p>
+                                        <h4 class="marginbottom5"><?php echo (int) $total_cards; ?></h4>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <!-- Wallet Balance Card -->
-                            <div class="card_area" style="position: relative;">
-                                <a href="<?php echo $nav_base; ?>/wallet">
+
+                            <!-- Wallet Balance -->
+                            <div class="card_area card_area-wallet">
+                                <a href="<?php echo htmlspecialchars($nav_base . '/wallet', ENT_QUOTES, 'UTF-8'); ?>">
                                     <div class="card">
-                                        <div class="img">
-                                            <img class="img-fluid" style="height:auto" src="<?php echo $assets_base; ?>/assets/images/wallet-bl.png" alt="">
+                                        <div class="img mw-dash-card-icon mw-dash-card-icon--gold" aria-hidden="true">
+                                            <i class="fa-solid fa-wallet"></i>
                                         </div>
                                         <div class="content">
                                             <p>Wallet Balance</p>
@@ -528,9 +513,9 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                         </div>
                                     </div>
                                 </a>
-                                <?php if(!$has_sufficient_balance): ?>
+                                <?php if (!$has_sufficient_balance): ?>
                                     <p class="low_balance_title">Your balance is low. Please recharge wallet.</p>
-                                <?php endif; ?> 
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -538,8 +523,8 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                     <!-- Manage Users Section -->
                     <div class="ManageUsers">
                         <h4 class="heading">Manage Users: </h4>
-                        <div class="table-responsive mw-table-scroll mw-table-scroll-wide">
-                            <table id="ReferredUsers" class="display table" style="text-align: center;">
+                        <div class="table-responsive mw-table-scroll mw-table-scroll-wide mw-dashboard-table-wrap" id="dashboardTableWrap">
+                            <table id="ReferredUsers" class="display table mb-0" style="text-align: center;">
                                 <thead class="bg-secondary">
                                     <tr>
                                         <th class="text-left">User ID</th>
@@ -613,25 +598,25 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                 <?php else: ?>
                     <!-- CUSTOMER/TEAM DASHBOARD LAYOUT -->
                     <div class="CustomerDashboard-head">
-                    <div class="row">
-                        <div class="col-auto top_section">
-                            <a href="../website/business-name.php?new=1">
-                                <div class="card">
-                                    <div class="img">
-                                        <img class="img-fluid" src="../../assets/images/Edit-icon.png" alt="">
+                        <div class="mw-dash-card-grid">
+                            <div class="card_area top_section">
+                                <a href="../website/business-name.php?new=1">
+                                    <div class="card">
+                                        <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </div>
+                                        <div class="content">
+                                            <p>Create New<br>Mini Website</p>
+                                        </div>
                                     </div>
-                                    <div class="content">
-                                        <p> Create New <br>Mini Website</p>
-                                    </div>
-                                </div>
-                            </a>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
 
                     <!-- CUSTOMER/TEAM TABLE -->
-                    <div class="table-container mw-table-scroll mw-table-scroll-xl">
-                        <table id="ReferredUsers" class="display table" style="text-align: center;">
+                    <div class="table-responsive mw-table-scroll mw-dashboard-table-wrap" id="dashboardTableWrap">
+                        <table id="ReferredUsers" class="display table mb-0" style="text-align: center;">
                             <thead class="bg-secondary">
                                 <tr>
                                     <th>MW ID</th>
@@ -1040,127 +1025,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
     transform: none;
 }
 
-/* Franchisee Dashboard Styles - Matching old dashboard */
-.FranchiseeDashboard-head .row-items-3 {
-    justify-content: flex-start;
-    align-items: stretch;
-    gap: 14px;
-}
-
-.FranchiseeDashboard-head a {
-    color: #262626;
-    text-decoration: none;
-}
-
-.FranchiseeDashboard-head .card {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    background: #eff3f7;
-    border: none;
-    border-radius: 8px;
-    padding: 16px 18px;
-    font-weight: 600;
-    margin: 10px 0;
-    min-height: 112px;
-}
-
-.FranchiseeDashboard-head .card .img img {
-    min-width: 56px;
-    max-width: 66px;
-}
-
-.FranchiseeDashboard-head .card_area .img img {
-    width: 100%;
-}
-
-.FranchiseeDashboard-head .card .content {
-    padding-left: 16px;
-    align-items: flex-start;
-    text-align: left;
-}
-
-.FranchiseeDashboard-head .card .content p {
-    font-size: 18px;
-    line-height: 1.25;
-    text-align: left;
-    margin: 0;
-}
-
-.FranchiseeDashboard-head .card .content h4 {
-    font-size: 32px;
-    line-height: 1;
-    margin: 6px 0 0;
-}
-
-.FranchiseeDashboard-head .card .content h4.marginbottom5 {
-    margin-bottom: 0;
-}
-
-.FranchiseeDashboard-head .card_area {
-    flex: 1 1 280px;
-    max-width: 360px;
-    margin-right: auto;
-}
-
-.low_balance_title {
-    position: absolute;
-    bottom: -25px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    color: #ff6b6b;
-    font-size: 15px;
-    font-weight: 600;
-    margin: 2px auto;
-}
-
-@media (max-width: 768px) {
-    .FranchiseeDashboard-head .row-items-3 {
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    .FranchiseeDashboard-head .card {
-        width: 100% !important;
-        max-width: 520px;
-        margin: 10px 0 !important;
-        padding: 10px 15px;
-        min-height: 90px;
-        height: auto;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-    }
-    .FranchiseeDashboard-head .card .img img {
-        min-width: 44px;
-        max-width: 52px;
-    }
-    .FranchiseeDashboard-head .card .content {
-        padding-left: 4px;
-        padding-top: 0;
-        width: auto;
-        align-items: flex-start;
-        text-align: left;
-    }
-    .FranchiseeDashboard-head .card .content p {
-        font-size: 17px;
-        line-height: 1.2;
-        text-align: left;
-    }
-    .FranchiseeDashboard-head .card .content h4 {
-        font-size: 28px;
-    }
-    .low_balance_title {
-        color: #ff6b6b;
-        font-size: 13px;
-        margin: 4px auto 0;
-    }
-}
+/* Action card + icon styles: assets/css/common.css (.mw-dash-card-*) */
 </style>
 
 <script>
@@ -1309,6 +1174,25 @@ function viewInvoiceHistory(cardId) {
     }
     .lightGray{
         color: #666666 !important;
+    }
+    /* Mobile table scroll — 320px / 375px / 425px (loads after common.css) */
+    @media screen and (max-width: 767.98px) {
+        main.Dashboard #dashboardTableWrap {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+        }
+        main.Dashboard #dashboardTableWrap table#ReferredUsers {
+            width: auto !important;
+            min-width: 52rem !important;
+            max-width: none !important;
+        }
+        main.Dashboard #dashboardTableWrap table#ReferredUsers th,
+        main.Dashboard #dashboardTableWrap table#ReferredUsers td {
+            white-space: nowrap !important;
+        }
     }
 </style>
 

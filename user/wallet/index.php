@@ -98,6 +98,7 @@ if (isset($_GET['payment_cancelled']) && $_GET['payment_cancelled'] == '1') {
 // Get wallet transaction history (similar to original logic)
 $user_email = ($row_franchisee && isset($row_franchisee['f_user_email'])) ? $row_franchisee['f_user_email'] : $franchisee_email;
 $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_email="' . $user_email . '" ORDER BY ID DESC LIMIT 10');
+$transaction_count = $transactions_query ? mysqli_num_rows($transactions_query) : 0;
 ?>
 
 <main class="Dashboard">
@@ -117,54 +118,55 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
                 <?php echo $recharge_message; ?>
                 
                 <div class="FranchiseeDashboard-head Wallet">
-                    <div class="d-flex flex-wrap w-100 grid row-items-3">
+                    <div class="mw-dash-card-grid">
                         <div class="card_area">
                             <div class="card">
-                                <div class="img">
-                                    <img class="img-fluid" style="height:auto" src="../../assets/images/wallet-bl.png" alt="">
+                                <div class="img mw-dash-card-icon mw-dash-card-icon--gold" aria-hidden="true">
+                                    <i class="fa-solid fa-wallet"></i>
                                 </div>
                                 <div class="content">
                                     <p>Wallet Balance</p>
-                                    <p><i class="fa fa-inr" aria-hidden="true"></i> <?php echo number_format($current_balance, 2); ?></p>
+                                    <h4><i class="fa fa-inr" aria-hidden="true"></i> <?php echo number_format($current_balance, 2); ?></h4>
                                 </div>
                             </div>
                         </div>
                         <div class="card_area">
                             <div class="card">
-                                <div class="img">
-                                    <img class="img-fluid" style="height:auto" src="../../assets/images/TotalTransaction.png" alt="">
+                                <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
+                                    <i class="fa-solid fa-receipt"></i>
                                 </div>
                                 <div class="content">
                                     <p>Total Transactions</p>
-                                    <p><?php echo mysqli_num_rows($transactions_query); ?></p>
+                                    <h4><?php echo (int) $transaction_count; ?></h4>
                                 </div>
                             </div>
                         </div>
-                        <div class="card_area">
+                        <div class="card_area card_area-recharge">
                             <div class="card RechargeWallet">
-                                <p>Recharge Your Wallet</p>
-                                <form method="POST" action="../../payment/wallet_recharge.php" id=walletRechargeForm>
-                                    <div class="recharge_input_section">
-                                        <input type="number" name="recharge_amount" class="form-control recharge_amount" placeholder="Enter Recharge Amount" min="350" step="100" value="350" required>
-                                        <!-- <small>Min Amount: ₹500/-</small> -->
-                                    </div>
-                                    <?php
-                                    // Get franchisee details for hidden fields
-                                    $franchisee_query = mysqli_query($connect, 'SELECT * FROM franchisee_login WHERE f_user_email="' . $franchisee_email . '"');
-                                    $franchisee_data = mysqli_fetch_array($franchisee_query);
-                                    
-                                    // Extract name parts
-                                    $full_name = isset($franchisee_data['f_user_name']) ? $franchisee_data['f_user_name'] : '';
-                                    $name_parts = explode(' ', $full_name, 2);
-                                    $f_name = isset($name_parts[0]) ? $name_parts[0] : '';
-                                    $l_name = isset($name_parts[1]) ? $name_parts[1] : '';
-                                    $f_contact = isset($franchisee_data['f_user_contact']) ? $franchisee_data['f_user_contact'] : '';
-                                    ?>
-                                    <input type="hidden" name="f_name" value="<?php echo htmlspecialchars($f_name); ?>">
-                                    <input type="hidden" name="l_name" value="<?php echo htmlspecialchars($l_name); ?>">
-                                    <input type="hidden" name="f_contact" value="<?php echo htmlspecialchars($f_contact); ?>">
-                                    <button type="submit" name="add_money" class="btn btn-primary addMoney_btn">ADD MONEY</button>
-                                </form>
+                                <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
+                                    <i class="fa-solid fa-circle-plus"></i>
+                                </div>
+                                <div class="content">
+                                    <p>Recharge Your Wallet</p>
+                                    <form method="POST" action="../../payment/wallet_recharge.php" id="walletRechargeForm">
+                                        <div class="recharge_input_section">
+                                            <input type="number" name="recharge_amount" class="form-control recharge_amount" placeholder="Enter Recharge Amount" min="350" step="100" value="350" required>
+                                        </div>
+                                        <?php
+                                        $franchisee_query = mysqli_query($connect, 'SELECT * FROM franchisee_login WHERE f_user_email="' . $franchisee_email . '"');
+                                        $franchisee_data = mysqli_fetch_array($franchisee_query);
+                                        $full_name = isset($franchisee_data['f_user_name']) ? $franchisee_data['f_user_name'] : '';
+                                        $name_parts = explode(' ', $full_name, 2);
+                                        $f_name = isset($name_parts[0]) ? $name_parts[0] : '';
+                                        $l_name = isset($name_parts[1]) ? $name_parts[1] : '';
+                                        $f_contact = isset($franchisee_data['f_user_contact']) ? $franchisee_data['f_user_contact'] : '';
+                                        ?>
+                                        <input type="hidden" name="f_name" value="<?php echo htmlspecialchars($f_name); ?>">
+                                        <input type="hidden" name="l_name" value="<?php echo htmlspecialchars($l_name); ?>">
+                                        <input type="hidden" name="f_contact" value="<?php echo htmlspecialchars($f_contact); ?>">
+                                        <button type="submit" name="add_money" class="btn btn-primary addMoney_btn">ADD MONEY</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -381,28 +383,41 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
                 .alert-warning .btn-close {
                     color: #856404;
                 }
-                .FranchiseeDashboard-head .card {
-    justify-content: space-evenly ;
-    gap: 10px;
-    width: 18rem;
-  
-    
-}
-.FranchiseeDashboard-head .row-items-3{
-    align-items:center;
-}
-.card .img{
-    justify-content:flex-start ;
-}
-.FranchiseeDashboard-head.Wallet .RechargeWallet p{
-    margin-bottom:0px;
-    font-size:21px !important;
-}
-.recharge_amount{
-    padding: 0px 10px;
-    width: 8rem;
-    height: 5vh;
-}
+                /* Wallet-only: recharge form + table (cards/icons: assets/css/common.css .mw-dash-card-*) */
+                .FranchiseeDashboard-head.Wallet .card.RechargeWallet {
+                    flex-direction: row !important;
+                    align-items: flex-start !important;
+                    height: auto !important;
+                }
+                .FranchiseeDashboard-head.Wallet .card.RechargeWallet .content {
+                    width: 100%;
+                }
+                .FranchiseeDashboard-head.Wallet .card.RechargeWallet .content > p {
+                    margin-bottom: 10px;
+                }
+                #walletRechargeForm {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 10px;
+                    width: 100%;
+                }
+                .recharge_input_section {
+                    flex: 1 1 140px;
+                    min-width: 0;
+                }
+                .recharge_amount {
+                    padding: 8px 10px;
+                    width: 100%;
+                    min-height: 40px;
+                    height: auto;
+                }
+                .addMoney_btn {
+                    font-size: 14px !important;
+                    padding: 11px 16px;
+                    border: 1px solid #ffbe17;
+                    white-space: nowrap;
+                }
 
 #WalletTransactions thead tr th,
 #WalletTransactions tbody tr td {
@@ -421,72 +436,37 @@ $transactions_query = mysqli_query($connect, 'SELECT * FROM wallet WHERE f_user_
     text-align: left;
 }
 @media screen and (max-width: 768px) {
-        .sb-topnav .navbar-brand img {
+    .sb-topnav .navbar-brand img {
         max-height: 60px;
     }
-    .FranchiseeDashboard-head .row-items-3 {
-    justify-content: space-between;
-    align-items: center;
-}
-.FranchiseeDashboard-head .card {
-        width: 31rem !important;
-    }
     .card-body {
-    padding: 20px !important;
-    padding-bottom: 100px !important;
-}
-
-.Copyright-left,
-.Copyright-right{
-    padding:0px;
-}
-
-.FranchiseeDashboard-head .card {
-    
-    padding: 10px 15px;
-    font-weight: 600;
-    margin: 30px auto;
-}
- .FranchiseeDashboard-head .card {
-    
-    margin: 10px 0px !important;
-    gap:3px;
-}
-.FranchiseeDashboard-head .card .img img {
-        min-width: 53px;
-        max-width: 50px;
+        padding: 20px !important;
+        padding-bottom: 100px !important;
     }
-    .FranchiseeDashboard-head .card .content {
-        
-        padding-top: 0px;
+    .Copyright-left,
+    .Copyright-right {
+        padding: 0px;
     }
-     .customer_content_area {
+    .customer_content_area {
         padding: 0px 20px !important;
         margin-top: 33px;
     }
-    .recharge_amount {
-    padding: 0px 10px;
-    width: 22rem;
-    height: 5vh;
-}
-#WalletTransactions thead tr th,
-#WalletTransactions tbody tr td {
+    #walletRechargeForm {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .addMoney_btn {
+        width: 100%;
+    }
+    #WalletTransactions thead tr th,
+    #WalletTransactions tbody tr td {
         padding: 15px 18px !important;
         font-weight: 500 !important;
         font-size: 20px !important;
     }
-    .ReferredUsers .heading, .ManageUsers .heading{
-        font-size:22px;
+    .ReferredUsers .heading, .ManageUsers .heading {
+        font-size: 22px;
     }
-    }
-
-    .FranchiseeDashboard-head .row-items-3{
-        justify-content: space-evenly;
-    }
-.addMoney_btn{
-    font-size:14px !important;
-    padding: 11px;
-    border: 1px solid yellow;
 }
 #WalletTransactions thead tr th ,
 #WalletTransactions tbody tr td {

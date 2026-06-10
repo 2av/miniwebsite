@@ -183,14 +183,14 @@ $breadcrumb_active = $page_heading;
 
 if ($current_role === 'TEAM') {
     $referral_stat_cards = [
-        ['label' => 'Total Sales', 'icon' => 'shopping-cart', 'icon_bg' => 'bg-emerald-100', 'icon_color' => 'text-emerald-700', 'value' => (string)(int)$total_sales, 'is_currency' => false],
-        ['label' => 'Total MW Created', 'icon' => 'globe', 'icon_bg' => 'bg-sky-100', 'icon_color' => 'text-sky-700', 'value' => (string)(int)$total_mw_created, 'is_currency' => false],
+        ['label' => 'Total Sales', 'icon' => 'cart-shopping', 'icon_variant' => 'blue', 'value' => (string)(int)$total_sales, 'is_currency' => false],
+        ['label' => 'Total MW Created', 'icon' => 'circle-check', 'icon_variant' => 'blue', 'value' => (string)(int)$total_mw_created, 'is_currency' => false],
     ];
 } else {
     $referral_stat_cards = [
-        ['label' => 'Pending Amount', 'icon' => 'clock', 'icon_bg' => 'bg-amber-100', 'icon_color' => 'text-amber-700', 'value' => number_format($pending_amount, 0), 'is_currency' => true],
-        ['label' => 'Total Referral Earning', 'icon' => 'credit-card', 'icon_bg' => 'bg-emerald-100', 'icon_color' => 'text-emerald-700', 'value' => number_format($total_earning, 0), 'is_currency' => true],
-        ['label' => 'Referred MW', 'icon' => 'users', 'icon_bg' => 'bg-sky-100', 'icon_color' => 'text-sky-700', 'value' => (string)(int)$total_referrals, 'is_currency' => false],
+        ['label' => 'Pending Amount', 'icon' => 'clock', 'icon_variant' => 'blue', 'value' => number_format($pending_amount, 0), 'is_currency' => true],
+        ['label' => 'Total Referral Earning', 'icon' => 'indian-rupee-sign', 'icon_variant' => 'blue', 'value' => number_format($total_earning, 0), 'is_currency' => true],
+        ['label' => 'Referred MW', 'icon' => 'users', 'icon_variant' => 'blue', 'value' => (string)(int)$total_referrals, 'is_currency' => false],
     ];
 }
 
@@ -216,27 +216,33 @@ $is_team_view = ($current_role === 'TEAM');
 
         <div class="mw-card mb-4">
             <div class="mw-card-body">
-                <div class="mw-stat-grid<?php echo count($referral_stat_cards) >= 3 ? ' mw-stat-grid-3' : ''; ?>">
-                    <?php foreach ($referral_stat_cards as $stat): ?>
-                    <div class="mw-stat-card">
-                        <div class="mw-stat-icon <?php echo htmlspecialchars($stat['icon_bg'], ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($stat['icon_color'], ENT_QUOTES, 'UTF-8'); ?>">
-                            <i class="fa-solid fa-<?php echo htmlspecialchars($stat['icon'], ENT_QUOTES, 'UTF-8'); ?>" aria-hidden="true"></i>
+                <div class="ReferralDetails-head">
+                    <div class="mw-dash-card-grid">
+                        <?php foreach ($referral_stat_cards as $stat):
+                            $icon_variant = ($stat['icon_variant'] ?? 'blue') === 'gold' ? 'gold' : 'blue';
+                        ?>
+                        <div class="card_area">
+                            <div class="card">
+                                <div class="img mw-dash-card-icon mw-dash-card-icon--<?php echo $icon_variant; ?>" aria-hidden="true">
+                                    <i class="fa-solid fa-<?php echo htmlspecialchars($stat['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>
+                                </div>
+                                <div class="content">
+                                    <p><?php echo htmlspecialchars($stat['label'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                    <h4>
+                                        <?php if (!empty($stat['is_currency'])): ?>
+                                            <i class="fa fa-inr" aria-hidden="true"></i>
+                                        <?php endif; ?>
+                                        <?php echo htmlspecialchars($stat['value'], ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($stat['is_currency']) ? '/-' : ''; ?>
+                                    </h4>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mw-stat-body">
-                            <p class="mw-stat-label"><?php echo htmlspecialchars($stat['label'], ENT_QUOTES, 'UTF-8'); ?></p>
-                            <p class="mw-stat-value">
-                                <?php if (!empty($stat['is_currency'])): ?>
-                                    <i class="fa fa-inr text-base" aria-hidden="true"></i>
-                                <?php endif; ?>
-                                <?php echo htmlspecialchars($stat['value'], ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($stat['is_currency']) ? '/-' : ''; ?>
-                            </p>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
-                    <?php endforeach; ?>
                 </div>
 
                 <?php if (!$is_team_view): ?>
-                <section class="mb-8 pt-6 border-t border-border">
+                <section class="mw-bank-details-section mb-8 pt-6 border-t border-border">
                     <h2 class="heading mw-section-title">Bank Account Details</h2>
                     <p class="mw-helper-text mb-4">
                         <i class="fa fa-info-circle" aria-hidden="true"></i>

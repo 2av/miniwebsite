@@ -498,6 +498,9 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
            .mw-stat-grid        responsive grid of summary stat cards
            .mw-stat-card        single stat card (icon + label + value)
            .mw-stat-icon        icon badge inside stat card
+           .mw-dash-card-grid   action card row (dashboard, wallet, etc.) — CSS in common.css
+           .mw-dash-card-icon   icon box (58×100px desktop; responsive) — CSS in common.css
+           .mw-dash-card-icon--blue / --gold   icon colour variants
            .mw-btn-row          responsive Back/Save/Next button row
            .mw-btn              base button (use with a variant class)
            .mw-btn-back / -save / -next / -primary / -secondary / -accent
@@ -707,6 +710,8 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
         .mw-stat-label      { margin: 0; padding: 0; font-size: var(--mw-font-helper); font-weight: 600; color: var(--mw-color-text-muted); line-height: 1.4; }
         .mw-stat-value      { margin: 0.25rem 0 0; padding: 0; font-size: 1.25rem; font-weight: 700; color: var(--mw-color-text); line-height: 1.25; }
 
+        /* Dashboard / wallet action cards → assets/css/common.css (.mw-dash-card-*) */
+
         /* Alerts -------------------------------------------------------- */
         .mw-alert         { display: flex; align-items: flex-start; gap: 0.75rem; padding: 1rem; border-radius: var(--mw-radius-card); border: 1px solid transparent; margin-bottom: 1rem; font-size: var(--mw-font-body); }
         .mw-alert-icon    { margin-top: 0.125rem; font-size: 1.125rem; flex-shrink: 0; }
@@ -870,6 +875,14 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
             border: none !important;
             opacity: 1 !important;
         }
+        @media (min-width: 768px) {
+            main.mw-page #bankDetailsForm .mw-btn,
+            main.mw-page #bankDetailsForm button.mw-btn {
+                width: auto !important;
+                align-self: flex-start !important;
+                display: inline-flex !important;
+            }
+        }
         @media (max-width: 767.98px) {
             main.mw-page #bankDetailsForm .mw-btn,
             main.mw-page #bankDetailsForm button.mw-btn {
@@ -878,6 +891,7 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                 max-width: 100% !important;
                 box-sizing: border-box !important;
                 justify-content: center !important;
+                align-self: stretch !important;
             }
         }
         main.mw-page .Product-ServicesBtn.mw-btn-row,
@@ -1791,7 +1805,68 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
         main.Dashboard .ManageUsers,
         main.Dashboard .table-container { max-width: 100%; min-width: 0; }
 
+        /* Dashboard tables — full width on desktop, scroll on small screens */
+        main.Dashboard .mw-dashboard-table-wrap,
+        main.Dashboard #dashboardTableWrap {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
+        }
+        main.Dashboard .mw-dashboard-table-wrap table.display.table,
+        main.Dashboard #dashboardTableWrap table.display.table {
+            width: 100%;
+            min-width: 100%;
+            margin-bottom: 0;
+            table-layout: auto;
+        }
+        @media screen and (min-width: 768px) {
+            main.Dashboard .card-body > .mw-dashboard-table-wrap,
+            main.Dashboard .ManageUsers > .mw-dashboard-table-wrap,
+            main.Dashboard .card-body > #dashboardTableWrap {
+                margin-left: -30px;
+                margin-right: -30px;
+                width: calc(100% + 60px);
+                max-width: calc(100% + 60px);
+            }
+        }
+
         @media screen and (max-width: 767.98px) {
+            main.Dashboard .card,
+            main.Dashboard .card-body,
+            main.Dashboard .customer_content_area {
+                overflow-x: visible;
+                max-width: 100%;
+            }
+            main.Dashboard .mw-dashboard-table-wrap,
+            main.Dashboard #dashboardTableWrap {
+                display: block;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                overflow-x: auto !important;
+                overflow-y: visible;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-x: contain;
+            }
+            main.Dashboard .mw-dashboard-table-wrap table#ReferredUsers,
+            main.Dashboard #dashboardTableWrap table#ReferredUsers,
+            main.Dashboard .mw-dashboard-table-wrap table.display.table {
+                width: auto !important;
+                max-width: none !important;
+                min-width: 52rem !important;
+                table-layout: auto !important;
+                margin-bottom: 0 !important;
+            }
+            main.Dashboard .mw-dashboard-table-wrap table#ReferredUsers th,
+            main.Dashboard .mw-dashboard-table-wrap table#ReferredUsers td,
+            main.Dashboard #dashboardTableWrap table#ReferredUsers th,
+            main.Dashboard #dashboardTableWrap table#ReferredUsers td {
+                white-space: nowrap !important;
+            }
             .mw-table-scroll table th,
             .mw-table-scroll table td { padding: 0.625rem 0.75rem; font-size: 0.8125rem; }
         }
@@ -1913,8 +1988,7 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                     </div>
                                     <?php if ($current_role === 'FRANCHISEE' && !empty($fr_id)): ?>
                                     <span class="profile-mw-id">FR ID: <?php echo (int)$fr_id; ?></span>
-                                    <?php endif; ?>
-                                    <?php if (!empty($mw_id)): ?>
+                                    <?php elseif (!empty($mw_id)): ?>
                                     <span class="profile-mw-id">MW ID: MW<?php echo (int)$mw_id; ?></span>
                                     <?php endif; ?>
                                 </div>

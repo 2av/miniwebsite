@@ -230,13 +230,14 @@ $website_name = 'www.miniwebsite.in';
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="idcard-preview-wrapper">
-                                <div class="col-md-7">
+                                <div class="row align-items-start justify-content-center">
+                                <div class="col-12 col-md-7 idcard-canvas-col mb-4 mb-md-0">
                                 <canvas id="idcardCanvas" class="idcard-canvas"></canvas>
                                 </div>
                                 
                                  <!-- Upload Section -->
                     
-                        <div class="col-md-5">
+                        <div class="col-12 col-md-5">
                             <div class="upload-download-box">
                                 <form method="POST" enctype="multipart/form-data" id="uploadForm">
                                     <div class="form-group displayFlex">
@@ -265,8 +266,7 @@ $website_name = 'www.miniwebsite.in';
                                 </form>
                             </div>
                         </div>
-                        
-                    
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -648,20 +648,27 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 8px;
     text-align: center;
     border: 2px dashed #dee2e6;
+    overflow: hidden;
+}
+
+.idcard-canvas-col {
+    display: flex;
+    justify-content: center;
 }
 
 .idcard-canvas {
-    width: 4.25in;
-    height: 6.68in;
+    display: block;
+    width: 100%;
+    max-width: 4.25in;
+    height: auto;
+    aspect-ratio: 2.125 / 3.34;
     border: 1px solid #dee2e6;
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .sub_title{
-    font-size:22px;
-}
-.idcard-preview-wrapper{
-    display:flex;
+    font-size: 1.1rem;
+    line-height: 1.5;
 }
 .displayFlex{
     display: flex;
@@ -732,6 +739,7 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 25px;
     background: #fff;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    text-align: left;
 }
 
 .upload-download-box .form-group label {
@@ -755,38 +763,40 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 24px !important;
 }
 @media (max-width: 768px) {
-    .idcard-preview-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap:40px;
+    .idcard-canvas {
+        max-width: min(100%, 280px);
     }
     .upload-download-box {
-        border: 1px solid #e9ecef;
-        border-radius: 10px;
-        padding: 25px 15px;
-        background: #fff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 20px 15px;
     }
     .action-buttons {
         gap: 10px;
     }
-    .Copyright-left,
-    .Copyright-right{
-        padding:0px;
-    }
     .action-buttons button {
         color: #fff !important;
         font-size: 14px !important;
-        margin:0px;
+        flex: 1 1 100%;
     }
     .heading {
-        font-size: 22px !important;
+        font-size: 1.25rem !important;
     }
-    .sub_title{
-        font-size:20px;
+    .sub_title {
+        font-size: 0.95rem;
     }
     .idcard-preview-wrapper {
-        padding:20px 0px;
+        padding: 15px 10px;
+    }
+    .idcard-head .card-body,
+    .idcard-head {
+        overflow-x: hidden;
+    }
+    #profile_picture {
+        font-size: 14px;
+        max-width: 100%;
+    }
+    .profile-preview img {
+        max-width: 150px;
+        max-height: 150px;
     }
 }
 </style>

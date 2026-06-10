@@ -11569,7 +11569,7 @@ body {
 
 .CustomerDashboard-head a { color: #262626; text-decoration: none;}
 .CustomerDashboard-head .card {display: flex;flex-direction: row;justify-content: flex-start; align-items:center ; background: #eff3f7; border: none; padding:10px 20px; font-weight: 600; margin: 30px 0; width: min(320px, 100%); min-width: 280px; max-width: 100%; box-sizing: border-box;}
-.CustomerDashboard-head .card .img { flex: 0 0 58px; width: 58px !important; height: 100px !important;}
+.CustomerDashboard-head .card .img { flex: 0 0 58px; }
 .CustomerDashboard-head .card .content { vertical-align: middle; display: flex; flex-direction: column; align-items: flex-start; text-align: left; flex: 1 1 auto; min-width: 0; padding-left: 16px;}
 .CustomerDashboard-head .card .content p { font-size: 20px;
     line-height: 1.25;

@@ -98,8 +98,7 @@ table tr td{
 }
 .CustomerDashboard-head .card .img{
     flex: 0 0 58px;
-    width: 58px !important;
-    height: 100px !important;
+    
     margin-left: 0;
     display: flex;
     align-items: center;
@@ -330,8 +329,7 @@ padding: 0px;
 }
 .CustomerDashboard-head .card .img {
     flex: 0 0 60px;
-    width: 60px !important;
-    height: 100px !important;
+    
     margin-left: 0 !important;
     display: flex;
     align-items: center;
@@ -390,8 +388,7 @@ padding: 0px;
     object-fit: fill;
 }
 .card .img {
-    width: 70px !important;
-    height: 70px !important;
+    
     display: flex;
     justify-content: center;
     align-items: center;
@@ -520,8 +517,11 @@ padding: 0px;
 #bankDetailsForm{
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 #bankDetailsForm .btn {
     margin-top: 30px;
@@ -567,10 +567,15 @@ padding: 0px;
 }
 
 .FranchiseeDashboard-head .card {
-    padding: 10px;
+    padding: 10px 20px;
     font-weight: 600;
-    margin: 30px 0;
-    height: 14vh;
+    margin: 0;
+    min-height: 120px;
+    height: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .FranchiseeDashboard-head .card .content h4 {
     font-size: 30px;
@@ -618,19 +623,14 @@ padding: 0px;
 }
 }
 
-/* Franchisee Wallet style for big screen */
-.FranchiseeDashboard-head.Wallet .RechargeWallet{
-    display: flex;
-    flex-direction: column;
+/* Franchisee Wallet — recharge card (icon + content row, same as dashboard cards) */
+.FranchiseeDashboard-head.Wallet .card.RechargeWallet {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    height: auto !important;
 }
-.FranchiseeDashboard-head.Wallet .RechargeWallet p{
-    margin: 5px;
-}
-#walletRechargeForm{
-    display: flex;
-    justify-content: center;
-    align-items: baseline;
-        gap: 10px;
+.FranchiseeDashboard-head.Wallet .RechargeWallet .content > p {
+    margin: 0 0 10px;
 }
 
 
@@ -657,12 +657,12 @@ padding: 0px;
         border-radius: 5px;
         font-size: 18px;
     }
-    .card.RechargeWallet{
-        height: 25vh !important;
+    .FranchiseeDashboard-head.Wallet .card.RechargeWallet {
+        height: auto !important;
     }
-    .card.RechargeWallet button{
-        width: 50%;
-    padding: 10px;
+    .FranchiseeDashboard-head.Wallet .card.RechargeWallet button {
+        width: 100%;
+        padding: 10px;
     }
     
     #WalletTransactions tr td,
@@ -674,12 +674,16 @@ padding: 0px;
 
 @media screen and (max-width: 768px) {
     .FranchiseeDashboard-head .card {
-        margin: 10px 0;
-        height: 16vh;
+        margin: 0;
+        min-height: 100px;
+        height: auto;
         display: flex;
         flex-direction: row;
         align-items: center;
         justify-content: flex-start;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
     }
     .FranchiseeDashboard-head .row-items-3 {
         flex-direction: column;
@@ -729,8 +733,7 @@ padding: 0px;
     }
     .CustomerDashboard-head .card .img {
         flex: 0 0 60px;
-        width: 60px !important;
-        height: 100px !important;
+       
         margin-left: 0px;
     }
     .ReferralDetails-head .card {
@@ -779,10 +782,16 @@ padding: 0px;
         width: 75px;
         font-size: 12px;
     }
-    .ReferralDetails-head .card, .FranchiseeDashboard-head .card {
+    .ReferralDetails-head .card {
         width: 31rem !important;
         max-width: 100%;
         margin: 20px 0 !important;
+    }
+    .FranchiseeDashboard-head .card {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
     }
     .ReferralDetails-head .row.d_flex{
         justify-content: center !important;
@@ -970,8 +979,7 @@ footer[role="contentinfo"] .Copyright-right {
 
 .CustomerDashboard-head .card .img {
     flex: 0 0 58px;
-    width: 58px !important;
-    height: 100px !important;
+   
     margin-left: 0px;
 }
 .CustomerDashboard-head .card {
@@ -987,14 +995,24 @@ footer[role="contentinfo"] .Copyright-right {
 .ReferralDetails-head .card .content {
     margin-top: 10px;
 }
-.ReferralDetails-head .card,
-.FranchiseeDashboard-head .card{
-    width:17rem;
+.ReferralDetails-head .card {
+    width: 17rem;
     margin: 20px 0px !important;
     height: auto;
     gap: 20px;
     align-items: flex-start;
     justify-content: center;
+}
+.FranchiseeDashboard-head .card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    min-height: 120px;
+    height: auto;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
 }
 .card_area4 .card{
     gap: 0px;
@@ -1201,5 +1219,211 @@ width: 150%;
         padding-left: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
+    }
+}
+
+/* =============================================================================
+   mw-dash-card — shared action cards (dashboard, wallet, all user portal pages)
+   Use: .mw-dash-card-grid > .card_area > .card > .mw-dash-card-icon + .content
+   ============================================================================= */
+.mw-dash-card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 14px;
+    width: 100%;
+    margin: 20px 0;
+    justify-content: space-between;
+}
+.mw-dash-card-grid .card_area {
+    flex: 0 1 320px;
+    width: 320px;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+.mw-dash-card-grid a {
+    display: block;
+    width: 100%;
+    color: #262626;
+    text-decoration: none;
+}
+.mw-dash-card-grid .card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background: #eff3f7 !important;
+    border: none !important;
+    border-radius: 8px;
+    padding: 10px 20px !important;
+    font-weight: 600;
+    margin: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 120px !important;
+    height: auto !important;
+    box-sizing: border-box;
+}
+.mw-dash-card-grid .card.is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+/* Icon box — single source for width/height on all pages */
+.mw-dash-card-icon {
+    flex: 0 0 58px !important;
+    width: 58px !important;
+    height: 100px !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+.mw-dash-card-icon--blue {
+    background: #2b4ba9;
+    color: #fff;
+    border-radius: 8px;
+}
+.mw-dash-card-icon--gold {
+    background: #ffbe17;
+    color: #0f172a;
+    border-radius: 8px;
+}
+.mw-dash-card-icon i {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+.mw-dash-card-grid .card .content {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-left: 16px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+}
+.mw-dash-card-grid .card .content p {
+    font-size: 20px !important;
+    line-height: 1.25 !important;
+    margin: 0;
+    text-align: left;
+}
+.mw-dash-card-grid .card .content h4 {
+    font-size: 30px !important;
+    line-height: 1 !important;
+    margin: 6px 0 0;
+    font-weight: 700;
+}
+.mw-dash-card-grid .card_area-wallet,
+.mw-dash-card-grid .card_area-recharge {
+    position: relative;
+}
+.low_balance_title {
+    margin: 4px 0 0;
+    max-width: 100%;
+    text-align: left;
+    color: #ff6b6b;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+@media screen and (min-width: 480px) and (max-width: 991.98px) {
+    .mw-dash-card-grid .card_area {
+        flex: 1 1 calc(50% - 7px);
+        width: calc(50% - 7px);
+        max-width: calc(50% - 7px);
+    }
+    .mw-dash-card-grid .card_area-wallet,
+    .mw-dash-card-grid .card_area-recharge {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+    }
+}
+@media screen and (max-width: 479.98px) {
+    .mw-dash-card-grid {
+        flex-direction: column;
+        gap: 10px;
+        margin: 12px 0;
+    }
+    .mw-dash-card-grid .card_area {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+    }
+    .mw-dash-card-grid .card {
+        min-height: 96px !important;
+        padding: 10px 12px !important;
+    }
+    .mw-dash-card-icon {
+        flex: 0 0 48px !important;
+        width: 48px !important;
+        height: 80px !important;
+    }
+    .mw-dash-card-grid .card .content p {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+    }
+    .mw-dash-card-grid .card .content h4 {
+        font-size: 24px !important;
+    }
+    .mw-dash-card-icon i {
+        font-size: 1.15rem;
+    }
+}
+@media screen and (min-width: 480px) and (max-width: 768px) {
+    .mw-dash-card-grid .card {
+        min-height: 100px !important;
+        padding: 10px 15px !important;
+    }
+    .mw-dash-card-icon {
+        flex: 0 0 52px !important;
+        width: 52px !important;
+        height: 90px !important;
+    }
+    .mw-dash-card-grid .card .content p {
+        font-size: 17px !important;
+    }
+    .mw-dash-card-grid .card .content h4 {
+        font-size: 28px !important;
+    }
+    .mw-dash-card-icon i {
+        font-size: 1.25rem;
+    }
+}
+
+/* Bank details form — full-width fields; submit auto-width on desktop */
+#bankDetailsForm .mw-form-grid-2,
+#bankDetailsForm .mw-form-group {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+#bankDetailsForm .mw-input,
+#bankDetailsForm .form-control,
+#bankDetailsForm input.form-control {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+#bankDetailsForm .mw-btn,
+#bankDetailsForm button.mw-btn,
+#bankDetailsForm .btn {
+    align-self: flex-start;
+    width: auto !important;
+    max-width: 100%;
+}
+@media screen and (max-width: 767.98px) {
+    main.mw-page .mw-bank-details-section #bankDetailsForm,
+    main.mw-page .mw-bank-details-section .mw-form-grid-2 {
+        width: 100%;
+    }
+    #bankDetailsForm .mw-btn,
+    #bankDetailsForm button.mw-btn,
+    #bankDetailsForm .btn {
+        align-self: stretch;
+        width: 100% !important;
     }
 }

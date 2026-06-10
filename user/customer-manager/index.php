@@ -1022,14 +1022,14 @@ require_once __DIR__ . '/../../common/mw_modal.php';
         <span class="mw-modal-header-icon" aria-hidden="true"><i class="fa fa-bolt"></i></span>
         <div class="mw-modal-header-text-wrap">
             <h2 class="mw-modal-title" id="customerModalTitle">Quick Add Customer</h2>
-            <p class="mw-modal-subtitle">Add a new customer in seconds</p>
+       
         </div>
     </div>
     <button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
 </div>
 <div class="mw-modal-body">
 <input type="hidden" name="action" value="save_customer"><input type="hidden" name="customer_id" id="customer_id">
-<?php echo mw_modal_callout('Quick action', 'Fill in the details below to quickly add a customer.'); ?>
+
 <div class="row g-2">
     <div class="col-12 col-md-6" id="customerNameCol">
         <label class="form-label">Customer Name *</label>
@@ -1074,7 +1074,7 @@ require_once __DIR__ . '/../../common/mw_modal.php';
         <span class="mw-modal-header-icon" aria-hidden="true"><i class="fa fa-user-plus"></i></span>
         <div class="mw-modal-header-text-wrap">
             <h2 class="mw-modal-title" id="customerFullModalTitle">Add Customer</h2>
-            <p class="mw-modal-subtitle">Complete customer profile</p>
+           
         </div>
     </div>
     <button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button>

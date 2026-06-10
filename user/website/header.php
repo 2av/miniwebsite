@@ -197,8 +197,7 @@ if ($current_role === 'FRANCHISEE') {
                                     </div>
                                     <?php if ($current_role === 'FRANCHISEE' && !empty($fr_id)): ?>
                                     <span class="profile-mw-id">FR ID: <?php echo (int)$fr_id; ?></span>
-                                    <?php endif; ?>
-                                    <?php if (!empty($mw_id)): ?>
+                                    <?php elseif (!empty($mw_id)): ?>
                                     <span class="profile-mw-id">MW ID: MW<?php echo (int)$mw_id; ?></span>
                                     <?php endif; ?>
                                 </div>
