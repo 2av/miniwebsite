@@ -881,37 +881,41 @@ ob_start();
 
                     <div class="form-group">
                         <label for="modal_offer_badge_select">Offer Badge <span class="text-muted">(Optional)</span></label>
-                        <select class="form-control mb-2" id="modal_offer_badge_select">
-                            <option value="">Select badge</option>
-                            <option value="Flat 10% Off">Flat 10% Off [Editable]</option>
-                            <option value="Upto 50% Off">Upto 50% Off [Editable]</option>
-                            <option value="Starting @ &#8377;99">Starting @ &#8377;99 [Editable]</option>
-                            <option value="Starting @ &#8377;199">Starting @ &#8377;199 [Editable]</option>
-                            <option value="Under &#8377;499">Under &#8377;499 [Editable]</option>
-                            <option value="Under &#8377;999">Under &#8377;999 [Editable]</option>
-                            <option value="Lowest Price">Lowest Price</option>
-                            <option value="Special Offer">Special Offer</option>
-                            <option value="Limited Time Offer">Limited Time Offer</option>
-                            <option value="Mega Deal">Mega Deal</option>
-                            <option value="Best Deal">Best Deal</option>
-                            <option value="Combo Offer">Combo Offer</option>
-                            <option value="Buy 1 Get 1">Buy 1 Get 1</option>
-                            <option value="Buy 2 Get 1">Buy 2 Get 1</option>
-                            <option value="Bundle Offer">Bundle Offer</option>
-                            <option value="Limited Stock">Limited Stock</option>
-                            <option value="New Arrival">New Arrival</option>
-                            <option value="Just Launched">Just Launched</option>
-                            <option value="Trending">Trending</option>
-                            <option value="Popular">Popular</option>
-                            <option value="Bestseller">Bestseller</option>
-                            <option value="Summer Offer">Summer Offer</option>
-                            <option value="Winter Sale">Winter Sale</option>
-                            <option value="New Year Offer">New Year Offer</option>
-                            <option value="Festive Offer">Festive Offer</option>
-                            <option value="Wedding Special">Wedding Special</option>
-                            <option value="__custom__">Customize...</option>
-                        </select>
-                        <input type="text" class="form-control" id="modal_offer_badge" placeholder="Edit badge text (max 20 characters)" maxlength="20" style="display:none;">
+                        <div style="display: flex; gap: 10px;">
+                            <select class="form-control" id="modal_offer_badge_select" style="flex: 1;">
+                                <option value="">Select badge</option>
+                                <option value="Flat 10% Off">Flat 10% Off [Editable]</option>
+                                <option value="Upto 50% Off">Upto 50% Off [Editable]</option>
+                                <option value="Starting @ &#8377;99">Starting @ &#8377;99 [Editable]</option>
+                                <option value="Starting @ &#8377;199">Starting @ &#8377;199 [Editable]</option>
+                                <option value="Under &#8377;499">Under &#8377;499 [Editable]</option>
+                                <option value="Under &#8377;999">Under &#8377;999 [Editable]</option>
+                                <option value="Lowest Price">Lowest Price</option>
+                                <option value="Special Offer">Special Offer</option>
+                                <option value="Limited Time Offer">Limited Time Offer</option>
+                                <option value="Mega Deal">Mega Deal</option>
+                                <option value="Best Deal">Best Deal</option>
+                                <option value="Combo Offer">Combo Offer</option>
+                                <option value="Buy 1 Get 1">Buy 1 Get 1</option>
+                                <option value="Buy 2 Get 1">Buy 2 Get 1</option>
+                                <option value="Bundle Offer">Bundle Offer</option>
+                                <option value="Limited Stock">Limited Stock</option>
+                                <option value="New Arrival">New Arrival</option>
+                                <option value="Just Launched">Just Launched</option>
+                                <option value="Trending">Trending</option>
+                                <option value="Popular">Popular</option>
+                                <option value="Bestseller">Bestseller</option>
+                                <option value="Summer Offer">Summer Offer</option>
+                                <option value="Winter Sale">Winter Sale</option>
+                                <option value="New Year Offer">New Year Offer</option>
+                                <option value="Festive Offer">Festive Offer</option>
+                                <option value="Wedding Special">Wedding Special</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomOfferBadgeModal()" style="min-width: 40px; padding: 0;" title="Add Custom Badge">
+                                <i class="fa fa-plus" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <input type="text" class="form-control mt-2" id="modal_offer_badge" placeholder="Edit badge text (max 20 characters)" maxlength="20" style="display:none;">
                         <small class="form-text text-muted" id="badge_char_counter_wrap" style="display:none;"><strong id="badge_char_counter">0</strong>/20 characters</small>
                     </div>
 
@@ -976,6 +980,30 @@ mw_modal_render([
     'footer'   => mw_modal_footer([
         ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
         ['label' => 'Add Offer', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="offerModalSubmitBtn"'],
+    ]),
+    'static'   => true,
+    'hidden'   => true,
+]);
+
+$custom_offer_badge_body = '<form id="customOfferBadgeForm" class="mw-form">'
+    . '<div class="form-group mb-3">'
+    . '<label for="custom_offer_badge_name" class="form-label">Offer Badge <span class="text-danger">*</span></label>'
+    . '<input type="text" class="form-control" id="custom_offer_badge_name" placeholder="Enter badge text (max 20)" maxlength="20" required>'
+    . '<small class="form-text text-muted">Max 20 characters. Added to the dropdown for this session only.</small>'
+    . '</div>'
+    . '<div id="customOfferBadgeError" class="alert alert-danger mw-alert mw-alert-danger" style="display: none;" role="alert"></div>'
+    . '</form>';
+
+mw_modal_render([
+    'id'       => 'customOfferBadgeModal',
+    'size'     => 'sm',
+    'title'    => 'Add Custom Badge',
+    'subtitle' => 'Add a custom offer badge for this offer',
+    'icon'     => 'fa-plus-circle',
+    'body'     => $custom_offer_badge_body,
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Badge', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="customOfferBadgeSaveBtn"'],
     ]),
     'static'   => true,
     'hidden'   => true,
@@ -1211,7 +1239,37 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saveBtn) {
         saveBtn.addEventListener('click', addOfferToForm);
     }
+    var customBadgeSaveBtn = document.getElementById('customOfferBadgeSaveBtn');
+    if (customBadgeSaveBtn) {
+        customBadgeSaveBtn.addEventListener('click', saveCustomOfferBadge);
+    }
 });
+
+function ensureBadgeOptionExists(badgeText) {
+    var sel = document.getElementById('modal_offer_badge_select');
+    if (!sel || !badgeText) return;
+    var i;
+    for (i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === badgeText) return;
+    }
+    var optgroup = null;
+    for (i = 0; i < sel.children.length; i++) {
+        var node = sel.children[i];
+        if (node.tagName === 'OPTGROUP' && node.label === 'My Custom Badges') {
+            optgroup = node;
+            break;
+        }
+    }
+    if (!optgroup) {
+        optgroup = document.createElement('optgroup');
+        optgroup.label = 'My Custom Badges';
+        sel.appendChild(optgroup);
+    }
+    var opt = document.createElement('option');
+    opt.value = badgeText;
+    opt.textContent = badgeText;
+    optgroup.appendChild(opt);
+}
 
 function onBadgeSelectChange() {
     var badgeSelect = document.getElementById('modal_offer_badge_select');
@@ -1221,11 +1279,7 @@ function onBadgeSelectChange() {
     var selectedValue = badgeSelect.value || '';
     var shouldShowInput = shouldShowBadgeInput(selectedValue);
 
-    if(selectedValue === '__custom__') {
-        if(!badgeInput.value) badgeInput.value = '';
-    } else {
-        badgeInput.value = selectedValue;
-    }
+    badgeInput.value = selectedValue;
 
     updateBadgeInputVisibility(shouldShowInput);
     if(shouldShowInput) {
@@ -1251,14 +1305,15 @@ function syncBadgeSelectFromInput() {
         badgeSelect.value = inputValue;
         updateBadgeInputVisibility(shouldShowBadgeInput(inputValue));
     } else {
-        badgeSelect.value = '__custom__';
-        updateBadgeInputVisibility(true);
+        ensureBadgeOptionExists(inputValue);
+        badgeSelect.value = inputValue;
+        updateBadgeInputVisibility(shouldShowBadgeInput(inputValue));
     }
 }
 
 function shouldShowBadgeInput(selectedValue) {
     if(!selectedValue) return false;
-    return selectedValue === '__custom__' || EDITABLE_BADGE_PRESETS.indexOf(selectedValue) !== -1;
+    return EDITABLE_BADGE_PRESETS.indexOf(selectedValue) !== -1;
 }
 
 function updateBadgeInputVisibility(showCustomInput) {
@@ -1273,6 +1328,60 @@ function updateBadgeInputVisibility(showCustomInput) {
 }
 
 var MAX_OFFERS = 5;
+function openCustomOfferBadgeModal() {
+    var nameField = document.getElementById('custom_offer_badge_name');
+    if (nameField) nameField.value = '';
+
+    var errorElement = document.getElementById('customOfferBadgeError');
+    if (errorElement) errorElement.style.display = 'none';
+
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('customOfferBadgeModal');
+        if (nameField) setTimeout(function() { nameField.focus(); }, 150);
+    }
+}
+
+function closeCustomOfferBadgeModal() {
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('customOfferBadgeModal');
+    }
+}
+
+function addCustomOfferBadgeToSelect(badgeText) {
+    var badgeSelect = document.getElementById('modal_offer_badge_select');
+    var badgeInput = document.getElementById('modal_offer_badge');
+    if (!badgeSelect || !badgeText) return;
+    ensureBadgeOptionExists(badgeText);
+    badgeSelect.value = badgeText;
+    if (badgeInput) badgeInput.value = badgeText;
+    updateBadgeInputVisibility(shouldShowBadgeInput(badgeText));
+    updateBadgeCharCount();
+}
+
+function saveCustomOfferBadge() {
+    var badgeName = document.getElementById('custom_offer_badge_name').value.trim();
+    var errorElement = document.getElementById('customOfferBadgeError');
+
+    if (!badgeName) {
+        errorElement.textContent = 'Badge text is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    if (badgeName.length > 20) {
+        errorElement.textContent = 'Badge text must be 20 characters or less.';
+        errorElement.style.display = 'block';
+        return;
+    }
+
+    errorElement.style.display = 'none';
+    addCustomOfferBadgeToSelect(badgeName);
+
+    var nameInput = document.getElementById('custom_offer_badge_name');
+    if (nameInput) nameInput.value = '';
+
+    closeCustomOfferBadgeModal();
+}
+
 function updateAddOfferButtonState() {
     var btn = document.getElementById('addOfferBtn');
     if(!btn) return;

@@ -385,20 +385,31 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
     <title><?php echo (isset($_GET['id']) ? 'Customer Payment' : 'Franchise Registration Payment'); ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
+        :root {
+            --mw-navy: #002169;
+            --mw-yellow: #ffc107;
+            --mw-light-blue: #f0f5ff;
+            --mw-green: #4CAF50;
+            --mw-orange: #FF9800;
+            --mw-text: #333333;
+            --mw-text-muted: #666666;
+            --mw-border: #e0e0e0;
+        }
         html {
             overflow-x: hidden;
             background: #f5f5f5;
         }
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             margin: 0;
             padding: 20px;
             background: #f5f5f5;
+            color: var(--mw-text);
         }
         .back-button {
             display: inline-flex;
             align-items: center;
-            background: #002169;
+            background: var(--mw-navy);
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
@@ -414,9 +425,290 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,33,105,0.4);
         }
-        .billing-form input:focus {
+        .back-wrap {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .payment-wrapper {
+            max-width: 480px;
+            margin: 0 auto 24px;
+        }
+        .payment-header {
+            background: var(--mw-navy);
+            padding: 28px 20px 48px;
+        }
+        .payment-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin: 0 auto 12px;
+            width: fit-content;
+            max-width: 100%;
+        }
+        .payment-header-icon {
+            width: 52px;
+            height: 52px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .payment-header-icon i {
+            font-size: 24px;
+            color: var(--mw-navy);
+        }
+        .payment-header-text {
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+        .payment-header h1 {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 8px;
+            letter-spacing: 0.3px;
+            text-align: left;
+        }
+        .payment-header-line {
+            width: 48px;
+            height: 3px;
+            background: var(--mw-yellow);
+            margin: 0;
+            border-radius: 2px;
+        }
+        .payment-header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            margin: 0;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .payment-card {
+            background: #fff;
+            margin: -17px 0px 0;
+            padding: 24px 18px 20px;
+            border-radius: 20px 20px 12px 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+        }
+        .form-input {
+            width: 100%;
+            padding: 13px 15px;
+            margin-bottom: 12px;
+            border: 1px solid var(--mw-border);
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            background: #fff;
+            color: var(--mw-text);
+        }
+        .form-input::placeholder {
+            color: #999;
+            font-size: 13px;
+        }
+        #gst_number::placeholder {
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+        }
+        .form-input:focus {
             outline: none;
-            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+            border-color: var(--mw-navy);
+            box-shadow: 0 0 0 2px rgba(0,33,105,0.1);
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .form-row .form-input {
+            margin-bottom: 0;
+        }
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 28px 0 18px;
+        }
+        .section-divider::before,
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--mw-border);
+        }
+        .section-divider span {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--mw-text-muted);
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .plan-label {
+            display: flex;
+            align-items: flex-start;
+            background: #fff;
+            padding: 14px 14px;
+            border-radius: 10px;
+            border: 1.5px solid var(--mw-border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 10px;
+        }
+        .plan-label:hover {
+            border-color: #b0b8d0;
+        }
+        .plan-label.plan-selected {
+            background: var(--mw-light-blue);
+            border-color: var(--mw-navy);
+            border-width: 2px;
+        }
+        .plan-label input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 3px 12px 0 0;
+            accent-color: var(--mw-navy);
+            flex-shrink: 0;
+        }
+        .plan-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .plan-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .plan-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--mw-text);
+            display: block;
+        }
+        .plan-label.plan-selected .plan-title {
+            color: var(--mw-navy);
+        }
+        .plan-sub {
+            font-size: 12px;
+            color: var(--mw-text-muted);
+            font-weight: 400;
+            display: block;
+            margin-top: 2px;
+        }
+        .plan-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--mw-text);
+            white-space: nowrap;
+            margin-left: auto;
+            text-align: right;
+            align-self: flex-start;
+            flex-shrink: 0;
+        }
+        .plan-label.plan-selected .plan-price {
+            color: var(--mw-navy);
+        }
+        .plan-price-orange {
+            color: var(--mw-orange) !important;
+        }
+        .plan-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+            margin-top: 8px;
+        }
+        .plan-badge-green {
+            background: var(--mw-green);
+        }
+        .plan-badge-orange {
+            background: var(--mw-orange);
+        }
+        .plan-save {
+            font-size: 11px;
+            color: var(--mw-green);
+            margin-top: 4px;
+            display: block;
+        }
+        .calculation-display {
+            margin: 20px 0;
+            background: var(--mw-light-blue);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,33,105,0.15);
+        }
+        .calculation-display table {
+            width: 100%;
+            font-size: 14px;
+            color: var(--mw-text);
+            border-collapse: collapse;
+        }
+        .calculation-display td {
+            padding: 6px 0;
+        }
+        .calculation-display td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        .calculation-display tr:last-child td {
+            border-top: 1px dashed rgba(0,33,105,0.25);
+        }
+        .calculation-display td.final-total {
+            padding-top: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--mw-navy);
+        }
+        .promo-wrap {
+            display: flex;
+            gap: 0;
+            margin-top: 16px;
+            border: 1px solid var(--mw-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .promo-icon-wrap {
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            background: #fff;
+            color: var(--mw-navy);
+            border-right: 1px solid var(--mw-border);
+        }
+        .promo-wrap input {
+            flex: 1;
+            padding: 11px 12px;
+            border: none;
+            font-size: 14px;
+            outline: none;
+        }
+        .promo-wrap button {
+            padding: 11px 18px;
+            background: var(--mw-navy);
+            color: #fff;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .promo-applied-box {
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .promo-applied-box .promo-code-text {
+            color: var(--mw-green);
+            font-weight: 700;
         }
         .promo-success {
             background: #d4edda;
@@ -434,30 +726,94 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
             font-size: 13px;
             margin-top: 5px;
         }
-        .plan-label {
+        .terms-wrap {
+            margin: 18px 0 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--mw-navy);
+        }
+        .terms-wrap label {
+            color: var(--mw-navy);
+        }
+        .terms-wrap input[type="checkbox"] {
+            margin-top: 3px;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--mw-navy);
+            flex-shrink: 0;
+        }
+        .terms-wrap a {
+            color: var(--mw-navy);
+            text-decoration: underline;
+            font-weight: 600;
+        }
+        .proceed-btn {
+            width: 100%;
+            background: var(--mw-yellow);
+            color: #000;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
             cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.5px;
         }
-        .plan-label:hover {
-            background: rgba(255,255,255,0.15) !important;
+        .proceed-btn:hover {
+            background: #e6ac00;
         }
-        .plan-label input[type="radio"]:checked + span {
-            color: #ffc107 !important;
+        .proceed-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
         }
-        .plan-label input[type="radio"]:checked {
-            accent-color: #ffc107;
+        .trust-badges {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+            padding-top: 14px;
         }
-        .plan-label input[type="radio"]:checked ~ .plan-highlight {
-            border-color: #ffc107 !important;
-            background: rgba(255,193,7,0.1) !important;
+        .trust-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: var(--mw-navy);
+            font-weight: 500;
+            flex: 1;
+            min-width: 90px;
+            justify-content: center;
+        }
+        .trust-badge i {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        @media (max-width: 380px) {
+            .trust-badges {
+                flex-direction: column;
+                align-items: center;
+            }
+            .trust-badge {
+                min-width: auto;
+            }
         }
     </style>
 </head>
 <body>
 
-<div style="text-align: center; margin-bottom: 20px;">
-    <?php
-    $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.php');
-    ?>
+<?php
+$back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.php');
+?>
+<div class="back-wrap">
     <a href="<?php echo $back_url; ?>" class="back-button">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -467,244 +823,208 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
 </div>
 
 <?php if ($show_billing_form): ?>
-<!-- Billing Details Section -->
-<div style="max-width: 450px; margin: 0 auto; background: #002169; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-    <h4 style="color: white; text-align: center; margin-bottom: 10px; font-size: 20px; font-weight: 600;">Billing/GST Details</h4>
-    
-    <!-- Yellow line below header -->
-    <div style="width: 35%; height: 2px; background: #ffc107; margin: 0 auto 25px auto; border-radius: 1px;"></div>
-    
-    <!-- Billing Form -->
-    <div class="billing-form">
-        <input type="text" id="gst_number" name="gst_number" placeholder="ENTER GST NUMBER (OPTIONAL)" 
-               value="<?php echo isset($_SESSION['billing_gst_number']) ? htmlspecialchars($_SESSION['billing_gst_number']) : ''; ?>" 
-               onkeyup="updateTaxOnInput()" onchange="updateTaxOnInput()" 
-               style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; text-transform: uppercase;">
-        
-        <input type="text" id="gst_name" name="gst_name" placeholder="Name" 
-               value="<?php echo isset($_SESSION['billing_gst_name']) ? htmlspecialchars($_SESSION['billing_gst_name']) : (isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : ''); ?>" 
-               required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-        
-        <input type="email" id="gst_email" name="gst_email" placeholder="Email Address" 
-               value="<?php echo isset($_SESSION['billing_gst_email']) ? htmlspecialchars($_SESSION['billing_gst_email']) : (isset($_SESSION['user_email']) ? htmlspecialchars($_SESSION['user_email']) : ''); ?>" 
-               required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-        
-        <input type="tel" id="gst_contact" name="gst_contact" placeholder="Contact Number" 
-               value="<?php echo isset($_SESSION['billing_gst_contact']) ? htmlspecialchars($_SESSION['billing_gst_contact']) : (isset($_SESSION['user_contact']) ? htmlspecialchars($_SESSION['user_contact']) : ''); ?>" 
-               required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-        
-        <input type="text" id="gst_address" name="gst_address" placeholder="Address" 
-               value="<?php echo isset($_SESSION['billing_gst_address']) ? htmlspecialchars($_SESSION['billing_gst_address']) : (isset($_SESSION['address']) ? htmlspecialchars($_SESSION['address']) : ''); ?>" 
-               required style="width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-        
-        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-            <input type="text" id="gst_state" name="gst_state" placeholder="State" 
-                   value="<?php echo isset($_SESSION['billing_gst_state']) ? htmlspecialchars($_SESSION['billing_gst_state']) : (isset($_SESSION['state']) ? htmlspecialchars($_SESSION['state']) : ''); ?>" 
-                   onkeyup="updateTaxOnInput()" onchange="updateTaxOnInput()" 
-                   required style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            <input type="text" id="gst_city" name="gst_city" placeholder="City" 
-                   value="<?php echo isset($_SESSION['billing_gst_city']) ? htmlspecialchars($_SESSION['billing_gst_city']) : (isset($_SESSION['city']) ? htmlspecialchars($_SESSION['city']) : ''); ?>" 
-                   required style="width: 50%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+<div class="payment-wrapper">
+    <div class="payment-header">
+        <div class="payment-header-top">
+            <div class="payment-header-icon">
+                <i class="fa fa-file-text-o"></i>
+            </div>
+            <div class="payment-header-text">
+                <h1>Billing &amp; GST Details</h1>
+                <div class="payment-header-line"></div>
+            </div>
         </div>
-        
-        <input type="text" id="gst_pincode" name="gst_pincode" placeholder="Pin Code" 
-               value="<?php echo isset($_SESSION['billing_gst_pincode']) ? htmlspecialchars($_SESSION['billing_gst_pincode']) : (isset($_SESSION['pincode']) ? htmlspecialchars($_SESSION['pincode']) : ''); ?>" 
-               required style="width: 100%; padding: 12px 15px; margin-bottom: 25px; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-        
-        <!-- Plan Selection -->
-        <div style="margin-bottom: 25px;">
-            <label style="color: white; font-weight: 600; display: block; margin-bottom: 15px; font-size: 15px;">SELECT PLAN</label>
-            
-            <style>
-                input[type="radio"]:checked ~ span {
-                    color: white !important;
-                }
-                #plan_team500:checked ~ span { color: white !important; }
-                <?php if (!isset($_GET['id'])): ?>
-                #plan_6month:checked ~ span { color: white !important; }
-                <?php endif; ?>
-                #plan_1year:checked ~ span { color: white !important; }
-                #plan_2year:checked ~ span { color: white !important; }
-                #plan_3year:checked ~ span { color: white !important; }
-            </style>
-            
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+        <p>Please fill in your details to proceed with the payment.</p>
+    </div>
+
+    <div class="payment-card">
+        <div class="billing-form">
+            <input type="text" id="gst_number" name="gst_number" class="form-input" placeholder="ENTER GST NUMBER (OPTIONAL)"
+                   value="<?php echo isset($_SESSION['billing_gst_number']) ? htmlspecialchars($_SESSION['billing_gst_number']) : ''; ?>"
+                   onkeyup="updateTaxOnInput()" onchange="updateTaxOnInput()" style="text-transform: uppercase;">
+
+            <input type="text" id="gst_name" name="gst_name" class="form-input" placeholder="Name"
+                   value="<?php echo isset($_SESSION['billing_gst_name']) ? htmlspecialchars($_SESSION['billing_gst_name']) : (isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : ''); ?>"
+                   required>
+
+            <input type="email" id="gst_email" name="gst_email" class="form-input" placeholder="Email Address"
+                   value="<?php echo isset($_SESSION['billing_gst_email']) ? htmlspecialchars($_SESSION['billing_gst_email']) : (isset($_SESSION['user_email']) ? htmlspecialchars($_SESSION['user_email']) : ''); ?>"
+                   required>
+
+            <input type="tel" id="gst_contact" name="gst_contact" class="form-input" placeholder="Contact Number"
+                   value="<?php echo isset($_SESSION['billing_gst_contact']) ? htmlspecialchars($_SESSION['billing_gst_contact']) : (isset($_SESSION['user_contact']) ? htmlspecialchars($_SESSION['user_contact']) : ''); ?>"
+                   required>
+
+            <input type="text" id="gst_address" name="gst_address" class="form-input" placeholder="Address"
+                   value="<?php echo isset($_SESSION['billing_gst_address']) ? htmlspecialchars($_SESSION['billing_gst_address']) : (isset($_SESSION['address']) ? htmlspecialchars($_SESSION['address']) : ''); ?>"
+                   required>
+
+            <div class="form-row">
+                <input type="text" id="gst_state" name="gst_state" class="form-input" placeholder="State"
+                       value="<?php echo isset($_SESSION['billing_gst_state']) ? htmlspecialchars($_SESSION['billing_gst_state']) : (isset($_SESSION['state']) ? htmlspecialchars($_SESSION['state']) : ''); ?>"
+                       onkeyup="updateTaxOnInput()" onchange="updateTaxOnInput()" required style="width: 50%;">
+                <input type="text" id="gst_city" name="gst_city" class="form-input" placeholder="City"
+                       value="<?php echo isset($_SESSION['billing_gst_city']) ? htmlspecialchars($_SESSION['billing_gst_city']) : (isset($_SESSION['city']) ? htmlspecialchars($_SESSION['city']) : ''); ?>"
+                       required style="width: 50%;">
+            </div>
+
+            <input type="text" id="gst_pincode" name="gst_pincode" class="form-input" placeholder="Pin Code"
+                   value="<?php echo isset($_SESSION['billing_gst_pincode']) ? htmlspecialchars($_SESSION['billing_gst_pincode']) : (isset($_SESSION['pincode']) ? htmlspecialchars($_SESSION['pincode']) : ''); ?>"
+                   required>
+
+            <div class="section-divider"><span>CHOOSE YOUR PLAN</span></div>
+
+            <div class="plan-list">
                 <?php if (!empty($use_team_500_pricing)): ?>
-                <!-- Team / referral users can access ₹500 plan -->
-                <label class="plan-label" id="label_team500" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
+                <label class="plan-label" id="label_team500">
                     <input type="radio" name="plan_choice" value="plan_team500" id="plan_team500" data-amount="500"
-                           <?php echo isset($_GET['id']) ? 'checked' : ''; ?>
-                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
-                    <span style="color: white; flex: 1; font-size: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                           <?php echo isset($_GET['id']) ? 'checked' : ''; ?>>
+                    <div class="plan-content">
+                        <div class="plan-row">
                             <div>
-                                <strong style="font-size: 15px; display: block; color: white;">6 Months</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 83/month approx..</small>
+                                <span class="plan-title">6 Months</span>
+                                <span class="plan-sub">Rs 83/month approx.</span>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 500</strong>
+                            <span class="plan-price">₹ 500</span>
                         </div>
-                    </span>
+                    </div>
                 </label>
                 <?php elseif (!isset($_GET['id'])): ?>
-                <!-- Franchise / non-card flow: keep legacy 6-month option -->
-                <label class="plan-label" id="label_6month" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
-                    <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="500"
-                           checked
-                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
-                    <span style="color: white; flex: 1; font-size: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="plan-label" id="label_6month">
+                    <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="500" checked>
+                    <div class="plan-content">
+                        <div class="plan-row">
                             <div>
-                                <strong style="font-size: 15px; display: block; color: white;">6 Months</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 83/month approx..</small>
+                                <span class="plan-title">6 Months</span>
+                                <span class="plan-sub">Rs 83/month approx.</span>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 500</strong>
+                            <span class="plan-price">₹ 500</span>
                         </div>
-                    </span>
+                    </div>
                 </label>
                 <?php endif; ?>
-                <!-- Customer mini-website: 1 Year first (₹500 shown only when eligible above) -->
-                <label class="plan-label" id="label_1year" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
+
+                <label class="plan-label" id="label_1year">
                     <input type="radio" name="plan_choice" value="plan_1year" id="plan_1year" data-amount="847"
-                           <?php echo (isset($_GET['id']) && empty($use_team_500_pricing)) ? 'checked' : ''; ?>
-                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
-                    <span style="color: white; flex: 1; font-size: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                           <?php echo (isset($_GET['id']) && empty($use_team_500_pricing)) ? 'checked' : ''; ?>>
+                    <div class="plan-content">
+                        <div class="plan-row">
                             <div>
-                                <strong style="font-size: 15px; display: block; color: white;">1 Year</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 71/month approx..</small>
+                                <span class="plan-title">1 Year</span>
+                                <span class="plan-sub">Rs 71/month approx.</span>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 847</strong>
+                            <span class="plan-price">₹ 847</span>
                         </div>
-                    </span>
+                    </div>
                 </label>
-                
-                <!-- 2 Years (BEST VALUE) -->
-                <label class="plan-label" id="label_2year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
-                    <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1500"
-                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
-                    <span style="color: white; flex: 1; font-size: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+
+                <label class="plan-label" id="label_2year">
+                    <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1500">
+                    <div class="plan-content">
+                        <div class="plan-row">
                             <div>
-                                <strong style="font-size: 15px; display: block; color: #FF9800;">2 Years</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 63/month approx..</small>
-                                <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">
-                                    <span style="font-size: 14px;">⭐</span> BEST VALUE
-                                </div>
-                                <div style="margin-top: 5px;">
-                                    <small style="font-weight: normal; opacity: 0.8; color: #90EE90; display: block;">✓ Save 11% compared to 1 year</small>
-                                    </div>
+                                <span class="plan-title">2 Years</span>
+                                <span class="plan-sub">Rs 63/month approx.</span>
+                                <span class="plan-badge plan-badge-green"><i class="fa fa-star"></i> BEST VALUE</span>
+                                <span class="plan-save">✓ Save 11% compared to 1 year</span>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 1,500</strong>
+                            <span class="plan-price">₹ 1,500</span>
                         </div>
-                    </span>
+                    </div>
                 </label>
-                
-                <!-- Plan 3: 3 Years (MAXIMUM SAVINGS) -->
-                <label class="plan-label" id="label_3year" style="display: flex; align-items: center; background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(255,255,255,0.1)); padding: 15px 15px; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer;">
-                    <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2100"
-                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 15px; accent-color: #FF9800;">
-                    <span style="color: white; flex: 1; font-size: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+
+                <label class="plan-label" id="label_3year">
+                    <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2100">
+                    <div class="plan-content">
+                        <div class="plan-row">
                             <div>
-                                <strong style="font-size: 15px; display: block; color: white;">3 Years</strong>
-                                <small style="font-weight: normal; opacity: 0.85; color: white;">Rs 58/month approx..</small>
-                                <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; background: #FF9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">
-                                    <span style="font-size: 14px;">⭐</span> MAXIMUM SAVINGS
-                                </div>
+                                <span class="plan-title">3 Years</span>
+                                <span class="plan-sub">Rs 58/month approx.</span>
+                                <span class="plan-badge plan-badge-orange"><i class="fa fa-star"></i> MAXIMUM SAVINGS</span>
                             </div>
-                            <strong style="font-size: 16px; color: white;">₹ 2,100</strong>
+                            <span class="plan-price plan-price-orange">₹ 2,100</span>
                         </div>
-                    </span>
+                    </div>
                 </label>
-                <script>
-                    // Function to update border color
-                    function updatePlanBorderColor() {
-                        document.querySelectorAll('.plan-label').forEach(label => {
-                            label.style.borderColor = 'transparent';
-                        });
-                        const checkedRadio = document.querySelector('input[name="plan_choice"]:checked');
-                        if (checkedRadio) {
-                            document.getElementById('label_' + checkedRadio.id.replace('plan_', '')).style.borderColor = '#FF9800';
-                        }
-                    }
-                    
-                    // Set initial border color on page load
-                    document.addEventListener('DOMContentLoaded', updatePlanBorderColor);
-                    
-                    // Update border color on radio button change
-                    document.querySelectorAll('input[name="plan_choice"]').forEach(radio => {
-                        radio.addEventListener('change', updatePlanBorderColor);
-                    });
-                </script>
             </div>
         </div>
-    </div>
-    
-    <!-- Price Breakdown -->
-    <div class="calculation-display" style="margin: 20px 0; color: white; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
-        <table style="width: 100%; color: white; font-size: 16px;">
-            <tr>
-                <td class="original-price" style="padding: 5px 0; text-align: left; width: 50%;"><strong>Original Price:</strong></td>
-                <td class="original-price" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($original_amount, 2); ?></strong></td>
-            </tr>
-            <tr>
-                <td class="discount" style="padding: 5px 0; text-align: left; width: 50%;"><strong>Discount:</strong></td>
-                <td class="discount" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($discount_amount, 2); ?></strong></td>
-            </tr>
-            <tr>
-                <td class="subtotal" style="padding: 5px 0; text-align: left; width: 50%;"><strong>Sub Total:</strong></td>
-                <td class="subtotal" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($subtotal, 2); ?></strong></td>
-            </tr>
-            <tr>
-                <td class="cgst" style="padding: 5px 0; text-align: left; width: 50%;"><strong>CGST (9%):</strong></td>
-                <td class="cgst" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($cgst_amount, 2); ?></strong></td>
-            </tr>
-            <tr>
-                <td class="sgst" style="padding: 5px 0; text-align: left; width: 50%;"><strong>SGST (9%):</strong></td>
-                <td class="sgst" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($sgst_amount, 2); ?></strong></td>
-            </tr>
-            <tr>
-                <td class="igst" style="padding: 5px 0; text-align: left; width: 50%;"><strong>IGST (18%):</strong></td>
-                <td class="igst" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($igst_amount, 2); ?></strong></td>
-            </tr>
-            <tr>
-                <td class="final-total" style="padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.3); text-align: left;"><strong>Final Total:</strong></td>
-                <td class="final-total" style="text-align: right; padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.3);"><strong>₹ <?php echo number_format($final_amount, 2); ?></strong></td>
-            </tr>
-        </table>
-    </div>
-    
-    <!-- Promo Code Section -->
-    <div id="promo-section" style="margin-top: 15px;">
-        <?php if(!$promo_applied): ?>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input type="text" id="promo_code_input" placeholder="Enter promo code" 
-                       style="flex: 1; padding: 8px 12px; border: none; border-radius: 5px; font-size: 14px;" maxlength="20">
-                <button type="button" id="apply_promo_btn" 
-                        style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                    Apply
-                </button>
+
+        <div class="calculation-display">
+            <table>
+                <tr>
+                    <td class="original-price">Original Price:</td>
+                    <td class="original-price">₹ <?php echo number_format($original_amount, 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="discount">Discount:</td>
+                    <td class="discount">₹ <?php echo number_format($discount_amount, 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="subtotal">Sub Total:</td>
+                    <td class="subtotal">₹ <?php echo number_format($subtotal, 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="cgst">CGST (9%):</td>
+                    <td class="cgst">₹ <?php echo number_format($cgst_amount, 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="sgst">SGST (9%):</td>
+                    <td class="sgst">₹ <?php echo number_format($sgst_amount, 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="igst">IGST (18%):</td>
+                    <td class="igst">₹ <?php echo number_format($igst_amount, 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="final-total"><strong>Final Total:</strong></td>
+                    <td class="final-total"><strong>₹ <?php echo number_format($final_amount, 2); ?></strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="promo-section">
+            <?php if(!$promo_applied): ?>
+            <div class="promo-wrap">
+                <div class="promo-icon-wrap"><i class="fa fa-tag"></i></div>
+                <input type="text" id="promo_code_input" placeholder="Enter promo code" maxlength="20">
+                <button type="button" id="apply_promo_btn">Apply</button>
             </div>
-        <?php else: ?>
-            <div style="margin-bottom: 10px; padding: 8px; background: rgba(40, 167, 69, 0.2); border-radius: 5px;">
-                <span style="color: #28a745; font-weight: bold;"><?php echo $_SESSION['promo_code']; ?> Applied</span>
+            <?php else: ?>
+            <div class="promo-applied-box">
+                <span class="promo-code-text"><?php echo htmlspecialchars($_SESSION['promo_code']); ?> Applied</span>
                 <?php if(!$is_auto_applied): ?>
-                    <button type="button" id="remove_promo_btn" 
-                            style="padding: 3px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 10px;">
-                        Remove
-                    </button>
+                <button type="button" id="remove_promo_btn"
+                        style="padding: 3px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 10px;">
+                    Remove
+                </button>
                 <?php else: ?>
-                    <span style="color: #6c757d; font-size: 12px; margin-left: 10px; font-style: italic;">(Auto-applied)</span>
+                <span style="color: #6c757d; font-size: 12px; margin-left: 10px; font-style: italic;">(Auto-applied)</span>
                 <?php endif; ?>
             </div>
-        <?php endif; ?>
-        <div id="promo-message" style="font-size: 13px; margin-top: 5px;"><?php echo $promo_message; ?></div>
+            <?php endif; ?>
+            <div id="promo-message"><?php echo $promo_message; ?></div>
+        </div>
+
+        <div class="terms-wrap">
+            <input type="checkbox" id="terms_agree" name="terms_agree">
+            <label for="terms_agree">
+                I have read and agree to the
+                <a href="../terms_conditions.php" target="_blank">Terms &amp; Conditions</a>,
+                <a href="../terms_conditions.php" target="_blank">Refund Policy</a> and
+                <a href="../privacy_policy.php" target="_blank">Privacy Policy</a>.
+            </label>
+        </div>
+
+        <button type="button" id="proceed-to-payment" class="proceed-btn">
+            <i class="fa fa-lock"></i> PROCEED TO PAY
+        </button>
+
+        <div class="trust-badges">
+            <div class="trust-badge"><i class="fa fa-shield"></i> 100% Secure Payments</div>
+            <div class="trust-badge"><i class="fa fa-shield"></i> SSL Encrypted</div>
+            <div class="trust-badge"><i class="fa fa-shield"></i> Your Data is Safe</div>
+        </div>
     </div>
-    
-    <!-- Payment Button -->
-    <button id="proceed-to-payment" style="width: 100%; background: #ffc107; color: #000; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px;">
-        PROCEED TO PAY
-    </button>
 </div>
 
 <?php
@@ -755,7 +1075,26 @@ try {
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+function updatePlanBorderColor() {
+    document.querySelectorAll('.plan-label').forEach(function(label) {
+        label.classList.remove('plan-selected');
+    });
+    var checkedRadio = document.querySelector('input[name="plan_choice"]:checked');
+    if (checkedRadio) {
+        var labelId = 'label_' + checkedRadio.id.replace('plan_', '');
+        var labelEl = document.getElementById(labelId);
+        if (labelEl) {
+            labelEl.classList.add('plan-selected');
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    updatePlanBorderColor();
+    document.querySelectorAll('input[name="plan_choice"]').forEach(function(radio) {
+        radio.addEventListener('change', updatePlanBorderColor);
+    });
+
     var appliedPromoDiscount = <?php echo ($promo_applied && isset($promo_discount)) ? floatval($promo_discount) : 0; ?>;
     var hasActivePromo = <?php echo (!empty($promo_applied) && !empty($_SESSION['promo_code'])) ? 'true' : 'false'; ?>;
     var planPricingSeq = 0;
@@ -890,22 +1229,22 @@ document.addEventListener('DOMContentLoaded', function() {
         var finalTotalElements = document.querySelectorAll('.final-total');
         
         if (cgstElements.length >= 2) {
-            cgstElements[1].innerHTML = '<strong>₹ ' + cgst.toFixed(2) + '</strong>';
+            cgstElements[1].textContent = '₹ ' + cgst.toFixed(2);
         }
         if (sgstElements.length >= 2) {
-            sgstElements[1].innerHTML = '<strong>₹ ' + sgst.toFixed(2) + '</strong>';
+            sgstElements[1].textContent = '₹ ' + sgst.toFixed(2);
         }
         if (igstElements.length >= 2) {
-            igstElements[1].innerHTML = '<strong>₹ ' + igst.toFixed(2) + '</strong>';
+            igstElements[1].textContent = '₹ ' + igst.toFixed(2);
         }
         if (finalTotalElements.length >= 2) {
-            finalTotalElements[1].innerHTML = '<strong>₹ ' + finalAmount.toFixed(2) + '</strong>';
+            finalTotalElements[1].textContent = '₹ ' + finalAmount.toFixed(2);
         }
         
         // Update subtotal
         var subtotalElements = document.querySelectorAll('.subtotal');
         if (subtotalElements.length >= 2) {
-            subtotalElements[1].innerHTML = '<strong>₹ ' + subtotal.toFixed(2) + '</strong>';
+            subtotalElements[1].textContent = '₹ ' + subtotal.toFixed(2);
         }
         
         return finalAmount;
@@ -918,19 +1257,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update original price display
         var originalPriceElements = document.querySelectorAll('.original-price');
         if (originalPriceElements.length >= 2) {
-            originalPriceElements[1].innerHTML = '<strong>₹ ' + planAmount.toFixed(2) + '</strong>';
+            originalPriceElements[1].textContent = '₹ ' + planAmount.toFixed(2);
         }
         
         // Update discount display
         var discountElements = document.querySelectorAll('.discount');
         if (discountElements.length >= 2) {
-            discountElements[1].innerHTML = '<strong>₹ ' + discountAmount.toFixed(2) + '</strong>';
+            discountElements[1].textContent = '₹ ' + discountAmount.toFixed(2);
         }
         
         // Update subtotal display
         var subtotalElements = document.querySelectorAll('.subtotal');
         if (subtotalElements.length >= 2) {
-            subtotalElements[1].innerHTML = '<strong>₹ ' + subtotal.toFixed(2) + '</strong>';
+            subtotalElements[1].textContent = '₹ ' + subtotal.toFixed(2);
         }
     }
     
@@ -1124,6 +1463,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
                 errorMessage += "Pin Code is required\n";
                 document.getElementById('gst_pincode').style.border = "2px solid red";
+            }
+
+            var termsCheckbox = document.getElementById('terms_agree');
+            if (termsCheckbox && !termsCheckbox.checked) {
+                isValid = false;
+                errorMessage += "Please agree to the Terms & Conditions\n";
             }
             
             var selectedPlan = document.querySelector('input[name="plan_choice"]:checked');

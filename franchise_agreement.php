@@ -175,206 +175,453 @@ if ($connect) {
     <title><?php echo htmlspecialchars($page_title); ?> - MiniWebsite</title>
     <meta name="description" content="<?php echo htmlspecialchars($meta_description); ?>">
     <meta name="keywords" content="<?php echo htmlspecialchars($meta_keywords); ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
+        :root {
+            --mw-navy: #002169;
+            --mw-yellow: #ffc107;
+            --mw-light-blue: #f0f5ff;
+            --mw-green: #4CAF50;
+            --mw-orange: #FF9800;
+            --mw-text: #333333;
+            --mw-text-muted: #666666;
+            --mw-border: #e0e0e0;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             line-height: 1.4;
-          
-            
+            margin: 0;
+            background: #f5f5f5;
+            color: var(--mw-text);
         }
-
         .container {
-           
             margin: auto;
-            
             padding: 20px;
-            
-            
+            max-width: 1100px;
         }
-
         input[readonly] {
             background-color: #f8f9fa !important;
             border-color: #dee2e6 !important;
             cursor: not-allowed !important;
             opacity: 0.8;
         }
-
-        /* Promo code message styles */
         .promo-message {
             padding: 8px 12px;
             border-radius: 4px;
             font-size: 13px;
             margin-top: 5px;
         }
-        
         .promo-message.success {
-            background: rgba(40, 167, 69, 0.2);
-            color: #28a745;
-            border: 1px solid rgba(40, 167, 69, 0.3);
+            background: #d4edda;
+            color: #155724;
         }
-        
         .promo-message.error {
-            background: wheat;
-            color: #dc3545;
-            border: 1px solid rgba(220, 53, 69, 0.3);
+            background: #f8d7da;
+            color: #721c24;
         }
-        
         .promo-message.info {
-            background: rgba(23, 162, 184, 0.2);
-            color: #17a2b8;
-            border: 1px solid rgba(23, 162, 184, 0.3);
+            background: #d1ecf1;
+            color: #0c5460;
         }
-        
-        /* Button hover effects */
-        #apply_promo_btn:hover {
-            background: #218838 !important;
+        .franchise-payment-section {
+            margin-top: 40px;
+            padding: 10px 0 30px;
         }
-        
-        #remove_promo_btn:hover {
-            background: #c82333 !important;
+        .page-payment-title {
+            text-align: center;
+            color: var(--mw-navy);
+            margin: 0 0 8px;
+            font-size: 28px;
+            font-weight: 700;
         }
-        
-        /* Input focus effect */
-        #promo_code_input:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+        .page-payment-subtitle {
+            text-align: center;
+            margin: 0 0 14px;
+            color: var(--mw-text-muted);
+            font-size: 15px;
         }
-
-        .billing-input {
-            width: 100%;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            box-sizing: border-box;
+        .trust-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #c5d4f0;
+            border-radius: 999px;
+            padding: 7px 16px;
+            color: var(--mw-navy);
+            font-size: 13px;
+            font-weight: 600;
         }
-
-        .billing-input-uppercase {
-            text-transform: uppercase;
+        .trust-pill-wrap {
+            text-align: center;
+            margin-bottom: 28px;
         }
-
         .payment-layout {
             display: flex;
-            gap: 12px;
+            gap: 24px;
             align-items: flex-start;
             justify-content: center;
             flex-wrap: wrap;
             max-width: 100%;
             margin: 0 auto;
         }
-
         @media (min-width: 992px) {
             .payment-layout {
                 flex-wrap: nowrap;
-                width: fit-content;
-                max-width: none;
-                gap: 8px;
+                align-items: stretch;
             }
         }
-
         .plan-panel {
-            width: 320px;
+            width: 340px;
             max-width: 100%;
+            flex-shrink: 0;
         }
-
         .plan-card {
             border-radius: 14px;
-            background: #ffffff;
+            background: #fff;
             border: 2px solid #d5dbe7;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            margin-bottom: 35px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
             transition: all 0.2s ease;
             cursor: pointer;
         }
-
         .plan-card.active {
-            border-color: #002169;
-            box-shadow: 0 0 0 3px rgba(0, 33, 105, 0.15);
+            border-color: var(--mw-navy);
+            box-shadow: 0 0 0 3px rgba(0, 33, 105, 0.12);
         }
-
         .plan-card-header {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
-            color: #ffffff;
+            color: #fff;
             text-align: center;
-            padding: 12px 10px;
+            padding: 14px 12px;
         }
-
-        .plan-card-header.blue {
-            background: #1b4fa8;
-        }
-
+        .plan-card-header.blue { background: var(--mw-navy); }
         .plan-card-header.yellow {
-            background: #ffc107;
+            background: var(--mw-yellow);
             color: #222;
         }
-
-        .plan-card-body {
-            padding: 12px 15px 14px 15px;
-        }
-
-        .plan-price {
+        .plan-card-body { padding: 16px 18px 18px; }
+        .plan-card .plan-price {
             text-align: center;
-    font-size: 35px;
-    font-weight: 600;
-    margin: 8px 0 4px 0;
-    color: #111;
-    line-height: 1;
+            font-size: 36px;
+            font-weight: 700;
+            margin: 10px 0 4px;
+            color: #111;
+            line-height: 1;
         }
-
         .plan-subtext {
             text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 16px;
+            color: #555;
+            margin-bottom: 14px;
+            font-size: 15px;
         }
-
         .plan-features {
             list-style: none;
-            margin: 0 0 12px 0;
+            margin: 0 0 16px;
             padding: 0;
         }
-
         .plan-features li {
-            font-size: 16px;
-            margin: 8px 0;
+            font-size: 14px;
+            margin: 9px 0;
             color: #202124;
             position: relative;
-            padding-left: 20px;
+            padding-left: 22px;
+            line-height: 1.4;
         }
-
         .plan-features li::before {
             content: "✓";
-            color: #1b4fa8;
+            color: var(--mw-navy);
             font-weight: 700;
             position: absolute;
             left: 0;
             top: 0;
         }
-
+        .plan-features.orange li::before { color: var(--mw-orange); }
         .plan-select-btn {
             width: 100%;
             border: none;
             border-radius: 8px;
-            padding: 11px;
-            font-size: 20px;
+            padding: 12px;
+            font-size: 17px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
         }
-
         .plan-select-btn.green {
-            background: #1e9a5f;
+            background: var(--mw-green);
             color: #fff;
         }
-
         .plan-select-btn.yellow {
-            background: #ffc107;
+            background: var(--mw-yellow);
             color: #111;
         }
- 
+        .wallet-info-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: var(--mw-light-blue);
+            border: 1px solid rgba(0, 33, 105, 0.15);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: var(--mw-navy);
+            line-height: 1.5;
+        }
+        .wallet-info-box i {
+            font-size: 22px;
+            color: var(--mw-navy);
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+        .billing-panel {
+            width: 400px;
+            max-width: 100%;
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            min-width: 320px;
+        }
+        .billing-panel-header {
+            background: var(--mw-navy);
+            padding: 22px 20px 28px;
+        }
+        .billing-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .billing-header-icon {
+            width: 48px;
+            height: 48px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .billing-header-icon i {
+            font-size: 22px;
+            color: var(--mw-navy);
+        }
+        .billing-header-text h4 {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 8px;
+            text-align: left;
+        }
+        .billing-header-line {
+            width: 48px;
+            height: 3px;
+            background: var(--mw-yellow);
+            border-radius: 2px;
+        }
+        .billing-panel-body {
+            padding: 20px 18px 18px;
+            margin-top: -12px;
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+        }
+        .input-icon-wrap {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--mw-border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: #fff;
+            overflow: hidden;
+        }
+        .input-icon-wrap:focus-within {
+            border-color: var(--mw-navy);
+            box-shadow: 0 0 0 2px rgba(0, 33, 105, 0.1);
+        }
+        .input-icon-wrap > i {
+            width: 40px;
+            text-align: center;
+            color: var(--mw-navy);
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .input-icon-wrap input {
+            flex: 1;
+            border: none;
+            padding: 13px 12px 13px 0;
+            font-size: 14px;
+            outline: none;
+            background: transparent;
+            min-width: 0;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .form-row .input-icon-wrap {
+            flex: 1;
+            margin-bottom: 0;
+            min-width: 0;
+        }
+        .billing-input-uppercase { text-transform: uppercase; }
+        .calculation-display {
+            margin: 18px 0;
+            background: var(--mw-light-blue);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 33, 105, 0.15);
+        }
+        .calculation-display table {
+            width: 100%;
+            font-size: 14px;
+            color: var(--mw-text);
+            border-collapse: collapse;
+        }
+        .calculation-display td { padding: 6px 0; }
+        .calculation-display td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        .calculation-display tr:last-child td {
+            border-top: 1px dashed rgba(0, 33, 105, 0.25);
+        }
+        .calculation-display td.final-total {
+            padding-top: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--mw-navy);
+        }
+        .promo-wrap {
+            display: flex;
+            border: 1px solid var(--mw-border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .promo-icon-wrap {
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            color: var(--mw-navy);
+            border-right: 1px solid var(--mw-border);
+        }
+        .promo-wrap input {
+            flex: 1;
+            padding: 11px 12px;
+            border: none;
+            font-size: 14px;
+            outline: none;
+        }
+        .promo-wrap button {
+            padding: 11px 18px;
+            background: var(--mw-navy);
+            color: #fff;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .promo-applied-box {
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .promo-applied-box .promo-code-text {
+            color: var(--mw-green);
+            font-weight: 700;
+        }
+        .terms-wrap {
+            margin: 18px 0 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--mw-navy);
+        }
+        .terms-wrap label { color: var(--mw-navy); }
+        .terms-wrap input[type="checkbox"] {
+            margin-top: 3px;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--mw-navy);
+            flex-shrink: 0;
+        }
+        .terms-wrap a {
+            color: var(--mw-navy);
+            text-decoration: underline;
+            font-weight: 600;
+        }
+        .proceed-btn {
+            width: 100%;
+            background: var(--mw-yellow);
+            color: #000;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.5px;
+        }
+        .proceed-btn:hover { background: #e6ac00; }
+        .proceed-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .trust-badges {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid var(--mw-border);
+        }
+        .trust-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: var(--mw-navy);
+            font-weight: 500;
+            flex: 1;
+            min-width: 90px;
+            justify-content: center;
+        }
+        .trust-badge i { font-size: 14px; }
+        .payment-footer {
+            text-align: center;
+            margin-top: 28px;
+            padding-top: 10px;
+        }
+        .payment-footer .trust-badges {
+            border-top: none;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 0;
+            padding-top: 0;
+        }
+        .payment-footer .trust-badge {
+            flex: 0 1 auto;
+            font-size: 12px;
+        }
+        .payment-copyright {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #9ca3af;
+        }
+        #remove_promo_btn:hover { background: #c82333 !important; }
     </style>
 </head>
 <body>
@@ -391,207 +638,234 @@ if ($connect) {
         
 
 <!-- Payment Form -->
-<div id="paymentSection" style="margin-top: 40px; padding: 30px 20px; background: #f8f9fa; border-radius: 15px;">
-    <h3 style="text-align: center; color: #002169; margin-bottom: 8px; font-size: 24px; font-weight: 600;">Franchise Registration Payment</h3>
-    <div style="text-align: center; margin-bottom: 15px;">
-        <p style="margin: 0 0 6px 0; color: #4b5563; font-size: 14px; font-weight: 500;">
-            Choose your plan &amp; start your MiniWebsite franchise journey
-        </p>
-        <div style="display: inline-block; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 999px; padding: 5px 12px; color: #6b7280; font-size: 12px; font-weight: 600;">
+<div id="paymentSection" class="franchise-payment-section">
+    <h2 class="page-payment-title">Franchise Registration Payment</h2>
+    <p class="page-payment-subtitle">Choose your plan &amp; start your MiniWebsite franchise journey</p>
+    <div class="trust-pill-wrap">
+        <div class="trust-pill">
+            <i class="fa fa-shield"></i>
             Trusted by 1000+ Partners Across India
         </div>
     </div>
+
     <div class="payment-layout">
-    <div class="plan-panel">
-        <div class="plan-card" id="starterPlanCard" data-plan="starter">
-            <div class="plan-card-header blue">Starter Franchise Plan</div>
-            <div class="plan-card-body">
-                <div class="plan-price">₹6,000</div>
-                <div class="plan-subtext">for 4 Months</div>
-                <ul class="plan-features">
-                    <li>Trial Franchise of 4 Months</li>
-                    <li>100% Commission Earning for 4 Months</li>
-                    <li>₹413/website creation from wallet</li>
-                </ul>
-                <button type="button" class="plan-select-btn green" data-plan="starter">SELECT ₹6,000</button>
-            </div>
-        </div>
-        <div class="plan-card active" id="fullPlanCard" data-plan="full">
-            <div class="plan-card-header yellow">Full Franchise Plan</div>
-            <div class="plan-card-body">
-                <div class="plan-price">₹30,000</div>
-                <div class="plan-subtext">(One-time Fees)</div>
-                <ul class="plan-features">
-                    <li>Lifetime Unlimited MiniWebsite rights</li>
-                    <li>100% Commission Earning Lifelong</li>
-                    <li>₹413/website creation from wallet</li>
-                </ul>
-                <button type="button" class="plan-select-btn yellow" data-plan="full">SELECT ₹30,000</button>
-            </div>
-        </div>
-    </div>
-    <div style="    max-width: 350px;
-    margin: 0 auto;
-    background: #002169;
-    padding: 20px;
-    padding-top: 0px;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);">
-        <h4 style="color: white; text-align: center; margin-bottom: 10px; font-size: 20px; font-weight: 600;">Billing/GST Details</h4>
-        
-         
-        <form id="franchisePaymentForm" action="payment/pay.php" method="POST">
-            <input type="text" name="gst_number" placeholder="Enter GST Number (Optional)" class="billing-input billing-input-uppercase">
-            <input type="text" name="name" placeholder="Name" required class="billing-input">
-            
-            <div style="display: flex; gap: 15px;">
-           
-            <input type="email" name="email" placeholder="Email Address" 
-                   value="<?php echo !empty($prefill_email) ? htmlspecialchars($prefill_email) : ''; ?>" 
-                   <?php echo !empty($prefill_email) ? 'readonly' : ''; ?> 
-                  required class="billing-input">
-                  <input type="tel" name="contact" placeholder="Contact Number" required class="billing-input">
-            
-            </div>
-            <div style="display: flex; gap: 15px;">
-                <input type="text" name="address" placeholder="Address" required class="billing-input">
-                <input type="text" name="city" placeholder="City" required class="billing-input">
-            
-            </div>
-            
-            
-            <div style="display: flex; gap: 15px;">
-                <input type="text" name="state" placeholder="State" required class="billing-input">
-                <input type="text" name="pincode" placeholder="Pin Code" required class="billing-input">
-                
-            </div>
-            
-             
-                         <!-- Promo Code Section -->
-             <div style="color: white; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
-                <div class="calculation-display" style="margin-bottom: 10px;">
-                    <table style="width: 100%; color: white; font-size: 16px;">
-                        <tr>
-                            <td class="original-price" style="padding: 5px 0; text-align: left; width: 50%;"><strong>Original Price:</strong></td>
-                            <td class="original-price" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format(30000, 2); ?></strong></td>
-                        </tr>
-                        <tr>
-                            <td class="discount" style="padding: 5px 0; text-align: left; width: 50%;"><strong>Discount:</strong></td>
-                            <td class="discount" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($promo_discount, 2); ?></strong></td>
-                        </tr>
-                        <tr>
-                            <td class="subtotal" style="padding: 5px 0; text-align: left; width: 50%;"><strong>Sub Total:</strong></td>
-                            <td class="subtotal" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format(30000 - $promo_discount, 2); ?></strong></td>
-                        </tr>
-                        <?php
-                        // Calculate proper GST amounts with decimal precision
-                        $subtotal = 30000 - $promo_discount;
-                        
-                        // Determine if interstate transaction (default intrastate on first load)
-                        $is_interstate = false;
-                        
-                        if ($is_interstate) {
-                            // IGST (18%) for interstate
-                            $igst_amount = round($subtotal * 0.18, 2);
-                            $cgst_amount = 0;
-                            $sgst_amount = 0;
-                        } else {
-                            // CGST + SGST (9% each) for intrastate
-                            $cgst_amount = round($subtotal * 0.09, 2);
-                            $sgst_amount = round($subtotal * 0.09, 2);
-                            $igst_amount = 0;
-                        }
-                        
-                        $final_total = round($subtotal + $cgst_amount + $sgst_amount + $igst_amount, 2);
-                        ?>
-                        <tr>
-                            <td class="cgst" style="padding: 5px 0; text-align: left; width: 50%;"><strong>CGST (9%):</strong></td>
-                            <td class="cgst" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($cgst_amount, 2); ?></strong></td>
-                        </tr>
-                        <tr>
-                            <td class="sgst" style="padding: 5px 0; text-align: left; width: 50%;"><strong>SGST (9%):</strong></td>
-                            <td class="sgst" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($sgst_amount, 2); ?></strong></td>
-                        </tr>
-                        <tr>
-                            <td class="igst" style="padding: 5px 0; text-align: left; width: 50%;"><strong>IGST (18%):</strong></td>
-                            <td class="igst" style="text-align: right; padding: 5px 0; width: 50%;"><strong>₹ <?php echo number_format($igst_amount, 2); ?></strong></td>
-                        </tr>
-                        <tr>
-                            <td class="final-total" style="padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.3); text-align: left;"><strong>Final Total:</strong></td>
-                            <td class="final-total" style="text-align: right; padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.3);"><strong>₹ <?php echo number_format($final_total, 2); ?></strong></td>
-                        </tr>
-                    </table>
+        <div class="plan-panel">
+            <div class="plan-card" id="starterPlanCard" data-plan="starter">
+                <div class="plan-card-header blue">Starter Franchise Plan</div>
+                <div class="plan-card-body">
+                    <div class="plan-price">₹6,000</div>
+                    <div class="plan-subtext">for 4 Months</div>
+                    <ul class="plan-features">
+                        <li>Trial Franchise of 4 Months</li>
+                        <li>100% Commission Earning for 4 Months</li>
+                        <li>₹413/website creation from wallet</li>
+                    </ul>
+                    <button type="button" class="plan-select-btn green" data-plan="starter">SELECT ₹6,000</button>
                 </div>
-                
-                <div id="promo-section" style="margin-top: 15px;">
-                    <?php if(!$promo_applied): ?>
-                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                            <input type="text" id="promo_code_input" placeholder="Enter promo code" 
-                                   style="flex: 1; padding: 8px 12px; border: none; border-radius: 5px; font-size: 14px;" maxlength="20">
-                            <button type="button" id="apply_promo_btn" 
-                                    style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                                Apply
-                            </button>
+            </div>
+            <div class="plan-card active" id="fullPlanCard" data-plan="full">
+                <div class="plan-card-header yellow">Full Franchise Plan</div>
+                <div class="plan-card-body">
+                    <div class="plan-price">₹30,000</div>
+                    <div class="plan-subtext">(One-time Fees)</div>
+                    <ul class="plan-features orange">
+                        <li>Lifetime Unlimited MiniWebsite rights</li>
+                        <li>100% Commission Earning Lifelong</li>
+                        <li>₹413/website creation from wallet</li>
+                    </ul>
+                    <button type="button" class="plan-select-btn yellow" data-plan="full">SELECT ₹30,000</button>
+                </div>
+            </div>
+            <div class="wallet-info-box">
+                <i class="fa fa-gift"></i>
+                <span>₹413 will be deducted from your wallet for each MiniWebsite you create for your customers.</span>
+            </div>
+        </div>
+
+        <div class="billing-panel">
+            <div class="billing-panel-header">
+                <div class="billing-header-top">
+                    <div class="billing-header-icon">
+                        <i class="fa fa-file-text-o"></i>
+                    </div>
+                    <div class="billing-header-text">
+                        <h4>Billing &amp; GST Details</h4>
+                        <div class="billing-header-line"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="billing-panel-body">
+                <form id="franchisePaymentForm" action="payment/pay.php" method="POST">
+                    <div class="input-icon-wrap">
+                        <i class="fa fa-file-text-o"></i>
+                        <input type="text" name="gst_number" placeholder="ENTER GST NUMBER (OPTIONAL)" class="billing-input-uppercase">
+                    </div>
+                    <div class="input-icon-wrap">
+                        <i class="fa fa-user"></i>
+                        <input type="text" name="name" placeholder="Name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-icon-wrap">
+                            <i class="fa fa-envelope"></i>
+                            <input type="email" name="email" placeholder="Email Address"
+                                   value="<?php echo !empty($prefill_email) ? htmlspecialchars($prefill_email) : ''; ?>"
+                                   <?php echo !empty($prefill_email) ? 'readonly' : ''; ?> required>
                         </div>
-                    <?php else: ?>
-                        <div style="margin-bottom: 10px; padding: 8px; background: rgba(40, 167, 69, 0.2); border-radius: 5px;">
-                            <span style="color: #28a745; font-weight: bold;"><?php echo $_SESSION['promo_code']; ?> Applied</span>
+                        <div class="input-icon-wrap">
+                            <i class="fa fa-phone"></i>
+                            <input type="tel" name="contact" placeholder="Contact Number" required>
+                        </div>
+                    </div>
+                    <div class="input-icon-wrap">
+                        <i class="fa fa-map-marker"></i>
+                        <input type="text" name="address" placeholder="Address" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-icon-wrap">
+                            <i class="fa fa-building-o"></i>
+                            <input type="text" name="city" placeholder="City" required>
+                        </div>
+                        <div class="input-icon-wrap">
+                            <i class="fa fa-map"></i>
+                            <input type="text" name="state" placeholder="State" required>
+                        </div>
+                    </div>
+                    <div class="input-icon-wrap">
+                        <i class="fa fa-th"></i>
+                        <input type="text" name="pincode" placeholder="Pin Code" required>
+                    </div>
+
+                    <?php
+                    $subtotal = 30000 - $promo_discount;
+                    $is_interstate = false;
+                    if ($is_interstate) {
+                        $igst_amount = round($subtotal * 0.18, 2);
+                        $cgst_amount = 0;
+                        $sgst_amount = 0;
+                    } else {
+                        $cgst_amount = round($subtotal * 0.09, 2);
+                        $sgst_amount = round($subtotal * 0.09, 2);
+                        $igst_amount = 0;
+                    }
+                    $final_total = round($subtotal + $cgst_amount + $sgst_amount + $igst_amount, 2);
+                    ?>
+
+                    <div class="calculation-display">
+                        <table>
+                            <tr>
+                                <td class="original-price">Original Price:</td>
+                                <td class="original-price">₹ <?php echo number_format(30000, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="discount">Discount:</td>
+                                <td class="discount">₹ <?php echo number_format($promo_discount, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="subtotal">Sub Total:</td>
+                                <td class="subtotal">₹ <?php echo number_format($subtotal, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="cgst">CGST (9%):</td>
+                                <td class="cgst">₹ <?php echo number_format($cgst_amount, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="sgst">SGST (9%):</td>
+                                <td class="sgst">₹ <?php echo number_format($sgst_amount, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="igst">IGST (18%):</td>
+                                <td class="igst">₹ <?php echo number_format($igst_amount, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="final-total"><strong>Final Total:</strong></td>
+                                <td class="final-total"><strong>₹ <?php echo number_format($final_total, 2); ?></strong></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div id="promo-section">
+                        <?php if(!$promo_applied): ?>
+                        <div class="promo-wrap">
+                            <div class="promo-icon-wrap"><i class="fa fa-tag"></i></div>
+                            <input type="text" id="promo_code_input" placeholder="Enter promo code" maxlength="20">
+                            <button type="button" id="apply_promo_btn">Apply</button>
+                        </div>
+                        <?php else: ?>
+                        <div class="promo-applied-box">
+                            <span class="promo-code-text"><?php echo htmlspecialchars($_SESSION['promo_code']); ?> Applied</span>
                             <?php if(!$is_auto_applied): ?>
-                                <button type="button" id="remove_promo_btn" 
-                                        style="padding: 3px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 10px;">
-                                    Remove
-                                </button>
+                            <button type="button" id="remove_promo_btn"
+                                    style="padding: 3px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 10px;">
+                                Remove
+                            </button>
                             <?php else: ?>
-                                <span style="color: #6c757d; font-size: 12px; margin-left: 10px; font-style: italic;">(Auto-applied)</span>
+                            <span style="color: #6c757d; font-size: 12px; margin-left: 10px; font-style: italic;">(Auto-applied)</span>
                             <?php endif; ?>
                         </div>
-                    <?php endif; ?>
-                    <div id="promo-message" style="font-size: 13px; margin-top: 5px;"><?php echo $promo_message; ?></div>
-                </div>
-                
-                <div id="discount-section" style="display: none; margin-top: 10px; padding: 8px; background: rgba(40, 167, 69, 0.2); border-radius: 5px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>Discount:</span>
-                        <span id="discount-amount" style="color: #28a745; font-weight: bold;">- ₹0</span>
+                        <?php endif; ?>
+                        <div id="promo-message"><?php echo $promo_message; ?></div>
                     </div>
-                                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                         <span>Final Amount:</span>
-                         <span id="final-amount" style="font-weight: bold;">₹6018</span>
-                     </div>
-                    <button type="button" id="remove_promo_btn" 
-                            style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; margin-top: 5px;">
-                        Remove Promo
+
+                    <div id="discount-section" style="display: none;">
+                        <div class="promo-applied-box">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>Discount:</span>
+                                <span id="discount-amount" style="color: #28a745; font-weight: bold;">- ₹0</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Final Amount:</span>
+                                <span id="final-amount" style="font-weight: bold;">₹6018</span>
+                            </div>
+                            <button type="button" id="remove_promo_btn_discount"
+                                    style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; margin-top: 8px;">
+                                Remove Promo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="terms-wrap">
+                        <input type="checkbox" id="terms_agree" name="terms_agree">
+                        <label for="terms_agree">
+                            I have read and agree to the
+                            <a href="franchise_agreement.php" target="_blank">Franchise Agreement</a>,
+                            <a href="terms_conditions.php" target="_blank">Franchise Operational Policy</a>,
+                            <a href="terms_conditions.php" target="_blank">Refund Policy</a> and
+                            <a href="privacy_policy.php" target="_blank">Privacy Policy</a>.
+                        </label>
+                    </div>
+
+                    <input type="hidden" name="selected_plan" id="selected_plan_hidden" value="full">
+                    <input type="hidden" name="plan_total_with_gst" id="plan_total_with_gst_hidden" value="30000">
+                    <input type="hidden" name="amount" value="<?php echo $final_total; ?>">
+                    <input type="hidden" name="original_amount" value="30000">
+                    <input type="hidden" name="discount_amount" id="discount_amount_hidden" value="<?php echo $promo_discount; ?>">
+                    <input type="hidden" name="subtotal_amount" id="subtotal_amount_hidden" value="<?php echo $subtotal; ?>">
+                    <input type="hidden" name="cgst_amount" id="cgst_amount_hidden" value="<?php echo $cgst_amount; ?>">
+                    <input type="hidden" name="sgst_amount" id="sgst_amount_hidden" value="<?php echo $sgst_amount; ?>">
+                    <input type="hidden" name="igst_amount" id="igst_amount_hidden" value="<?php echo $igst_amount; ?>">
+                    <input type="hidden" name="final_total" id="final_total_hidden" value="<?php echo $final_total; ?>">
+                    <input type="hidden" name="promo_code" id="promo_code_hidden" value="<?php echo isset($_SESSION['promo_code']) ? $_SESSION['promo_code'] : ''; ?>">
+                    <input type="hidden" name="promo_discount" id="promo_discount_hidden" value="<?php echo $promo_discount; ?>">
+                    <input type="hidden" name="service_type" value="franchise_registration">
+                    <input type="hidden" name="auto_start_payment" value="1">
+
+                    <button type="submit" class="proceed-btn">
+                        <i class="fa fa-lock"></i> PROCEED TO PAY
                     </button>
-                </div>
+ 
+                </form>
             </div>
-            
-            <input type="hidden" name="selected_plan" id="selected_plan_hidden" value="full">
-            <input type="hidden" name="plan_total_with_gst" id="plan_total_with_gst_hidden" value="30000">
-            <input type="hidden" name="amount" value="<?php echo $final_total; ?>">
-            <input type="hidden" name="original_amount" value="30000">
-            <input type="hidden" name="discount_amount" id="discount_amount_hidden" value="<?php echo $promo_discount; ?>">
-            <input type="hidden" name="subtotal_amount" id="subtotal_amount_hidden" value="<?php echo $subtotal; ?>">
-            <input type="hidden" name="cgst_amount" id="cgst_amount_hidden" value="<?php echo $cgst_amount; ?>">
-            <input type="hidden" name="sgst_amount" id="sgst_amount_hidden" value="<?php echo $sgst_amount; ?>">
-            <input type="hidden" name="igst_amount" id="igst_amount_hidden" value="<?php echo $igst_amount; ?>">
-            <input type="hidden" name="final_total" id="final_total_hidden" value="<?php echo $final_total; ?>">
-            <input type="hidden" name="promo_code" id="promo_code_hidden" value="<?php echo isset($_SESSION['promo_code']) ? $_SESSION['promo_code'] : ''; ?>">
-            <input type="hidden" name="promo_discount" id="promo_discount_hidden" value="<?php echo $promo_discount; ?>">
-            <input type="hidden" name="service_type" value="franchise_registration">
-            <input type="hidden" name="auto_start_payment" value="1">
-            
-            <button type="submit" style="width: 100%; background: #ffc107; color: #000; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px;">
-                PROCEED TO PAY
-            </button>
-           
-        </form>
-        
+        </div>
     </div>
-    
-</div>
-<p style="margin: 10px 0 0; font-size: 15px; color: #374151; text-align: center;">
-                By proceeding you agree to our <a href="terms_conditions.php" target="_blank" rel="noopener noreferrer" style="color: #1b4fa8; text-decoration: underline;">Terms &amp; condition</a>
-            </p>
+
+    <div class="payment-footer">
+        <div class="trust-badges">
+            <div class="trust-badge"><i class="fa fa-shield"></i> 100% Secure Payments</div>
+            <div class="trust-badge"><i class="fa fa-lock"></i> SSL Encrypted</div>
+            <div class="trust-badge"><i class="fa fa-shield"></i> Your Data is Safe</div>
+        </div>
+        <p class="payment-copyright">© <?php echo date('Y'); ?> MiniWebsite.in | All rights reserved.</p>
+    </div>
 </div>
 
 
@@ -903,16 +1177,15 @@ let originalAmount = planConfig[selectedPlan].baseAmount;
         
         // Add event listeners
         const applyBtn = document.getElementById('apply_promo_btn');
-        const removeBtn = document.getElementById('remove_promo_btn');
         const promoInput = document.getElementById('promo_code_input');
         
         if (applyBtn) {
             applyBtn.addEventListener('click', applyPromoCode);
         }
         
-        if (removeBtn) {
-            removeBtn.addEventListener('click', removePromoCode);
-        }
+        document.querySelectorAll('#remove_promo_btn, #remove_promo_btn_discount').forEach(function(btn) {
+            btn.addEventListener('click', removePromoCode);
+        });
         
         if (promoInput) {
             promoInput.addEventListener('keypress', function(e) {
@@ -979,6 +1252,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!form.checkValidity()) {
             form.reportValidity();
+            return;
+        }
+
+        var termsCheckbox = document.getElementById('terms_agree');
+        if (termsCheckbox && !termsCheckbox.checked) {
+            alert('Please agree to the Terms & Conditions before proceeding.');
             return;
         }
 
@@ -1065,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal: {
                     ondismiss: function() {
                         payBtn.disabled = false;
-                        payBtn.textContent = 'PROCEED TO PAY';
+                        payBtn.innerHTML = '<i class="fa fa-lock"></i> PROCEED TO PAY';
                     }
                 }
             };
@@ -1074,14 +1353,14 @@ document.addEventListener('DOMContentLoaded', function() {
             rzp.on('payment.failed', function (response) {
                 alert('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'Please try again.'));
                 payBtn.disabled = false;
-                payBtn.textContent = 'PROCEED TO PAY';
+                payBtn.innerHTML = '<i class="fa fa-lock"></i> PROCEED TO PAY';
             });
             rzp.open();
         })
         .catch(function(error) {
             alert(error && error.message ? error.message : 'Unable to initiate payment. Please try again.');
             payBtn.disabled = false;
-            payBtn.textContent = 'PROCEED TO PAY';
+            payBtn.innerHTML = '<i class="fa fa-lock"></i> PROCEED TO PAY';
         });
     });
 });

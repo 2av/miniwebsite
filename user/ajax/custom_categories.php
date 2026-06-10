@@ -63,6 +63,13 @@ if ($action === 'create') {
             exit;
         }
     }
+    if ($category_type === 'product-cta') {
+        $nameLen = function_exists('mb_strlen') ? mb_strlen($category_name) : strlen($category_name);
+        if ($nameLen > 50) {
+            echo json_encode(['success' => false, 'message' => 'CTA text must be 50 characters or less.']);
+            exit;
+        }
+    }
     
     if (strlen($category_name) > 255) {
         echo json_encode(['success' => false, 'message' => 'Category name must not exceed 255 characters.']);
@@ -70,7 +77,7 @@ if ($action === 'create') {
     }
     
     // Allowed category types
-    $allowed_types = ['business-category', 'product-category', 'product-name'];
+    $allowed_types = ['business-category', 'product-category', 'product-name', 'product-cta'];
     if (!in_array($category_type, $allowed_types)) {
         echo json_encode(['success' => false, 'message' => 'Invalid category type: ' . $category_type]);
         exit;
@@ -131,7 +138,7 @@ if ($action === 'get_custom') {
     // Get custom categories for the user of specific type
     $category_type = isset($_GET['type']) ? $_GET['type'] : 'product-name';
     
-    $allowed_types = ['business-category', 'product-category', 'product-name'];
+    $allowed_types = ['business-category', 'product-category', 'product-name', 'product-cta'];
     if (!in_array($category_type, $allowed_types)) {
         echo json_encode(['success' => false, 'message' => 'Invalid category type.']);
         exit;

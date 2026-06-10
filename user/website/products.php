@@ -979,35 +979,41 @@ ob_start();
                     </div>
                     <div class="form-group">
                         <label for="modal_product_pricing_unit">Pricing Unit</label>
-                        <select class="form-control" id="modal_product_pricing_unit" onchange="updatePricingUnitField()">
-                            <option value="">Select Pricing Unit</option>
-                            <option value="Per Item">Per Item</option>
-                            <option value="Per Hour">Per Hour</option>
-                            <option value="Per Minute">Per Minute</option>
-                            <option value="Per Day">Per Day</option>
-                            <option value="Per Visit">Per Visit</option>
-                            <option value="Per Service">Per Service</option>
-                            <option value="Per Kg / Unit">Per Kg / Unit</option>
-                            <option value="Per Project">Per Project</option>
-                            <option value="custom">Custom</option>
-                        </select>
-                        <input type="text" class="form-control mt-2" id="modal_product_pricing_unit_custom" maxlength="30" placeholder="Enter custom pricing unit" style="display:none;">
+                        <div style="display: flex; gap: 10px;">
+                            <select class="form-control" id="modal_product_pricing_unit" style="flex: 1;">
+                                <option value="">Select Pricing Unit</option>
+                                <option value="Per Item">Per Item</option>
+                                <option value="Per Hour">Per Hour</option>
+                                <option value="Per Minute">Per Minute</option>
+                                <option value="Per Day">Per Day</option>
+                                <option value="Per Visit">Per Visit</option>
+                                <option value="Per Service">Per Service</option>
+                                <option value="Per Kg / Unit">Per Kg / Unit</option>
+                                <option value="Per Project">Per Project</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomProductPricingUnitModal()" style="min-width: 40px; padding: 0;" title="Add Custom Pricing Unit">
+                                <i class="fa fa-plus" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="modal_product_cta_text">Button Text (CTA)</label>
-                        <select class="form-control" id="modal_product_cta_text" onchange="updateCtaField()">
-                            <option value="Enquire" selected>Enquire</option>
-                            <option value="Get Details">Get Details</option>
-                            <option value="Contact Now">Contact Now</option>
-                            <option value="Book Now">Book Now</option>
-                            <option value="Schedule">Schedule</option>
-                            <option value="Get Quote">Get Quote</option>
-                            <option value="Order Now">Order Now</option>
-                            <option value="Buy Now">Buy Now</option>
-                            <option value="Know More">Know More</option>
-                            <option value="custom">Write Your Own CTA</option>
-                        </select>
-                        <input type="text" class="form-control mt-2" id="modal_product_cta_text_custom" maxlength="50" placeholder="Write Your Own CTA" style="display:none;">
+                        <div style="display: flex; gap: 10px;">
+                            <select class="form-control" id="modal_product_cta_text" style="flex: 1;">
+                                <option value="Enquire" selected>Enquire</option>
+                                <option value="Get Details">Get Details</option>
+                                <option value="Contact Now">Contact Now</option>
+                                <option value="Book Now">Book Now</option>
+                                <option value="Schedule">Schedule</option>
+                                <option value="Get Quote">Get Quote</option>
+                                <option value="Order Now">Order Now</option>
+                                <option value="Buy Now">Buy Now</option>
+                                <option value="Know More">Know More</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCustomProductCtaModal()" style="min-width: 40px; padding: 0;" title="Add Custom CTA">
+                                <i class="fa fa-plus" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="modal_product_description">Description</label>
@@ -1056,6 +1062,55 @@ mw_modal_render([
     'footer'   => mw_modal_footer([
         ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
         ['label' => 'Add Category', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="customProductCategorySaveBtn"'],
+    ]),
+    'static'   => true,
+    'hidden'   => true,
+]);
+
+$custom_product_cta_body = '<form id="customProductCtaForm" class="mw-form">'
+    . '<div class="form-group mb-3">'
+    . '<label for="custom_product_cta_name" class="form-label">Button Text (CTA) <span class="text-danger">*</span></label>'
+    . '<input type="text" class="form-control" id="custom_product_cta_name" placeholder="Enter button text (max 50)" maxlength="50" required>'
+    . '<small class="form-text text-muted">Max 50 characters. Added to the dropdown for this session only.</small>'
+    . '</div>'
+    . '<div id="customProductCtaError" class="alert alert-danger mw-alert mw-alert-danger" style="display: none;" role="alert"></div>'
+    . '<div id="customProductCtaSuccess" class="alert alert-success mw-alert mw-alert-success" style="display: none;" role="alert"></div>'
+    . '</form>';
+
+mw_modal_render([
+    'id'       => 'customProductCtaModal',
+    'size'     => 'sm',
+    'title'    => 'Add Custom CTA',
+    'subtitle' => 'Add custom button text for this item',
+    'icon'     => 'fa-plus-circle',
+    'body'     => $custom_product_cta_body,
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add CTA', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="customProductCtaSaveBtn"'],
+    ]),
+    'static'   => true,
+    'hidden'   => true,
+]);
+
+$custom_product_pricing_unit_body = '<form id="customProductPricingUnitForm" class="mw-form">'
+    . '<div class="form-group mb-3">'
+    . '<label for="custom_product_pricing_unit_name" class="form-label">Pricing Unit <span class="text-danger">*</span></label>'
+    . '<input type="text" class="form-control" id="custom_product_pricing_unit_name" placeholder="Enter pricing unit (max 30)" maxlength="30" required>'
+    . '<small class="form-text text-muted">Max 30 characters. Added to the dropdown for this session only.</small>'
+    . '</div>'
+    . '<div id="customProductPricingUnitError" class="alert alert-danger mw-alert mw-alert-danger" style="display: none;" role="alert"></div>'
+    . '</form>';
+
+mw_modal_render([
+    'id'       => 'customProductPricingUnitModal',
+    'size'     => 'sm',
+    'title'    => 'Add Custom Pricing Unit',
+    'subtitle' => 'Add a custom pricing unit for this item',
+    'icon'     => 'fa-plus-circle',
+    'body'     => $custom_product_pricing_unit_body,
+    'footer'   => mw_modal_footer([
+        ['label' => 'Cancel', 'class' => 'mw-btn mw-btn-cancel', 'attrs' => 'type="button" data-mw-modal-close'],
+        ['label' => 'Add Unit', 'class' => 'mw-btn mw-btn-save', 'attrs' => 'type="button" id="customProductPricingUnitSaveBtn"'],
     ]),
     'static'   => true,
     'hidden'   => true,
@@ -1124,6 +1179,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (customCatSaveBtn) {
         customCatSaveBtn.addEventListener('click', saveCustomProductCategory);
     }
+    var customCtaSaveBtn = document.getElementById('customProductCtaSaveBtn');
+    if (customCtaSaveBtn) {
+        customCtaSaveBtn.addEventListener('click', saveCustomProductCta);
+    }
+    var customPricingUnitSaveBtn = document.getElementById('customProductPricingUnitSaveBtn');
+    if (customPricingUnitSaveBtn) {
+        customPricingUnitSaveBtn.addEventListener('click', saveCustomProductPricingUnit);
+    }
 });
 
 // Update character count display (max 400 characters) - updates live while typing
@@ -1161,28 +1224,56 @@ function updatePriceFieldByType() {
     }
 }
 
-function updatePricingUnitField() {
-    var pricingUnitField = document.getElementById('modal_product_pricing_unit');
-    var customPricingUnitField = document.getElementById('modal_product_pricing_unit_custom');
-    if(!pricingUnitField || !customPricingUnitField) return;
-    if(pricingUnitField.value === 'custom') {
-        customPricingUnitField.style.display = '';
-    } else {
-        customPricingUnitField.style.display = 'none';
-        customPricingUnitField.value = '';
+function ensurePricingUnitOptionExists(unitText) {
+    var sel = document.getElementById('modal_product_pricing_unit');
+    if (!sel || !unitText) return;
+    var i;
+    for (i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === unitText) return;
     }
+    var optgroup = null;
+    for (i = 0; i < sel.children.length; i++) {
+        var node = sel.children[i];
+        if (node.tagName === 'OPTGROUP' && node.label === 'My Custom Units') {
+            optgroup = node;
+            break;
+        }
+    }
+    if (!optgroup) {
+        optgroup = document.createElement('optgroup');
+        optgroup.label = 'My Custom Units';
+        sel.appendChild(optgroup);
+    }
+    var opt = document.createElement('option');
+    opt.value = unitText;
+    opt.textContent = unitText;
+    optgroup.appendChild(opt);
 }
 
-function updateCtaField() {
-    var ctaField = document.getElementById('modal_product_cta_text');
-    var ctaCustomField = document.getElementById('modal_product_cta_text_custom');
-    if(!ctaField || !ctaCustomField) return;
-    if(ctaField.value === 'custom') {
-        ctaCustomField.style.display = '';
-    } else {
-        ctaCustomField.style.display = 'none';
-        ctaCustomField.value = '';
+function ensureCtaOptionExists(ctaText) {
+    var sel = document.getElementById('modal_product_cta_text');
+    if (!sel || !ctaText) return;
+    var i;
+    for (i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === ctaText) return;
     }
+    var optgroup = null;
+    for (i = 0; i < sel.children.length; i++) {
+        var node = sel.children[i];
+        if (node.tagName === 'OPTGROUP' && node.label === 'My Custom CTAs') {
+            optgroup = node;
+            break;
+        }
+    }
+    if (!optgroup) {
+        optgroup = document.createElement('optgroup');
+        optgroup.label = 'My Custom CTAs';
+        sel.appendChild(optgroup);
+    }
+    var opt = document.createElement('option');
+    opt.value = ctaText;
+    opt.textContent = ctaText;
+    optgroup.appendChild(opt);
 }
 
 // Product name is now a mandatory textbox (max 30 chars).
@@ -1213,7 +1304,7 @@ function openProductModal() {
     
     try {
         // Reset form fields (skip file input - clearing can throw in some browsers)
-        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_category', 'modal_product_name', 'modal_product_mrp', 'modal_product_price', 'modal_product_price_type', 'modal_product_pricing_unit', 'modal_product_pricing_unit_custom', 'modal_product_cta_text', 'modal_product_cta_text_custom', 'modal_product_description'];
+        var fieldIds = ['modal_product_id', 'modal_product_number', 'modal_product_category', 'modal_product_name', 'modal_product_mrp', 'modal_product_price', 'modal_product_price_type', 'modal_product_pricing_unit', 'modal_product_cta_text', 'modal_product_description'];
         fieldIds.forEach(function(fieldId) {
             var field = document.getElementById(fieldId);
             if(field) field.value = '';
@@ -1228,10 +1319,8 @@ function openProductModal() {
 
         if(typeof updateCharCount === 'function') updateCharCount();
         if(typeof updatePriceFieldByType === 'function') updatePriceFieldByType();
-        if(typeof updatePricingUnitField === 'function') updatePricingUnitField();
         var modalProductCtaFieldDefault = document.getElementById('modal_product_cta_text');
         if(modalProductCtaFieldDefault) modalProductCtaFieldDefault.value = 'Enquire';
-        if(typeof updateCtaField === 'function') updateCtaField();
 
         setProductModalMode(false);
         showProductModal();
@@ -1289,34 +1378,21 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
         modalProductPriceTypeField.value = selectedPriceType;
     }
     if(modalProductPricingUnitField) {
-        var predefinedPricingUnits = ['Per Item', 'Per Hour', 'Per Minute', 'Per Day', 'Per Visit', 'Per Service', 'Per Kg / Unit', 'Per Project'];
-        if(predefinedPricingUnits.indexOf(productPricingUnit) !== -1) {
-            modalProductPricingUnitField.value = productPricingUnit;
-            var modalProductPricingUnitCustomField = document.getElementById('modal_product_pricing_unit_custom');
-            if(modalProductPricingUnitCustomField) modalProductPricingUnitCustomField.value = '';
-        } else if(productPricingUnit && productPricingUnit !== '') {
-            modalProductPricingUnitField.value = 'custom';
-            var modalProductPricingUnitCustomField2 = document.getElementById('modal_product_pricing_unit_custom');
-            if(modalProductPricingUnitCustomField2) modalProductPricingUnitCustomField2.value = productPricingUnit;
+        var productPricingUnitNormalized = (productPricingUnit || '').trim();
+        if(productPricingUnitNormalized !== '') {
+            ensurePricingUnitOptionExists(productPricingUnitNormalized);
+            modalProductPricingUnitField.value = productPricingUnitNormalized;
         } else {
             modalProductPricingUnitField.value = '';
-            var modalProductPricingUnitCustomField3 = document.getElementById('modal_product_pricing_unit_custom');
-            if(modalProductPricingUnitCustomField3) modalProductPricingUnitCustomField3.value = '';
         }
     }
     if(modalProductCtaTextField) {
-        var predefinedCtas = ['Enquire', 'Get Details', 'Contact Now', 'Book Now', 'Schedule', 'Get Quote', 'Order Now', 'Buy Now', 'Know More'];
         var productCtaNormalized = (productCtaText || '').trim();
-        var modalProductCtaCustomField = document.getElementById('modal_product_cta_text_custom');
-        if(predefinedCtas.indexOf(productCtaNormalized) !== -1) {
+        if(productCtaNormalized !== '') {
+            ensureCtaOptionExists(productCtaNormalized);
             modalProductCtaTextField.value = productCtaNormalized;
-            if(modalProductCtaCustomField) modalProductCtaCustomField.value = '';
-        } else if(productCtaNormalized !== '') {
-            modalProductCtaTextField.value = 'custom';
-            if(modalProductCtaCustomField) modalProductCtaCustomField.value = productCtaNormalized;
         } else {
             modalProductCtaTextField.value = 'Enquire';
-            if(modalProductCtaCustomField) modalProductCtaCustomField.value = '';
         }
     }
     if(modalProductDescField) modalProductDescField.value = productDescription || '';
@@ -1357,8 +1433,6 @@ function editProduct(productId, productName, productCategoryId, productCategoryS
     
     updateCharCount();
     if(typeof updatePriceFieldByType === 'function') updatePriceFieldByType();
-    if(typeof updatePricingUnitField === 'function') updatePricingUnitField();
-    if(typeof updateCtaField === 'function') updateCtaField();
     setProductModalMode(true);
     showProductModal();
 }
@@ -1485,28 +1559,12 @@ function addProductToForm() {
     if(priceType !== 'on_request' && price) formData.append('pro_price' + tempSlot, price);
     
     var modalProductPricingUnitField = document.getElementById('modal_product_pricing_unit');
-    var modalProductPricingUnitCustomField = document.getElementById('modal_product_pricing_unit_custom');
-    var pricingUnit = '';
-    if(modalProductPricingUnitField) {
-        if(modalProductPricingUnitField.value === 'custom') {
-            pricingUnit = modalProductPricingUnitCustomField ? modalProductPricingUnitCustomField.value.trim() : '';
-        } else {
-            pricingUnit = modalProductPricingUnitField.value.trim();
-        }
-    }
+    var pricingUnit = modalProductPricingUnitField ? modalProductPricingUnitField.value.trim() : '';
     if(pricingUnit.length > 30) pricingUnit = pricingUnit.substring(0, 30);
     if(pricingUnit) formData.append('pro_pricing_unit' + tempSlot, pricingUnit);
     
     var modalProductCtaTextField = document.getElementById('modal_product_cta_text');
-    var modalProductCtaTextCustomField = document.getElementById('modal_product_cta_text_custom');
-    var ctaText = '';
-    if(modalProductCtaTextField) {
-        if(modalProductCtaTextField.value === 'custom') {
-            ctaText = modalProductCtaTextCustomField ? modalProductCtaTextCustomField.value.trim() : '';
-        } else {
-            ctaText = modalProductCtaTextField.value.trim();
-        }
-    }
+    var ctaText = modalProductCtaTextField ? modalProductCtaTextField.value.trim() : '';
     if(!ctaText) ctaText = 'Enquire';
     if(ctaText.length > 50) ctaText = ctaText.substring(0, 50);
     if(ctaText) formData.append('pro_cta_text' + tempSlot, ctaText);
@@ -1793,6 +1851,112 @@ function saveCustomProductCategory() {
         errorElement.style.display = 'block';
         successElement.style.display = 'none';
     });
+}
+
+function openCustomProductPricingUnitModal() {
+    var nameField = document.getElementById('custom_product_pricing_unit_name');
+    if (nameField) nameField.value = '';
+
+    var errorElement = document.getElementById('customProductPricingUnitError');
+    if (errorElement) errorElement.style.display = 'none';
+
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('customProductPricingUnitModal');
+        if (nameField) setTimeout(function() { nameField.focus(); }, 150);
+    }
+}
+
+function closeCustomProductPricingUnitModal() {
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('customProductPricingUnitModal');
+    }
+}
+
+function addCustomProductPricingUnitToSelect(unitText) {
+    var sel = document.getElementById('modal_product_pricing_unit');
+    if (!sel || !unitText) return;
+    ensurePricingUnitOptionExists(unitText);
+    sel.value = unitText;
+}
+
+function saveCustomProductPricingUnit() {
+    var unitName = document.getElementById('custom_product_pricing_unit_name').value.trim();
+    var errorElement = document.getElementById('customProductPricingUnitError');
+
+    if (!unitName) {
+        errorElement.textContent = 'Pricing unit is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    if (unitName.length > 30) {
+        errorElement.textContent = 'Pricing unit must be 30 characters or less.';
+        errorElement.style.display = 'block';
+        return;
+    }
+
+    errorElement.style.display = 'none';
+    addCustomProductPricingUnitToSelect(unitName);
+
+    var nameInput = document.getElementById('custom_product_pricing_unit_name');
+    if (nameInput) nameInput.value = '';
+
+    closeCustomProductPricingUnitModal();
+}
+
+function openCustomProductCtaModal() {
+    var nameField = document.getElementById('custom_product_cta_name');
+    if (nameField) nameField.value = '';
+
+    var errorElement = document.getElementById('customProductCtaError');
+    var successElement = document.getElementById('customProductCtaSuccess');
+
+    if (errorElement) errorElement.style.display = 'none';
+    if (successElement) successElement.style.display = 'none';
+
+    if (window.MwModal && typeof window.MwModal.open === 'function') {
+        window.MwModal.open('customProductCtaModal');
+        if (nameField) setTimeout(function() { nameField.focus(); }, 150);
+    }
+}
+
+function closeCustomProductCtaModal() {
+    if (window.MwModal && typeof window.MwModal.close === 'function') {
+        window.MwModal.close('customProductCtaModal');
+    }
+}
+
+function addCustomProductCtaToSelect(ctaText) {
+    var sel = document.getElementById('modal_product_cta_text');
+    if (!sel || !ctaText) return;
+    ensureCtaOptionExists(ctaText);
+    sel.value = ctaText;
+}
+
+function saveCustomProductCta() {
+    var ctaName = document.getElementById('custom_product_cta_name').value.trim();
+    var errorElement = document.getElementById('customProductCtaError');
+    var successElement = document.getElementById('customProductCtaSuccess');
+
+    if (!ctaName) {
+        errorElement.textContent = 'Button text is required.';
+        errorElement.style.display = 'block';
+        return;
+    }
+    if (ctaName.length > 50) {
+        errorElement.textContent = 'Button text must be 50 characters or less.';
+        errorElement.style.display = 'block';
+        return;
+    }
+
+    errorElement.style.display = 'none';
+    if (successElement) successElement.style.display = 'none';
+
+    addCustomProductCtaToSelect(ctaName);
+
+    var nameInput = document.getElementById('custom_product_cta_name');
+    if (nameInput) nameInput.value = '';
+
+    closeCustomProductCtaModal();
 }
 
 function initProductTableColumnFilters() {

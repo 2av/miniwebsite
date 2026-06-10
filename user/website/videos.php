@@ -154,7 +154,6 @@ include '../includes/header.php';
                         ?>
                         <div class="form-group mw-form-group">
                             <label for="<?php echo $field; ?>" class="mw-label">
-                                <span class="videos-num-badge <?php echo $has_value ? 'is-filled' : ''; ?>"><?php echo $labelNum; ?></span>
                                 <span>Video Link</span>
                             </label>
                             <div class="mw-input-icon-wrap">
@@ -192,8 +191,7 @@ include '../includes/header.php';
 </main>
 
 <style>
-    .videos-num-badge          { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 0.375rem; font-size: var(--mw-font-pill); font-weight: 700; background: #f1f5f9; color: var(--mw-color-text-muted); flex-shrink: 0; }
-    .videos-num-badge.is-filled{ background: rgb(201 162 39 / 0.15); color: var(--mw-color-primary-dark); }
+       .videos-num-badge.is-filled{ background: rgb(201 162 39 / 0.15); color: var(--mw-color-primary-dark); }
 </style>
 
 <?php include '../includes/footer.php'; ?>

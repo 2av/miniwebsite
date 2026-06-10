@@ -698,7 +698,6 @@ require_once(__DIR__ . '/../../common/mw_modal.php');
                         <thead class="mw-table-header">
                             <tr>
                                 <th>Service Image</th>
-                                <th>Category</th>
                                 <th>Service Name</th>
                                 <th>Service Description</th>
                                 <th>Manage</th>
@@ -720,13 +719,6 @@ require_once(__DIR__ . '/../../common/mw_modal.php');
                                     $category_select_val = '';
                                     if ($prod_category_id > 0) {
                                         $category_select_val = ($prod_category_source === 'custom' ? 'c_' : 's_') . $prod_category_id;
-                                    }
-                                    $prod_category_display = '-';
-                                    if ($prod_category_id > 0) {
-                                        $cat_label = getStoredProductCategoryLabel($connect, $prod_category_id, $prod_category_source, $user_id);
-                                        if ($cat_label !== '') {
-                                            $prod_category_display = htmlspecialchars($cat_label);
-                                        }
                                     }
                             ?>
                                 <tr data-product-id="<?php echo $product_id; ?>" data-card-id="<?php echo $card_id; ?>" data-product-name="<?php echo htmlspecialchars($product_name_raw, ENT_QUOTES, 'UTF-8'); ?>" data-product-category-val="<?php echo htmlspecialchars($category_select_val, ENT_QUOTES, 'UTF-8'); ?>" data-product-desc="<?php echo htmlspecialchars(isset($product['product_description']) ? $product['product_description'] : '', ENT_QUOTES, 'UTF-8'); ?>">
@@ -750,7 +742,6 @@ require_once(__DIR__ . '/../../common/mw_modal.php');
                                             <span class="text-muted">No Image</span>
                                         <?php endif; ?>
                                     </td>
-                                <td valign="middle"><?php echo $prod_category_display !== '-' ? $prod_category_display : '<span class="text-muted">-</span>'; ?></td>
                                 <td valign="middle"><?php echo !empty($product_name) ? $product_name : 'No Name'; ?></td>
                                     <td valign="middle">
                                         <?php if(!empty($product_description)): ?>
@@ -775,7 +766,7 @@ require_once(__DIR__ . '/../../common/mw_modal.php');
                             if($productCount == 0):
                             ?>
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td>
+                                    <td colspan="4" class="text-center text-muted">No services added yet. Click "Add Service" to add.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
