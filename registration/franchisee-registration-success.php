@@ -5,7 +5,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Check if this page was accessed directly without completing registration
 if (!isset($_SESSION['registration_success']) || $_SESSION['registration_success'] !== true) {
-    header('Location: create-franchisee-account.php');
+    header('Location: franchisee-registration.php');
     exit;
 }
 
@@ -65,22 +65,8 @@ unset($_SESSION['registration_success']);
             
             if (seconds <= 0) {
                 clearInterval(countdownTimer);
-                $base_path = get_base_path();
-            
-            // Build absolute URL for redirect - using /user/dashboard as that's the actual path
-            // If /customer/dashboard is needed, create a symlink or .htaccess rewrite
-            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-            $host = $_SERVER['HTTP_HOST'];
-            $redirect_url = $protocol . $host . $base_path . '/login/franchisee.php';
-            
-            // Clear all output buffers and redirect
-            while (ob_get_level()) {
-                ob_end_clean();
-            }
-            
-            // Redirect to customer dashboard
-            header('Location: ' . $redirect_url);
-            exit();
+                // Client-side redirect after countdown
+                window.location.href = '../login/franchisee.php';
             }
         }, 1000);
     </script>

@@ -1130,9 +1130,10 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
     </script>
 
     <!-- External CSS -->
+    <link rel="stylesheet" href="theme/css/components.css">
     <link rel="stylesheet" href="<?php echo htmlspecialchars($theme_css_file, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="<?php echo htmlspecialchars($layout_css_file, ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="stylesheet" href="theme/css/components.css">
+    
 </head>
 <body>
 
@@ -1509,7 +1510,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                             <button type="button" class="mw-btn-add-shop mw-add-to-cart absolute z-10 pointer-events-auto" data-product-index="<?php echo $global_idx; ?>" aria-label="Add <?php echo htmlspecialchars($prod['name']); ?> to cart"><span class="mw-cart-btn-label"><?php echo htmlspecialchars($mw_card_cta_text); ?></span></button>
                         </div>
                         <div class="p-1">
-                            <h3 class="font-medium text-sm leading-tight mb-1 text-gray-900"><?php echo htmlspecialchars($prod['name']); ?></h3>
+                            <h3 class="font-medium text-sm leading-tight mb-1 text-white"><?php echo htmlspecialchars($prod['name']); ?></h3>
                             <p class="mw-product-desc-preview text-xs text-gray-500 line-clamp-1"><?php echo !empty($prod['desc']) ? htmlspecialchars($prod['desc']) : 'Contact us for details.'; ?></p>
                             <div class="mw-product-desc-full hidden text-xs text-gray-500 mt-2 leading-relaxed"><?php echo !empty($prod['desc']) ? nl2br(htmlspecialchars($prod['desc'])) : 'Contact us for details.'; ?></div>
                             <button type="button" class="mw-product-read-more text-primary text-xs font-medium mt-1 hover:underline">Read more</button>
@@ -1532,7 +1533,7 @@ if (!file_exists(__DIR__ . '/' . $theme_css_file) || !file_exists(__DIR__ . '/' 
                                 <?php if ($mw_has_prod_discount): ?>
                                 <span class="text-xs text-gray-400 line-through font-bold">₹<?php echo number_format($prod['mrp']); ?></span>
                                 <?php endif; ?>
-                                <span class="mw-product-card-sale font-bold text-[13px] text-gray-900 md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>"><?php echo $mw_price_display; ?></span>
+                                <span class="mw-product-card-sale font-bold text-[13px] text-white md:text-sm <?php echo $mw_has_prod_discount ? '' : 'md:ml-auto'; ?>"><?php echo $mw_price_display; ?></span>
                             </div>
                         </div>
                     </div>

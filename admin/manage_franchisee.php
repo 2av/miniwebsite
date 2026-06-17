@@ -6,6 +6,27 @@ require('header.php');
 <link rel="stylesheet" href="../assets/css/common-admin.css">
 <?php
 
+$franchisee_status_message = '';
+
+// Activate inactive franchisee account from listing
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activate_franchisee_id'])) {
+    $activate_id = (int)$_POST['activate_franchisee_id'];
+    if ($activate_id > 0) {
+        $activate_query = mysqli_query(
+            $connect,
+            'UPDATE user_details SET status="ACTIVE" WHERE id=' . $activate_id . ' AND role="FRANCHISEE"'
+        );
+
+        if ($activate_query && mysqli_affected_rows($connect) > 0) {
+            $franchisee_status_message = '<div class="alert info">Franchisee account activated successfully.</div>';
+        } else {
+            $franchisee_status_message = '<div class="alert danger">Unable to activate this account. It may already be active.</div>';
+        }
+    } else {
+        $franchisee_status_message = '<div class="alert danger">Invalid franchisee account selected.</div>';
+    }
+}
+
 // Include PHPMailer and email configuration with robust fallbacks
 $hasMailer = false;
 $autoloadCandidates = [
@@ -232,7 +253,6 @@ if(isset($_POST['process1'])){
 				
 				$email_template = buildFranchiseeWelcomeEmail($user_name, $user_email, $f_user_password_raw, [
 					'include_payment_step' => true,
-					'compact_login_block' => true,
 				]);
 				$subject = $email_template['subject'];
 				$message = $email_template['message'];
@@ -256,6 +276,7 @@ if(isset($_POST['process1'])){
 
 </div>
 <div class="table-card">
+    <?php if ($franchisee_status_message !== '') { echo $franchisee_status_message; } ?>
     <div class="card-header d-flex justify-content-between align-items-center">
         <div>
             <i class="fas fa-table me-2"></i>
@@ -387,7 +408,14 @@ if(isset($_GET['page_no'])){
                 }
                 echo '<td>'.htmlspecialchars($comp_name).'</td>';
                 $status_badge = $f_user_active==='YES' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
-                echo '<td>'.$status_badge.'</td>';
+                echo '<td>'.$status_badge;
+                if ($f_user_active !== 'YES') {
+                    echo '<form method="POST" style="margin-top:6px;">';
+                    echo '<input type="hidden" name="activate_franchisee_id" value="'.(int)($row['id'] ?? 0).'">';
+                    echo '<button type="submit" class="btn btn-sm btn-success" onclick="return confirm(\'Activate this franchisee account?\')">Activate</button>';
+                    echo '</form>';
+                }
+                echo '</td>';
                 echo '<td>';
                 if ($first_card) {
                     $cardUrl = 'https://'.$_SERVER['HTTP_HOST'].'/'.$first_card['id'];

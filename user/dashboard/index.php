@@ -449,7 +449,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                     <!-- FRANCHISEE DASHBOARD LAYOUT -->
                     <?php if (!$franchise_agreement_paid): ?>
                         <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            <strong>Registration payment pending.</strong> Complete your franchise agreement payment to unlock <strong>Verification</strong> and <strong>Wallet</strong> in the portal.
+                           Complete your franchisee plan payment to activate your account verification and wallet access.
                             <a href="<?php echo htmlspecialchars($franchise_agreement_url, ENT_QUOTES, 'UTF-8'); ?>" class="alert-link">Complete payment</a>
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>

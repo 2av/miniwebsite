@@ -179,6 +179,9 @@ if ($result = mysqli_query($connect, $userStatsQuery)) {
                         <a class="nav-link" href="kit_management.php">
                             <i class="fas fa-toolbox me-2"></i> Kit Management
                         </a>
+                        <a class="nav-link" href="manage_role_access_settings.php">
+                            <i class="fas fa-user-shield me-2"></i> Role Access Settings
+                        </a>
                         
                         <a class="nav-link" href="change-password.php">
                             <i class="fas fa-key me-2"></i> Change Password

@@ -40,6 +40,7 @@ require('header.php');
                                         <th>Referral Source</th>
                                         <th>Company Name</th>
                                         <th>FRD Status</th>
+                                        <th>Influencer</th>
                                         <th>View/Edit/Share</th>
                                         <th>User Payment Status</th>
                                         <th>FRD Fee</th>
@@ -168,6 +169,16 @@ require('header.php');
                                             // FRD Status
                                             $collab_status = isset($row['collaboration_enabled']) ? $row['collaboration_enabled'] : 'NO';
                                             echo '<td>'.($collab_status==='YES' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>').'</td>';
+                                            // Influencer status
+                                            $influencer_status = isset($row['influencer']) ? $row['influencer'] : 'NO';
+                                            echo '<td>';
+                                            echo '<select class="form-select form-select-sm influencer-status" data-user-email="'.htmlspecialchars($user_email).'" data-prev-value="'.htmlspecialchars($influencer_status).'">';
+                                            foreach (['No' => 'NO', 'Yes' => 'YES'] as $label => $value) {
+                                                $selected = ($influencer_status === $value) ? ' selected' : '';
+                                                echo '<option value="'.$value.'"'.$selected.'>'.$label.'</option>';
+                                            }
+                                            echo '</select>';
+                                            echo '</td>';
                                             // View/Edit/Share (route to card management search by email)
                                             $action_url = 'manage_user_card.php?search='.urlencode($user_email);
                                             echo '<td class="actions-cell"><a class="btn btn-sm btn-outline-primary" href="'.$action_url.'" target="_blank">Open</a></td>';
@@ -317,7 +328,7 @@ require('header.php');
                                             echo '</tr>';
                                         }
                                     } else {
-                                        echo '<tr><td colspan="21" class="text-center py-4">No collaboration-enabled users found</td></tr>';
+                                        echo '<tr><td colspan="22" class="text-center py-4">No collaboration-enabled users found</td></tr>';
                                     }
                                     ?>
                                 </tbody>
@@ -394,6 +405,45 @@ document.addEventListener('change', function(e) {
         .then(resp => resp.text())
         .then(text => { if (!text.includes('success')) { toggleElement.checked = !toggleElement.checked; } })
         .catch(() => { toggleElement.checked = !toggleElement.checked; });
+    }
+    if (e.target && e.target.classList.contains('influencer-status')) {
+        const select = e.target;
+        const userEmail = select.getAttribute('data-user-email');
+        const prevValue = select.getAttribute('data-prev-value') || 'NO';
+        const newStatus = select.value;
+
+        if (newStatus === prevValue) {
+            return;
+        }
+
+        const label = newStatus === 'YES' ? 'Yes' : 'No';
+        if (!confirm('Set Influencer status to "' + label + '" for ' + userEmail + '?')) {
+            select.value = prevValue;
+            return;
+        }
+
+        fetch('js_request.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                update_influencer_status: 'YES',
+                user_email: userEmail,
+                influencer_status: newStatus
+            })
+        })
+        .then(resp => resp.text())
+        .then(text => {
+            if (text.includes('success')) {
+                select.setAttribute('data-prev-value', newStatus);
+            } else {
+                select.value = prevValue;
+                alert('Failed to update influencer status');
+            }
+        })
+        .catch(() => {
+            select.value = prevValue;
+            alert('Failed to update influencer status');
+        });
     }
     if (e.target && e.target.classList.contains('mw-referral-toggle')) {
         const userEmail = e.target.getAttribute('data-user-email');

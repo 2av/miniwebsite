@@ -17,6 +17,13 @@ if (!function_exists('buildFranchiseeWelcomeEmail')) {
     function buildFranchiseeWelcomeEmail($userName, $userEmail, $userPassword, array $options = [])
     {
         $host = $_SERVER['HTTP_HOST'] ?? 'miniwebsite.in';
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $projectBasePath = dirname(dirname($scriptName));
+        if ($projectBasePath === DIRECTORY_SEPARATOR || $projectBasePath === '.' || $projectBasePath === '\\') {
+            $projectBasePath = '';
+        }
+        $projectBasePath = rtrim(str_replace('\\', '/', $projectBasePath), '/');
+        $loginUrl = 'https://' . $host . $projectBasePath . '/login/franchisee.php';
         $subject = "Welcome to MiniWebsite.in – Your Franchise Account is Ready!";
         $includePaymentProcessedLine = !empty($options['include_payment_processed_line']);
         $includePaymentStep = !empty($options['include_payment_step']);
@@ -36,7 +43,7 @@ if (!function_exists('buildFranchiseeWelcomeEmail')) {
 
         if ($compactLoginBlock) {
             $message .= '
-            <p style="color: #333; font-size: 16px; line-height: 1.6;">👉 <a href="https://' . $host . '/panel/franchisee-login/login.php" style="color: #007bff; text-decoration: none;">(Franchisee Login details)</a></p>
+            <p style="color: #333; font-size: 16px; line-height: 1.6;">👉 <a href="' . htmlspecialchars($loginUrl) . '" style="color: #007bff; text-decoration: none;">(Franchisee Login details)</a></p>
             
             <br><br>';
         } else {
@@ -45,7 +52,7 @@ if (!function_exists('buildFranchiseeWelcomeEmail')) {
                 <h3 style="color: #333; font-size: 18px; margin-top: 0; margin-bottom: 15px;">🔐 Your Login Details:</h3>
                 <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;"><strong>Email ID:</strong> ' . htmlspecialchars($userEmail) . '</p>
                 <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;"><strong>Password:</strong> ' . htmlspecialchars($userPassword) . '</p>
-                <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;">👉 <a href="https://' . $host . '/panel/franchisee-login/login.php" style="color: #007bff; text-decoration: none;">Click here to login</a></p>
+                <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 10px 0;">👉 <a href="' . htmlspecialchars($loginUrl) . '" style="color: #007bff; text-decoration: none;">Click here to login</a></p>
             </div>
             
             <br>';

@@ -41,6 +41,25 @@ if(isset($_POST['toggle_user_saleskit'])){
     }
 }
 
+// Handle influencer status update - using user_details
+if(isset($_POST['update_influencer_status'])){
+    $user_email = mysqli_real_escape_string($connect, $_POST['user_email']);
+    $status = mysqli_real_escape_string($connect, $_POST['influencer_status']);
+
+    if(!in_array($status, ['YES', 'NO'], true)){
+        echo '<span class="alert danger">Invalid influencer status</span>';
+        exit;
+    }
+
+    $query = mysqli_query($connect, "UPDATE user_details SET influencer='$status' WHERE email='$user_email' AND role='CUSTOMER'");
+
+    if($query){
+        echo '<span class="alert success">success</span>';
+    } else {
+        echo '<span class="alert danger">Failed to update influencer status: ' . mysqli_error($connect) . '</span>';
+    }
+}
+
 // Handle MW Referral toggle - using user_details
 if(isset($_POST['toggle_mw_referral'])){
     $user_email = mysqli_real_escape_string($connect, $_POST['user_email']);

@@ -508,3 +508,7 @@ a.mw-video-external.mw-video-external--instagram {
 .mw-product-expanded-panel.mw-product-expanded-single .mw-product-expanded-next {
     display: none;
 }
+
+.mw-section-title {
+    font-size: 2rem;
+}

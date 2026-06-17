@@ -144,10 +144,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             // Generate unique referral code for new user
             $referral_code = strtoupper(substr(md5($user_email . time()), 0, 8));
 
-            // Insert user with referral code into legacy franchisee_login (for backward compatibility)
-            $insert = mysqli_query($connect, "INSERT INTO franchisee_login 
-            (f_user_email, f_user_name, f_user_password, f_user_contact, f_user_active, f_user_token, referral_code, referred_by,referral_type) 
-            VALUES ('$user_email', '$user_name', '$plain_password', '$user_contact', 'YES', '$sender_token', '$referral_code', '$referrer_email','')");
+            // Insert user in unified user_details (used by login)
+            $password_hash = password_hash($plain_password, PASSWORD_DEFAULT);
+            $safe_role = 'FRANCHISEE';
+            $insert_user_details = mysqli_query($connect, "INSERT INTO user_details
+            (role, email, phone, name, password, password_hash, status, referral_code, referred_by)
+            VALUES ('$safe_role', '$user_email', '$user_contact', '$user_name', '$plain_password', '$password_hash', 'ACTIVE', '$referral_code', '$referrer_email')");
+            $insert = $insert_user_details;
 
         if ($insert) {
             // If there's a referrer, create referral record with dynamic amount
@@ -190,7 +193,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             $_SESSION['registration_success'] = true;
             
             // Send welcome email using shared template
-            $email_template = buildFranchiseeWelcomeEmail($user_name, $user_email, $user_password, [
+            $email_template = buildFranchiseeWelcomeEmail($user_name, $user_email, $plain_password, [
                 'include_payment_step' => true,
             ]);
             $subject = $email_template['subject'];
@@ -203,6 +206,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             exit();
             } else {
                 $errors[] = "Error in registration. Please try again.";
+                error_log("Franchisee registration insert failed: " . mysqli_error($connect));
             }
         }
     }
@@ -316,7 +320,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
 
 <div class="login-wrap">
     <div class="login-container">
-        <h2 class="heading"> <a href="franchisee-login/login.php"><i class="fa fa-angle-left" aria-hidden="true"></i></a> Create A franchisee  Account</h2>
+        <h2 class="heading"> <a href="../login/franchisee.php"><i class="fa fa-angle-left" aria-hidden="true"></i></a> Create A franchisee  Account</h2>
         <p class="text-white"> Fill this form to register as a franchisee</p>
 
         <?php if (isset($_SESSION['registration_otp']) && isset($_SESSION['registration_data'])): ?>
@@ -329,7 +333,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             </div>
             <input type="submit" name="verify_otp" class="btn btn-login" value="VERIFY OTP">
             <div class="mt-3">
-                <p class="text-white">Didn't receive OTP? <a href="create-account.php?resend=true" class="text-primary">Resend OTP</a></p>
+                <p class="text-white">Didn't receive OTP? <a href="franchisee-registration.php?resend=true" class="text-primary">Resend OTP</a></p>
             </div>
             <div class="mt-3">
                 <p class="text-white small">After verification, you'll be redirected to the login page.</p>

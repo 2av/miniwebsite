@@ -1,6 +1,28 @@
 <?php
 require_once(__DIR__ . '/../app/config/database.php');
-require('header.php');
+
+// Ensure content_type ENUM includes all managed content types
+$content_type_enum_sql = "ALTER TABLE content_management MODIFY COLUMN content_type ENUM(
+    'terms_conditions',
+    'privacy_policy',
+    'franchisee_agreement',
+    'franchisee_distributer',
+    'mw_full_franchise_agreement',
+    'mw_franchisee_operation_policy'
+) NOT NULL";
+@mysqli_query($connect, $content_type_enum_sql);
+
+$content_type_to_tab = [
+    'terms_conditions' => 'terms',
+    'privacy_policy' => 'privacy',
+    'franchisee_agreement' => 'franchisee',
+    'franchisee_distributer' => 'frandist',
+    'mw_full_franchise_agreement' => 'mwfull',
+    'mw_franchisee_operation_policy' => 'mwop',
+];
+$valid_tabs = array_values($content_type_to_tab);
+$save_message = '';
+$save_message_type = '';
 
 // Handle content update
 if(isset($_POST['update_content'])) {
@@ -10,6 +32,7 @@ if(isset($_POST['update_content'])) {
     $meta_description = mysqli_real_escape_string($connect, $_POST['meta_description']);
     $meta_keywords = mysqli_real_escape_string($connect, $_POST['meta_keywords']);
     $updated_by = isset($_SESSION['admin_email']) ? $_SESSION['admin_email'] : 'admin';
+    $saved_tab = $content_type_to_tab[$content_type] ?? 'terms';
     
     // Check if content exists
     $check_query = mysqli_query($connect, "SELECT id FROM content_management WHERE content_type='$content_type'");
@@ -26,9 +49,11 @@ if(isset($_POST['update_content'])) {
                         WHERE content_type='$content_type'";
         
         if(mysqli_query($connect, $update_query)) {
-            echo '<div class="alert alert-success">Content updated successfully!</div>';
+            header('Location: manage_content.php?tab=' . urlencode($saved_tab) . '&saved=updated');
+            exit;
         } else {
-            echo '<div class="alert alert-danger">Error updating content: ' . mysqli_error($connect) . '</div>';
+            $save_message = 'Error updating content: ' . mysqli_error($connect);
+            $save_message_type = 'danger';
         }
     } else {
         // Insert new content
@@ -36,15 +61,34 @@ if(isset($_POST['update_content'])) {
                         VALUES ('$content_type', '$title', '$content', '$meta_description', '$meta_keywords', '$updated_by')";
         
         if(mysqli_query($connect, $insert_query)) {
-            echo '<div class="alert alert-success">Content created successfully!</div>';
+            header('Location: manage_content.php?tab=' . urlencode($saved_tab) . '&saved=created');
+            exit;
         } else {
-            echo '<div class="alert alert-danger">Error creating content: ' . mysqli_error($connect) . '</div>';
+            $save_message = 'Error creating content: ' . mysqli_error($connect);
+            $save_message_type = 'danger';
         }
     }
 }
 
+$active_tab = 'terms';
+if (isset($_GET['tab']) && in_array($_GET['tab'], $valid_tabs, true)) {
+    $active_tab = $_GET['tab'];
+} elseif (isset($_POST['content_type']) && isset($content_type_to_tab[$_POST['content_type']])) {
+    $active_tab = $content_type_to_tab[$_POST['content_type']];
+}
+
+if (isset($_GET['saved'])) {
+    if ($_GET['saved'] === 'created') {
+        $save_message = 'Content created successfully!';
+        $save_message_type = 'success';
+    } elseif ($_GET['saved'] === 'updated') {
+        $save_message = 'Content updated successfully!';
+        $save_message_type = 'success';
+    }
+}
+
 // Get current content
-$content_types = ['terms_conditions', 'privacy_policy', 'franchisee_agreement', 'franchisee_distributer'];
+$content_types = ['terms_conditions', 'privacy_policy', 'franchisee_agreement', 'franchisee_distributer', 'mw_full_franchise_agreement', 'mw_franchisee_operation_policy'];
 $current_content = [];
 
 foreach($content_types as $type) {
@@ -62,6 +106,8 @@ foreach($content_types as $type) {
         ];
     }
 }
+
+require('header.php');
 ?>
 
 <!DOCTYPE html>
@@ -294,30 +340,46 @@ foreach($content_types as $type) {
                         </div>
                     </div>
 
+                    <?php if ($save_message !== ''): ?>
+                    <div class="alert alert-<?php echo htmlspecialchars($save_message_type); ?>"><?php echo htmlspecialchars($save_message); ?></div>
+                    <?php endif; ?>
+
                     <!-- Content Tabs -->
                     <ul class="nav nav-tabs content-tabs" id="contentTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="terms-tab" data-bs-toggle="tab" data-bs-target="#terms" type="button" role="tab">
+                            <button class="nav-link<?php echo $active_tab === 'terms' ? ' active' : ''; ?>" id="terms-tab" data-bs-toggle="tab" data-bs-target="#terms" type="button" role="tab">
                                 <i class="fas fa-file-contract me-2"></i>Terms & Conditions
                                 <span class="content-type-badge badge-terms ms-2">Legal</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="privacy-tab" data-bs-toggle="tab" data-bs-target="#privacy" type="button" role="tab">
+                            <button class="nav-link<?php echo $active_tab === 'privacy' ? ' active' : ''; ?>" id="privacy-tab" data-bs-toggle="tab" data-bs-target="#privacy" type="button" role="tab">
                                 <i class="fas fa-shield-alt me-2"></i>Privacy Policy
                                 <span class="content-type-badge badge-privacy ms-2">Privacy</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="franchisee-tab" data-bs-toggle="tab" data-bs-target="#franchisee" type="button" role="tab">
+                            <button class="nav-link<?php echo $active_tab === 'franchisee' ? ' active' : ''; ?>" id="franchisee-tab" data-bs-toggle="tab" data-bs-target="#franchisee" type="button" role="tab">
                                 <i class="fas fa-handshake me-2"></i>Franchisee Agreement
                                 <span class="content-type-badge badge-franchisee ms-2">Partnership</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="frandist-tab" data-bs-toggle="tab" data-bs-target="#frandist" type="button" role="tab">
+                            <button class="nav-link<?php echo $active_tab === 'frandist' ? ' active' : ''; ?>" id="frandist-tab" data-bs-toggle="tab" data-bs-target="#frandist" type="button" role="tab">
                                 <i class="fas fa-users-cog me-2"></i>Franchisee Distributer
                                 <span class="content-type-badge badge-franchisee ms-2">Program</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link<?php echo $active_tab === 'mwfull' ? ' active' : ''; ?>" id="mwfull-tab" data-bs-toggle="tab" data-bs-target="#mwfull" type="button" role="tab">
+                                <i class="fas fa-file-signature me-2"></i>MW Full Franchise Agreement
+                                <span class="content-type-badge badge-franchisee ms-2">Franchise</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link<?php echo $active_tab === 'mwop' ? ' active' : ''; ?>" id="mwop-tab" data-bs-toggle="tab" data-bs-target="#mwop" type="button" role="tab">
+                                <i class="fas fa-clipboard-list me-2"></i>MW Franchisee Operation Policy
+                                <span class="content-type-badge badge-franchisee ms-2">Policy</span>
                             </button>
                         </li>
                     </ul>
@@ -325,7 +387,7 @@ foreach($content_types as $type) {
                     <!-- Tab Content -->
                     <div class="tab-content" id="contentTabsContent">
                         <!-- Terms & Conditions Tab -->
-                        <div class="tab-pane fade show active" id="terms" role="tabpanel">
+                        <div class="tab-pane fade<?php echo $active_tab === 'terms' ? ' show active' : ''; ?>" id="terms" role="tabpanel">
                             <div class="content-form">
                                 <form method="POST" action="">
                                     <input type="hidden" name="content_type" value="terms_conditions">
@@ -380,7 +442,7 @@ foreach($content_types as $type) {
                         </div>
 
                         <!-- Privacy Policy Tab -->
-                        <div class="tab-pane fade" id="privacy" role="tabpanel">
+                        <div class="tab-pane fade<?php echo $active_tab === 'privacy' ? ' show active' : ''; ?>" id="privacy" role="tabpanel">
                             <div class="content-form">
                                 <form method="POST" action="">
                                     <input type="hidden" name="content_type" value="privacy_policy">
@@ -435,7 +497,7 @@ foreach($content_types as $type) {
                         </div>
 
                         <!-- Franchisee Agreement Tab -->
-                        <div class="tab-pane fade" id="franchisee" role="tabpanel">
+                        <div class="tab-pane fade<?php echo $active_tab === 'franchisee' ? ' show active' : ''; ?>" id="franchisee" role="tabpanel">
                             <div class="content-form">
                                 <form method="POST" action="">
                                     <input type="hidden" name="content_type" value="franchisee_agreement">
@@ -490,7 +552,7 @@ foreach($content_types as $type) {
                         </div>
 
                         <!-- Franchisee Distributer Tab -->
-                        <div class="tab-pane fade" id="frandist" role="tabpanel">
+                        <div class="tab-pane fade<?php echo $active_tab === 'frandist' ? ' show active' : ''; ?>" id="frandist" role="tabpanel">
                             <div class="content-form">
                                 <form method="POST" action="">
                                     <input type="hidden" name="content_type" value="franchisee_distributer">
@@ -543,6 +605,116 @@ foreach($content_types as $type) {
                                 </form>
                             </div>
                         </div>
+
+                        <!-- MW Full Franchise Agreement Tab -->
+                        <div class="tab-pane fade<?php echo $active_tab === 'mwfull' ? ' show active' : ''; ?>" id="mwfull" role="tabpanel">
+                            <div class="content-form">
+                                <form method="POST" action="">
+                                    <input type="hidden" name="content_type" value="mw_full_franchise_agreement">
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-8">
+                                            <label for="mwfull_title" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="mwfull_title" name="title" 
+                                                   value="<?php echo htmlspecialchars($current_content['mw_full_franchise_agreement']['title']); ?>" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Last Updated</label>
+                                            <div class="form-control-plaintext last-updated">
+                                                <?php 
+                                                if(!empty($current_content['mw_full_franchise_agreement']['last_updated'])) {
+                                                    echo date('M d, Y H:i', strtotime($current_content['mw_full_franchise_agreement']['last_updated']));
+                                                    echo ' by ' . $current_content['mw_full_franchise_agreement']['updated_by'];
+                                                } else {
+                                                    echo 'Never updated';
+                                                }
+                                                ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="mwfull_meta_description" class="form-label">Meta Description</label>
+                                            <textarea class="form-control" id="mwfull_meta_description" name="meta_description" rows="3"><?php echo htmlspecialchars($current_content['mw_full_franchise_agreement']['meta_description']); ?></textarea>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="mwfull_meta_keywords" class="form-label">Meta Keywords</label>
+                                            <textarea class="form-control" id="mwfull_meta_keywords" name="meta_keywords" rows="3"><?php echo htmlspecialchars($current_content['mw_full_franchise_agreement']['meta_keywords']); ?></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 editor-container">
+                                        <label for="mwfull_content" class="form-label">Content</label>
+                                        <textarea class="form-control" id="mwfull_content" name="content" rows="15"><?php echo htmlspecialchars($current_content['mw_full_franchise_agreement']['content']); ?></textarea>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="previewContent('mwfull')">
+                                            <i class="fas fa-eye me-2"></i>Preview
+                                        </button>
+                                        <button type="submit" name="update_content" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Update MW Full Franchise Agreement
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- MW Franchisee Operation Policy Tab -->
+                        <div class="tab-pane fade<?php echo $active_tab === 'mwop' ? ' show active' : ''; ?>" id="mwop" role="tabpanel">
+                            <div class="content-form">
+                                <form method="POST" action="">
+                                    <input type="hidden" name="content_type" value="mw_franchisee_operation_policy">
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-8">
+                                            <label for="mwop_title" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="mwop_title" name="title" 
+                                                   value="<?php echo htmlspecialchars($current_content['mw_franchisee_operation_policy']['title']); ?>" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Last Updated</label>
+                                            <div class="form-control-plaintext last-updated">
+                                                <?php 
+                                                if(!empty($current_content['mw_franchisee_operation_policy']['last_updated'])) {
+                                                    echo date('M d, Y H:i', strtotime($current_content['mw_franchisee_operation_policy']['last_updated']));
+                                                    echo ' by ' . $current_content['mw_franchisee_operation_policy']['updated_by'];
+                                                } else {
+                                                    echo 'Never updated';
+                                                }
+                                                ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="mwop_meta_description" class="form-label">Meta Description</label>
+                                            <textarea class="form-control" id="mwop_meta_description" name="meta_description" rows="3"><?php echo htmlspecialchars($current_content['mw_franchisee_operation_policy']['meta_description']); ?></textarea>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="mwop_meta_keywords" class="form-label">Meta Keywords</label>
+                                            <textarea class="form-control" id="mwop_meta_keywords" name="meta_keywords" rows="3"><?php echo htmlspecialchars($current_content['mw_franchisee_operation_policy']['meta_keywords']); ?></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 editor-container">
+                                        <label for="mwop_content" class="form-label">Content</label>
+                                        <textarea class="form-control" id="mwop_content" name="content" rows="15"><?php echo htmlspecialchars($current_content['mw_franchisee_operation_policy']['content']); ?></textarea>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="previewContent('mwop')">
+                                            <i class="fas fa-eye me-2"></i>Preview
+                                        </button>
+                                        <button type="submit" name="update_content" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Update MW Franchisee Operation Policy
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -578,6 +750,19 @@ foreach($content_types as $type) {
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize editors for all tabs
             initializeEditors();
+
+            // Keep active tab in URL when switching tabs
+            const tabButtons = document.querySelectorAll('#contentTabs button[data-bs-toggle="tab"]');
+            tabButtons.forEach(function(btn) {
+                btn.addEventListener('shown.bs.tab', function() {
+                    const tabId = (btn.getAttribute('data-bs-target') || '').replace('#', '');
+                    if (!tabId) return;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', tabId);
+                    url.searchParams.delete('saved');
+                    window.history.replaceState({}, '', url);
+                });
+            });
         });
         
         function initializeEditors() {
@@ -720,6 +905,76 @@ foreach($content_types as $type) {
                         console.error('Franchisee Distributer editor initialization failed:', error);
                     });
             }
+            
+            // MW Full Franchise Agreement Editor
+            if (document.getElementById('mwfull_content')) {
+                ClassicEditor
+                    .create(document.querySelector('#mwfull_content'), {
+                        toolbar: {
+                            items: [
+                                'heading', '|',
+                                'bold', 'italic', 'underline', '|',
+                                'bulletedList', 'numberedList', '|',
+                                'outdent', 'indent', '|',
+                                'blockQuote', 'insertTable', '|',
+                                'undo', 'redo', '|',
+                                'link', '|',
+                                'alignment', '|',
+                                'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor'
+                            ]
+                        },
+                        language: 'en',
+                        table: {
+                            contentToolbar: [
+                                'tableColumn',
+                                'tableRow',
+                                'mergeTableCells'
+                            ]
+                        }
+                    })
+                    .then(editor => {
+                        editors.mwfull = editor;
+                        console.log('MW Full Franchise Agreement editor initialized');
+                    })
+                    .catch(error => {
+                        console.error('MW Full Franchise Agreement editor initialization failed:', error);
+                    });
+            }
+            
+            // MW Franchisee Operation Policy Editor
+            if (document.getElementById('mwop_content')) {
+                ClassicEditor
+                    .create(document.querySelector('#mwop_content'), {
+                        toolbar: {
+                            items: [
+                                'heading', '|',
+                                'bold', 'italic', 'underline', '|',
+                                'bulletedList', 'numberedList', '|',
+                                'outdent', 'indent', '|',
+                                'blockQuote', 'insertTable', '|',
+                                'undo', 'redo', '|',
+                                'link', '|',
+                                'alignment', '|',
+                                'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor'
+                            ]
+                        },
+                        language: 'en',
+                        table: {
+                            contentToolbar: [
+                                'tableColumn',
+                                'tableRow',
+                                'mergeTableCells'
+                            ]
+                        }
+                    })
+                    .then(editor => {
+                        editors.mwop = editor;
+                        console.log('MW Franchisee Operation Policy editor initialized');
+                    })
+                    .catch(error => {
+                        console.error('MW Franchisee Operation Policy editor initialization failed:', error);
+                    });
+            }
         }
 
         // Preview content function
@@ -743,6 +998,14 @@ foreach($content_types as $type) {
                 case 'frandist':
                     content = editors.frandist ? editors.frandist.getData() : document.getElementById('frandist_content').value;
                     title = document.getElementById('frandist_title').value;
+                    break;
+                case 'mwfull':
+                    content = editors.mwfull ? editors.mwfull.getData() : document.getElementById('mwfull_content').value;
+                    title = document.getElementById('mwfull_title').value;
+                    break;
+                case 'mwop':
+                    content = editors.mwop ? editors.mwop.getData() : document.getElementById('mwop_content').value;
+                    title = document.getElementById('mwop_title').value;
                     break;
             }
             
@@ -778,6 +1041,10 @@ foreach($content_types as $type) {
                         content = editors.franchisee.getData();
                     } else if (contentField.id === 'frandist_content' && editors.frandist) {
                         content = editors.frandist.getData();
+                    } else if (contentField.id === 'mwfull_content' && editors.mwfull) {
+                        content = editors.mwfull.getData();
+                    } else if (contentField.id === 'mwop_content' && editors.mwop) {
+                        content = editors.mwop.getData();
                     } else {
                         content = contentField.value;
                     }

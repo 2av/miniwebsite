@@ -43,6 +43,7 @@ $sql = "CREATE TABLE IF NOT EXISTS user_details (
     mw_referral_id INT UNSIGNED DEFAULT NULL,
     collaboration_enabled ENUM('YES','NO') NOT NULL DEFAULT 'NO',
     saleskit_enabled ENUM('YES','NO') NOT NULL DEFAULT 'NO',
+    influencer ENUM('YES','NO') NOT NULL DEFAULT 'NO',
     referred_by VARCHAR(255) DEFAULT '',
 
     -- Referrer / parent (e.g. franchisee, admin, etc.)
