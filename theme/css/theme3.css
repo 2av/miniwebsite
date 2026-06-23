@@ -1,64 +1,64 @@
 /* ==========================================================================
-   theme2.css — Deep Teal & Lime Green (Plus Jakarta Sans)
-   Purpose: Colors, fonts, and theme2-specific component styling
+   theme3.css — Midnight Violet & Coral Sunset (Outfit)
+   Purpose: Colors, fonts, and theme3-specific component styling
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
     /* Core Theme Tokens */
-    --mw-primary-color: #a3e635;
-    --mw-secondary-color: #84cc16;
-    --mw-accent-color: #10b981;
+    --mw-primary-color: #ff6b6b;
+    --mw-secondary-color: #feca57;
+    --mw-accent-color: #a29bfe;
 
-    --mw-background-color: #0b141a;
-    --mw-card-background: #112027;
+    --mw-background-color: #130f1f;
+    --mw-card-background: #1e1830;
     --mw-heading-color: #ffffff;
-    --mw-text-color: #94a3b8;
+    --mw-text-color: #b8b0d0;
 
-    --mw-border-radius: 12px;
-    --mw-shadow: 0 12px 30px rgba(5, 12, 16, 0.6),
-                 0 1px 2px rgba(255, 255, 255, 0.03);
+    --mw-border-radius: 16px;
+    --mw-shadow: 0 14px 36px rgba(8, 4, 18, 0.65),
+                 0 0 0 1px rgba(162, 155, 254, 0.06);
 
-    --mw-font-heading: 'Plus Jakarta Sans', sans-serif;
-    --mw-font-body: 'Plus Jakarta Sans', sans-serif;
+    --mw-font-heading: 'Outfit', sans-serif;
+    --mw-font-body: 'Outfit', sans-serif;
 
     /* Offer Card Theme Tokens */
-    --mw-offer-badge-bg: #a3e635;
-    --mw-offer-badge-color: #0b141a;
-    --mw-offer-card-shadow: 0 10px 25px rgba(163, 230, 53, 0.1);
-    --mw-offer-cta-bg: #a3e635;
+    --mw-offer-badge-bg: #ff6b6b;
+    --mw-offer-badge-color: #130f1f;
+    --mw-offer-card-shadow: 0 12px 32px rgba(255, 107, 107, 0.12);
+    --mw-offer-cta-bg: #ff6b6b;
 
     /* Component Tokens */
-    --mw-btn-on-primary: #0b141a;
-    --mw-btn-hover-bg: #bef264;
-    --mw-nav-bg: rgba(11, 20, 26, 0.92);
-    --mw-nav-border: rgba(163, 230, 53, 0.12);
-    --mw-nav-inactive: #64748b;
-    --mw-nav-shadow: 0 -5px 25px rgba(0, 0, 0, 0.6);
-    --mw-card-border: rgba(163, 230, 53, 0.05);
-    --mw-input-bg: rgba(17, 32, 39, 0.6);
-    --mw-input-border: rgba(255, 255, 255, 0.06);
-    --mw-cat-active-bg: rgba(163, 230, 53, 0.05);
-    --mw-cat-img-bg: rgba(17, 32, 39, 0.8);
-    --mw-cat-img-border: rgba(163, 230, 53, 0.15);
+    --mw-btn-on-primary: #130f1f;
+    --mw-btn-hover-bg: #ff8787;
+    --mw-nav-bg: rgba(19, 15, 31, 0.94);
+    --mw-nav-border: rgba(255, 107, 107, 0.15);
+    --mw-nav-inactive: #7c7494;
+    --mw-nav-shadow: 0 -8px 30px rgba(8, 4, 18, 0.7);
+    --mw-card-border: rgba(162, 155, 254, 0.1);
+    --mw-input-bg: rgba(30, 24, 48, 0.75);
+    --mw-input-border: rgba(255, 255, 255, 0.08);
+    --mw-cat-active-bg: rgba(255, 107, 107, 0.08);
+    --mw-cat-img-bg: rgba(30, 24, 48, 0.9);
+    --mw-cat-img-border: rgba(162, 155, 254, 0.2);
 }
 
 body {
     background-color: var(--mw-background-color);
     background-image:
-        radial-gradient(circle at 10% 20%, rgba(163, 230, 53, 0.03) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.02) 0%, transparent 40%);
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(255, 107, 107, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 100%, rgba(162, 155, 254, 0.07) 0%, transparent 50%);
     color: var(--mw-text-color);
     font-family: var(--mw-font-body);
     -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.01em;
 }
 
 h1, h2, .font-heading {
     font-family: var(--mw-font-heading);
     color: var(--mw-heading-color);
     font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 ::selection {
@@ -67,29 +67,35 @@ h1, h2, .font-heading {
 }
 
 /* =========================================
-   Theme2 Component Styling
+   Theme3 Component Styling
    ========================================= */
 
-/* Section title — horizontal dash (vcard22 style) */
+/* Section title — centered with coral + violet flanking dashes */
 .mw-section-title {
-    font-size: 1.6rem;
+    font-size: 1.75rem;
     font-weight: 700;
-    letter-spacing: -0.01em;
     display: flex;
     align-items: center;
-    gap: 12px;
-    text-align: center;
     justify-content: center;
+    gap: 14px;
 }
 
+.mw-section-title::before,
 .mw-section-title::after {
     content: '';
     display: inline-block;
-    flex-grow: 0;
-    width: 45px;
-    height: 2px;
-    background-color: var(--mw-primary-color) !important;
-    margin: 0;
+    width: 28px;
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.mw-section-title::before {
+    background: linear-gradient(90deg, transparent, var(--mw-accent-color));
+}
+
+.mw-section-title::after {
+    background: linear-gradient(90deg, var(--mw-primary-color), transparent);
 }
 
 /* Cards */
@@ -123,7 +129,7 @@ h1, h2, .font-heading {
 .mw-btn-add:hover {
     background: var(--mw-primary-color) !important;
     color: var(--mw-btn-on-primary) !important;
-    box-shadow: 0 0 10px rgba(163, 230, 53, 0.3);
+    box-shadow: 0 0 16px rgba(255, 107, 107, 0.35);
 }
 
 .mw-btn-add-overlay {
@@ -137,16 +143,15 @@ h1, h2, .font-heading {
 }
 
 .mw-btn-add-shop {
-    background: var(--mw-primary-color) !important;
-    border: 1px solid var(--mw-primary-color) !important;
+    background: linear-gradient(135deg, var(--mw-primary-color), #ee5a5a) !important;
+    border: 1px solid transparent !important;
     color: var(--mw-btn-on-primary) !important;
-    box-shadow: 0 4px 12px rgba(163, 230, 53, 0.15);
+    box-shadow: 0 4px 14px rgba(255, 107, 107, 0.25);
 }
 
 .mw-btn-add-shop:hover {
-    background: var(--mw-btn-hover-bg) !important;
-    border-color: var(--mw-btn-hover-bg) !important;
-    box-shadow: 0 4px 16px rgba(163, 230, 53, 0.3);
+    background: linear-gradient(135deg, var(--mw-btn-hover-bg), var(--mw-primary-color)) !important;
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 }
 
 /* Forms */
@@ -157,19 +162,20 @@ h1, h2, .font-heading {
 }
 
 .mw-input:focus {
-    border-color: var(--mw-primary-color) !important;
-    background-color: rgba(17, 32, 39, 0.9) !important;
-    box-shadow: 0 0 10px rgba(163, 230, 53, 0.15);
+    border-color: var(--mw-accent-color) !important;
+    background-color: rgba(30, 24, 48, 0.95) !important;
+    box-shadow: 0 0 0 3px rgba(162, 155, 254, 0.15);
 }
 
 /* Share buttons */
 .mw-qr-share .mw-share-btn {
-    background-color: var(--mw-primary-color) !important;
+    background: linear-gradient(135deg, var(--mw-primary-color), var(--mw-secondary-color)) !important;
     color: var(--mw-btn-on-primary) !important;
 }
 
 .mw-qr-share .mw-share-btn:hover {
-    background-color: var(--mw-btn-hover-bg) !important;
+    background: linear-gradient(135deg, var(--mw-btn-hover-bg), #ffd56a) !important;
+    filter: brightness(1.05);
 }
 
 /* Navigation */

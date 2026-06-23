@@ -1,16 +1,16 @@
 /* ==========================================================================
-   theme1.css — Gold & Dark (Great Vibes)
+   theme4.css — Gold & Dark (Great Vibes)
    Purpose: Colors, fonts, and theme1-specific component styling
    ========================================================================== */
 :root {
     /* Core Theme Tokens */
-    --mw-primary-color: #d4af37;
-    --mw-secondary-color: #b5952f;
-    --mw-accent-color: #f13c20;
-    --mw-background-color: #16161a;
-    --mw-card-background: #1f1f25;
+    --mw-primary-color: #14b8a6;
+    --mw-secondary-color: #2dd4bf;
+    --mw-accent-color: #8b5cf6;
+    --mw-background-color: #0e1a1b;
+    --mw-card-background: #132a2c;
     --mw-heading-color: #ffffff;
-    --mw-text-color: #a0a0b0;
+    --mw-text-color: #a9c7c9;
 
     --mw-border-radius: 12px;
     --mw-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);

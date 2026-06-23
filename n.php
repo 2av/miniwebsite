@@ -1065,7 +1065,7 @@ if ($row) {
     ];
 }
 // Resolve active miniwebsite CSS files from selected dashboard theme (d_css).
-// Theme N is stored as card_css(N+1) for DB/admin compatibility.
+// Preferred format: theme/css/themeN.css (legacy card_css values still supported).
 $selected_d_css = !empty($row['d_css']) ? trim((string) $row['d_css']) : '';
 $selected_theme_number = 1;
 
@@ -1073,6 +1073,11 @@ if (preg_match('/card_css(\d+)\.css$/', $selected_d_css, $m)) {
     $saved_card_css_no = intval($m[1]);
     if ($saved_card_css_no > 1) {
         $selected_theme_number = $saved_card_css_no - 1;
+    }
+} elseif (preg_match('/theme(\d+)\.css$/i', $selected_d_css, $m)) {
+    $saved_theme_no = intval($m[1]);
+    if ($saved_theme_no > 0) {
+        $selected_theme_number = $saved_theme_no;
     }
 }
 

@@ -110,12 +110,12 @@ $features = [
     ['grow_with_mw',                'Grow with MW',                       'Dashboard & Access',       'yes_no',   4],
     ['customer_manager',            'Customer Manager',                   'Dashboard & Access',       'textarea', 5],
     ['id_card',                     'ID Card',                            'Dashboard & Access',       'yes_no',   6],
-    ['mw_plan_visible',             'MW Plan Visible to them',            'Plans & Payments',         'textarea', 7],
-    ['mw_payment_agreements',       'MW Payment Page (Agreement Details)','Plans & Payments',         'textarea', 8],
-    ['franchise_plan_visible',      'Franchise Plan Visible to them',     'Plans & Payments',         'textarea', 9],
-    ['franchisee_payment_agreements','Franchisee Payment Page (Agreements)','Plans & Payments',      'textarea', 10],
-    ['agreement_documents',         'Any Agreement/Document for them',    'Agreements & Documents',   'textarea', 11],
-    ['create_mw_button',            'Create your MW Button',              'Agreements & Documents',   'textarea', 12],
+    ['create_mw_button',            'Create your MW Button',              'Dashboard & Access',       'textarea', 7],
+    ['mw_plan_visible',             'MW Plan Visible to them',            'Plans & Payments',         'textarea', 8],
+    ['mw_payment_agreements',       'MW Payment Page (Agreement Details)','Plans & Payments',         'textarea', 9],
+    ['franchise_plan_visible',      'Franchise Plan Visible to them',     'Plans & Payments',         'textarea', 10],
+    ['franchisee_payment_agreements','Franchisee Payment Page (Agreements)','Plans & Payments',      'textarea', 11],
+    ['agreement_documents',         'Any Agreement/Document for them',    'Agreements & Documents',   'textarea', 12],
 ];
 
 if ($feature_count === 0) {
@@ -264,6 +264,37 @@ if ($settings_count === 0) {
     ras_msg('success', "Seeded $inserted default settings from role matrix.");
 } else {
     ras_msg('info', 'Settings already exist — skipping settings seed.');
+}
+
+// --- Move Create your MW Button into Dashboard (idempotent for existing installs) ---
+$mw_btn_moved = false;
+if (ras_table_exists($connect, 'role_access_features')) {
+    $chk = mysqli_query($connect,
+        "SELECT id FROM role_access_features
+         WHERE feature_key = 'create_mw_button' AND feature_group <> 'Dashboard & Access' LIMIT 1"
+    );
+    if ($chk && mysqli_num_rows($chk) > 0) {
+        $sort_updates = [
+            ['create_mw_button',             'Dashboard & Access', 7],
+            ['mw_plan_visible',              'Plans & Payments',   8],
+            ['mw_payment_agreements',        'Plans & Payments',   9],
+            ['franchise_plan_visible',       'Plans & Payments',   10],
+            ['franchisee_payment_agreements','Plans & Payments',  11],
+            ['agreement_documents',          'Agreements & Documents', 12],
+        ];
+        $stmt = mysqli_prepare($connect,
+            "UPDATE role_access_features SET feature_group = ?, sort_order = ? WHERE feature_key = ?"
+        );
+        foreach ($sort_updates as $row) {
+            mysqli_stmt_bind_param($stmt, 'sis', $row[1], $row[2], $row[0]);
+            mysqli_stmt_execute($stmt);
+        }
+        mysqli_stmt_close($stmt);
+        $mw_btn_moved = true;
+    }
+}
+if ($mw_btn_moved) {
+    ras_msg('success', 'Moved "Create your MW Button" into Dashboard & Access section.');
 }
 
 ras_msg('success', 'Setup complete. Open admin/manage_role_access_settings.php to manage settings.');

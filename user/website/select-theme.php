@@ -57,40 +57,77 @@ if(mysqli_num_rows($query) == 0){
     $row = mysqli_fetch_array($query);
 }
 
-// Build theme options dynamically from theme/css/themeN.css + layoutN.css pairs.
+// Build theme options from admin-managed catalog first; fallback to file scan.
 $theme_css_dir = __DIR__ . '/../../theme/css';
-$theme_numbers = [];
-$theme_files = glob($theme_css_dir . '/theme*.css');
-if (is_array($theme_files)) {
-    foreach ($theme_files as $theme_file) {
-        if (preg_match('/theme(\d+)\.css$/', $theme_file, $m)) {
-            $theme_no = intval($m[1]);
-            if ($theme_no > 0 && file_exists($theme_css_dir . '/layout' . $theme_no . '.css')) {
-                $theme_numbers[] = $theme_no;
+$themes = [];
+$templates_dir_web = '../../assets/images/templates';
+$templates_dir_abs = __DIR__ . '/../../assets/images/templates';
+$catalog_exists = false;
+$catalog_table_check = mysqli_query($connect, "SHOW TABLES LIKE 'miniwebsite_theme_catalog'");
+if ($catalog_table_check && mysqli_num_rows($catalog_table_check) > 0) {
+    $catalog_exists = true;
+}
+if ($catalog_exists) {
+    $catalog_sql = "SELECT theme_number, theme_name, css_value, preview_image, sort_order
+                    FROM miniwebsite_theme_catalog
+                    WHERE is_active = 1
+                    ORDER BY sort_order ASC, theme_number ASC";
+    $catalog_q = mysqli_query($connect, $catalog_sql);
+    if ($catalog_q) {
+        while ($theme_row = mysqli_fetch_assoc($catalog_q)) {
+            $theme_no = (int)$theme_row['theme_number'];
+            if ($theme_no <= 0) {
+                continue;
             }
+            $theme_file = $theme_css_dir . '/theme' . $theme_no . '.css';
+            $layout_file = $theme_css_dir . '/layout' . $theme_no . '.css';
+            if (!file_exists($theme_file) || !file_exists($layout_file)) {
+                continue;
+            }
+            $image_file = trim((string)$theme_row['preview_image']);
+            $has_preview_image = ($image_file !== '' && file_exists($templates_dir_abs . '/' . $image_file));
+            $themes[] = [
+                'number' => $theme_no,
+                'image' => $has_preview_image ? ($templates_dir_web . '/' . $image_file) : '',
+                'has_preview_image' => $has_preview_image,
+                'css' => trim((string)$theme_row['css_value']) !== '' ? trim((string)$theme_row['css_value']) : ('theme/css/theme' . $theme_no . '.css'),
+                'name' => trim((string)$theme_row['theme_name']) !== '' ? trim((string)$theme_row['theme_name']) : ('Theme ' . $theme_no),
+            ];
         }
     }
 }
-$theme_numbers = array_values(array_unique($theme_numbers));
-sort($theme_numbers, SORT_NUMERIC);
-if (empty($theme_numbers)) {
-    $theme_numbers = [1];
-}
 
-$themes = [];
-foreach ($theme_numbers as $theme_no) {
-    $template_image_web = '../../assets/images/templates/template' . $theme_no . '.png';
-    $template_image_abs = __DIR__ . '/../../assets/images/templates/template' . $theme_no . '.png';
-    if (!file_exists($template_image_abs)) {
-        $template_image_web = '../../assets/images/templates/template1.png';
+if (empty($themes)) {
+    $theme_numbers = [];
+    $theme_files = glob($theme_css_dir . '/theme*.css');
+    if (is_array($theme_files)) {
+        foreach ($theme_files as $theme_file) {
+            if (preg_match('/theme(\d+)\.css$/', $theme_file, $m)) {
+                $theme_no = intval($m[1]);
+                if ($theme_no > 0 && file_exists($theme_css_dir . '/layout' . $theme_no . '.css')) {
+                    $theme_numbers[] = $theme_no;
+                }
+            }
+        }
     }
-    $themes[] = [
-        'number' => $theme_no,
-        'image' => $template_image_web,
-        // Keep DB/admin compatibility: Theme N maps to card_css(N+1)
-        'css' => 'panel/card_css' . ($theme_no + 1) . '.css',
-        'name' => 'Theme ' . $theme_no,
-    ];
+    $theme_numbers = array_values(array_unique($theme_numbers));
+    sort($theme_numbers, SORT_NUMERIC);
+    if (empty($theme_numbers)) {
+        $theme_numbers = [1];
+    }
+
+    foreach ($theme_numbers as $theme_no) {
+        $image_file = 'template' . $theme_no . '.png';
+        $template_image_abs = $templates_dir_abs . '/' . $image_file;
+        $has_preview_image = file_exists($template_image_abs);
+        $themes[] = [
+            'number' => $theme_no,
+            'image' => $has_preview_image ? ($templates_dir_web . '/' . $image_file) : '',
+            'has_preview_image' => $has_preview_image,
+            'css' => 'theme/css/theme' . $theme_no . '.css',
+            'name' => 'Theme ' . $theme_no,
+        ];
+    }
 }
 
 $saved_theme_css = isset($row['d_css']) ? trim((string) $row['d_css']) : '';
@@ -100,6 +137,8 @@ if (preg_match('/card_css(\d+)\.css$/', $saved_theme_css, $m)) {
     if ($card_css_no > 1) {
         $selected_theme_number = $card_css_no - 1;
     }
+} elseif (preg_match('/theme(\d+)\.css$/i', $saved_theme_css, $m)) {
+    $selected_theme_number = intval($m[1]);
 }
 
 $available_theme_numbers = array_column($themes, 'number');
@@ -107,7 +146,7 @@ if (!in_array($selected_theme_number, $available_theme_numbers, true)) {
     $selected_theme_number = (int) $themes[0]['number'];
 }
 
-$theme_css_value = 'panel/card_css' . ($selected_theme_number + 1) . '.css';
+$theme_css_value = 'theme/css/theme' . $selected_theme_number . '.css';
 ?>
 
 <!-- Phase B · Step 8 — select-theme.php uses the central .mw-* design system (header.php).
@@ -159,8 +198,12 @@ $theme_css_value = 'panel/card_css' . ($selected_theme_number + 1) . '.css';
                             <?php $is_selected = ($theme_css_value === $theme['css']); ?>
                             <div class="theme-item <?php echo $is_selected ? 'selected' : ''; ?>" data-theme="<?php echo htmlspecialchars($theme['css']); ?>" role="radio" aria-checked="<?php echo $is_selected ? 'true' : 'false'; ?>" tabindex="0">
                                 <a href="javascript:void(0);" class="theme-select-link">
-                                    <div class="theme-item-thumb">
-                                        <img class="theme_img" src="<?php echo htmlspecialchars($theme['image']); ?>" alt="<?php echo htmlspecialchars($theme['name']); ?> preview" loading="lazy">
+                                    <div class="theme-item-thumb<?php echo empty($theme['has_preview_image']) ? ' theme-item-thumb--placeholder theme-item-thumb--theme' . (int) $theme['number'] : ''; ?>">
+                                        <?php if (!empty($theme['has_preview_image'])): ?>
+                                            <img class="theme_img" src="<?php echo htmlspecialchars($theme['image']); ?>" alt="<?php echo htmlspecialchars($theme['name']); ?> preview" loading="lazy">
+                                        <?php else: ?>
+                                            <span class="theme-item-placeholder-label"><?php echo htmlspecialchars($theme['name']); ?></span>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="theme-item-name"><?php echo htmlspecialchars($theme['name']); ?></div>
                                     <?php if($is_selected): ?>
@@ -264,6 +307,23 @@ $theme_css_value = 'panel/card_css' . ($selected_theme_number + 1) . '.css';
         object-fit: cover;
         object-position: top center;
         border-radius: 0.375rem;
+    }
+    .SelectTheme .theme-item-thumb--placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px dashed var(--mw-color-border-strong);
+    }
+    .SelectTheme .theme-item-thumb--theme3 {
+        background: linear-gradient(145deg, #130f1f 0%, #2a1f4e 45%, #ff6b6b 100%);
+    }
+    .SelectTheme .theme-item-placeholder-label {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #fff;
+        text-align: center;
+        padding: 0.5rem;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
     .SelectTheme .theme-item-name {
         flex-shrink: 0;

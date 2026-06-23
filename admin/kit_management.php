@@ -11,6 +11,130 @@ include_once('header.php');
 $allowed_kits = array('sales','marketing','franchise_sales');
 $current_kit = isset($_GET['kit']) && in_array(strtolower($_GET['kit']), $allowed_kits) ? strtolower($_GET['kit']) : 'sales';
 
+$kit_upload_dir = '../assets/upload/kits/';
+
+function kitFolderIdSql($folder_id) {
+    $folder_id = intval($folder_id);
+    return $folder_id > 0 ? (string)$folder_id : 'NULL';
+}
+
+function kitValidateFolderForCategory($connect, $folder_id, $category) {
+    $folder_id = intval($folder_id);
+    if ($folder_id <= 0) {
+        return 0;
+    }
+    $category = mysqli_real_escape_string($connect, $category);
+    $res = mysqli_query($connect, "SELECT id FROM franchisee_kit_folders WHERE id = $folder_id AND category = '$category' LIMIT 1");
+    if ($res && mysqli_fetch_array($res)) {
+        return $folder_id;
+    }
+    return 0;
+}
+
+function kitParentIdSql($parent_id) {
+    $parent_id = intval($parent_id);
+    return $parent_id > 0 ? (string)$parent_id : 'NULL';
+}
+
+function kitValidateParentFolder($connect, $parent_id, $category, $exclude_folder_id = 0) {
+    $parent_id = intval($parent_id);
+    if ($parent_id <= 0) {
+        return 0;
+    }
+    if ($parent_id === intval($exclude_folder_id)) {
+        return 0;
+    }
+    if (!kitValidateFolderForCategory($connect, $parent_id, $category)) {
+        return 0;
+    }
+    if ($exclude_folder_id > 0) {
+        $descendants = kitGetFolderDescendantIds($connect, $exclude_folder_id);
+        if (in_array($parent_id, $descendants, true)) {
+            return 0;
+        }
+    }
+    return $parent_id;
+}
+
+function kitGetFolderDescendantIds($connect, $folder_id) {
+    $folder_id = intval($folder_id);
+    $ids = [];
+    $res = mysqli_query($connect, "SELECT id FROM franchisee_kit_folders WHERE parent_id = $folder_id");
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $child_id = (int)$row['id'];
+            $ids[] = $child_id;
+            $ids = array_merge($ids, kitGetFolderDescendantIds($connect, $child_id));
+        }
+    }
+    return $ids;
+}
+
+function kitDeleteFolderRecursive($connect, $folder_id, $upload_dir) {
+    $folder_id = intval($folder_id);
+    $sub_res = mysqli_query($connect, "SELECT id FROM franchisee_kit_folders WHERE parent_id = $folder_id");
+    if ($sub_res) {
+        while ($sub = mysqli_fetch_assoc($sub_res)) {
+            kitDeleteFolderRecursive($connect, (int)$sub['id'], $upload_dir);
+        }
+    }
+
+    $items_res = mysqli_query($connect, "SELECT id, file_path FROM franchisee_kit WHERE folder_id = $folder_id");
+    if ($items_res) {
+        while ($item = mysqli_fetch_assoc($items_res)) {
+            if (!empty($item['file_path'])) {
+                $file_path = $upload_dir . $item['file_path'];
+                if (file_exists($file_path)) {
+                    unlink($file_path);
+                }
+            }
+            mysqli_query($connect, "DELETE FROM franchisee_kit WHERE id = " . intval($item['id']));
+        }
+    }
+
+    mysqli_query($connect, "DELETE FROM franchisee_kit_folders WHERE id = $folder_id");
+}
+
+function kitBuildFolderChildrenMap($folders) {
+    $children = [];
+    foreach ($folders as $folder) {
+        $parent_id = !empty($folder['parent_id']) ? (int)$folder['parent_id'] : 0;
+        if (!isset($children[$parent_id])) {
+            $children[$parent_id] = [];
+        }
+        $children[$parent_id][] = $folder;
+    }
+    return $children;
+}
+
+function kitRenderFolderOptions($children_map, $parent_id = 0, $depth = 0, $selected_id = 0, $exclude_id = 0) {
+    if (!isset($children_map[$parent_id])) {
+        return;
+    }
+    foreach ($children_map[$parent_id] as $folder) {
+        $folder_id = (int)$folder['id'];
+        if ($folder_id === (int)$exclude_id) {
+            continue;
+        }
+        $prefix = $depth > 0 ? str_repeat('— ', $depth) : '';
+        $selected = $folder_id === (int)$selected_id ? ' selected' : '';
+        echo '<option value="' . $folder_id . '"' . $selected . '>' . htmlspecialchars($prefix . $folder['title']) . '</option>';
+        kitRenderFolderOptions($children_map, $folder_id, $depth + 1, $selected_id, $exclude_id);
+    }
+}
+
+function kitCountSubfolders($children_map, $folder_id) {
+    $folder_id = (int)$folder_id;
+    if (!isset($children_map[$folder_id])) {
+        return 0;
+    }
+    $count = count($children_map[$folder_id]);
+    foreach ($children_map[$folder_id] as $child) {
+        $count += kitCountSubfolders($children_map, (int)$child['id']);
+    }
+    return $count;
+}
+
 function kitLabel($key) {
     if ($key === 'sales') return 'Sales Kit';
     if ($key === 'marketing') return 'Marketing Kit';
@@ -65,10 +189,62 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['action'])) {
         $action = $_POST['action'];
         
-        if ($action == 'add_image') {
+        if ($action == 'create_folder') {
+            $folder_title = trim(isset($_POST['folder_title']) ? $_POST['folder_title'] : '');
+            $display_order = intval(isset($_POST['folder_order']) ? $_POST['folder_order'] : 0);
+            $kit_category = mysqli_real_escape_string($connect, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+            $parent_id = kitValidateParentFolder($connect, isset($_POST['parent_folder_id']) ? $_POST['parent_folder_id'] : 0, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+            $parent_sql = kitParentIdSql($parent_id);
+
+            if ($folder_title === '') {
+                $error_message = "Please enter a folder name.";
+            } else {
+                $folder_title = mysqli_real_escape_string($connect, $folder_title);
+                $insert_query = "INSERT INTO franchisee_kit_folders (title, category, parent_id, display_order, status)
+                                 VALUES ('$folder_title', '$kit_category', $parent_sql, $display_order, 'active')";
+                if (mysqli_query($connect, $insert_query)) {
+                    $success_message = $parent_id > 0 ? "Subfolder created successfully!" : "Folder created successfully!";
+                } else {
+                    $error_message = "Error creating folder: " . mysqli_error($connect);
+                }
+            }
+        }
+
+        elseif ($action == 'edit_folder') {
+            $folder_id = intval($_POST['folder_id']);
+            $folder_title = trim(isset($_POST['edit_folder_title']) ? $_POST['edit_folder_title'] : '');
+            $display_order = intval(isset($_POST['edit_folder_order']) ? $_POST['edit_folder_order'] : 0);
+            $status = mysqli_real_escape_string($connect, isset($_POST['edit_folder_status']) ? $_POST['edit_folder_status'] : 'active');
+            $kit_category = mysqli_real_escape_string($connect, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+            $parent_id = kitValidateParentFolder($connect, isset($_POST['edit_parent_folder_id']) ? $_POST['edit_parent_folder_id'] : 0, $kit_category, $folder_id);
+            $parent_sql = kitParentIdSql($parent_id);
+
+            if ($folder_title === '') {
+                $error_message = "Please enter a folder name.";
+            } else {
+                $folder_title = mysqli_real_escape_string($connect, $folder_title);
+                $update_query = "UPDATE franchisee_kit_folders SET title = '$folder_title', parent_id = $parent_sql, display_order = $display_order, status = '$status' WHERE id = $folder_id";
+                if (mysqli_query($connect, $update_query)) {
+                    $success_message = "Folder updated successfully!";
+                } else {
+                    $error_message = "Error updating folder: " . mysqli_error($connect);
+                }
+            }
+        }
+
+        elseif ($action == 'delete_folder') {
+            $folder_id = intval($_POST['folder_id']);
+            global $kit_upload_dir;
+            kitDeleteFolderRecursive($connect, $folder_id, $kit_upload_dir);
+            $success_message = "Folder and all subfolders/contents deleted successfully!";
+        }
+
+        elseif ($action == 'add_image') {
             // Handle image upload
             if (isset($_FILES['kit_image']) && $_FILES['kit_image']['error'] == 0) {
-                $upload_dir = '../assets/upload/kits/';
+                $upload_dir = $kit_upload_dir;
+                $folder_id = kitValidateFolderForCategory($connect, isset($_POST['folder_id']) ? $_POST['folder_id'] : 0, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+                $folder_sql = kitFolderIdSql($folder_id);
                 
                 // Check if directory exists, create if not
                 if (!file_exists($upload_dir)) {
@@ -100,8 +276,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             
                             // Category from hidden field or current tab
                             $kit_category = mysqli_real_escape_string($connect, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
-                            $insert_query = "INSERT INTO franchisee_kit (type, title, file_path, display_order, status, category) 
-                                           VALUES ('image', '$title', '$new_filename', $display_order, 'active', '$kit_category')";
+                            $insert_query = "INSERT INTO franchisee_kit (type, title, file_path, display_order, status, category, folder_id) 
+                                           VALUES ('image', '$title', '$new_filename', $display_order, 'active', '$kit_category', $folder_sql)";
                             
                             if (mysqli_query($connect, $insert_query)) {
                                 $success_message = "Image uploaded successfully!";
@@ -126,10 +302,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $video_title = mysqli_real_escape_string($connect, isset($_POST['video_title']) ? $_POST['video_title'] : '');
             $display_order = intval(isset($_POST['video_order']) ? $_POST['video_order'] : 0);
             $kit_category = mysqli_real_escape_string($connect, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+            $folder_id = kitValidateFolderForCategory($connect, isset($_POST['folder_id']) ? $_POST['folder_id'] : 0, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+            $folder_sql = kitFolderIdSql($folder_id);
             
             if (!empty($video_url)) {
-                $insert_query = "INSERT INTO franchisee_kit (type, title, video_url, display_order, status, category) 
-                               VALUES ('video', '$video_title', '$video_url', $display_order, 'active', '$kit_category')";
+                $insert_query = "INSERT INTO franchisee_kit (type, title, video_url, display_order, status, category, folder_id) 
+                               VALUES ('video', '$video_title', '$video_url', $display_order, 'active', '$kit_category', $folder_sql)";
                 
                 if (mysqli_query($connect, $insert_query)) {
                     $success_message = "Video link added successfully!";
@@ -140,6 +318,53 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Please enter a video URL.";
             }
         }
+
+        elseif ($action == 'add_video_file') {
+            if (isset($_FILES['video_file']) && $_FILES['video_file']['error'] == 0) {
+                $upload_dir = $kit_upload_dir;
+                $folder_id = kitValidateFolderForCategory($connect, isset($_POST['folder_id']) ? $_POST['folder_id'] : 0, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+                $folder_sql = kitFolderIdSql($folder_id);
+
+                if (!file_exists($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                if (file_exists($upload_dir) && !is_writable($upload_dir)) {
+                    $error_message = "Upload directory is not writable.";
+                } else {
+                    $file_extension = strtolower(pathinfo($_FILES['video_file']['name'], PATHINFO_EXTENSION));
+                    $allowed_extensions = ['mp4', 'webm', 'mov', 'avi'];
+                    $max_file_size = 50 * 1024 * 1024;
+
+                    if ($_FILES['video_file']['size'] > $max_file_size) {
+                        $error_message = "Video size too large. Maximum allowed size is 50MB.";
+                    } elseif (in_array($file_extension, $allowed_extensions)) {
+                        $new_filename = 'kit_video_' . time() . '_' . rand(1000, 9999) . '.' . $file_extension;
+                        $upload_path = $upload_dir . $new_filename;
+
+                        if (move_uploaded_file($_FILES['video_file']['tmp_name'], $upload_path)) {
+                            $title = mysqli_real_escape_string($connect, isset($_POST['video_file_title']) ? $_POST['video_file_title'] : '');
+                            $display_order = intval(isset($_POST['video_file_order']) ? $_POST['video_file_order'] : 0);
+                            $kit_category = mysqli_real_escape_string($connect, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+                            $insert_query = "INSERT INTO franchisee_kit (type, title, file_path, display_order, status, category, folder_id)
+                                           VALUES ('video', '$title', '$new_filename', $display_order, 'active', '$kit_category', $folder_sql)";
+
+                            if (mysqli_query($connect, $insert_query)) {
+                                $success_message = "Video uploaded successfully!";
+                            } else {
+                                $error_message = "Error saving video details: " . mysqli_error($connect);
+                            }
+                        } else {
+                            $error_message = "Error uploading video file.";
+                        }
+                    } else {
+                        $error_message = "Invalid file type. Only MP4, WEBM, MOV, and AVI files are allowed.";
+                    }
+                }
+            } else {
+                $error_message = "Please select a video file.";
+            }
+        }
         
         elseif ($action == 'add_file') {
             // Handle file upload
@@ -148,7 +373,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 // Check for upload errors
                 if ($file_error == 0) {
-                    $upload_dir = '../assets/upload/kits/';
+                    $upload_dir = $kit_upload_dir;
+                    $folder_id = kitValidateFolderForCategory($connect, isset($_POST['folder_id']) ? $_POST['folder_id'] : 0, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
+                    $folder_sql = kitFolderIdSql($folder_id);
                     
                     // Check if directory exists, create if not
                     if (!file_exists($upload_dir)) {
@@ -179,8 +406,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $display_order = intval(isset($_POST['file_order']) ? $_POST['file_order'] : 0);
                             
                             $kit_category = mysqli_real_escape_string($connect, isset($_POST['kit_category']) ? $_POST['kit_category'] : $current_kit);
-                            $insert_query = "INSERT INTO franchisee_kit (type, title, file_path, display_order, status, category) 
-                                           VALUES ('file', '$title', '$new_filename', $display_order, 'active', '$kit_category')";
+                            $insert_query = "INSERT INTO franchisee_kit (type, title, file_path, display_order, status, category, folder_id) 
+                                           VALUES ('file', '$title', '$new_filename', $display_order, 'active', '$kit_category', $folder_sql)";
                             
                             if (mysqli_query($connect, $insert_query)) {
                                 $success_message = "File uploaded successfully!";
@@ -231,14 +458,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $item_id = intval($_POST['item_id']);
             $item_type = mysqli_real_escape_string($connect, $_POST['item_type']);
             
-            // Get file path if it's an image or file
-            if ($item_type == 'image' || $item_type == 'file') {
+            // Get file path if it's an image, file, or uploaded video
+            if ($item_type == 'image' || $item_type == 'file' || $item_type == 'video') {
                 $get_file_query = "SELECT file_path FROM franchisee_kit WHERE id = $item_id";
                 $file_result = mysqli_query($connect, $get_file_query);
                 if ($file_result && $file_row = mysqli_fetch_array($file_result)) {
-                    $file_path = '../assets/upload/kits/' . $file_row['file_path'];
-                    if (file_exists($file_path)) {
-                        unlink($file_path);
+                    if (!empty($file_row['file_path'])) {
+                        $file_path = $kit_upload_dir . $file_row['file_path'];
+                        if (file_exists($file_path)) {
+                            unlink($file_path);
+                        }
                     }
                 }
             }
@@ -263,16 +492,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         
+        elseif ($action == 'move_item') {
+            $item_id = intval($_POST['item_id']);
+            $folder_id = kitValidateFolderForCategory($connect, isset($_POST['move_folder_id']) ? $_POST['move_folder_id'] : 0, $current_kit);
+            $folder_sql = kitFolderIdSql($folder_id);
+
+            $update_query = "UPDATE franchisee_kit SET folder_id = $folder_sql WHERE id = $item_id";
+            if (mysqli_query($connect, $update_query)) {
+                $success_message = $folder_id > 0 ? "Item moved to folder successfully!" : "Item removed from folder (uncategorized).";
+            } else {
+                $error_message = "Error moving item: " . mysqli_error($connect);
+            }
+        }
+
         elseif ($action == 'edit_image') {
             $item_id = intval($_POST['item_id']);
             $title = mysqli_real_escape_string($connect, isset($_POST['edit_image_title']) ? $_POST['edit_image_title'] : '');
             $display_order = intval(isset($_POST['edit_image_order']) ? $_POST['edit_image_order'] : 0);
             $status = mysqli_real_escape_string($connect, isset($_POST['edit_image_status']) ? $_POST['edit_image_status'] : 'active');
+            $folder_id = kitValidateFolderForCategory($connect, isset($_POST['edit_image_folder_id']) ? $_POST['edit_image_folder_id'] : 0, $current_kit);
+            $folder_sql = kitFolderIdSql($folder_id);
             
             // Handle new image upload if provided
             $image_update = '';
             if (isset($_FILES['edit_kit_image']) && $_FILES['edit_kit_image']['error'] == 0) {
-                $upload_dir = '../assets/upload/kits/';
+                $upload_dir = $kit_upload_dir;
                 $file_extension = strtolower(pathinfo($_FILES['edit_kit_image']['name'], PATHINFO_EXTENSION));
                 $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
                     $max_file_size = 10 * 1024 * 1024; // 10MB in bytes
@@ -306,7 +550,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
             
-            $update_query = "UPDATE franchisee_kit SET title = '$title', display_order = $display_order, status = '$status'$image_update WHERE id = $item_id";
+            $update_query = "UPDATE franchisee_kit SET title = '$title', display_order = $display_order, status = '$status', folder_id = $folder_sql$image_update WHERE id = $item_id";
             if (mysqli_query($connect, $update_query)) {
                 $success_message = "Image updated successfully!";
             } else {
@@ -321,16 +565,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $video_url = mysqli_real_escape_string($connect, isset($_POST['edit_video_url']) ? $_POST['edit_video_url'] : '');
             $display_order = intval(isset($_POST['edit_video_order']) ? $_POST['edit_video_order'] : 0);
             $status = mysqli_real_escape_string($connect, isset($_POST['edit_video_status']) ? $_POST['edit_video_status'] : 'active');
-            
-            if (!empty($video_url)) {
-                $update_query = "UPDATE franchisee_kit SET title = '$title', video_url = '$video_url', display_order = $display_order, status = '$status' WHERE id = $item_id";
+            $folder_id = kitValidateFolderForCategory($connect, isset($_POST['edit_video_folder_id']) ? $_POST['edit_video_folder_id'] : 0, $current_kit);
+            $folder_sql = kitFolderIdSql($folder_id);
+
+            $existing_res = mysqli_query($connect, "SELECT file_path FROM franchisee_kit WHERE id = $item_id LIMIT 1");
+            $has_uploaded_file = false;
+            if ($existing_res && $existing_row = mysqli_fetch_assoc($existing_res)) {
+                $has_uploaded_file = !empty($existing_row['file_path']);
+            }
+
+            if (!empty($video_url) || $has_uploaded_file) {
+                $url_update = !empty($video_url) ? ", video_url = '$video_url'" : '';
+                $update_query = "UPDATE franchisee_kit SET title = '$title', display_order = $display_order, status = '$status', folder_id = $folder_sql$url_update WHERE id = $item_id";
                 if (mysqli_query($connect, $update_query)) {
                     $success_message = "Video updated successfully!";
                 } else {
                     $error_message = "Error updating video: " . mysqli_error($connect);
                 }
             } else {
-                $error_message = "Please enter a video URL.";
+                $error_message = "Please enter a video URL or keep the uploaded video file.";
             }
         }
         
@@ -339,11 +592,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $title = mysqli_real_escape_string($connect, isset($_POST['edit_file_title']) ? $_POST['edit_file_title'] : '');
             $display_order = intval(isset($_POST['edit_file_order']) ? $_POST['edit_file_order'] : 0);
             $status = mysqli_real_escape_string($connect, isset($_POST['edit_file_status']) ? $_POST['edit_file_status'] : 'active');
+            $folder_id = kitValidateFolderForCategory($connect, isset($_POST['edit_file_folder_id']) ? $_POST['edit_file_folder_id'] : 0, $current_kit);
+            $folder_sql = kitFolderIdSql($folder_id);
             
             // Handle new file upload if provided
             $file_update = '';
             if (isset($_FILES['edit_file_upload']) && $_FILES['edit_file_upload']['error'] == 0) {
-                $upload_dir = '../assets/upload/kits/';
+                $upload_dir = $kit_upload_dir;
                 $file_extension = strtolower(pathinfo($_FILES['edit_file_upload']['name'], PATHINFO_EXTENSION));
                 $allowed_extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', 'mp4', 'avi', 'mov', 'mp3', 'wav'];
                 
@@ -378,7 +633,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
             
-            $update_query = "UPDATE franchisee_kit SET title = '$title', display_order = $display_order, status = '$status'$file_update WHERE id = $item_id";
+            $update_query = "UPDATE franchisee_kit SET title = '$title', display_order = $display_order, status = '$status', folder_id = $folder_sql$file_update WHERE id = $item_id";
             if (mysqli_query($connect, $update_query)) {
                 $success_message = "File updated successfully!";
             } else {
@@ -396,6 +651,162 @@ $kit_items = [];
 if ($kit_items_result) {
     while ($row = mysqli_fetch_assoc($kit_items_result)) {
         $kit_items[] = $row;
+    }
+}
+
+// Get folders for current category
+$kit_folders = [];
+$folders_query = "SELECT f.*, (SELECT COUNT(*) FROM franchisee_kit k WHERE k.folder_id = f.id) AS item_count
+                  FROM franchisee_kit_folders f
+                  WHERE f.category='" . mysqli_real_escape_string($connect, $current_kit) . "'
+                  ORDER BY f.display_order ASC, f.title ASC";
+$folders_result = mysqli_query($connect, $folders_query);
+if ($folders_result) {
+    while ($row = mysqli_fetch_assoc($folders_result)) {
+        $kit_folders[] = $row;
+    }
+}
+
+$items_by_folder = [];
+$uncategorized_items = [];
+foreach ($kit_items as $item) {
+    if (!empty($item['folder_id'])) {
+        $fid = (int)$item['folder_id'];
+        if (!isset($items_by_folder[$fid])) {
+            $items_by_folder[$fid] = [];
+        }
+        $items_by_folder[$fid][] = $item;
+    } else {
+        $uncategorized_items[] = $item;
+    }
+}
+
+$folder_children_map = kitBuildFolderChildrenMap($kit_folders);
+
+function renderKitFolderCard($folder, $children_map, $items_by_folder, $kit_upload_dir, $depth = 0) {
+    $folder_id = (int)$folder['id'];
+    $folder_items = isset($items_by_folder[$folder_id]) ? $items_by_folder[$folder_id] : [];
+    $folder_images = array_filter($folder_items, function($item) { return $item['type'] === 'image'; });
+    $folder_videos = array_filter($folder_items, function($item) { return $item['type'] === 'video'; });
+    $subfolder_count = isset($children_map[$folder_id]) ? count($children_map[$folder_id]) : 0;
+    $margin_left = $depth > 0 ? ($depth * 24) : 0;
+    ?>
+    <div class="folder-card" style="<?php echo $margin_left > 0 ? 'margin-left:' . $margin_left . 'px;' : ''; ?>">
+        <div class="folder-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="mb-1" style="font-size: <?php echo $depth > 0 ? '1rem' : '1.25rem'; ?>;">
+                    <i class="fas fa-<?php echo $depth > 0 ? 'folder' : 'folder-open'; ?> text-warning me-2"></i>
+                    <?php echo htmlspecialchars($folder['title']); ?>
+                    <?php if ($depth > 0): ?><span class="badge bg-secondary ms-1">Subfolder</span><?php endif; ?>
+                </h5>
+                <small class="text-muted">
+                    <?php echo count($folder_images); ?> images · <?php echo count($folder_videos); ?> videos · <?php echo $subfolder_count; ?> subfolders · Order: <?php echo (int)$folder['display_order']; ?>
+                </small>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createFolderModal" onclick="openCreateSubfolder(<?php echo $folder_id; ?>)">
+                    <i class="fas fa-folder-plus me-1"></i>Subfolder
+                </button>
+                <button type="button" class="btn btn-sm btn-custom-warning" data-bs-toggle="modal" data-bs-target="#addImageModal" onclick="setModalFolder('image_folder_id', '<?php echo $folder_id; ?>')">
+                    <i class="fas fa-image me-1"></i>Add Image
+                </button>
+                <button type="button" class="btn btn-sm btn-custom-success" data-bs-toggle="modal" data-bs-target="#addVideoModal" onclick="setModalFolder('video_folder_id', '<?php echo $folder_id; ?>')">
+                    <i class="fas fa-link me-1"></i>Video Link
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addVideoFileModal" onclick="setModalFolder('video_file_folder_id', '<?php echo $folder_id; ?>')">
+                    <i class="fas fa-upload me-1"></i>Upload Video
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editFolder(<?php echo $folder_id; ?>)">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteFolder(<?php echo $folder_id; ?>, '<?php echo htmlspecialchars(addslashes($folder['title'])); ?>')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="folder-card-body">
+            <?php if (!empty($folder_items)): ?>
+                <div class="row g-4">
+                    <?php foreach ($folder_items as $item) { renderKitFolderItem($item, $kit_upload_dir); } ?>
+                </div>
+            <?php elseif ($subfolder_count === 0): ?>
+                <div class="folder-empty">
+                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                    <p class="mb-0">This folder is empty. Add images, videos, or create a subfolder.</p>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($subfolder_count > 0 && isset($children_map[$folder_id])): ?>
+                <div class="mt-3">
+                    <?php foreach ($children_map[$folder_id] as $child_folder) {
+                        renderKitFolderCard($child_folder, $children_map, $items_by_folder, $kit_upload_dir, $depth + 1);
+                    } ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+
+function renderKitFolderItem($item, $kit_upload_dir) {
+    $type = $item['type'];
+    if ($type === 'image') {
+        ?>
+        <div class="col-md-4 col-lg-3">
+            <div class="kit-item-card">
+                <img src="<?php echo htmlspecialchars($kit_upload_dir . $item['file_path']); ?>"
+                     class="kit-image"
+                     alt="<?php echo htmlspecialchars($item['title'] ?: 'Untitled'); ?>">
+                <div class="card-body p-3">
+                    <h6 class="card-title mb-2"><?php echo htmlspecialchars($item['title'] ?: 'Untitled Image'); ?></h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <small class="text-muted">Order: <?php echo (int)$item['display_order']; ?></small>
+                        <span class="status-badge <?php echo $item['status'] == 'active' ? 'status-active' : 'status-inactive'; ?>">
+                            <?php echo ucfirst($item['status']); ?>
+                        </span>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-outline-secondary btn-action" onclick="openMoveItem(<?php echo (int)$item['id']; ?>, '<?php echo $type; ?>', <?php echo (int)(isset($item['folder_id']) ? $item['folder_id'] : 0); ?>)" title="Move to Folder"><i class="fas fa-folder"></i></button>
+                        <button type="button" class="btn btn-outline-primary btn-action" onclick="editItem(<?php echo (int)$item['id']; ?>, '<?php echo $type; ?>')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn btn-outline-<?php echo $item['status'] == 'active' ? 'warning' : 'success'; ?> btn-action" onclick="toggleStatus(<?php echo (int)$item['id']; ?>, '<?php echo $item['status']; ?>')" title="Toggle"><i class="fas fa-<?php echo $item['status'] == 'active' ? 'eye-slash' : 'eye'; ?>"></i></button>
+                        <button type="button" class="btn btn-outline-danger btn-action" onclick="deleteItem(<?php echo (int)$item['id']; ?>, '<?php echo $type; ?>')" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
+    } elseif ($type === 'video') {
+        ?>
+        <div class="col-md-6 col-lg-4">
+            <div class="kit-video-card">
+                <div class="mb-3">
+                    <?php if (!empty($item['file_path'])): ?>
+                        <video controls style="width:100%;max-height:180px;border-radius:8px;">
+                            <source src="<?php echo htmlspecialchars($kit_upload_dir . $item['file_path']); ?>">
+                        </video>
+                    <?php else: ?>
+                        <i class="fas fa-play-circle" style="font-size: 3rem; color: #667eea;"></i>
+                    <?php endif; ?>
+                </div>
+                <h6 class="card-title mb-2"><?php echo htmlspecialchars($item['title'] ?: 'Untitled Video'); ?></h6>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <small class="text-muted">Order: <?php echo (int)$item['display_order']; ?></small>
+                    <span class="status-badge <?php echo $item['status'] == 'active' ? 'status-active' : 'status-inactive'; ?>">
+                        <?php echo ucfirst($item['status']); ?>
+                    </span>
+                </div>
+                <?php if (!empty($item['video_url'])): ?>
+                    <p class="card-text mb-3"><small class="text-break"><?php echo htmlspecialchars($item['video_url']); ?></small></p>
+                <?php endif; ?>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="openMoveItem(<?php echo (int)$item['id']; ?>, 'video', <?php echo (int)(isset($item['folder_id']) ? $item['folder_id'] : 0); ?>)" title="Move to Folder"><i class="fas fa-folder"></i></button>
+                    <button type="button" class="btn btn-outline-primary btn-action" onclick="editItem(<?php echo (int)$item['id']; ?>, 'video')" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button type="button" class="btn btn-outline-<?php echo $item['status'] == 'active' ? 'warning' : 'success'; ?> btn-action" onclick="toggleStatus(<?php echo (int)$item['id']; ?>, '<?php echo $item['status']; ?>')" title="Toggle"><i class="fas fa-<?php echo $item['status'] == 'active' ? 'eye-slash' : 'eye'; ?>"></i></button>
+                    <button type="button" class="btn btn-outline-danger btn-action" onclick="deleteItem(<?php echo (int)$item['id']; ?>, 'video')" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        </div>
+        <?php
     }
 }
 ?>
@@ -583,6 +994,32 @@ if ($kit_items_result) {
             margin-bottom: 20px;
             opacity: 0.3;
         }
+        .folder-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .folder-card-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #eef1f7 100%);
+            padding: 18px 22px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .folder-card-body {
+            padding: 20px;
+        }
+        .folder-empty {
+            text-align: center;
+            color: #6c757d;
+            padding: 30px 15px;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+        }
+        .folder-card .folder-card {
+            margin-top: 16px;
+            border-color: #d0d7de;
+        }
     </style>
 </head>
 <body>
@@ -599,15 +1036,21 @@ if ($kit_items_result) {
                     </div>
                     <p class="text-muted mb-0">Manage promotional materials and resources for franchisees</p>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#addfileModal">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal" onclick="openCreateSubfolder('')">
+                        <i class="fas fa-folder-plus me-2"></i>Create Folder
+                    </button>
+                    <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#addfileModal" onclick="setModalFolder('file_folder_id', '')">
                         <i class="fas fa-plus me-2"></i>Add File
                     </button>
-                    <button type="button" class="btn btn-custom-warning" data-bs-toggle="modal" data-bs-target="#addImageModal">
+                    <button type="button" class="btn btn-custom-warning" data-bs-toggle="modal" data-bs-target="#addImageModal" onclick="setModalFolder('image_folder_id', '')">
                         <i class="fas fa-plus me-2"></i>Add Images
                     </button>
-                    <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addVideoModal">
-                        <i class="fas fa-video me-2"></i>Add Videos
+                    <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addVideoModal" onclick="setModalFolder('video_folder_id', '')">
+                        <i class="fas fa-video me-2"></i>Add Video Link
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addVideoFileModal" onclick="setModalFolder('video_file_folder_id', '')">
+                        <i class="fas fa-upload me-2"></i>Upload Video
                     </button>
                 </div>
             </div>
@@ -651,6 +1094,12 @@ if ($kit_items_result) {
         <!-- Stats Overview -->
         <div class="stats-overview">
             <div class="row">
+                <div class="col-md-2">
+                    <div class="stat-item">
+                        <div class="stat-number"><?php echo count($kit_folders); ?></div>
+                        <div class="stat-label">Folders</div>
+                    </div>
+                </div>
                 <div class="col-md-2">
                     <div class="stat-item">
                         <div class="stat-number"><?php echo count(array_filter($kit_items, function($item) { return $item['type'] == 'image'; })); ?></div>
@@ -726,7 +1175,7 @@ if ($kit_items_result) {
                 $post_max = convertToBytes(ini_get('post_max_size'));
                 $required_upload = 10 * 1024 * 1024; // 10MB
                 $required_post = 12 * 1024 * 1024; // 12MB
-                $upload_dir = '../assets/upload/kits/';
+                $upload_dir = $kit_upload_dir;
                 $has_php_issue = ($upload_max < $required_upload || $post_max < $required_post);
                 $has_permission_issue = (file_exists($upload_dir) && !is_writable($upload_dir));
                 
@@ -754,17 +1203,46 @@ if ($kit_items_result) {
         </div>
         <?php endif; ?>
 
+        <!-- Folders Section -->
+        <div class="content-card">
+            <div class="card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-folder me-2"></i>Kit Folders</h5>
+                    <span class="badge bg-light text-dark"><?php echo count($kit_folders); ?> folders</span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <?php if (!empty($kit_folders)): ?>
+                    <?php
+                    $root_folders = isset($folder_children_map[0]) ? $folder_children_map[0] : [];
+                    foreach ($root_folders as $folder) {
+                        renderKitFolderCard($folder, $folder_children_map, $items_by_folder, $kit_upload_dir, 0);
+                    }
+                    ?>
+                <?php else: ?>
+                    <div class="empty-state py-4">
+                        <i class="fas fa-folder"></i>
+                        <h5>No Folders Yet</h5>
+                        <p>Create folders to organize images and videos for franchisees</p>
+                        <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+                            <i class="fas fa-folder-plus me-2"></i>Create Your First Folder
+                        </button>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Images Section -->
         <div class="content-card">
             <div class="card-header-custom">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-images me-2"></i>Promotional Images</h5>
-                    <span class="badge bg-light text-dark"><?php echo count(array_filter($kit_items, function($item) { return $item['type'] == 'image'; })); ?> items</span>
+                    <h5 class="mb-0"><i class="fas fa-images me-2"></i>Promotional Images (Uncategorized)</h5>
+                    <span class="badge bg-light text-dark"><?php echo count(array_filter($uncategorized_items, function($item) { return $item['type'] == 'image'; })); ?> items</span>
                 </div>
             </div>
             <div class="card-body p-4">
                 <?php 
-                $image_items = array_filter($kit_items, function($item) { return $item['type'] == 'image'; });
+                $image_items = array_filter($uncategorized_items, function($item) { return $item['type'] == 'image'; });
                 if (!empty($image_items)): ?>
                     <div class="row g-4">
                         <?php foreach ($image_items as $item): ?>
@@ -782,6 +1260,10 @@ if ($kit_items_result) {
                                             </span>
                                         </div>
                                         <div class="action-buttons">
+                                            <button type="button" class="btn btn-outline-secondary btn-action"
+                                                    onclick="openMoveItem(<?php echo $item['id']; ?>, 'image', 0)" title="Move to Folder">
+                                                <i class="fas fa-folder"></i>
+                                            </button>
                                             <button type="button" class="btn btn-outline-primary btn-action" 
                                                     onclick="editItem(<?php echo $item['id']; ?>, 'image')" title="Edit">
                                                 <i class="fas fa-edit"></i>
@@ -818,20 +1300,26 @@ if ($kit_items_result) {
         <div class="content-card">
             <div class="card-header-custom">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-video me-2"></i>Video Resources</h5>
-                    <span class="badge bg-light text-dark"><?php echo count(array_filter($kit_items, function($item) { return $item['type'] == 'video'; })); ?> items</span>
+                    <h5 class="mb-0"><i class="fas fa-video me-2"></i>Video Resources (Uncategorized)</h5>
+                    <span class="badge bg-light text-dark"><?php echo count(array_filter($uncategorized_items, function($item) { return $item['type'] == 'video'; })); ?> items</span>
                 </div>
             </div>
             <div class="card-body p-4">
                 <?php 
-                $video_items = array_filter($kit_items, function($item) { return $item['type'] == 'video'; });
+                $video_items = array_filter($uncategorized_items, function($item) { return $item['type'] == 'video'; });
                 if (!empty($video_items)): ?>
                     <div class="row g-4">
                         <?php foreach ($video_items as $item): ?>
                             <div class="col-md-6 col-lg-4">
                                 <div class="kit-video-card">
                                     <div class="mb-3">
-                                        <i class="fas fa-play-circle" style="font-size: 3rem; color: #667eea;"></i>
+                                        <?php if (!empty($item['file_path'])): ?>
+                                            <video controls style="width:100%;max-height:180px;border-radius:8px;">
+                                                <source src="<?php echo htmlspecialchars($kit_upload_dir . $item['file_path']); ?>">
+                                            </video>
+                                        <?php else: ?>
+                                            <i class="fas fa-play-circle" style="font-size: 3rem; color: #667eea;"></i>
+                                        <?php endif; ?>
                                     </div>
                                     <h6 class="card-title mb-2"><?php echo htmlspecialchars($item['title'] ?: 'Untitled Video'); ?></h6>
                                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -841,16 +1329,26 @@ if ($kit_items_result) {
                                         </span>
                                     </div>
                                     <p class="card-text mb-3">
+                                        <?php if (!empty($item['video_url'])): ?>
                                         <small class="text-break"><?php echo htmlspecialchars($item['video_url']); ?></small>
+                                        <?php elseif (!empty($item['file_path'])): ?>
+                                        <small class="text-muted">Uploaded video file</small>
+                                        <?php endif; ?>
                                     </p>
+                                    <?php if (!empty($item['video_url'])): ?>
                                     <div class="mb-3">
                                         <a href="<?php echo htmlspecialchars($item['video_url']); ?>" 
                                            target="_blank" 
                                            class="btn btn-primary btn-sm">
-                                            <i class="fas fa-external-link-alt me-1"></i>Open in YouTube
+                                            <i class="fas fa-external-link-alt me-1"></i>Open Video
                                         </a>
                                     </div>
+                                    <?php endif; ?>
                                     <div class="action-buttons">
+                                        <button type="button" class="btn btn-outline-secondary btn-action"
+                                                onclick="openMoveItem(<?php echo $item['id']; ?>, 'video', 0)" title="Move to Folder">
+                                            <i class="fas fa-folder"></i>
+                                        </button>
                                         <button type="button" class="btn btn-outline-primary btn-action" 
                                                 onclick="editItem(<?php echo $item['id']; ?>, 'video')" title="Edit">
                                             <i class="fas fa-edit"></i>
@@ -886,13 +1384,13 @@ if ($kit_items_result) {
         <div class="content-card">
             <div class="card-header-custom">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-file me-2"></i>File Resources</h5>
-                    <span class="badge bg-light text-dark"><?php echo count(array_filter($kit_items, function($item) { return $item['type'] == 'file'; })); ?> items</span>
+                    <h5 class="mb-0"><i class="fas fa-file me-2"></i>File Resources (Uncategorized)</h5>
+                    <span class="badge bg-light text-dark"><?php echo count(array_filter($uncategorized_items, function($item) { return $item['type'] == 'file'; })); ?> items</span>
                 </div>
             </div>
             <div class="card-body p-4">
                 <?php 
-                $file_items = array_filter($kit_items, function($item) { return $item['type'] == 'file'; });
+                $file_items = array_filter($uncategorized_items, function($item) { return $item['type'] == 'file'; });
                 if (!empty($file_items)): ?>
                     <div class="table-responsive">
                         <table class="table table-hover">
@@ -953,6 +1451,11 @@ if ($kit_items_result) {
                                                    title="Download">
                                                     <i class="fas fa-download"></i>
                                                 </a>
+                                                <button type="button" class="btn btn-outline-secondary btn-action"
+                                                        onclick="openMoveItem(<?php echo $item['id']; ?>, 'file', 0)"
+                                                        title="Move to Folder">
+                                                    <i class="fas fa-folder"></i>
+                                                </button>
                                                 <button type="button" class="btn btn-outline-primary btn-action" 
                                                         onclick="editItem(<?php echo $item['id']; ?>, 'file')" 
                                                         title="Edit">
@@ -989,6 +1492,158 @@ if ($kit_items_result) {
         </div>
     </div>
 
+    <!-- Create Folder Modal -->
+    <div class="modal fade" id="createFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title"><i class="fas fa-folder-plus me-2"></i>Create Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="action" value="create_folder">
+                        <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <input type="hidden" name="parent_folder_id" id="parent_folder_id" value="">
+                        <div class="mb-3">
+                            <label for="parent_folder_select" class="form-label">Parent Folder (Optional)</label>
+                            <select class="form-control form-control-custom" id="parent_folder_select" onchange="document.getElementById('parent_folder_id').value = this.value">
+                                <option value="">None (main folder)</option>
+                                <?php kitRenderFolderOptions($folder_children_map); ?>
+                            </select>
+                            <div class="form-text">Select a parent to create a subfolder inside it.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="folder_title" class="form-label">Folder Name</label>
+                            <input type="text" class="form-control form-control-custom" id="folder_title" name="folder_title" placeholder="e.g. Product Photos, Training Videos" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="folder_order" class="form-label">Display Order</label>
+                            <input type="number" class="form-control form-control-custom" id="folder_order" name="folder_order" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-custom-primary"><i class="fas fa-folder-plus me-2"></i>Create Folder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Folder Modal -->
+    <div class="modal fade" id="editFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="action" value="edit_folder">
+                        <input type="hidden" name="folder_id" id="edit_folder_id">
+                        <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <div class="mb-3">
+                            <label for="edit_parent_folder_select" class="form-label">Parent Folder (Optional)</label>
+                            <select class="form-control form-control-custom" id="edit_parent_folder_select" name="edit_parent_folder_id">
+                                <option value="">None (main folder)</option>
+                                <?php /* options filled by JS to exclude self/descendants */ ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_folder_title" class="form-label">Folder Name</label>
+                            <input type="text" class="form-control form-control-custom" id="edit_folder_title" name="edit_folder_title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_folder_order" class="form-label">Display Order</label>
+                            <input type="number" class="form-control form-control-custom" id="edit_folder_order" name="edit_folder_order" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_folder_status" class="form-label">Status</label>
+                            <select class="form-control form-control-custom" id="edit_folder_status" name="edit_folder_status">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-custom-primary"><i class="fas fa-save me-2"></i>Update Folder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Video File Modal -->
+    <div class="modal fade" id="addVideoFileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title"><i class="fas fa-upload me-2"></i>Upload Video File</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="action" value="add_video_file">
+                        <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <input type="hidden" name="folder_id" id="video_file_folder_id" value="">
+                        <div class="mb-3">
+                            <label for="video_file_folder_select" class="form-label">Folder (Optional)</label>
+                            <select class="form-control form-control-custom" id="video_file_folder_select" onchange="setModalFolder('video_file_folder_id', this.value)">
+                                <option value="">No folder (uncategorized)</option>
+                                <?php kitRenderFolderOptions($folder_children_map); ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="video_file_title" class="form-label">Video Title</label>
+                            <input type="text" class="form-control form-control-custom" id="video_file_title" name="video_file_title" placeholder="Enter a title for the video">
+                        </div>
+                        <div class="mb-3">
+                            <label for="video_file" class="form-label">Select Video File</label>
+                            <input type="file" class="form-control form-control-custom" id="video_file" name="video_file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi" required>
+                            <div class="form-text">Supported: MP4, WEBM, MOV, AVI (Max 50MB)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="video_file_order" class="form-label">Display Order</label>
+                            <input type="number" class="form-control form-control-custom" id="video_file_order" name="video_file_order" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-custom-success"><i class="fas fa-upload me-2"></i>Upload Video</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Folder Modal -->
+    <div class="modal fade" id="deleteFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Delete Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body p-4 text-center">
+                        <input type="hidden" name="action" value="delete_folder">
+                        <input type="hidden" name="folder_id" id="delete_folder_id">
+                        <i class="fas fa-folder-minus text-danger" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                        <h5>Delete "<span id="delete_folder_name"></span>"?</h5>
+                        <p class="text-muted">All subfolders, images, and videos inside will also be permanently deleted.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-2"></i>Delete Folder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Image Modal -->
     <div class="modal fade" id="addImageModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1001,8 +1656,16 @@ if ($kit_items_result) {
                     <div class="modal-body p-4">
                         <input type="hidden" name="action" value="add_image">
                         <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <input type="hidden" name="folder_id" id="image_folder_id" value="">
                         <div class="row">
                             <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="image_folder_select" class="form-label">Folder (Optional)</label>
+                                    <select class="form-control form-control-custom" id="image_folder_select" onchange="setModalFolder('image_folder_id', this.value)">
+                                        <option value="">No folder (uncategorized)</option>
+                                        <?php kitRenderFolderOptions($folder_children_map); ?>
+                                    </select>
+                                </div>
                                 <div class="mb-3">
                                     <label for="image_title" class="form-label">Image Title</label>
                                     <input type="text" class="form-control form-control-custom" id="image_title" name="image_title" 
@@ -1059,6 +1722,14 @@ if ($kit_items_result) {
                     <div class="modal-body p-4">
                         <input type="hidden" name="action" value="add_video">
                         <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <input type="hidden" name="folder_id" id="video_folder_id" value="">
+                        <div class="mb-3">
+                            <label for="video_folder_select" class="form-label">Folder (Optional)</label>
+                            <select class="form-control form-control-custom" id="video_folder_select" onchange="setModalFolder('video_folder_id', this.value)">
+                                <option value="">No folder (uncategorized)</option>
+                                <?php kitRenderFolderOptions($folder_children_map); ?>
+                            </select>
+                        </div>
                         <div class="mb-3">
                             <label for="video_title" class="form-label">Video Title</label>
                             <input type="text" class="form-control form-control-custom" id="video_title" name="video_title" 
@@ -1106,6 +1777,14 @@ if ($kit_items_result) {
                     <div class="modal-body p-4">
                         <input type="hidden" name="action" value="add_file">
                         <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <input type="hidden" name="folder_id" id="file_folder_id" value="">
+                        <div class="mb-3">
+                            <label for="file_folder_select" class="form-label">Folder (Optional)</label>
+                            <select class="form-control form-control-custom" id="file_folder_select" onchange="setModalFolder('file_folder_id', this.value)">
+                                <option value="">No folder (uncategorized)</option>
+                                <?php kitRenderFolderOptions($folder_children_map); ?>
+                            </select>
+                        </div>
                         <div class="mb-3">
                             <label for="file_title" class="form-label">File Title</label>
                             <input type="text" class="form-control form-control-custom" id="file_title" name="file_title" 
@@ -1153,8 +1832,17 @@ if ($kit_items_result) {
                     <div class="modal-body p-4">
                         <input type="hidden" name="action" value="edit_image">
                         <input type="hidden" name="item_id" id="edit_image_id">
+                        <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
                         <div class="row">
                             <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="edit_image_folder_id" class="form-label">Folder</label>
+                                    <select class="form-control form-control-custom" id="edit_image_folder_id" name="edit_image_folder_id">
+                                        <option value="">No folder (uncategorized)</option>
+                                        <?php kitRenderFolderOptions($folder_children_map); ?>
+                                    </select>
+                                    <div class="form-text">Select a folder to move this image.</div>
+                                </div>
                                 <div class="mb-3">
                                     <label for="edit_image_title" class="form-label">Image Title</label>
                                     <input type="text" class="form-control form-control-custom" id="edit_image_title" name="edit_image_title" 
@@ -1215,6 +1903,15 @@ if ($kit_items_result) {
                     <div class="modal-body p-4">
                         <input type="hidden" name="action" value="edit_video">
                         <input type="hidden" name="item_id" id="edit_video_id">
+                        <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <div class="mb-3">
+                            <label for="edit_video_folder_id" class="form-label">Folder</label>
+                            <select class="form-control form-control-custom" id="edit_video_folder_id" name="edit_video_folder_id">
+                                <option value="">No folder (uncategorized)</option>
+                                <?php kitRenderFolderOptions($folder_children_map); ?>
+                            </select>
+                            <div class="form-text">Select a folder to move this video.</div>
+                        </div>
                         <div class="mb-3">
                             <label for="edit_video_title" class="form-label">Video Title</label>
                             <input type="text" class="form-control form-control-custom" id="edit_video_title" name="edit_video_title" 
@@ -1223,10 +1920,10 @@ if ($kit_items_result) {
                         <div class="mb-3">
                             <label for="edit_video_url" class="form-label">YouTube Video URL</label>
                             <input type="url" class="form-control form-control-custom" id="edit_video_url" name="edit_video_url" 
-                                   placeholder="https://www.youtube.com/watch?v=..." required>
+                                   placeholder="https://www.youtube.com/watch?v=...">
                             <div class="form-text">
                                 <i class="fas fa-info-circle me-1"></i>
-                                Paste the full YouTube video URL
+                                Leave empty if this is an uploaded video file
                             </div>
                         </div>
                         <div class="mb-3">
@@ -1265,6 +1962,15 @@ if ($kit_items_result) {
                     <div class="modal-body p-4">
                         <input type="hidden" name="action" value="edit_file">
                         <input type="hidden" name="item_id" id="edit_file_id">
+                        <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <div class="mb-3">
+                            <label for="edit_file_folder_id" class="form-label">Folder</label>
+                            <select class="form-control form-control-custom" id="edit_file_folder_id" name="edit_file_folder_id">
+                                <option value="">No folder (uncategorized)</option>
+                                <?php kitRenderFolderOptions($folder_children_map); ?>
+                            </select>
+                            <div class="form-text">Select a folder to move this file.</div>
+                        </div>
                         <div class="mb-3">
                             <label for="edit_file_title" class="form-label">File Title</label>
                             <input type="text" class="form-control form-control-custom" id="edit_file_title" name="edit_file_title" 
@@ -1296,6 +2002,39 @@ if ($kit_items_result) {
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-custom-primary">
                             <i class="fas fa-save me-2"></i>Update File
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Move Item Modal -->
+    <div class="modal fade" id="moveItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title"><i class="fas fa-folder me-2"></i>Move to Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="action" value="move_item">
+                        <input type="hidden" name="item_id" id="move_item_id">
+                        <input type="hidden" name="kit_category" value="<?php echo htmlspecialchars($current_kit); ?>">
+                        <p class="text-muted mb-3">Move <strong id="move_item_label">this item</strong> to a folder. Choose "No folder" to keep it uncategorized.</p>
+                        <div class="mb-3">
+                            <label for="move_folder_id" class="form-label">Select Folder</label>
+                            <select class="form-control form-control-custom" id="move_folder_id" name="move_folder_id">
+                                <option value="">No folder (uncategorized)</option>
+                                <?php kitRenderFolderOptions($folder_children_map); ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-custom-primary">
+                            <i class="fas fa-folder me-2"></i>Move Item
                         </button>
                     </div>
                 </form>
@@ -1337,6 +2076,100 @@ if ($kit_items_result) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        const kitFoldersData = <?php echo json_encode($kit_folders, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+        function buildFolderChildrenMap(folders) {
+            const children = {};
+            folders.forEach(function(f) {
+                const pid = f.parent_id ? parseInt(f.parent_id) : 0;
+                if (!children[pid]) children[pid] = [];
+                children[pid].push(f);
+            });
+            return children;
+        }
+
+        const folderChildrenMapJs = buildFolderChildrenMap(kitFoldersData);
+
+        function getFolderDescendantIds(folderId) {
+            let ids = [];
+            const children = folderChildrenMapJs[parseInt(folderId)] || [];
+            children.forEach(function(child) {
+                ids.push(parseInt(child.id));
+                ids = ids.concat(getFolderDescendantIds(child.id));
+            });
+            return ids;
+        }
+
+        function buildFolderOptionsHtml(parentId, depth, excludeIds, selectedId) {
+            const children = folderChildrenMapJs[parentId] || [];
+            let html = '';
+            children.forEach(function(folder) {
+                const id = parseInt(folder.id);
+                if (excludeIds.indexOf(id) !== -1) return;
+                const prefix = depth > 0 ? Array(depth + 1).join('— ') : '';
+                const selected = id === parseInt(selectedId) ? ' selected' : '';
+                html += '<option value="' + id + '"' + selected + '>' + prefix + folder.title + '</option>';
+                html += buildFolderOptionsHtml(id, depth + 1, excludeIds, selectedId);
+            });
+            return html;
+        }
+
+        function populateEditParentSelect(folderId, selectedParentId) {
+            const excludeIds = [parseInt(folderId)].concat(getFolderDescendantIds(folderId));
+            const select = document.getElementById('edit_parent_folder_select');
+            select.innerHTML = '<option value="">None (main folder)</option>' + buildFolderOptionsHtml(0, 0, excludeIds, selectedParentId || 0);
+        }
+
+        function openCreateSubfolder(parentId) {
+            document.getElementById('parent_folder_id').value = parentId || '';
+            document.getElementById('parent_folder_select').value = parentId || '';
+        }
+
+        function setModalFolder(hiddenId, folderId) {
+            const hidden = document.getElementById(hiddenId);
+            if (hidden) {
+                hidden.value = folderId || '';
+            }
+            const selectMap = {
+                image_folder_id: 'image_folder_select',
+                video_folder_id: 'video_folder_select',
+                video_file_folder_id: 'video_file_folder_select',
+                file_folder_id: 'file_folder_select'
+            };
+            const selectId = selectMap[hiddenId];
+            if (selectId) {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    select.value = folderId || '';
+                }
+            }
+        }
+
+        function editFolder(folderId) {
+            const folder = kitFoldersData.find(f => parseInt(f.id) === parseInt(folderId));
+            if (!folder) return;
+            document.getElementById('edit_folder_id').value = folder.id;
+            document.getElementById('edit_folder_title').value = folder.title || '';
+            document.getElementById('edit_folder_order').value = folder.display_order || 0;
+            document.getElementById('edit_folder_status').value = folder.status || 'active';
+            populateEditParentSelect(folder.id, folder.parent_id || '');
+            new bootstrap.Modal(document.getElementById('editFolderModal')).show();
+        }
+
+        function openMoveItem(itemId, itemType, currentFolderId) {
+            document.getElementById('move_item_id').value = itemId;
+            document.getElementById('move_folder_id').value = currentFolderId || '';
+            const typeLabels = { image: 'image', video: 'video', file: 'file' };
+            document.getElementById('move_item_label').textContent = 'this ' + (typeLabels[itemType] || 'item');
+            new bootstrap.Modal(document.getElementById('moveItemModal')).show();
+        }
+
+        function deleteFolder(folderId, folderName) {
+            document.getElementById('delete_folder_id').value = folderId;
+            document.getElementById('delete_folder_name').textContent = folderName;
+            new bootstrap.Modal(document.getElementById('deleteFolderModal')).show();
+        }
+
         // Image preview functionality
         document.getElementById('kit_image').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -1391,16 +2224,16 @@ if ($kit_items_result) {
         // Store kit items data globally
         const kitItemsData = {
             images: <?php 
-                $image_items = array_values(array_filter($kit_items, function($item) { return $item['type'] == 'image'; }));
-                echo json_encode($image_items, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+                $image_items_all = array_values(array_filter($kit_items, function($item) { return $item['type'] == 'image'; }));
+                echo json_encode($image_items_all, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
             ?>,
             videos: <?php 
-                $video_items = array_values(array_filter($kit_items, function($item) { return $item['type'] == 'video'; }));
-                echo json_encode($video_items, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+                $video_items_all = array_values(array_filter($kit_items, function($item) { return $item['type'] == 'video'; }));
+                echo json_encode($video_items_all, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
             ?>,
             files: <?php 
-                $file_items = array_values(array_filter($kit_items, function($item) { return $item['type'] == 'file'; }));
-                echo json_encode($file_items, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+                $file_items_all = array_values(array_filter($kit_items, function($item) { return $item['type'] == 'file'; }));
+                echo json_encode($file_items_all, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
             ?>
         };
 
@@ -1419,6 +2252,8 @@ if ($kit_items_result) {
                     if (titleEl) titleEl.value = item.title || '';
                     if (orderEl) orderEl.value = item.display_order || 0;
                     if (statusEl) statusEl.value = item.status || 'active';
+                    const folderEl = document.getElementById('edit_image_folder_id');
+                    if (folderEl) folderEl.value = item.folder_id || '';
                     
                     // Set current image preview
                     if (previewImg && item.file_path) {
@@ -1451,6 +2286,8 @@ if ($kit_items_result) {
                     if (urlEl) urlEl.value = item.video_url || '';
                     if (orderEl) orderEl.value = item.display_order || 0;
                     if (statusEl) statusEl.value = item.status || 'active';
+                    const folderEl = document.getElementById('edit_video_folder_id');
+                    if (folderEl) folderEl.value = item.folder_id || '';
                     return true;
                 }
                 console.error('Video item not found. ItemId:', itemId, 'Available items:', kitItemsData.videos);
@@ -1475,6 +2312,8 @@ if ($kit_items_result) {
                     if (titleEl) titleEl.value = item.title || '';
                     if (orderEl) orderEl.value = item.display_order || 0;
                     if (statusEl) statusEl.value = item.status || 'active';
+                    const folderEl = document.getElementById('edit_file_folder_id');
+                    if (folderEl) folderEl.value = item.folder_id || '';
                     return true;
                 }
                 console.error('File item not found. ItemId:', itemId, 'Available items:', kitItemsData.files);
