@@ -37,7 +37,7 @@
 		<div class="menu-item">
 			<a href="documentation/index.php" class="menu-link">
 				<i class="fas fa-book"></i>
-				<span>Documentation</span>
+				<span>Grow with MW</span>
 			</a>
 		</div>
 		

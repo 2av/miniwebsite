@@ -1,10 +1,23 @@
 ﻿<?php
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
+require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
+require_once(__DIR__ . '/../../app/helpers/access_control.php');
 require_once(__DIR__ . '/../../app/includes/product_categories_helper.php');
+
+require_login('/login/customer.php');
+require_page_access('/customer-manager');
 
 $current_role = get_current_user_role();
 $collaboration_enabled = isset($_SESSION['collaboration_enabled']) && $_SESSION['collaboration_enabled'];
+
+$ras_cm = get_current_user_role_access_settings($connect);
+$profile_key_cm = $ras_cm['profile_key'] ?? null;
+$user_email_cm = get_user_email() ?? '';
+if (!is_role_access_feature_visible_for_user($connect, $profile_key_cm, 'customer_manager', 'text', $user_email_cm, $current_role)) {
+    header('Location: ../dashboard/');
+    exit;
+}
 
 $can_use_team_portal = (
     $current_role === 'TEAM'
@@ -272,6 +285,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $followupMethod = '';
             }
         }
+        if ($id > 0 && $tracker_variant === 'team') {
+            $stmtExisting = $connect->prepare("SELECT customer_name, phone_number FROM mw_customers WHERE id = ? AND owner_user_id = ? AND owner_role = ? LIMIT 1");
+            if ($stmtExisting) {
+                $stmtExisting->bind_param('iis', $id, $owner_id, $owner_role_db);
+                $stmtExisting->execute();
+                $resExisting = $stmtExisting->get_result();
+                $rowExisting = ($resExisting && ($tmp = $resExisting->fetch_assoc())) ? $tmp : null;
+                $stmtExisting->close();
+                if (!$rowExisting) {
+                    header('Location: index.php?msg=validation_error');
+                    exit;
+                }
+                $name = trim((string)($rowExisting['customer_name'] ?? ''));
+                $phone = mw_phone_clean(trim((string)($rowExisting['phone_number'] ?? '')));
+            } else {
+                header('Location: index.php?msg=validation_error');
+                exit;
+            }
+        }
         if ($name === '' || $phone === '') {
             header('Location: index.php?msg=validation_error');
             exit;
@@ -280,11 +312,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         } else {
             if ($id > 0) {
-                $stmt = $connect->prepare("UPDATE mw_customers SET customer_name=?, label_tag=?, phone_number=?, email_id=?, company_name=?, website=?, source=?, status=?, address_line1=?, area_city=?, comments=?, business_type=?, approached_for=?, followup_method=? WHERE id=? AND owner_user_id=? AND owner_role=?");
-                if ($stmt) {
-                    $stmt->bind_param('ssssssssssssssiis', $name, $label, $phone, $emailId, $companyName, $website, $source, $status, $line1, $areaCity, $comments, $businessType, $approachedFor, $followupMethod, $id, $owner_id, $owner_role_db);
-                    $stmt->execute();
-                    $stmt->close();
+                if ($tracker_variant === 'team') {
+                    $stmt = $connect->prepare("UPDATE mw_customers SET label_tag=?, email_id=?, company_name=?, website=?, source=?, status=?, address_line1=?, area_city=?, comments=?, business_type=?, approached_for=?, followup_method=?, updated_at=NOW() WHERE id=? AND owner_user_id=? AND owner_role=?");
+                    if ($stmt) {
+                        $stmt->bind_param('ssssssssssssiis', $label, $emailId, $companyName, $website, $source, $status, $line1, $areaCity, $comments, $businessType, $approachedFor, $followupMethod, $id, $owner_id, $owner_role_db);
+                        $stmt->execute();
+                        $stmt->close();
+                    }
+                } else {
+                    $stmt = $connect->prepare("UPDATE mw_customers SET customer_name=?, label_tag=?, phone_number=?, email_id=?, company_name=?, website=?, source=?, status=?, address_line1=?, area_city=?, comments=?, business_type=?, approached_for=?, followup_method=? WHERE id=? AND owner_user_id=? AND owner_role=?");
+                    if ($stmt) {
+                        $stmt->bind_param('ssssssssssssssiis', $name, $label, $phone, $emailId, $companyName, $website, $source, $status, $line1, $areaCity, $comments, $businessType, $approachedFor, $followupMethod, $id, $owner_id, $owner_role_db);
+                        $stmt->execute();
+                        $stmt->close();
+                    }
                 }
                 header('Location: index.php?msg=updated');
                 exit;
@@ -1083,8 +1124,8 @@ require_once __DIR__ . '/../../common/mw_modal.php';
 <input type="hidden" name="action" value="save_customer"><input type="hidden" name="customer_id" id="customer_id_full">
 <div class="mw-modal-section-title"><i class="fa fa-user-circle me-1"></i> Basic Information</div>
 <div class="row g-2">
-    <div class="col-md-6"><label class="form-label">Customer Name *</label><div class="tracker-input-wrap"><i class="fa fa-user field-icon"></i><input name="customer_name" id="customer_name_full" class="form-control" placeholder="Enter customer name" required></div></div>
-    <div class="col-md-6"><label class="form-label">Phone Number *</label><div class="input-group phone-group"><span class="input-group-text bg-white border-end-0"><i class="fa fa-phone text-muted"></i></span><select class="form-select country-code-select border-start-0 border-end-0"><option value="+91" selected>+91</option></select><input name="phone_number" id="phone_number_full" class="form-control phone-input" placeholder="Enter phone number" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"></div></div>
+    <div class="col-md-6"><label class="form-label">Customer Name *</label><div class="tracker-input-wrap"><i class="fa fa-user field-icon"></i><input name="customer_name" id="customer_name_full" class="form-control" placeholder="Enter customer name" required<?php if ($tracker_variant === 'team'): ?> data-lock-on-edit="1"<?php endif; ?>></div></div>
+    <div class="col-md-6"><label class="form-label">Phone Number *</label><div class="input-group phone-group"><span class="input-group-text bg-white border-end-0"><i class="fa fa-phone text-muted"></i></span><select class="form-select country-code-select border-start-0 border-end-0" id="phone_country_code_full"><option value="+91" selected>+91</option></select><input name="phone_number" id="phone_number_full" class="form-control phone-input" placeholder="Enter phone number" required maxlength="12" inputmode="numeric" pattern="[0-9]{1,12}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,12);"<?php if ($tracker_variant === 'team'): ?> data-lock-on-edit="1"<?php endif; ?>></div></div>
     <?php if ($tracker_variant === 'team'): ?>
     <div class="col-md-6"><label class="form-label">Business Type</label><select name="business_type" id="business_type_full" class="form-select"></select></div>
     <?php if ($show_approached_for): ?>
@@ -1115,7 +1156,7 @@ require_once __DIR__ . '/../../common/mw_modal.php';
     <?php endif; ?>
 </div>
 <input type="hidden" name="area_city" id="area_city_hidden" value="">
-</div><div class="mw-modal-footer"><button type="button" class="btn btn-light border" data-mw-modal-close>Cancel</button><button class="btn mw-btn-accent">Save Customer</button></div>
+</div><div class="mw-modal-footer"><button type="button" class="btn btn-light border" data-mw-modal-close>Cancel</button><button class="btn mw-btn-accent" type="submit" id="customerFullSaveBtn"><i class="fa fa-save me-1" aria-hidden="true"></i> Save Customer</button></div>
 </form></div></div>
 
 <div class="mw-modal mw-modal-light" id="shareOfferModal" role="dialog" aria-modal="true" aria-labelledby="shareOfferModalTitle" hidden>
@@ -1223,6 +1264,9 @@ const selectSource = document.getElementById('source_select');
 const toggleAdditionalBtn = document.getElementById('toggleAdditionalBtn');
 const customerModalEl = document.getElementById('customerModal');
 const customerFullModalEl = document.getElementById('customerFullModal');
+const customerFullModalTitleEl = document.getElementById('customerFullModalTitle');
+const customerFullSaveBtnEl = document.getElementById('customerFullSaveBtn');
+const phoneCountryCodeFullEl = document.getElementById('phone_country_code_full');
 const selectLabelFull = document.getElementById('label_tag_full');
 const selectSourceFull = document.getElementById('source_select_full');
 const selectSourceAdvanced = document.getElementById('source_select_advanced');
@@ -1355,6 +1399,38 @@ if (statusSelectQuick) {
     setupCustomizableSelect(statusSelectQuick, statusOptionsList, 40);
 }
 
+function setCustomerIdentityFieldsLocked(isLocked) {
+    if (trackerVariant !== 'team') {
+        return;
+    }
+    const nameEl = document.getElementById('customer_name_full');
+    const phoneEl = document.getElementById('phone_number_full');
+    [nameEl, phoneEl].forEach(function (el) {
+        if (!el) return;
+        el.readOnly = isLocked;
+        el.classList.toggle('bg-light', isLocked);
+        el.classList.toggle('text-muted', isLocked);
+        if (isLocked) {
+            el.setAttribute('aria-readonly', 'true');
+            el.title = 'Customer name and phone cannot be changed when editing';
+        } else {
+            el.removeAttribute('aria-readonly');
+            el.removeAttribute('title');
+        }
+    });
+    if (phoneCountryCodeFullEl) {
+        phoneCountryCodeFullEl.disabled = isLocked;
+    }
+    if (customerFullModalTitleEl) {
+        customerFullModalTitleEl.textContent = isLocked ? 'Edit Customer' : 'Add Customer';
+    }
+    if (customerFullSaveBtnEl) {
+        customerFullSaveBtnEl.innerHTML = isLocked
+            ? '<i class="fa fa-save me-1" aria-hidden="true"></i> Update Customer'
+            : '<i class="fa fa-save me-1" aria-hidden="true"></i> Save Customer';
+    }
+}
+
 function toggleAdditionalDetails() {
     if (!customerFullModalEl) return;
     customer_id_full.value = customer_id.value || '';
@@ -1383,6 +1459,7 @@ function toggleAdditionalDetails() {
     if (statusSelectFull && statusSelectQuick) {
         ensureSelectHasOption(statusSelectFull, statusSelectQuick.value || 'Followup required', 40);
     }
+    setCustomerIdentityFieldsLocked(false);
     mwClose('customerModal');
     mwOpen('customerFullModal');
 }
@@ -1608,6 +1685,7 @@ document.getElementById('openCustomerModalBtn').addEventListener('click', functi
     }
     if (commentsQuickEl) commentsQuickEl.value = '';
     if (commentsFullEl) commentsFullEl.value = '';
+    setCustomerIdentityFieldsLocked(false);
 });
 
 document.querySelectorAll('.edit-btn').forEach(function (btn) {
@@ -1639,6 +1717,7 @@ document.querySelectorAll('.edit-btn').forEach(function (btn) {
         if (statusSelectFull) {
             ensureSelectHasOption(statusSelectFull, this.dataset.status || 'Followup required', 40);
         }
+        setCustomerIdentityFieldsLocked(trackerVariant === 'team' && !!(this.dataset.id || ''));
         mwOpen('customerFullModal');
     });
 });

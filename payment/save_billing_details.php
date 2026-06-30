@@ -21,6 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gst_pincode = isset($_POST['gst_pincode']) ? mysqli_real_escape_string($connect, $_POST['gst_pincode']) : '';
     $plan_choice = isset($_POST['plan_choice']) ? trim((string)$_POST['plan_choice']) : '';
     
+    // Validate plan against role-access allowed MW plans (when set on pay_miniwebsite.php)
+    if (!empty($_SESSION['allowed_mw_plans']) && is_array($_SESSION['allowed_mw_plans']) && $plan_choice !== '') {
+        $allowed = $_SESSION['allowed_mw_plans'];
+        if (!in_array($plan_choice, $allowed, true)) {
+            ob_end_clean();
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'The selected plan is not available for your account profile.']);
+            exit;
+        }
+    }
+
     // Save to session for use in payment
     $_SESSION['billing_gst_number'] = $gst_number;
     $_SESSION['billing_gst_name'] = $gst_name;

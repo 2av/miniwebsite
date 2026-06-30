@@ -9,6 +9,7 @@ if (!function_exists('get_current_user_role')) {
     require_once(__DIR__ . '/role_helper.php');
 }
 require_once(__DIR__ . '/menu_helper.php');
+require_once(__DIR__ . '/role_access_helper.php');
 
 /**
  * Get base path for redirects
@@ -114,7 +115,13 @@ function require_page_access($page_url = null) {
         $user_conditions['franchise_agreement_paid'] = isFranchiseeRegistrationAgreementPaid($user_email);
     }
     
+    global $connect;
+    if (!isset($connect) || !is_object($connect)) {
+        require_once(__DIR__ . '/../config/database.php');
+    }
+
     // Check access
+    $user_conditions = build_role_access_user_conditions($connect, $current_role, $user_conditions);
     if (!has_page_access($page_url, $current_role, $user_conditions)) {
         // Access denied - redirect to dashboard
         $base_path = get_redirect_base_path();

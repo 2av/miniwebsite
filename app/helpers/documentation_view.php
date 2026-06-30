@@ -177,3 +177,155 @@ window.__DOC_SLUG__ = <?php echo json_encode($currentSlug, JSON_HEX_TAG | JSON_H
 </html>
     <?php
 }
+
+/**
+ * Grow with MW hub: menu index first, content on page click, Home returns to menu.
+ *
+ * @param array{
+ *   page:?array,
+ *   nav:array,
+ *   current_slug:string,
+ *   prev:?array,
+ *   next:?array,
+ *   page_base_url?:string,
+ *   asset_href_prefix?:string,
+ *   missing_slug?:bool,
+ *   search_index?:array
+ * } $ctx
+ */
+function doc_render_grow_with_mw_hub(array $ctx): void
+{
+    global $connect;
+
+    $page = $ctx['page'] ?? null;
+    $nav = $ctx['nav'] ?? [];
+    $currentSlug = (string) ($ctx['current_slug'] ?? '');
+    $prev = $ctx['prev'] ?? null;
+    $next = $ctx['next'] ?? null;
+    $pageBase = (string) ($ctx['page_base_url'] ?? doc_grow_with_mw_prefix());
+    $assetPrefix = (string) ($ctx['asset_href_prefix'] ?? (doc_web_root() . '/docs/assets/'));
+    $missingSlug = !empty($ctx['missing_slug']);
+    $searchIndex = $ctx['search_index'] ?? null;
+    if ($searchIndex === null && isset($connect) && $connect instanceof mysqli) {
+        $searchIndex = doc_grow_with_mw_search_index($connect, $pageBase);
+    }
+    if (!is_array($searchIndex)) {
+        $searchIndex = [];
+    }
+    $homeUrl = rtrim($pageBase, '/') . '/';
+    $pageBaseTrimmed = rtrim($pageBase, '/') . '/';
+    $showContent = ($page !== null && $currentSlug !== '');
+
+    $bodyHtml = '';
+    if ($page) {
+        $bodyHtml = doc_sanitize_html((string) ($page['content_html'] ?? ''));
+    }
+
+    $pageHref = static function (string $slug) use ($pageBaseTrimmed): string {
+        return $pageBaseTrimmed . rawurlencode($slug);
+    };
+    ?>
+<link rel="stylesheet" href="<?php echo htmlspecialchars($assetPrefix); ?>docs-ui.css">
+<div class="gwm-hub<?php echo $showContent ? ' gwm-hub--content' : ' gwm-hub--menu'; ?>" id="growWithMwHub">
+    <div class="gwm-menu-view" id="gwmMenuView">
+        <div class="gwm-menu-card">
+            <?php if ($missingSlug): ?>
+                <div class="alert alert-warning gwm-alert" role="alert">
+                    Topic not found. Please choose a page from the list below.
+                </div>
+            <?php endif; ?>
+            <?php if (empty($nav)): ?>
+                <div class="gwm-empty">
+                    <h2 class="gwm-empty-title">Grow with MW</h2>
+                    <p class="gwm-empty-text">Documentation has not been published yet. Check back soon.</p>
+                </div>
+            <?php else: ?>
+                <div class="gwm-search-wrap">
+                    <input type="search" id="gwmSearchInput" class="gwm-search-input" placeholder="Type to search" autocomplete="off" aria-label="Search Grow with MW topics" aria-controls="gwmSearchResults gwmMenuList">
+                    <button type="button" class="gwm-search-clear" id="gwmSearchClear" aria-label="Clear search" hidden>&times;</button>
+                </div>
+                <div class="gwm-search-results" id="gwmSearchResults" hidden aria-live="polite"></div>
+                <ul class="gwm-menu-list" id="gwmMenuList" role="list">
+                    <?php foreach ($nav as $sec): ?>
+                        <?php
+                        $secSearch = strtolower($sec['title'] . ' ' . implode(' ', array_column($sec['pages'], 'title')) . ' ' . implode(' ', array_column($sec['pages'], 'slug')));
+                        ?>
+                        <li class="gwm-menu-section" data-gwm-section-search="<?php echo htmlspecialchars($secSearch, ENT_QUOTES, 'UTF-8'); ?>">
+                            <span class="gwm-section-title">
+                                <?php echo htmlspecialchars($sec['title']); ?>
+                            </span>
+                            <?php if (!empty($sec['pages'])): ?>
+                                <ul class="gwm-page-list" role="list">
+                                    <?php foreach ($sec['pages'] as $p): ?>
+                                        <?php
+                                        $pageSearch = strtolower($sec['title'] . ' ' . $p['title'] . ' ' . $p['slug']);
+                                        ?>
+                                        <li class="gwm-page-item" data-gwm-page-search="<?php echo htmlspecialchars($pageSearch, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <a class="gwm-page-link" href="<?php echo htmlspecialchars($pageHref($p['slug'])); ?>">
+                                                <?php echo htmlspecialchars($p['title']); ?>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php if ($showContent): ?>
+    <div class="gwm-content-view" id="gwmContentView">
+        <div class="gwm-content-toolbar">
+            <a class="gwm-home-btn" href="<?php echo htmlspecialchars($homeUrl); ?>">
+                <i class="fa fa-home" aria-hidden="true"></i> Home
+            </a>
+        </div>
+        <article class="gwm-article doc-article">
+            <h1 class="doc-page-title gwm-article-title"><?php echo htmlspecialchars((string) $page['title']); ?></h1>
+            <div class="doc-prose mw-content gwm-prose">
+                <?php if (trim(strip_tags($bodyHtml)) !== ''): ?>
+                    <?php echo $bodyHtml; ?>
+                <?php else: ?>
+                    <p class="text-muted mb-0">No content has been added for this page yet.</p>
+                <?php endif; ?>
+            </div>
+            <?php if ($prev || $next): ?>
+            <nav class="doc-pager gwm-pager" aria-label="Adjacent pages">
+                <?php if ($prev): ?>
+                    <a class="doc-pager-link doc-pager-prev" href="<?php echo htmlspecialchars($pageHref($prev['slug'])); ?>">
+                        <span class="doc-pager-label">Previous</span>
+                        <span class="doc-pager-title"><?php echo htmlspecialchars($prev['title']); ?></span>
+                    </a>
+                <?php else: ?>
+                    <span class="doc-pager-link doc-pager-prev is-disabled"><span class="doc-pager-label">Previous</span></span>
+                <?php endif; ?>
+                <?php if ($next): ?>
+                    <a class="doc-pager-link doc-pager-next" href="<?php echo htmlspecialchars($pageHref($next['slug'])); ?>">
+                        <span class="doc-pager-label">Next</span>
+                        <span class="doc-pager-title"><?php echo htmlspecialchars($next['title']); ?></span>
+                    </a>
+                <?php else: ?>
+                    <span class="doc-pager-link doc-pager-next is-disabled"><span class="doc-pager-label">Next</span></span>
+                <?php endif; ?>
+            </nav>
+            <?php endif; ?>
+        </article>
+    </div>
+    <?php endif; ?>
+</div>
+<script>
+window.__GWM_SEARCH__ = <?php echo json_encode($searchIndex, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+</script>
+<script src="<?php echo htmlspecialchars($assetPrefix); ?>gwm-hub.js" defer></script>
+    <?php
+}
+
+/**
+ * @deprecated Use doc_render_grow_with_mw_hub() for Grow with MW user portal.
+ */
+function doc_render_embedded_panel(array $ctx): void
+{
+    doc_render_grow_with_mw_hub($ctx);
+}

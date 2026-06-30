@@ -3,6 +3,23 @@
 
 require_once(__DIR__ . '/../app/config/database.php');
 
+if (!function_exists('teams_ensure_user_location_columns')) {
+    function teams_ensure_user_location_columns($connect) {
+        $columns = [
+            'district' => "VARCHAR(100) DEFAULT ''",
+            'state'    => "VARCHAR(100) DEFAULT ''",
+        ];
+        foreach ($columns as $col => $def) {
+            $check = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE '" . mysqli_real_escape_string($connect, $col) . "'");
+            if (!$check || mysqli_num_rows($check) === 0) {
+                @mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN $col $def");
+            }
+        }
+    }
+}
+
+teams_ensure_user_location_columns($connect);
+
 if (!isset($_SESSION['admin_email'])) {
     header('Location: login.php');
     exit;
@@ -342,6 +359,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $memberName = trim($_POST['member_name'] ?? '');
         $memberEmail = strtolower(trim($_POST['member_email'] ?? ''));
         $memberPhone = trim($_POST['member_phone'] ?? '');
+        $memberDistrict = trim($_POST['member_district'] ?? '');
+        $memberState = trim($_POST['member_state'] ?? '');
         $memberPassword = trim($_POST['member_password'] ?? '');
 
         if ($memberName === '') {
@@ -401,9 +420,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $passwordHash  = mw_hash_password($memberPassword);
 
             // Insert into user_details table with role='TEAM'
-            $insertStmt = $connect->prepare('INSERT INTO user_details (role, email, phone, name, password, password_hash, status) VALUES ("TEAM", ?, ?, ?, ?, ?, "ACTIVE")');
+            $insertStmt = $connect->prepare('INSERT INTO user_details (role, email, phone, name, district, state, password, password_hash, status) VALUES ("TEAM", ?, ?, ?, ?, ?, ?, ?, "ACTIVE")');
             if ($insertStmt) {
-                $insertStmt->bind_param('sssss', $memberEmail, $memberPhone, $memberName, $passwordHash, $passwordHash);
+                $insertStmt->bind_param('sssssss', $memberEmail, $memberPhone, $memberName, $memberDistrict, $memberState, $passwordHash, $passwordHash);
                 if ($insertStmt->execute()) {
                         $successMessage = 'Team member added successfully.';
 
@@ -419,6 +438,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->close();
             } else {
                 $errors[] = 'Failed to prepare insert statement: ' . $connect->error;
+            }
+        }
+    } elseif ($action === 'edit_member') {
+        $memberId = (int)($_POST['member_id'] ?? 0);
+        $memberName = trim($_POST['member_name'] ?? '');
+        $memberEmail = strtolower(trim($_POST['member_email'] ?? ''));
+        $memberPhone = trim($_POST['member_phone'] ?? '');
+        $memberDistrict = trim($_POST['member_district'] ?? '');
+        $memberState = trim($_POST['member_state'] ?? '');
+
+        if ($memberId <= 0) {
+            $errors[] = 'Invalid team member selected.';
+        }
+        if ($memberName === '') {
+            $errors[] = 'Member name is required.';
+        }
+        if ($memberEmail === '' || !filter_var($memberEmail, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'A valid member email address is required.';
+        }
+
+        if (empty($errors)) {
+            $safeEmail = mysqli_real_escape_string($connect, $memberEmail);
+            $email_check = mysqli_query($connect, "SELECT id, role FROM user_details WHERE email='$safeEmail' AND id != $memberId LIMIT 1");
+            if ($email_check && mysqli_num_rows($email_check) > 0) {
+                $email_data = mysqli_fetch_array($email_check);
+                $source = ucfirst(strtolower($email_data['role'] ?? 'user'));
+                $errors[] = "This email address is already registered as a $source. Please use a different email.";
+            }
+        }
+
+        if (empty($errors) && $memberPhone !== '') {
+            $safePhone = mysqli_real_escape_string($connect, $memberPhone);
+            $mobile_check = mysqli_query($connect, "SELECT id, role FROM user_details WHERE phone='$safePhone' AND id != $memberId LIMIT 1");
+            if ($mobile_check && mysqli_num_rows($mobile_check) > 0) {
+                $mobile_data = mysqli_fetch_array($mobile_check);
+                $source = ucfirst(strtolower($mobile_data['role'] ?? 'user'));
+                $errors[] = "This mobile number is already registered as a $source. Please use a different mobile number.";
+            }
+        }
+
+        if (empty($errors)) {
+            $updateStmt = $connect->prepare('UPDATE user_details SET name = ?, email = ?, phone = ?, district = ?, state = ?, updated_at = NOW() WHERE id = ? AND role = "TEAM"');
+            if ($updateStmt) {
+                $updateStmt->bind_param('sssssi', $memberName, $memberEmail, $memberPhone, $memberDistrict, $memberState, $memberId);
+                if ($updateStmt->execute()) {
+                    $successMessage = 'Team member updated successfully.';
+                } else {
+                    $errors[] = 'Failed to update team member: ' . $updateStmt->error;
+                }
+                $updateStmt->close();
+            } else {
+                $errors[] = 'Failed to prepare update statement: ' . $connect->error;
             }
         }
     } elseif ($action === 'toggle_status') {
@@ -469,7 +540,7 @@ $teamMembers = [];
 $teamStats   = [];
 if (empty($tableError)) {
     // Load team members from user_details
-    $membersSql = 'SELECT id, legacy_team_id, name AS member_name, email AS member_email, phone AS member_phone, status, created_at FROM user_details WHERE role="TEAM" ORDER BY created_at DESC';
+    $membersSql = 'SELECT id, legacy_team_id, name AS member_name, email AS member_email, phone AS member_phone, district AS member_district, state AS member_state, status, created_at FROM user_details WHERE role="TEAM" ORDER BY created_at DESC';
     $membersResult = $connect->query($membersSql);
     if ($membersResult) {
         while ($row = $membersResult->fetch_assoc()) {
@@ -682,19 +753,27 @@ if (empty($tableError) && !empty($teamMembers)) {
         <div class="card-body">
             <form method="post" class="row g-3">
                 <input type="hidden" name="action" value="create_member">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="member_name" class="form-label">Member Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="member_name" name="member_name" placeholder="Enter member name" required>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="member_email" class="form-label">Member Email <span class="text-danger">*</span></label>
                     <input type="email" class="form-control" id="member_email" name="member_email" placeholder="name@example.com" required>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label for="member_district" class="form-label">District</label>
+                    <input type="text" class="form-control" id="member_district" name="member_district" placeholder="Enter district">
+                </div>
+                <div class="col-md-3">
+                    <label for="member_state" class="form-label">State</label>
+                    <input type="text" class="form-control" id="member_state" name="member_state" placeholder="Enter state">
+                </div>
+                <div class="col-md-3">
                     <label for="member_phone" class="form-label">Mobile Number</label>
                     <input type="text" class="form-control" id="member_phone" name="member_phone" placeholder="Optional mobile number">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="member_password" class="form-label">Password <span class="text-danger">*</span></label>
                     <div class="password-toggle-wrap">
                         <input type="password" class="form-control" id="member_password" name="member_password" placeholder="Minimum 6 characters" required>
@@ -703,7 +782,7 @@ if (empty($tableError) && !empty($teamMembers)) {
                         </button>
                     </div>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
+                <div class="col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary">Create Team Member</button>
                 </div>
             </form>
@@ -729,6 +808,8 @@ if (empty($tableError) && !empty($teamMembers)) {
                                 <th scope="col">Referral Details</th>
                                 <th scope="col">Customer Tracker</th>
                                 <th scope="col">Email</th>
+                                <th scope="col">District</th>
+                                <th scope="col">State</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Last Login</th>
                                 <th scope="col">Created</th>
@@ -818,6 +899,12 @@ if (empty($tableError) && !empty($teamMembers)) {
                                     
                                     <!-- Email -->
                                     <td><?php echo htmlspecialchars($member['member_email']); ?></td>
+
+                                    <!-- District -->
+                                    <td><?php echo ($member['member_district'] ?? '') !== '' ? htmlspecialchars($member['member_district']) : '—'; ?></td>
+
+                                    <!-- State -->
+                                    <td><?php echo ($member['member_state'] ?? '') !== '' ? htmlspecialchars($member['member_state']) : '—'; ?></td>
                                     
                                     <!-- Status -->
                                     <td>
@@ -835,6 +922,9 @@ if (empty($tableError) && !empty($teamMembers)) {
                                     <td><?php echo htmlspecialchars(date('d M Y', strtotime($member['created_at']))); ?></td>
                                     <td class="text-end">
                                         <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editMemberModal<?php echo (int)$member['id']; ?>">
+                                                Edit
+                                            </button>
                                             <form method="post" class="d-inline">
                                                 <input type="hidden" name="action" value="toggle_status">
                                                 <input type="hidden" name="member_id" value="<?php echo (int)$member['id']; ?>">
@@ -846,6 +936,49 @@ if (empty($tableError) && !empty($teamMembers)) {
                                             <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#resetPasswordModal<?php echo (int)$member['id']; ?>">
                                                 Reset Password
                                             </button>
+                                        </div>
+
+                                        <div class="modal fade" id="editMemberModal<?php echo (int)$member['id']; ?>" tabindex="-1" aria-labelledby="editMemberLabel<?php echo (int)$member['id']; ?>" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <div class="modal-content">
+                                                    <form method="post">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="editMemberLabel<?php echo (int)$member['id']; ?>">Edit Team Member</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <input type="hidden" name="action" value="edit_member">
+                                                            <input type="hidden" name="member_id" value="<?php echo (int)$member['id']; ?>">
+                                                            <div class="row g-3">
+                                                                <div class="col-md-6">
+                                                                    <label for="edit_name_<?php echo (int)$member['id']; ?>" class="form-label">Member Name <span class="text-danger">*</span></label>
+                                                                    <input type="text" class="form-control" id="edit_name_<?php echo (int)$member['id']; ?>" name="member_name" value="<?php echo htmlspecialchars($member['member_name']); ?>" required>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label for="edit_email_<?php echo (int)$member['id']; ?>" class="form-label">Member Email <span class="text-danger">*</span></label>
+                                                                    <input type="email" class="form-control" id="edit_email_<?php echo (int)$member['id']; ?>" name="member_email" value="<?php echo htmlspecialchars($member['member_email']); ?>" required>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label for="edit_district_<?php echo (int)$member['id']; ?>" class="form-label">District</label>
+                                                                    <input type="text" class="form-control" id="edit_district_<?php echo (int)$member['id']; ?>" name="member_district" value="<?php echo htmlspecialchars($member['member_district'] ?? ''); ?>" placeholder="Enter district">
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label for="edit_state_<?php echo (int)$member['id']; ?>" class="form-label">State</label>
+                                                                    <input type="text" class="form-control" id="edit_state_<?php echo (int)$member['id']; ?>" name="member_state" value="<?php echo htmlspecialchars($member['member_state'] ?? ''); ?>" placeholder="Enter state">
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label for="edit_phone_<?php echo (int)$member['id']; ?>" class="form-label">Mobile Number</label>
+                                                                    <input type="text" class="form-control" id="edit_phone_<?php echo (int)$member['id']; ?>" name="member_phone" value="<?php echo htmlspecialchars($member['member_phone'] ?? ''); ?>" placeholder="Mobile number">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div class="modal fade" id="resetPasswordModal<?php echo (int)$member['id']; ?>" tabindex="-1" aria-labelledby="resetPasswordLabel<?php echo (int)$member['id']; ?>" aria-hidden="true">

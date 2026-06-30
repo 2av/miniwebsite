@@ -53,6 +53,22 @@ function doc_public_prefix(): string
 }
 
 /**
+ * URL prefix for Grow with MW user portal documentation (trailing slash).
+ */
+function doc_grow_with_mw_prefix(): string
+{
+    return doc_web_root() . '/user/grow-with-mw/';
+}
+
+/**
+ * Public URL to a documentation page inside Grow with MW.
+ */
+function doc_grow_with_mw_page_url(string $slug): string
+{
+    return rtrim(doc_grow_with_mw_prefix(), '/') . '/' . rawurlencode($slug);
+}
+
+/**
  * URL to an uploaded documentation asset (leading slash).
  */
 function doc_upload_url(string $relativePath): string
@@ -336,6 +352,48 @@ function doc_search_index(mysqli $db, bool $publishedOnly): array
             'slug' => (string) $row['slug'],
             'section' => (string) $row['section_title'],
             'status' => (string) $row['status'],
+        ];
+    }
+    $res->free();
+    return $out;
+}
+
+/**
+ * Search index for Grow with MW hub (title, section, slug, excerpt).
+ *
+ * @return list<array{title:string,slug:string,section:string,excerpt:string,url:string}>
+ */
+function doc_grow_with_mw_search_index(mysqli $db, string $page_base_url = ''): array
+{
+    $base = rtrim($page_base_url !== '' ? $page_base_url : doc_grow_with_mw_prefix(), '/') . '/';
+    $sql = "SELECT p.title, p.slug, p.content_html, p.meta_description, s.title AS section_title
+            FROM doc_pages p
+            INNER JOIN doc_sections s ON s.id = p.section_id
+            WHERE p.status = 'published'
+            ORDER BY s.sort_order ASC, s.id ASC, p.sort_order ASC, p.id ASC";
+    $out = [];
+    if (!($res = $db->query($sql))) {
+        return $out;
+    }
+    while ($row = $res->fetch_assoc()) {
+        $meta = trim(strip_tags((string) ($row['meta_description'] ?? '')));
+        $plain = trim(preg_replace('/\s+/u', ' ', strip_tags((string) ($row['content_html'] ?? ''))) ?? '');
+        $excerpt = $meta !== '' ? $meta : $plain;
+        if (function_exists('mb_substr')) {
+            $excerpt = mb_substr($excerpt, 0, 160);
+        } else {
+            $excerpt = substr($excerpt, 0, 160);
+        }
+        if ($plain !== '' && strlen($plain) > strlen($excerpt)) {
+            $excerpt = rtrim($excerpt) . '…';
+        }
+        $slug = (string) $row['slug'];
+        $out[] = [
+            'title' => (string) $row['title'],
+            'slug' => $slug,
+            'section' => (string) $row['section_title'],
+            'excerpt' => $excerpt,
+            'url' => $base . rawurlencode($slug),
         ];
     }
     $res->free();

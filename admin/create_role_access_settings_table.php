@@ -158,8 +158,8 @@ if ($settings_count === 0) {
             'complimentary_website' => ['na' => true,  'value' => ''],
             'collaboration'         => ['na' => true,  'value' => ''],
             'kit_management'        => ['na' => true,  'value' => ''],
-            'grow_with_mw'          => ['na' => false, 'value' => 'YES'],
-            'customer_manager'      => ['na' => false, 'value' => 'Yes (For MW user) tracker'],
+            'grow_with_mw'          => ['na' => false, 'value' => 'YES (Paid MW users only)'],
+            'customer_manager'      => ['na' => false, 'value' => 'Yes (Paid MW users only) tracker'],
             'id_card'               => ['na' => true,  'value' => ''],
             'mw_plan_visible'       => ['na' => false, 'value' => '1, 2 & 3 year plan'],
             'mw_payment_agreements' => ['na' => false, 'value' => "MW_Terms,Conditions & Refund Policy.docx\nMW_Privacy Policy.docx"],
@@ -295,6 +295,33 @@ if (ras_table_exists($connect, 'role_access_features')) {
 }
 if ($mw_btn_moved) {
     ras_msg('success', 'Moved "Create your MW Button" into Dashboard & Access section.');
+}
+
+// --- Paid-only rule text for MW User profile (idempotent update) ---
+if (ras_table_exists($connect, 'role_access_settings')) {
+    $paid_rule_updates = [
+        'mw_user' => [
+            'grow_with_mw' => 'YES (Paid MW users only)',
+            'customer_manager' => 'Yes (Paid MW users only) tracker',
+        ],
+    ];
+    foreach ($paid_rule_updates as $profile_key => $features) {
+        foreach ($features as $feature_key => $new_value) {
+            $pk = mysqli_real_escape_string($connect, $profile_key);
+            $fk = mysqli_real_escape_string($connect, $feature_key);
+            $nv = mysqli_real_escape_string($connect, $new_value);
+            mysqli_query($connect,
+                "UPDATE role_access_settings s
+                 INNER JOIN role_access_profiles p ON p.id = s.profile_id
+                 INNER JOIN role_access_features f ON f.id = s.feature_id
+                 SET s.setting_value = '$nv'
+                 WHERE p.profile_key = '$pk'
+                   AND f.feature_key = '$fk'
+                   AND s.is_not_applicable = 0"
+            );
+        }
+    }
+    ras_msg('info', 'Updated MW User Grow with MW / Customer Manager rules to paid-users-only text.');
 }
 
 ras_msg('success', 'Setup complete. Open admin/manage_role_access_settings.php to manage settings.');

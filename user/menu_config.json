@@ -41,12 +41,28 @@
       "always_visible": true
     },
     {
+      "id": "grow_with_mw",
+      "label": "Grow with MW",
+      "icon": "line-chart",
+      "url": "/grow-with-mw",
+      "roles": ["CUSTOMER"],
+      "role_access_feature": "grow_with_mw",
+      "role_access_type": "yes_no",
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": false,
+          "mw_paid": true
+        }
+      }
+    },
+    {
       "id": "franchisee_kit",
       "label": "Creator Kit",
       "icon": "briefcase",
       "url": "/kit",
       "roles": ["FRANCHISEE"],
-      "always_visible": true
+      "role_access_feature": "kit_management",
+      "role_access_type": "text"
     },
     {
       "id": "referral_customer",
@@ -74,7 +90,8 @@
       "icon": "users",
       "url": "/customer-manager",
       "roles": ["TEAM", "FRANCHISEE"],
-      "always_visible": true
+      "role_access_feature": "customer_manager",
+      "role_access_type": "text"
     },
     {
       "id": "customer_tracker_collaboration",
@@ -82,9 +99,12 @@
       "icon": "users",
       "url": "/customer-manager",
       "roles": ["CUSTOMER"],
+      "role_access_feature": "customer_manager",
+      "role_access_type": "text",
       "conditions": {
         "CUSTOMER": {
-          "collaboration_enabled": true
+          "collaboration_enabled": true,
+          "mw_paid": true
         }
       }
     },
@@ -94,9 +114,12 @@
       "icon": "users",
       "url": "/customer-manager",
       "roles": ["CUSTOMER"],
+      "role_access_feature": "customer_manager",
+      "role_access_type": "text",
       "conditions": {
         "CUSTOMER": {
-          "collaboration_enabled": false
+          "collaboration_enabled": false,
+          "mw_paid": true
         }
       }
     },
@@ -118,7 +141,8 @@
       "icon": "folder-open",
       "url": "/kit",
       "roles": ["TEAM"],
-      "always_visible": true
+      "role_access_feature": "kit_management",
+      "role_access_type": "text"
     },
     {
       "id": "franchisee_sales_kit_team",
@@ -126,7 +150,8 @@
       "icon": "suitcase",
       "url": "/kit?kit=franchise_sales",
       "roles": ["TEAM"],
-      "always_visible": true
+      "role_access_feature": "kit_management",
+      "role_access_type": "text"
     },
     {
       "id": "sales_kit_customer",
@@ -134,9 +159,12 @@
       "icon": "folder-open",
       "url": "/kit",
       "roles": ["CUSTOMER"],
+      "role_access_feature": "kit_management",
+      "role_access_type": "text",
       "conditions": {
         "CUSTOMER": {
-          "saleskit_enabled": true
+          "saleskit_enabled": true,
+          "collaboration_enabled": false
         }
       }
     },
@@ -145,8 +173,24 @@
       "label": "ID Card",
       "icon": "vcard",
       "url": "/idcard",
-      "roles": ["TEAM"],
-      "always_visible": true
+      "roles": ["TEAM", "FRANCHISEE"],
+      "role_access_feature": "id_card",
+      "role_access_type": "yes_no"
+    },
+    {
+      "id": "idcard_customer",
+      "label": "ID Card",
+      "icon": "vcard",
+      "url": "/idcard",
+      "roles": ["CUSTOMER"],
+      "role_access_feature": "id_card",
+      "role_access_type": "yes_no",
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": true,
+          "influencer": false
+        }
+      }
     },
     {
       "id": "marketing_kit",
@@ -154,6 +198,8 @@
       "icon": "bullhorn",
       "url": "/kit",
       "roles": ["CUSTOMER"],
+      "role_access_feature": "kit_management",
+      "role_access_type": "text",
       "conditions": {
         "CUSTOMER": {
           "collaboration_enabled": true

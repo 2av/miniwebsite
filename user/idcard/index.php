@@ -1,11 +1,19 @@
-<?php 
-// ID Card Generator for TEAM members (copied from old/team/idcard/index.php and adapted)
-
+<?php
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
+require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
+require_once(__DIR__ . '/../../app/helpers/access_control.php');
 
-// Require TEAM role
-require_role('TEAM', '/login/team.php');
+require_login('/login/customer.php');
+
+$ras = get_current_user_role_access_settings($connect);
+$profile_key = $ras['profile_key'] ?? null;
+$can_use_id_card = is_role_access_feature_enabled($connect, $profile_key, 'id_card');
+if (!$can_use_id_card) {
+    header('Location: ../dashboard/');
+    exit;
+}
+require_page_access('/idcard');
 
 // Handle AJAX image processing FIRST - before any other output
 if(isset($_POST['process_profile_picture_ajax']) && !empty($_FILES['profile_picture']['tmp_name'])){

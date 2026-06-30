@@ -7,6 +7,7 @@ ini_set('display_startup_errors', 0);
 // Include centralized configs
 require_once(__DIR__ . '/../app/config/database.php');
 require_once(__DIR__ . '/../app/config/payment.php');
+require_once(__DIR__ . '/../app/helpers/role_access_helper.php');
 
 // Include coupon functions
 require_once(__DIR__ . '/../admin/coupon_functions.php');
@@ -117,6 +118,8 @@ $api = new Api($keyId, $keySecret);
 
 $is_referred_by_team = false;
 $use_team_500_pricing = false;
+$is_mw_customer_payment = false;
+$mw_payment_back_url = '../user/dashboard';
 
 // Check if this is a customer payment (with id parameter)
 if (isset($_GET['id']) && !empty($_GET['id'])) {
@@ -264,6 +267,8 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         $_SESSION['final_total'] = $final_amount;
         $_SESSION['is_interstate'] = $is_interstate;
         $_SESSION['original_amount'] = $original_amount;
+        $is_mw_customer_payment = true;
+        $mw_payment_back_url = '../user/dashboard';
     } else {
         echo '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ffcccc; margin: 20px; border-radius: 5px; font-family: Arial, sans-serif; text-align: center;">
             <h2>Error</h2>
@@ -272,6 +277,171 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         </div>';
         exit;
     }
+} elseif (isset($_GET['new_mw']) && $_GET['new_mw'] === '1') {
+    $_SESSION['miniwebsite_team_plan_eligible'] = false;
+
+    if (empty($_SESSION['user_email']) || empty($_SESSION['pending_mw_create']) || empty($_SESSION['pending_mw_comp_name'])) {
+        echo '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ffcccc; margin: 20px; border-radius: 5px; font-family: Arial, sans-serif; text-align: center;">
+            <h2>Session Expired</h2>
+            <p>Please enter your business details again to continue with payment.</p>
+            <p><a href="../user/website/business-name.php?new=1" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin-top: 15px;">Back to Business Name</a></p>
+        </div>';
+        exit;
+    }
+
+    if (($_SESSION['pending_mw_user_email'] ?? '') !== $_SESSION['user_email']) {
+        echo '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ffcccc; margin: 20px; border-radius: 5px; font-family: Arial, sans-serif; text-align: center;">
+            <h2>Unauthorized</h2>
+            <p>This payment session does not belong to your account.</p>
+            <p><a href="../user/dashboard" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin-top: 15px;">Go to Dashboard</a></p>
+        </div>';
+        exit;
+    }
+
+    $pending_user_email = $_SESSION['pending_mw_user_email'];
+    $pending_user_esc = mysqli_real_escape_string($connect, $pending_user_email);
+    $existing_mw_q = mysqli_query($connect, 'SELECT COUNT(*) AS cnt FROM digi_card WHERE user_email="' . $pending_user_esc . '"');
+    $existing_mw_count = 0;
+    if ($existing_mw_q && ($existing_mw_row = mysqli_fetch_assoc($existing_mw_q))) {
+        $existing_mw_count = (int) ($existing_mw_row['cnt'] ?? 0);
+    }
+    if ($existing_mw_count < 1) {
+        header('Location: ../user/website/business-name.php?new=1');
+        exit;
+    }
+
+    $comp_name_esc = mysqli_real_escape_string($connect, (string) $_SESSION['pending_mw_comp_name']);
+    $slug_esc = mysqli_real_escape_string($connect, (string) ($_SESSION['pending_mw_card_slug'] ?? ''));
+    $name_taken = mysqli_query($connect, 'SELECT id FROM digi_card WHERE d_comp_name="' . $comp_name_esc . '" LIMIT 1');
+    $slug_taken = $slug_esc !== '' ? mysqli_query($connect, 'SELECT id FROM digi_card WHERE card_id="' . $slug_esc . '" LIMIT 1') : false;
+    $slug_prev = $slug_esc !== '' ? mysqli_query($connect, 'SELECT digi_card_id FROM digi_card_previous_slug WHERE previous_slug="' . $slug_esc . '" LIMIT 1') : false;
+    if (($name_taken && mysqli_num_rows($name_taken) > 0)
+        || ($slug_taken && mysqli_num_rows($slug_taken) > 0)
+        || ($slug_prev && mysqli_num_rows($slug_prev) > 0)) {
+        unset(
+            $_SESSION['pending_mw_create'],
+            $_SESSION['pending_mw_comp_name'],
+            $_SESSION['pending_mw_display_name'],
+            $_SESSION['pending_mw_card_slug'],
+            $_SESSION['pending_mw_f_user_email'],
+            $_SESSION['pending_mw_user_email']
+        );
+        echo '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ffcccc; margin: 20px; border-radius: 5px; font-family: Arial, sans-serif; text-align: center;">
+            <h2>Business URL Unavailable</h2>
+            <p>This business name or URL was taken while you were checking out. Please choose a different one.</p>
+            <p><a href="../user/website/business-name.php?new=1" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin-top: 15px;">Back to Business Name</a></p>
+        </div>';
+        exit;
+    }
+
+    $user_email_lower = strtolower(trim($pending_user_email));
+    $customer_query = mysqli_query($connect, "SELECT phone as user_contact, referred_by, name FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
+    $contactno = '';
+    $referred_by = '';
+    $customer_name = $_SESSION['user_name'] ?? '';
+    if ($customer_query && mysqli_num_rows($customer_query) > 0) {
+        $customer_row = mysqli_fetch_array($customer_query);
+        $contactno = $customer_row['user_contact'] ?? '';
+        $referred_by = $customer_row['referred_by'] ?? '';
+        if (!empty($customer_row['name'])) {
+            $customer_name = $customer_row['name'];
+        }
+        if (!empty($referred_by)) {
+            $rb_esc = mysqli_real_escape_string($connect, $referred_by);
+            $referrer_query = mysqli_query($connect, "SELECT role FROM user_details WHERE email='$rb_esc' LIMIT 1");
+            if ($referrer_query && mysqli_num_rows($referrer_query) > 0) {
+                $referrer_row = mysqli_fetch_array($referrer_query);
+                if (($referrer_row['role'] ?? '') === 'TEAM') {
+                    $is_referred_by_team = true;
+                }
+            }
+        }
+    }
+
+    $is_team_source = isset($_GET['source']) && $_GET['source'] === 'team';
+    $use_team_500_pricing = $is_team_source || $is_referred_by_team;
+    $_SESSION['miniwebsite_team_plan_eligible'] = $use_team_500_pricing;
+    $is_direct_customer = empty(trim((string) $referred_by));
+
+    if (!empty($_SESSION['auto_applied_promo']) && ($use_team_500_pricing || $is_direct_customer)) {
+        unset($_SESSION['promo_code'], $_SESSION['promo_discount'], $_SESSION['auto_applied_promo']);
+        $promo_applied = false;
+        $promo_discount = 0;
+        $is_auto_applied = false;
+        $promo_message = '';
+    }
+
+    if ($pending_user_email === 'ajeetcreative93@gmail.com' || $pending_user_email === 'akhilesh@yopmail.com') {
+        $original_amount = 3;
+    } elseif ($use_team_500_pricing) {
+        $original_amount = 500;
+    } else {
+        $original_amount = 847;
+    }
+
+    $_SESSION['reference_number'] = rand(100, 9000) . date('dhsi');
+    $_SESSION['user_name'] = $customer_name;
+    $_SESSION['user_email'] = $pending_user_email;
+    $_SESSION['user_contact'] = $contactno;
+    unset($_SESSION['card_id'], $_SESSION['payment_card_id']);
+    $_SESSION['service_type'] = 'card_payment_new_mw';
+    $_SESSION['payment_user_email'] = $pending_user_email;
+
+    $is_referral_customer = !empty($referred_by);
+    if ($is_referral_customer && !$is_referred_by_team && !$promo_applied && !$is_team_source) {
+        $auto_promo_code = 'DMW001';
+        $validation = validateCoupon($auto_promo_code, $connect, 'card_payment');
+        if ($validation['valid']) {
+            $auto_discount = getCouponDiscount($original_amount, $validation['deal']);
+            if ($auto_discount > 0 && $auto_discount <= $original_amount) {
+                $_SESSION['promo_code'] = $auto_promo_code;
+                $_SESSION['promo_discount'] = $auto_discount;
+                $_SESSION['auto_applied_promo'] = true;
+                $promo_applied = true;
+                $promo_discount = $auto_discount;
+                $is_auto_applied = true;
+                $promo_message = '<div class="promo-success">Referral promocode ' . $auto_promo_code . ' applied automatically! Discount: ₹' . $auto_discount . '</div>';
+                applyCoupon($auto_promo_code, $connect, 'card_payment');
+            }
+        }
+    }
+
+    $discount_amount = $promo_applied ? $promo_discount : 0;
+    $subtotal = $original_amount - $discount_amount;
+    $gst_number = isset($_SESSION['billing_gst_number']) ? $_SESSION['billing_gst_number'] : '';
+    $billing_state = isset($_SESSION['billing_gst_state']) ? $_SESSION['billing_gst_state'] : '';
+    $company_state_code = '06';
+    $is_interstate = false;
+
+    if (!empty($gst_number) && strlen($gst_number) == 15 && preg_match('/^\d{2}[A-Z0-9]{13}$/', $gst_number)) {
+        $customer_state_code = substr($gst_number, 0, 2);
+        $is_interstate = ($customer_state_code !== $company_state_code);
+    } elseif (!empty($billing_state)) {
+        $billing_state_lower = strtolower(trim($billing_state));
+        $is_interstate = !in_array($billing_state_lower, ['haryana', 'hariyana']);
+    }
+
+    if ($is_interstate) {
+        $igst_amount = round($subtotal * 0.18, 2);
+        $cgst_amount = 0;
+        $sgst_amount = 0;
+    } else {
+        $cgst_amount = round($subtotal * 0.09, 2);
+        $sgst_amount = round($subtotal * 0.09, 2);
+        $igst_amount = 0;
+    }
+
+    $final_amount = $subtotal + $cgst_amount + $sgst_amount + $igst_amount;
+    $_SESSION['amount'] = $final_amount;
+    $_SESSION['subtotal_amount'] = $subtotal;
+    $_SESSION['cgst_amount'] = $cgst_amount;
+    $_SESSION['sgst_amount'] = $sgst_amount;
+    $_SESSION['igst_amount'] = $igst_amount;
+    $_SESSION['final_total'] = $final_amount;
+    $_SESSION['is_interstate'] = $is_interstate;
+    $_SESSION['original_amount'] = $original_amount;
+    $is_mw_customer_payment = true;
+    $mw_payment_back_url = '../user/website/business-name.php?new=1';
 } else {
     // Franchise registration payment flow
     // Process form data if coming from franchise_agreement.php
@@ -360,15 +530,47 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
     }
 }
 
+// MW payment: plans + agreement links per role access profile
+$mw_role_profile_key = null;
+$allowed_mw_plans = ['plan_1year', 'plan_2year', 'plan_3year'];
+$mw_default_plan = 'plan_1year';
+$mw_agreement_label_html = '';
+$franchise_agreement_label_html = '';
+if ($is_mw_customer_payment) {
+    $payment_user_email = $_SESSION['user_email'] ?? '';
+    $mw_role_profile_key = resolve_role_access_profile_for_email($connect, $payment_user_email);
+    if (!$mw_role_profile_key) {
+        $ras_pay = get_current_user_role_access_settings($connect);
+        $mw_role_profile_key = $ras_pay['profile_key'] ?? null;
+    }
+    $plan_setting = get_role_access_feature_value($connect, $mw_role_profile_key, 'mw_plan_visible');
+    $allowed_mw_plans = parse_mw_plans_from_setting($plan_setting, $use_team_500_pricing);
+    if (empty($allowed_mw_plans)) {
+        $allowed_mw_plans = $use_team_500_pricing ? ['plan_team500', 'plan_1year'] : ['plan_1year'];
+    }
+    $mw_default_plan = mw_default_checked_plan($allowed_mw_plans);
+    $_SESSION['allowed_mw_plans'] = $allowed_mw_plans;
+    $mw_agreement_links = get_role_access_agreement_links($connect, $mw_role_profile_key, 'mw_payment_agreements', '..');
+    $mw_agreement_label_html = render_role_access_agreement_label_html($mw_agreement_links);
+} else {
+    $franchise_profile_key = resolve_role_access_profile_for_email($connect, $_SESSION['user_email'] ?? '');
+    if (!$franchise_profile_key) {
+        $ras_fr_pay = get_current_user_role_access_settings($connect);
+        $franchise_profile_key = $ras_fr_pay['profile_key'] ?? 'fse_team';
+    }
+    $fr_rules = get_franchise_payment_role_rules($connect, $franchise_profile_key);
+    $franchise_agreement_label_html = $fr_rules['agreement_label_html'];
+}
+
 // Only show billing form if payment is not already completed (for customer payments)
 $show_billing_form = true;
-if (isset($_GET['id']) && isset($status) && $status == "Success") {
+if ($is_mw_customer_payment && isset($status) && $status == "Success") {
     $show_billing_form = false;
 }
 
 // Validate required fields
 if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SESSION['user_email'])) {
-    $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.php');
+    $back_url = $is_mw_customer_payment ? $mw_payment_back_url : '../franchise_agreement.php';
     echo '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ffcccc; margin: 20px; border-radius: 5px; font-family: Arial, sans-serif; text-align: center;">
         <h2>Error</h2>
         <p>Required information is missing. Please fill all required fields.</p>
@@ -382,7 +584,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
 <html>
 <head>
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
-    <title><?php echo (isset($_GET['id']) ? 'Customer Payment' : 'Franchise Registration Payment'); ?></title>
+    <title><?php echo ($is_mw_customer_payment ? 'Customer Payment' : 'Franchise Registration Payment'); ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         :root {
@@ -811,7 +1013,7 @@ if (!isset($_SESSION['amount']) || !isset($_SESSION['user_name']) || !isset($_SE
 <body>
 
 <?php
-$back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.php');
+$back_url = $is_mw_customer_payment ? $mw_payment_back_url : '../franchise_agreement.php';
 ?>
 <div class="back-wrap">
     <a href="<?php echo $back_url; ?>" class="back-button">
@@ -875,10 +1077,10 @@ $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.
             <div class="section-divider"><span>CHOOSE YOUR PLAN</span></div>
 
             <div class="plan-list">
-                <?php if (!empty($use_team_500_pricing)): ?>
+                <?php if (!empty($use_team_500_pricing) && in_array('plan_team500', $allowed_mw_plans, true)): ?>
                 <label class="plan-label" id="label_team500">
                     <input type="radio" name="plan_choice" value="plan_team500" id="plan_team500" data-amount="500"
-                           <?php echo isset($_GET['id']) ? 'checked' : ''; ?>>
+                           <?php echo ($mw_default_plan === 'plan_team500') ? 'checked' : ''; ?>>
                     <div class="plan-content">
                         <div class="plan-row">
                             <div>
@@ -889,7 +1091,7 @@ $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.
                         </div>
                     </div>
                 </label>
-                <?php elseif (!isset($_GET['id'])): ?>
+                <?php elseif (!$is_mw_customer_payment): ?>
                 <label class="plan-label" id="label_6month">
                     <input type="radio" name="plan_choice" value="plan_6month" id="plan_6month" data-amount="500" checked>
                     <div class="plan-content">
@@ -904,9 +1106,10 @@ $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.
                 </label>
                 <?php endif; ?>
 
+                <?php if (!$is_mw_customer_payment || in_array('plan_1year', $allowed_mw_plans, true)): ?>
                 <label class="plan-label" id="label_1year">
                     <input type="radio" name="plan_choice" value="plan_1year" id="plan_1year" data-amount="847"
-                           <?php echo (isset($_GET['id']) && empty($use_team_500_pricing)) ? 'checked' : ''; ?>>
+                           <?php echo ($is_mw_customer_payment && $mw_default_plan === 'plan_1year') ? 'checked' : ''; ?>>
                     <div class="plan-content">
                         <div class="plan-row">
                             <div>
@@ -917,9 +1120,12 @@ $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.
                         </div>
                     </div>
                 </label>
+                <?php endif; ?>
 
+                <?php if (!$is_mw_customer_payment || in_array('plan_2year', $allowed_mw_plans, true)): ?>
                 <label class="plan-label" id="label_2year">
-                    <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1500">
+                    <input type="radio" name="plan_choice" value="plan_2year" id="plan_2year" data-amount="1500"
+                           <?php echo ($is_mw_customer_payment && $mw_default_plan === 'plan_2year') ? 'checked' : ''; ?>>
                     <div class="plan-content">
                         <div class="plan-row">
                             <div>
@@ -932,9 +1138,12 @@ $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.
                         </div>
                     </div>
                 </label>
+                <?php endif; ?>
 
+                <?php if (!$is_mw_customer_payment || in_array('plan_3year', $allowed_mw_plans, true)): ?>
                 <label class="plan-label" id="label_3year">
-                    <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2100">
+                    <input type="radio" name="plan_choice" value="plan_3year" id="plan_3year" data-amount="2100"
+                           <?php echo ($is_mw_customer_payment && $mw_default_plan === 'plan_3year') ? 'checked' : ''; ?>>
                     <div class="plan-content">
                         <div class="plan-row">
                             <div>
@@ -946,6 +1155,7 @@ $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.
                         </div>
                     </div>
                 </label>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -1008,10 +1218,21 @@ $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.
         <div class="terms-wrap">
             <input type="checkbox" id="terms_agree" name="terms_agree">
             <label for="terms_agree">
-                I have read and agree to the
-                <a href="../terms_conditions.php" target="_blank">Terms &amp; Conditions</a>,
-                <a href="../terms_conditions.php" target="_blank">Refund Policy</a> and
-                <a href="../privacy_policy.php" target="_blank">Privacy Policy</a>.
+                <?php
+                if ($is_mw_customer_payment) {
+                    if ($mw_agreement_label_html !== '' && strpos($mw_agreement_label_html, '<a ') !== false) {
+                        echo $mw_agreement_label_html;
+                    } else {
+                        echo 'I have read and agree to the <a href="../terms_conditions.php" target="_blank" rel="noopener noreferrer">MW Terms, Conditions &amp; Refund Policy</a> and <a href="../privacy_policy.php" target="_blank" rel="noopener noreferrer">MW Privacy Policy</a>.';
+                    }
+                } else {
+                    if ($franchise_agreement_label_html !== '' && strpos($franchise_agreement_label_html, '<a ') !== false) {
+                        echo $franchise_agreement_label_html;
+                    } else {
+                        echo 'I have read and agree to the <a href="../franchise_agreement.php" target="_blank" rel="noopener noreferrer">MW Franchise Agreement</a>, <a href="../mw-franchisee-operation-policy.php" target="_blank" rel="noopener noreferrer">MW Franchisee Operation Policy</a> and <a href="../privacy_policy.php" target="_blank" rel="noopener noreferrer">MW Privacy Policy</a>.';
+                    }
+                }
+                ?>
             </label>
         </div>
 
@@ -1045,7 +1266,7 @@ try {
         "key" => $keyId,
         "amount" => $orderData['amount'],
         "name" => "KIROVA SOLUTIONS LLP",
-        "description" => (isset($_GET['id']) ? "Mini Website Payment" : "Franchise Registration"),
+        "description" => ($is_mw_customer_payment ? "Mini Website Payment" : "Franchise Registration"),
         "image" => "",
         "prefill" => [
             "name" => $_SESSION['user_name'],
@@ -1487,7 +1708,7 @@ document.addEventListener('DOMContentLoaded', function() {
             payBtn.textContent = 'Processing...';
             
             var formData = new FormData();
-            formData.append('card_id', '<?php echo isset($_GET['id']) ? $_GET['id'] : ''; ?>');
+            formData.append('card_id', '<?php echo isset($_GET['id']) ? htmlspecialchars((string)$_GET['id'], ENT_QUOTES, 'UTF-8') : ''; ?>');
             formData.append('gst_number', document.getElementById('gst_number').value);
             formData.append('gst_name', document.getElementById('gst_name').value);
             formData.append('gst_email', document.getElementById('gst_email').value);
@@ -1572,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             key: "<?php echo $keyId; ?>",
                             amount: Math.round(orderResponse.amount * 100), // Use payment amount from response
                             name: "KIROVA SOLUTIONS LLP",
-                            description: "<?php echo (isset($_GET['id']) ? 'Mini Website Payment' : 'Franchise Registration'); ?>",
+                            description: "<?php echo ($is_mw_customer_payment ? 'Mini Website Payment' : 'Franchise Registration'); ?>",
                             image: "",
                             order_id: orderResponse.order_id,
                             handler: function (response) {
@@ -1673,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php
 } catch (Exception $e) {
-    $back_url = (isset($_GET['id']) ? '../user/dashboard' : '../franchise_agreement.php');
+    $back_url = $is_mw_customer_payment ? $mw_payment_back_url : '../franchise_agreement.php';
     echo '<div style="color: red; padding: 20px; background: #ffeeee; border: 1px solid #ffcccc; margin: 20px; border-radius: 5px;">
         <h2>Payment Error</h2>
         <p>Error creating payment order: ' . htmlspecialchars($e->getMessage()) . '</p>

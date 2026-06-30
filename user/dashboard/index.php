@@ -261,9 +261,21 @@ require_once(__DIR__ . '/../../app/config/database.php');
 // Regular page load - include header and other files
 include __DIR__ . '/../includes/header.php';
 
+require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
+
 // Get current role
 $current_role = get_current_user_role();
 $user_email = get_user_email();
+
+$ras_dash = get_current_user_role_access_settings($connect);
+$show_grow_with_mw = is_role_access_feature_visible_for_user(
+    $connect,
+    $ras_dash['profile_key'] ?? null,
+    'grow_with_mw',
+    'yes_no',
+    $user_email,
+    $current_role
+);
 
 // Clear any applied promocodes when accessing dashboard
 if (isset($_SESSION['promo_code'])) {
@@ -611,6 +623,20 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                     </div>
                                 </a>
                             </div>
+                            <?php if ($show_grow_with_mw): ?>
+                            <div class="card_area top_section">
+                                <a href="../grow-with-mw/">
+                                    <div class="card">
+                                        <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
+                                            <i class="fa-solid fa-line-chart"></i>
+                                        </div>
+                                        <div class="content">
+                                            <p>Grow with<br>MW Document</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 

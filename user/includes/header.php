@@ -6,6 +6,7 @@ require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
 require_once(__DIR__ . '/../../app/helpers/menu_helper.php');
+require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
 
 // Require login for all user pages
 require_login('/login/customer.php');
@@ -39,6 +40,8 @@ if($current_dir == 'dashboard') {
     $page_title = "Website Builder";
 } elseif($current_dir == 'customer-manager' || $current_dir == 'customer-tracker-customer' || $current_dir == 'customer-tracker') {
     $page_title = "Customer Manager";
+} elseif($current_dir == 'grow-with-mw') {
+    $page_title = "Grow with MW";
 } elseif($current_dir == 'profile') {
     $page_title = "Profile";
 }
@@ -65,6 +68,10 @@ if ($current_role == 'CUSTOMER') {
 } elseif ($current_role == 'FRANCHISEE') {
     $user_conditions['is_verified'] = $is_verified;
     $user_conditions['franchise_agreement_paid'] = $franchise_agreement_paid;
+}
+$user_conditions = build_role_access_user_conditions($connect, $current_role, $user_conditions);
+if ($current_role == 'CUSTOMER' && !empty($user_conditions['saleskit_enabled'])) {
+    $saleskit_enabled = true;
 }
 
 // Pre-compute visible menu items once (so dropdown + sidebar stay consistent)

@@ -269,6 +269,239 @@ if ($success === true) {
         }
     }
 
+    // Additional Mini Website: pay first, then create digi_card entry
+    if (($_SESSION['service_type'] ?? '') === 'card_payment_new_mw' && !empty($_SESSION['pending_mw_create'])) {
+        if (!isset($_SESSION['reference_number']) || $_SESSION['reference_number'] === '') {
+            error_log('ERROR: reference_number missing (new mw payment)');
+            die('Payment verification failed: Missing reference number. Please try again.');
+        }
+        if (empty($_SESSION['user_email']) || empty($_SESSION['pending_mw_user_email'])
+            || $_SESSION['user_email'] !== $_SESSION['pending_mw_user_email']) {
+            die('Payment verification failed: Invalid session. Please try again from Business Name page.');
+        }
+
+        $comp_name = mysqli_real_escape_string($connect, (string) ($_SESSION['pending_mw_comp_name'] ?? ''));
+        $display_name = mysqli_real_escape_string($connect, (string) ($_SESSION['pending_mw_display_name'] ?? ''));
+        $card_slug = mysqli_real_escape_string($connect, (string) ($_SESSION['pending_mw_card_slug'] ?? ''));
+        $f_user_email = mysqli_real_escape_string($connect, (string) ($_SESSION['pending_mw_f_user_email'] ?? ''));
+        $user_email_esc = mysqli_real_escape_string($connect, (string) $_SESSION['pending_mw_user_email']);
+
+        if ($comp_name === '' || $display_name === '' || $card_slug === '') {
+            die('Payment verification failed: Missing business details. Please try again from Business Name page.');
+        }
+
+        $existing_mw_q = mysqli_query($connect, 'SELECT COUNT(*) AS cnt FROM digi_card WHERE user_email="' . $user_email_esc . '"');
+        $existing_mw_count = 0;
+        if ($existing_mw_q && ($existing_mw_row = mysqli_fetch_assoc($existing_mw_q))) {
+            $existing_mw_count = (int) ($existing_mw_row['cnt'] ?? 0);
+        }
+        if ($existing_mw_count < 1) {
+            die('Payment verification failed: This payment is only required for additional Mini Websites.');
+        }
+
+        $name_taken = mysqli_query($connect, 'SELECT id FROM digi_card WHERE d_comp_name="' . $comp_name . '" LIMIT 1');
+        $slug_taken = mysqli_query($connect, 'SELECT id FROM digi_card WHERE card_id="' . $card_slug . '" LIMIT 1');
+        $slug_prev = mysqli_query($connect, 'SELECT digi_card_id FROM digi_card_previous_slug WHERE previous_slug="' . $card_slug . '" LIMIT 1');
+        if (($name_taken && mysqli_num_rows($name_taken) > 0)
+            || ($slug_taken && mysqli_num_rows($slug_taken) > 0)
+            || ($slug_prev && mysqli_num_rows($slug_prev) > 0)) {
+            die('Payment verification failed: This business URL is no longer available. Please contact support for a refund.');
+        }
+
+        $amount_paid = isset($_SESSION['final_total']) ? (float) $_SESSION['final_total'] : (float) ($_SESSION['amount'] ?? 0);
+        $amt_esc = mysqli_real_escape_string($connect, (string) $amount_paid);
+        $date_esc = mysqli_real_escape_string($connect, $date);
+
+        $plan_validity = isset($_SESSION['invoice_plan_validity']) ? trim((string) $_SESSION['invoice_plan_validity']) : '1 Year';
+        $validity_sql = "DATE_ADD(NOW(), INTERVAL 1 YEAR)";
+        if (stripos($plan_validity, '6 Month') !== false) {
+            $validity_sql = "DATE_ADD(NOW(), INTERVAL 6 MONTH)";
+        } elseif (stripos($plan_validity, '2 Year') !== false) {
+            $validity_sql = "DATE_ADD(NOW(), INTERVAL 2 YEAR)";
+        } elseif (stripos($plan_validity, '3 Year') !== false) {
+            $validity_sql = "DATE_ADD(NOW(), INTERVAL 3 YEAR)";
+        }
+
+        $insert_card = mysqli_query($connect, 'INSERT INTO digi_card (
+            d_comp_name, d_display_name, uploaded_date, d_payment_status, d_payment_date,
+            d_payment_amount, user_email, d_card_status, card_id, f_user_email, validity_date
+        ) VALUES (
+            "' . $comp_name . '",
+            "' . $display_name . '",
+            "' . $date_esc . '",
+            "Success",
+            "' . $date_esc . '",
+            "' . $amt_esc . '",
+            "' . $user_email_esc . '",
+            "Active",
+            "' . $card_slug . '",
+            "' . $f_user_email . '",
+            ' . $validity_sql . '
+        )');
+
+        if (!$insert_card) {
+            error_log('verify_miniwebsite new_mw: digi_card insert failed: ' . mysqli_error($connect));
+            die('Payment verification failed: Could not create your Mini Website. Please contact support with your Razorpay payment ID.');
+        }
+
+        $new_card_id = (int) mysqli_insert_id($connect);
+        if ($new_card_id < 1) {
+            die('Payment verification failed: Could not create your Mini Website. Please contact support.');
+        }
+
+        mysqli_query($connect, 'INSERT INTO digi_card2 (id,user_email) VALUES ("' . $new_card_id . '","' . $user_email_esc . '")');
+        mysqli_query($connect, 'INSERT INTO digi_card3 (id,user_email) VALUES ("' . $new_card_id . '","' . $user_email_esc . '")');
+
+        $bill_gst = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_number'] ?? ''));
+        if ($bill_gst !== '') {
+            $bill_name = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_name'] ?? ''));
+            $bill_email = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_email'] ?? ''));
+            $bill_contact = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_contact'] ?? ''));
+            $bill_addr = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_address'] ?? ''));
+            $bill_state = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_state'] ?? ''));
+            $bill_city = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_city'] ?? ''));
+            $bill_pin = mysqli_real_escape_string($connect, (string) ($_SESSION['billing_gst_pincode'] ?? ''));
+            @mysqli_query($connect, "UPDATE digi_card SET
+                d_gst = '$bill_gst',
+                d_gst_name = '$bill_name',
+                d_gst_email = '$bill_email',
+                d_gst_contact = '$bill_contact',
+                d_gst_address = '$bill_addr',
+                d_gst_state = '$bill_state',
+                d_gst_city = '$bill_city',
+                d_gst_pincode = '$bill_pin'
+                WHERE id = '$new_card_id' LIMIT 1");
+        }
+
+        $cid_esc = mysqli_real_escape_string($connect, (string) $new_card_id);
+        $promo_discount = isset($_SESSION['promo_discount']) ? (float) $_SESSION['promo_discount'] : 0.0;
+        $original_amount = isset($_SESSION['original_amount']) ? (float) $_SESSION['original_amount'] : $amount_paid;
+        $discount_amount = isset($_SESSION['discount_amount']) ? (float) $_SESSION['discount_amount'] : 0.0;
+        $subtotal_amount = isset($_SESSION['subtotal_amount']) ? (float) $_SESSION['subtotal_amount'] : max(0.0, $original_amount - $promo_discount);
+        $cgst_amount = isset($_SESSION['cgst_amount']) ? (float) $_SESSION['cgst_amount'] : 0.0;
+        $sgst_amount = isset($_SESSION['sgst_amount']) ? (float) $_SESSION['sgst_amount'] : 0.0;
+        $igst_amount = isset($_SESSION['igst_amount']) ? (float) $_SESSION['igst_amount'] : 0.0;
+        $final_total = isset($_SESSION['final_total']) ? (float) $_SESSION['final_total'] : $amount_paid;
+        $promo_code = $_SESSION['promo_code'] ?? '';
+
+        $last_invoice_query = mysqli_query($connect, "SELECT MAX(CAST(SUBSTRING_INDEX(invoice_number, '/', -1) AS UNSIGNED)) as last_number FROM invoice_details WHERE invoice_number LIKE 'KIR/%'");
+        $last_invoice_result = mysqli_fetch_array($last_invoice_query);
+        $next_number = ($last_invoice_result['last_number'] ?? 0) + 1;
+        $invoice_number = 'KIR/' . str_pad((string) $next_number, 5, '0', STR_PAD_LEFT);
+        $invoice_date = date('Y-m-d');
+        $current_timestamp = date('Y-m-d H:i:s');
+
+        $bill_name = $_SESSION['billing_gst_name'] ?? $_SESSION['user_name'] ?? '';
+        $bill_email = $_SESSION['billing_gst_email'] ?? $_SESSION['user_email'] ?? '';
+        $bill_contact = $_SESSION['billing_gst_contact'] ?? $_SESSION['user_contact'] ?? '';
+        $bill_addr = $_SESSION['billing_gst_address'] ?? '';
+        $bill_state = $_SESSION['billing_gst_state'] ?? '';
+        $bill_city = $_SESSION['billing_gst_city'] ?? '';
+        $bill_pin = $_SESSION['billing_gst_pincode'] ?? '';
+        $bill_gst_inv = $_SESSION['billing_gst_number'] ?? '';
+
+        $u_email = $_SESSION['user_email'] ?? '';
+        $u_name = $_SESSION['user_name'] ?? '';
+        $u_contact = $_SESSION['user_contact'] ?? '';
+
+        $rz_order = $_POST['razorpay_order_id'] ?? $_SESSION['razorpay_order_id'] ?? $_SESSION['reference_number'];
+        $rz_pay = $_POST['razorpay_payment_id'] ?? '';
+        $rz_sig = $_POST['razorpay_signature'] ?? '';
+        $ref_num = $_SESSION['reference_number'];
+
+        $service_name = 'Mini Website Subscription';
+        $plan_name = isset($_SESSION['invoice_plan_name']) ? trim((string) $_SESSION['invoice_plan_name']) : '';
+        if ($plan_name === '' || $plan_validity === '') {
+            $plan_from_amount = [
+                500 => ['Mini Website Plan', '6 Months'],
+                847 => ['Mini Website Plan', '1 Year'],
+                1500 => ['Mini Website Plan', '2 Years'],
+                2100 => ['Mini Website Plan', '3 Years'],
+            ];
+            $k = (int) round($original_amount);
+            if (isset($plan_from_amount[$k])) {
+                $plan_name = $plan_name === '' ? $plan_from_amount[$k][0] : $plan_name;
+                $plan_validity = $plan_validity === '' ? $plan_from_amount[$k][1] : $plan_validity;
+            }
+        }
+
+        $invoice_insert_query = "INSERT INTO invoice_details (
+            invoice_number, invoice_date, card_id, user_email, user_name, user_contact,
+            billing_name, billing_email, billing_contact, billing_address, billing_state,
+            billing_city, billing_pincode, billing_gst_number, original_amount, discount_amount,
+            final_amount, promo_code, promo_discount, razorpay_order_id, razorpay_payment_id,
+            razorpay_signature, payment_status, payment_date, service_name, service_description,
+            hsn_sac_code, quantity, unit_price, total_price, sub_total, igst_percentage,
+            igst_amount, cgst_amount, sgst_amount, total_amount, payment_type, reference_number, created_at, updated_at
+            , plan_name, plan_validity
+        ) VALUES (
+            '" . mysqli_real_escape_string($connect, $invoice_number) . "',
+            '" . mysqli_real_escape_string($connect, $invoice_date) . "',
+            '" . $cid_esc . "',
+            '" . mysqli_real_escape_string($connect, $u_email) . "',
+            '" . mysqli_real_escape_string($connect, $u_name) . "',
+            '" . mysqli_real_escape_string($connect, $u_contact) . "',
+            '" . mysqli_real_escape_string($connect, $bill_name) . "',
+            '" . mysqli_real_escape_string($connect, $bill_email) . "',
+            '" . mysqli_real_escape_string($connect, $bill_contact) . "',
+            '" . mysqli_real_escape_string($connect, $bill_addr) . "',
+            '" . mysqli_real_escape_string($connect, $bill_state) . "',
+            '" . mysqli_real_escape_string($connect, $bill_city) . "',
+            '" . mysqli_real_escape_string($connect, $bill_pin) . "',
+            '" . mysqli_real_escape_string($connect, $bill_gst_inv) . "',
+            '" . mysqli_real_escape_string($connect, (string) $original_amount) . "',
+            '" . mysqli_real_escape_string($connect, (string) $discount_amount) . "',
+            '" . mysqli_real_escape_string($connect, (string) $final_total) . "',
+            '" . mysqli_real_escape_string($connect, $promo_code) . "',
+            '" . mysqli_real_escape_string($connect, (string) $promo_discount) . "',
+            '" . mysqli_real_escape_string($connect, $rz_order) . "',
+            '" . mysqli_real_escape_string($connect, $rz_pay) . "',
+            '" . mysqli_real_escape_string($connect, $rz_sig) . "',
+            'Success',
+            '" . mysqli_real_escape_string($connect, $date) . "',
+            '" . mysqli_real_escape_string($connect, $service_name) . "',
+            '" . mysqli_real_escape_string($connect, $service_name) . "',
+            '998314',
+            '1',
+            '" . mysqli_real_escape_string($connect, (string) $final_total) . "',
+            '" . mysqli_real_escape_string($connect, (string) $final_total) . "',
+            '" . mysqli_real_escape_string($connect, (string) $subtotal_amount) . "',
+            '18',
+            '" . mysqli_real_escape_string($connect, (string) $igst_amount) . "',
+            '" . mysqli_real_escape_string($connect, (string) $cgst_amount) . "',
+            '" . mysqli_real_escape_string($connect, (string) $sgst_amount) . "',
+            '" . mysqli_real_escape_string($connect, (string) $final_total) . "',
+            'Regular',
+            '" . mysqli_real_escape_string($connect, $ref_num) . "',
+            '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+            '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+            '" . mysqli_real_escape_string($connect, $plan_name) . "',
+            '" . mysqli_real_escape_string($connect, $plan_validity) . "'
+        )";
+        $invoice_result = mysqli_query($connect, $invoice_insert_query);
+        if (!$invoice_result) {
+            error_log('verify_miniwebsite new_mw: invoice insert failed: ' . mysqli_error($connect));
+        }
+
+        unset(
+            $_SESSION['pending_mw_create'],
+            $_SESSION['pending_mw_comp_name'],
+            $_SESSION['pending_mw_display_name'],
+            $_SESSION['pending_mw_card_slug'],
+            $_SESSION['pending_mw_f_user_email'],
+            $_SESSION['pending_mw_user_email'],
+            $_SESSION['service_type']
+        );
+        $_SESSION['card_id_inprocess'] = $new_card_id;
+        setcookie('card_id_inprocess', (string) $new_card_id, time() + 86400, '/');
+        $_SESSION['save_success'] = 'Payment successful! Your Mini Website has been created. CARD Number is: ' . $new_card_id;
+        $_SESSION['invoice_number'] = $invoice_number;
+
+        echo '<div class="payment_confirmation">Your Payment Successful. Please wait we are redirecting...</div>';
+        echo '<meta http-equiv="refresh" content="3;URL=../user/website/business-name.php?card_number=' . $new_card_id . '">';
+        exit;
+    }
+
     // Mini website customer/card payment (?id= on pay_miniwebsite.php) — not franchise
     if (($_SESSION['service_type'] ?? '') === 'card_payment' && !empty($_SESSION['card_id'])) {
         if (!isset($_SESSION['reference_number']) || $_SESSION['reference_number'] === '') {

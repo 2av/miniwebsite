@@ -2,6 +2,7 @@
 // Include centralized configs
 require_once(__DIR__ . '/../app/config/database.php');
 require_once(__DIR__ . '/../app/config/payment.php');
+require_once(__DIR__ . '/../app/helpers/role_access_helper.php');
 
 // Include coupon functions
 require_once(__DIR__ . '/../admin/coupon_functions.php');
@@ -209,6 +210,18 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
     // Franchise registration payment flow
     if ($_POST) {
         mw_store_invoice_plan_meta_from_post();
+
+        $selected_plan = isset($_POST['selected_plan']) ? trim((string) $_POST['selected_plan']) : 'full';
+        $reg_email = trim((string) ($_POST['email'] ?? ''));
+        $fr_profile_key = resolve_role_access_profile_for_email($connect, $reg_email) ?: 'fse_team';
+        $fr_rules = get_franchise_payment_role_rules($connect, $fr_profile_key);
+        if ($selected_plan === 'starter' && empty($fr_rules['plan_visibility']['starter'])) {
+            die('The selected franchise plan is not available for your profile.');
+        }
+        if ($selected_plan === 'full' && empty($fr_rules['plan_visibility']['full'])) {
+            die('The selected franchise plan is not available for your profile.');
+        }
+
         $_SESSION['gst_number'] = $_POST['gst_number'] ?? '';
         $_SESSION['user_name'] = $_POST['name'] ?? '';
         $_SESSION['user_email'] = $_POST['email'] ?? '';

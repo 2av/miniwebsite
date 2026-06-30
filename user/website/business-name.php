@@ -2,12 +2,37 @@
 // Handle card_number from URL - store in session and cookie
 // MUST be done before any output (before including header.php)
 require_once(__DIR__ . '/../../app/config/database.php');
+require_once(__DIR__ . '/../../app/helpers/role_helper.php');
+require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
+require_login('/login/customer.php');
 
 // Clear any existing card_id_inprocess when creating a new website (no card_number in URL or new=1 parameter)
 if((!isset($_GET['card_number']) || empty($_GET['card_number'])) || (isset($_GET['new']) && $_GET['new'] == '1')) {
     // If no card_number in URL or explicitly creating new, clear session and cookie to start fresh
     unset($_SESSION['card_id_inprocess']);
     setcookie('card_id_inprocess', '', time() - 3600, '/'); // Delete cookie
+    unset(
+        $_SESSION['pending_mw_create'],
+        $_SESSION['pending_mw_comp_name'],
+        $_SESSION['pending_mw_display_name'],
+        $_SESSION['pending_mw_card_slug'],
+        $_SESSION['pending_mw_f_user_email'],
+        $_SESSION['pending_mw_user_email']
+    );
+}
+
+// Count existing Mini Websites for this user (1st MW is free; 2nd+ requires payment before creation)
+$user_mw_count = 0;
+$requires_pay_for_new_mw = false;
+if (!empty($_SESSION['user_email'])) {
+    $user_email_cnt_esc = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $mw_count_query = mysqli_query($connect, 'SELECT COUNT(*) AS cnt FROM digi_card WHERE user_email="' . $user_email_cnt_esc . '"');
+    if ($mw_count_query && ($mw_count_row = mysqli_fetch_assoc($mw_count_query))) {
+        $user_mw_count = (int) ($mw_count_row['cnt'] ?? 0);
+    }
+}
+if ((!isset($_GET['card_number']) || empty($_GET['card_number'])) && $user_mw_count >= 1) {
+    $requires_pay_for_new_mw = true;
 }
 
 if(isset($_GET['card_number']) && !empty($_GET['card_number'])) {
@@ -96,10 +121,31 @@ if(isset($_POST['process1'])){
             header('Location: business-name.php');
             exit;
         }
-        // Company name is unique, create new card
+
+        // 2nd+ Mini Website: payment required before creating the card entry
+        if ($requires_pay_for_new_mw) {
+            $_SESSION['pending_mw_create'] = true;
+            $_SESSION['pending_mw_comp_name'] = $comp_name;
+            $_SESSION['pending_mw_display_name'] = $display_name;
+            $_SESSION['pending_mw_card_slug'] = $card_id_esc;
+            $_SESSION['pending_mw_f_user_email'] = $franchisee_email;
+            $_SESSION['pending_mw_user_email'] = $_SESSION['user_email'];
+            header('Location: ../../payment/pay_miniwebsite.php?new_mw=1');
+            exit;
+        }
+
+        // First Mini Website — create card immediately (free; complimentary per role profile)
         $date = date('Y-m-d H:i:s');
-        
-        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,d_display_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date) VALUES ("'.$comp_name.'","'.$display_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id_esc.'","'.$franchisee_email.'",DATE_ADD("'.$date.'", INTERVAL 7 DAY))');
+        $ras_create = get_current_user_role_access_settings($connect);
+        $complimentary_rules = get_complimentary_website_rules($connect, $ras_create['profile_key'] ?? null);
+        $complimentary_flag = 'No';
+        $validity_sql = 'DATE_ADD("' . $date . '", INTERVAL 7 DAY)';
+        if (!empty($complimentary_rules['apply'])) {
+            $complimentary_flag = 'Yes';
+            $validity_sql = complimentary_validity_sql($complimentary_rules);
+        }
+
+        $insert = mysqli_query($connect, 'INSERT INTO digi_card (d_comp_name,d_display_name,uploaded_date,d_payment_status,user_email,d_card_status,card_id,f_user_email,validity_date,complimentary_enabled) VALUES ("'.$comp_name.'","'.$display_name.'","'.$date.'","Created","'.$_SESSION['user_email'].'","Active","'.$card_id_esc.'","'.$franchisee_email.'",'.$validity_sql.',"'.$complimentary_flag.'")');
         
         if($insert){
             // Insert data in 2nd and 3rd database tables
@@ -424,7 +470,7 @@ $mw_save_icon = '../../assets/images/Save.png';
             <?php endif; ?>
             <div class="card mb-4 mw-card">
                 <div class="card-body mw-card-body">
-                    <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form mw-form mw-business-name-form" data-card-number="">
+                    <form action="#" method="POST" enctype="multipart/form-data" class="business_name_form mw-form mw-business-name-form" data-card-number="" data-requires-payment="<?php echo $requires_pay_for_new_mw ? '1' : '0'; ?>">
                         <div class="mw-business-name-fields-row">
                             <div class="form-group top_header_section mw-form-group">
                                 <label class="mw-label mw-label-lg" for="d_display_name">Business Name<span class="req">*</span></label>
@@ -435,6 +481,12 @@ $mw_save_icon = '../../assets/images/Save.png';
                                 <input type="text" id="d_comp_name" name="d_comp_name" class="form-control d_comp_name mw-input mw-input-lg" maxlength="199" placeholder="Enter Your Business URL" value="<?php echo htmlspecialchars($default_business_name); ?>" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                             </div>
                         </div>
+                        <?php if ($requires_pay_for_new_mw): ?>
+                            <div class=" mw-alert mw-alert-info mt-3">
+                                <i class="fa fa-info-circle mw-alert-icon" aria-hidden="true"></i>
+                                <div class="mw-alert-body">You already have a Mini Website. To create another one, complete payment after entering your business details below.</div>
+                            </div>
+                        <?php endif; ?>
                         <div class="mw-business-name-url-extra">
                             <div class="business_name_preview mt-2 d-none mw-alert mw-alert-info mw-alert-compact" aria-live="polite">
                                 <i class="fa fa-eye mw-alert-icon" aria-hidden="true"></i>
@@ -448,11 +500,17 @@ $mw_save_icon = '../../assets/images/Save.png';
                             </div>
                         </div>
                         <?php
-                        echo mw_button_row_step([
+                        $new_mw_save_btn = $requires_pay_for_new_mw
+                            ? ['type' => 'submit', 'name' => 'process1', 'label' => 'Pay Now', 'class' => 'save_btn', 'variant' => 'primary', 'icon' => 'fa-credit-card']
+                            : ['type' => 'submit', 'name' => 'process1', 'label' => 'Save', 'class' => 'save_btn', 'img' => $mw_save_icon];
+                        $new_mw_step_row = [
                             'back' => ['href' => '../dashboard/', 'label' => 'Back'],
-                            'save' => ['type' => 'submit', 'name' => 'process1', 'label' => 'Save', 'class' => 'save_btn', 'img' => $mw_save_icon],
-                            'next' => ['href' => $mw_step_next_href, 'label' => 'Skip'],
-                        ]);
+                            'save' => $new_mw_save_btn,
+                        ];
+                        if (!$requires_pay_for_new_mw) {
+                            $new_mw_step_row['next'] = ['href' => $mw_step_next_href, 'label' => 'Skip'];
+                        }
+                        echo mw_button_row_step($new_mw_step_row);
                         ?>
                     </form>
                 </div>
@@ -515,6 +573,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var previewContainer = form ? form.querySelector('.business_name_preview') : null;
     var existsMsgEl = form ? form.querySelector('.business_name_exists_msg') : null;
     var cardNumber = form && form.getAttribute('data-card-number') ? form.getAttribute('data-card-number') : '';
+    var requiresPayment = form && form.getAttribute('data-requires-payment') === '1';
     var checkTimeout = null;
     var lastCheckedName = '';
     var nameExists = false;
@@ -553,12 +612,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (name === '') {
             if (existsMsgEl) existsMsgEl.classList.add('d-none');
             nameExists = false;
-            setSaveDisabled(false);
+            setSaveDisabled(!canSubmitNewMw());
             updatePreview();
             return;
         }
         if (name === lastCheckedName) {
-            setSaveDisabled(nameExists);
+            setSaveDisabled(!canSubmitNewMw());
             updatePreview();
             return;
         }
@@ -576,10 +635,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (nameExists) existsMsgEl.classList.remove('d-none');
                     else existsMsgEl.classList.add('d-none');
                 }
-                setSaveDisabled(nameExists);
+                setSaveDisabled(!canSubmitNewMw());
                 updatePreview();
             } catch (e) {
-                setSaveDisabled(false);
+                setSaveDisabled(!canSubmitNewMw());
                 updatePreview();
             }
         };
@@ -605,14 +664,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 500);
     }
 
-    // Show Save when textbox is empty; hide when it has value (original behavior)
     function toggleSaveNextVisibility() {
         if (!urlInput || !saveNextBtn) return;
+        if (requiresPayment) {
+            saveNextBtn.classList.remove('d-none');
+            return;
+        }
         if (urlInput.value.trim() !== '') {
             saveNextBtn.classList.add('d-none');
         } else {
             saveNextBtn.classList.remove('d-none');
         }
+    }
+
+    function canSubmitNewMw() {
+        if (!urlInput || !businessNameInput) return false;
+        var urlVal = urlInput.value.trim();
+        var nameVal = businessNameInput.value.trim();
+        if (urlVal === '' || nameVal === '') return false;
+        if (nameExists) return false;
+        if (requiresPayment) {
+            return true;
+        }
+        return hasValueChanged() && urlVal !== '';
     }
 
     // Allow only letters, numbers, spaces and hyphen (-)
@@ -635,6 +709,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 updatePreview();
                 scheduleCheck();
             }
+            setSaveDisabled(!canSubmitNewMw());
         });
     }
 
@@ -654,13 +729,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             updatePreview();
             
-            // Enable button only if value has changed and is not empty
-            var currentValue = this.value.trim();
-            if (hasValueChanged() && currentValue !== '') {
-                setSaveDisabled(false);
-            } else {
-                setSaveDisabled(true);
-            }
+            setSaveDisabled(!canSubmitNewMw());
             
             scheduleCheck();
             toggleSaveNextVisibility();
@@ -675,8 +744,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         hidePreview();
         toggleSaveNextVisibility();
-        // Disable button on page load
-        setSaveDisabled(true);
+        setSaveDisabled(!canSubmitNewMw());
     }
 
 });

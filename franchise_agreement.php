@@ -1,8 +1,25 @@
 <?php
 require_once __DIR__ . '/app/config/database.php';
+require_once __DIR__ . '/app/helpers/role_access_helper.php';
 
 // Get email from URL parameter
-$prefill_email = isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '';
+$prefill_email = isset($_GET['email']) ? trim((string) $_GET['email']) : '';
+
+$fr_profile_key = null;
+if (!empty($_SESSION['user_email'])) {
+    if (!function_exists('get_current_user_role_access_settings')) {
+        require_once __DIR__ . '/app/helpers/role_helper.php';
+    }
+    $ras_fr = get_current_user_role_access_settings($connect);
+    $fr_profile_key = $ras_fr['profile_key'] ?? null;
+} elseif ($prefill_email !== '') {
+    $fr_profile_key = resolve_role_access_profile_for_email($connect, $prefill_email);
+}
+
+$fr_rules = get_franchise_payment_role_rules($connect, $fr_profile_key);
+$franchise_plan_visibility = $fr_rules['plan_visibility'];
+$franchise_agreement_label_html = $fr_rules['agreement_label_html'];
+$default_franchise_plan = $fr_rules['default_plan'];
 
 // Database connection and fetch user details
 $user_data = null;
@@ -650,7 +667,8 @@ if ($connect) {
 
     <div class="payment-layout">
         <div class="plan-panel">
-            <div class="plan-card" id="starterPlanCard" data-plan="starter">
+            <?php if (!empty($franchise_plan_visibility['starter'])): ?>
+            <div class="plan-card<?php echo ($default_franchise_plan === 'starter') ? ' active' : ''; ?>" id="starterPlanCard" data-plan="starter">
                 <div class="plan-card-header blue">Starter Franchise Plan</div>
                 <div class="plan-card-body">
                     <div class="plan-price">₹6,000</div>
@@ -663,7 +681,9 @@ if ($connect) {
                     <button type="button" class="plan-select-btn green" data-plan="starter">SELECT ₹6,000</button>
                 </div>
             </div>
-            <div class="plan-card active" id="fullPlanCard" data-plan="full">
+            <?php endif; ?>
+            <?php if (!empty($franchise_plan_visibility['full'])): ?>
+            <div class="plan-card<?php echo ($default_franchise_plan === 'full') ? ' active' : ''; ?>" id="fullPlanCard" data-plan="full">
                 <div class="plan-card-header yellow">Full Franchise Plan</div>
                 <div class="plan-card-body">
                     <div class="plan-price">₹30,000</div>
@@ -676,6 +696,7 @@ if ($connect) {
                     <button type="button" class="plan-select-btn yellow" data-plan="full">SELECT ₹30,000</button>
                 </div>
             </div>
+            <?php endif; ?>
             <div class="wallet-info-box">
                 <i class="fa fa-gift"></i>
                 <span>₹413 will be deducted from your wallet for each MiniWebsite you create for your customers.</span>
@@ -826,15 +847,11 @@ if ($connect) {
                     <div class="terms-wrap">
                         <input type="checkbox" id="terms_agree" name="terms_agree">
                         <label for="terms_agree">
-                            I have read and agree to the
-                            <a href="franchise_agreement.php" target="_blank">Franchise Agreement</a>,
-                            <a href="terms_conditions.php" target="_blank">Franchise Operational Policy</a>,
-                            <a href="terms_conditions.php" target="_blank">Refund Policy</a> and
-                            <a href="privacy_policy.php" target="_blank">Privacy Policy</a>.
+                            <?php echo $franchise_agreement_label_html; ?>
                         </label>
                     </div>
 
-                    <input type="hidden" name="selected_plan" id="selected_plan_hidden" value="full">
+                    <input type="hidden" name="selected_plan" id="selected_plan_hidden" value="<?php echo htmlspecialchars($default_franchise_plan, ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="plan_total_with_gst" id="plan_total_with_gst_hidden" value="30000">
                     <input type="hidden" name="amount" value="<?php echo $final_total; ?>">
                     <input type="hidden" name="original_amount" value="30000">
@@ -963,7 +980,7 @@ const planConfig = {
     starter: { label: 'Starter Franchise Plan', baseAmount: 6000, totalWithGst: 6000 },
     full: { label: 'Full Franchise Plan', baseAmount: 30000, totalWithGst: 30000 }
 };
-let selectedPlan = 'full';
+let selectedPlan = '<?php echo htmlspecialchars($default_franchise_plan, ENT_QUOTES, 'UTF-8'); ?>';
 let originalAmount = planConfig[selectedPlan].baseAmount;
         let currentDiscount = <?php echo $promo_discount; ?>; // Initialize with auto-applied discount
         let currentPromoCode = '<?php echo isset($_SESSION['promo_code']) ? $_SESSION['promo_code'] : ''; ?>'; // Initialize with auto-applied promo code

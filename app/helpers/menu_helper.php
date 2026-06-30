@@ -108,6 +108,35 @@ function is_menu_visible($menu_item, $current_role, $user_conditions = []) {
         }
     }
     
+    // Role access settings gate (from admin/manage_role_access_settings.php matrix)
+    if (!empty($menu_item['role_access_feature'])) {
+        if (!function_exists('role_access_tables_exist')) {
+            require_once __DIR__ . '/role_access_helper.php';
+        }
+        global $connect;
+        if (!isset($connect) || !is_object($connect)) {
+            require_once __DIR__ . '/../config/database.php';
+        }
+        $profile_key = $user_conditions['role_access_profile_key'] ?? null;
+        if (!$profile_key || !role_access_tables_exist($connect)) {
+            if (is_menu_debug_enabled()) {
+                error_log("=== MENU DEBUG: " . $menu_id . " - HIDDEN (no role access profile)");
+            }
+            return false;
+        }
+        $field_type = $menu_item['role_access_type'] ?? 'text';
+        if (!function_exists('get_user_email')) {
+            require_once __DIR__ . '/role_helper.php';
+        }
+        $user_email = get_user_email() ?? '';
+        if (!is_role_access_feature_visible_for_user($connect, $profile_key, $menu_item['role_access_feature'], $field_type, $user_email, $current_role)) {
+            if (is_menu_debug_enabled()) {
+                error_log("=== MENU DEBUG: " . $menu_id . " - HIDDEN (role access feature " . $menu_item['role_access_feature'] . ")");
+            }
+            return false;
+        }
+    }
+
     if (is_menu_debug_enabled()) {
         error_log("=== MENU DEBUG: " . $menu_id . " - VISIBLE (all checks passed)");
     }
