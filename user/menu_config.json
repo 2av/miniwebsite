@@ -41,21 +41,6 @@
       "always_visible": true
     },
     {
-      "id": "grow_with_mw",
-      "label": "Grow with MW",
-      "icon": "line-chart",
-      "url": "/grow-with-mw",
-      "roles": ["CUSTOMER"],
-      "role_access_feature": "grow_with_mw",
-      "role_access_type": "yes_no",
-      "conditions": {
-        "CUSTOMER": {
-          "collaboration_enabled": false,
-          "mw_paid": true
-        }
-      }
-    },
-    {
       "id": "franchisee_kit",
       "label": "Creator Kit",
       "icon": "briefcase",

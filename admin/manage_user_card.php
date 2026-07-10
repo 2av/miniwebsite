@@ -1,5 +1,6 @@
 <?php
 require_once(__DIR__ . '/../app/config/database.php');
+require_once(__DIR__ . '/../app/helpers/mw_card_status_helper.php');
 require('header.php');
 ?>
 <link rel="stylesheet" href="../assets/css/common-admin.css">
@@ -218,43 +219,17 @@ $query = mysqli_query($connect, "
                     $upload_date = !empty($row['uploaded_date']) && $row['uploaded_date'] != '0000-00-00 00:00:00' ? date('d-m-Y', strtotime($row['uploaded_date'])) : '-';
                     echo '<td class="date-cell">'.$upload_date.'</td>';
                     
-                    // Determine MW Status first
-                    $mw_status = 'Inactive';
-                    $is_trial = false;
-                    if ($row['complimentary_enabled'] == 'Yes') {
-                        $mw_status = 'Active';
-                    } else {
-                        if ($row['d_payment_status'] == 'Success') {
-                            $mw_status = 'Active';
-                        } else {
-                            // Trial / Inactive logic for unpaid cards
-                            $uploaded_ts = !empty($row['uploaded_date']) && $row['uploaded_date'] != '0000-00-00 00:00:00'
-                                ? strtotime($row['uploaded_date'])
-                                : 0;
-                            
-                            if ($uploaded_ts > 0) {
-                                $trial_end_ts = strtotime('+7 days', $uploaded_ts);
-                                if ($trial_end_ts < time()) {
-                                    // Trial over and no subscription taken
-                                    $mw_status = 'Inactive';
-                                } else {
-                                    // Within 7‑day trial
-                                    $mw_status = '7 Day Trial';
-                                    $is_trial = true;
-                                }
-                            } else {
-                                // Fallback if uploaded_date is missing
-                                $mw_status = 'Inactive';
-                            }
-                        }
-                    }
+                    // Determine MW Status
+                    $resolved_status = mw_card_resolve_display_status($row);
+                    $mw_status = $resolved_status['text'];
+                    $is_trial = $resolved_status['is_trial'];
                     
                     // Validity Date - Calculate based on MW Status
                     $validity_date = '-';
                     $validity_class = '';
                     $is_expired = false;
                     
-                    if ($mw_status == '7 Day Trial') {
+                    if ($is_trial) {
                         // For 7-day trial, always show 7 days after creation date
                         if (!empty($row['uploaded_date']) && $row['uploaded_date'] != '0000-00-00 00:00:00') {
                             $validity_date = date('d-m-Y', strtotime($row['uploaded_date'] . ' +7 days'));
@@ -303,12 +278,16 @@ $query = mysqli_query($connect, "
                     
                     // Display MW Status
                     echo '<td class="status-cell">';
-                    if ($mw_status == 'Active') {
+                    if ($mw_status === 'Active') {
                         echo '<span class="badge bg-success">Active</span>';
-                    } elseif ($mw_status == '7 Day Trial') {
-                        echo '<span class="badge bg-pending">7 Day Trial</span>';
+                    } elseif ($is_trial) {
+                        echo '<span class="badge bg-pending">' . htmlspecialchars($mw_status) . '</span>';
+                    } elseif (strpos($mw_status, 'Pending') !== false) {
+                        echo '<span class="badge bg-pending">' . htmlspecialchars($mw_status) . '</span>';
+                    } elseif (strpos($mw_status, 'Expired') !== false) {
+                        echo '<span class="badge bg-secondary">' . htmlspecialchars($mw_status) . '</span>';
                     } else {
-                        echo '<span class="badge bg-secondary">Inactive</span>';
+                        echo '<span class="badge bg-secondary">' . htmlspecialchars($mw_status) . '</span>';
                     }
                     echo '</td>';
                     

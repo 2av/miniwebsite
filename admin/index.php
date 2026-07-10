@@ -134,7 +134,7 @@ if ($result = mysqli_query($connect, $userStatsQuery)) {
                     
                     <nav class="nav flex-column">
                         <a class="nav-link active" href="create_account.php">
-                            <i class="fas fa-plus-circle me-2"></i> Create New Miniwebsite
+                            <i class="fas fa-plus-circle me-2"></i> Create Your MW
                         </a>
                         <a class="nav-link" href="manage_user.php">
                             <i class="fas fa-users me-2"></i> User Details
@@ -354,7 +354,7 @@ if ($result = mysqli_query($connect, $userStatsQuery)) {
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
                                         <a href="create_account.php" class="btn btn-primary">
-                                            <i class="fas fa-plus me-2"></i>Create New Miniwebsite
+                                            <i class="fas fa-plus me-2"></i>Create Your MW
                                         </a>
                                         <a href="manage_deals.php" class="btn btn-outline-primary">
                                             <i class="fas fa-tags me-2"></i>Manage Deals

@@ -11,46 +11,7 @@ if($is_ajax && isset($_POST['offer'])) {
 // Handle card_number from URL, session, or cookie
 // MUST be done before any output (before including header.php)
 require_once(__DIR__ . '/../../app/config/database.php');
-
-/**
- * Validate offer schedule: Start Dt and End Dt each need date + time together; End on or after Start.
- *
- * @return string Empty if OK, else plain-text message for the user.
- */
-function mw_special_offer_validate_dt($start_date, $end_date, $start_time, $end_time) {
-    $sd = trim((string) $start_date);
-    $ed = trim((string) $end_date);
-    $st = trim((string) $start_time);
-    $et = trim((string) $end_time);
-    if ($sd === '' && $ed === '' && $st === '' && $et === '') {
-        return '';
-    }
-    if (($sd !== '') !== ($st !== '')) {
-        return 'Start Dt: enter both date and time, or leave both empty.';
-    }
-    if (($ed !== '') !== ($et !== '')) {
-        return 'End Dt: enter both date and time, or leave both empty.';
-    }
-    $start_ok = ($sd !== '' && $st !== '');
-    $end_ok = ($ed !== '' && $et !== '');
-    if ($start_ok !== $end_ok) {
-        return $start_ok
-            ? 'End Dt: enter both date and time when Start Dt is set.'
-            : 'Start Dt: enter both date and time when End Dt is set.';
-    }
-    if (!$start_ok) {
-        return '';
-    }
-    $ts_s = strtotime($sd . ' ' . $st);
-    $ts_e = strtotime($ed . ' ' . $et);
-    if ($ts_s === false || $ts_e === false) {
-        return 'Start Dt or End Dt is not a valid date or time.';
-    }
-    if ($ts_e < $ts_s) {
-        return 'End Dt must be on or after Start Dt.';
-    }
-    return '';
-}
+require_once(__DIR__ . '/../../app/helpers/special_offer_helper.php');
 
 /**
  * Table cell: date + time on one line for display (no year — "j M"). DB values are full dates;
@@ -235,6 +196,7 @@ if(isset($_SESSION['card_id_inprocess']) && !empty($_SESSION['card_id_inprocess'
         // Get special offers from new table (card_special_offers)
         $card_id = mysqli_real_escape_string($connect, $_SESSION['card_id_inprocess']);
         if($user_id > 0) {
+            mw_special_offer_auto_inactivate_expired($connect, $card_id, $user_id);
             $offers_query = mysqli_query($connect, "SELECT * FROM card_special_offers WHERE card_id='$card_id' AND user_id=$user_id ORDER BY display_order ASC, id ASC");
             while($offer_row = mysqli_fetch_array($offers_query)) {
                 $offers_data[] = $offer_row;
@@ -956,7 +918,7 @@ ob_start();
                             </div>
                         </div>
                     </div>
-                    <p class="text-muted small mb-0">Start Dt and End Dt are optional. If you use them, enter <strong>both</strong> date and time for each; End Dt must be on or after Start Dt.</p>
+                    <p class="text-muted small mb-0">Start Dt and End Dt are optional. If you use them, enter <strong>both</strong> date and time for each; End Dt must be on or after Start Dt. Maximum validity is <strong>30 days</strong>. Expired offers are set to Inactive automatically; the image stays on your Mini Website.</p>
 
                     <div class="form-group">
                         <label for="modal_offer_status">Offer Status</label>
@@ -1657,6 +1619,11 @@ function addOfferToForm() {
         }
         if(endMs < startMs) {
             alert('End Dt must be on or after Start Dt.');
+            return;
+        }
+        var maxMs = 30 * 24 * 60 * 60 * 1000;
+        if((endMs - startMs) > maxMs) {
+            alert('Offer validity cannot exceed 30 days.');
             return;
         }
     }

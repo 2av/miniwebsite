@@ -1,5 +1,6 @@
 <?php
 require_once('connect.php');
+require_once(__DIR__ . '/../app/helpers/mw_card_status_helper.php');
 
 header('Content-Type: text/html; charset=UTF-8');
 
@@ -66,8 +67,9 @@ $details_q = mysqli_query($connect, "SELECT
     dc.validity_date as card_validity_date,
     dc.complimentary_enabled,
     dc.d_payment_status,
-    dc.d_payment_date
-    FROM referral_earnings re 
+    dc.d_payment_date,
+    dc.f_user_email
+    FROM referral_earnings re
     LEFT JOIN user_details cl ON BINARY re.referred_email = BINARY cl.email AND cl.role='CUSTOMER' AND (re.is_collaboration IS NULL OR re.is_collaboration = 'NO')
     LEFT JOIN user_details fl ON BINARY re.referred_email = BINARY fl.email AND fl.role='FRANCHISEE' AND re.is_collaboration = 'YES'
     LEFT JOIN digi_card dc ON BINARY re.referred_email = BINARY dc.user_email
@@ -245,12 +247,14 @@ $details_q = mysqli_query($connect, "SELECT
                                                 }
                                             }
                                         }
-                                        $mw_status = '7 Day Trial';
-                                        if (($row['complimentary_enabled'] ?? '') === 'Yes') {
-                                            $mw_status = 'Active';
-                                        } else if (($row['d_payment_status'] ?? '') === 'Success') {
-                                            $mw_status = 'Active';
-                                        }
+                                        $mw_status_row = [
+                                            'complimentary_enabled' => $row['complimentary_enabled'] ?? '',
+                                            'd_payment_status' => $row['d_payment_status'] ?? '',
+                                            'validity_date' => $row['card_validity_date'] ?? '',
+                                            'uploaded_date' => $row['card_uploaded_date'] ?? '',
+                                            'f_user_email' => $row['f_user_email'] ?? '',
+                                        ];
+                                        $mw_status = mw_card_resolve_short_status($mw_status_row);
                                     ?>
                                     <td class="text-left"><?php echo htmlspecialchars((string)$user_id_display); ?></td>
                                     <td class="text-left"><?php echo htmlspecialchars($row['card_id'] ?? '-'); ?></td>

@@ -1,22 +1,26 @@
 <?php
-// Handle AJAX form submission for creating customer account (FRANCHISEE only) - BEFORE any HTML output
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_customer_account') {
-    // Include only what we need for database operations
-require_once(__DIR__ . '/../../app/config/database.php');
+// Handle AJAX for franchise Create MW (OTP + account) — BEFORE any HTML output
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
+    && in_array($_POST['action'], ['create_customer_account', 'franchise_send_create_otp'], true)) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    require_once(__DIR__ . '/../../app/config/database.php');
     require_once(__DIR__ . '/../../app/helpers/role_helper.php');
-    
-    // Check if user is franchisee
+
     $current_role = get_current_user_role();
     if ($current_role !== 'FRANCHISEE') {
         http_response_code(403);
+        header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'Access denied']);
         exit;
     }
-    
-    // Ensure we're not including any HTML output before JSON
+
     ob_clean();
     header('Content-Type: application/json');
-    
+
+    $action = $_POST['action'];
+
     try {
         $fullName = trim($_POST['fullName'] ?? '');
         $companyname = trim($_POST['companyname'] ?? '');
@@ -24,50 +28,46 @@ require_once(__DIR__ . '/../../app/config/database.php');
         $mobileNumber = trim($_POST['mobileNumber'] ?? '');
         $password = trim($_POST['password'] ?? '');
         $franchisee_email = trim($_POST['franchisee_email'] ?? '');
-        $card_id = str_replace(array(' ','.','&','/','','[',']'), array('-','','','-','',''), $companyname);
-        
-        // Validation
-        if (empty($fullName) || empty($emailAddress) || empty($mobileNumber) || empty($password) || empty($companyname)) {
+        $card_id = str_replace([' ', '.', '&', '/', '', '[', ']'], ['-', '', '', '-', '', ''], $companyname);
+
+        if ($fullName === '' || $emailAddress === '' || $mobileNumber === '' || $password === '' || $companyname === '') {
             throw new Exception('All fields are required');
         }
-        
         if (!filter_var($emailAddress, FILTER_VALIDATE_EMAIL)) {
             throw new Exception('Invalid email address');
         }
-        
         if (strlen($password) < 6) {
             throw new Exception('Password must be at least 6 characters long');
         }
-        
-        // Check if email already exists
-        $email_check_query = "SELECT role, email FROM user_details WHERE email = ? LIMIT 1";
+
+        $email_check_query = 'SELECT role, email FROM user_details WHERE email = ? LIMIT 1';
         $check_email = mysqli_prepare($connect, $email_check_query);
-        mysqli_stmt_bind_param($check_email, "s", $emailAddress);
+        mysqli_stmt_bind_param($check_email, 's', $emailAddress);
         mysqli_stmt_execute($check_email);
         $result = mysqli_stmt_get_result($check_email);
         if ($result && mysqli_num_rows($result) > 0) {
             $email_data = mysqli_fetch_array($result);
             $source = ucfirst(strtolower($email_data['role'] ?? 'user'));
+            mysqli_stmt_close($check_email);
             throw new Exception("This email address is already registered as a $source. Please use a different email.");
         }
         mysqli_stmt_close($check_email);
-        
-        // Check if mobile number already exists
-        $mobile_check_query = "SELECT role, phone FROM user_details WHERE phone = ? LIMIT 1";
+
+        $mobile_check_query = 'SELECT role, phone FROM user_details WHERE phone = ? LIMIT 1';
         $check_mobile = mysqli_prepare($connect, $mobile_check_query);
-        mysqli_stmt_bind_param($check_mobile, "s", $mobileNumber);
+        mysqli_stmt_bind_param($check_mobile, 's', $mobileNumber);
         mysqli_stmt_execute($check_mobile);
         $result = mysqli_stmt_get_result($check_mobile);
         if ($result && mysqli_num_rows($result) > 0) {
             $mobile_data = mysqli_fetch_array($result);
             $source = ucfirst(strtolower($mobile_data['role'] ?? 'user'));
+            mysqli_stmt_close($check_mobile);
             throw new Exception("This mobile number is already registered as a $source. Please use a different mobile number.");
         }
         mysqli_stmt_close($check_mobile);
-        
-        // Verify wallet balance (mini website price: Rs 350 + GST = Rs 413)
-        $wallet_balance = 0;
-        $wallet_query = mysqli_query($connect, "SELECT w_balance FROM wallet WHERE f_user_email = '".$franchisee_email."' ORDER BY ID DESC LIMIT 1");
+
+        $wallet_balance = 0.0;
+        $wallet_query = mysqli_query($connect, "SELECT w_balance FROM wallet WHERE f_user_email = '" . mysqli_real_escape_string($connect, $franchisee_email) . "' ORDER BY ID DESC LIMIT 1");
         if ($wallet_query && mysqli_num_rows($wallet_query) > 0) {
             $wallet_row = mysqli_fetch_array($wallet_query);
             $wallet_balance = floatval($wallet_row['w_balance'] ?? 0);
@@ -75,185 +75,194 @@ require_once(__DIR__ . '/../../app/config/database.php');
         if ($wallet_balance < 413) {
             throw new Exception('Insufficient wallet balance. Please recharge at least Rs. 413. Current balance: ' . number_format($wallet_balance, 2));
         }
-        
-        // Generate sender token, hash password, and referral code
-        $sender_token   = rand(1000000000, 99999999999999999);
+
+        if ($action === 'franchise_send_create_otp') {
+            $otp = (string) rand(100000, 999999);
+            $_SESSION['franchise_create_otp'] = $otp;
+            $_SESSION['franchise_create_otp_time'] = time();
+            $_SESSION['franchise_create_pending'] = [
+                'fullName' => $fullName,
+                'companyname' => $companyname,
+                'emailAddress' => $emailAddress,
+                'mobileNumber' => $mobileNumber,
+                'password' => $password,
+                'franchisee_email' => $franchisee_email,
+                'card_id' => $card_id,
+            ];
+
+            $otp_sent = false;
+            if (file_exists(__DIR__ . '/../../common/mailtemplate/send_franchise_customer_otp_email.php')) {
+                require_once __DIR__ . '/../../common/mailtemplate/send_franchise_customer_otp_email.php';
+                $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $site_base = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'www.miniwebsite.in');
+                $otp_sent = sendFranchiseCustomerOtpEmail($emailAddress, $fullName, $otp, $site_base);
+            }
+            if (!$otp_sent) {
+                unset($_SESSION['franchise_create_otp'], $_SESSION['franchise_create_otp_time'], $_SESSION['franchise_create_pending']);
+                throw new Exception('Failed to send OTP verification email. Please try again.');
+            }
+
+            echo json_encode([
+                'success' => true,
+                'requires_otp' => true,
+                'message' => 'OTP sent to customer email. Please enter OTP to complete account creation.',
+            ]);
+            exit;
+        }
+
+        // create_customer_account — verify OTP (MAIL TEMPLATE 04B) then create account
+        $entered_otp = trim($_POST['otp'] ?? '');
+        if ($entered_otp === '') {
+            throw new Exception('Please enter the OTP sent to the customer email.');
+        }
+        if (!isset($_SESSION['franchise_create_otp'], $_SESSION['franchise_create_otp_time'], $_SESSION['franchise_create_pending'])) {
+            throw new Exception('OTP session expired. Please submit the form again to receive a new OTP.');
+        }
+        if ((time() - (int) $_SESSION['franchise_create_otp_time']) > 600) {
+            unset($_SESSION['franchise_create_otp'], $_SESSION['franchise_create_otp_time'], $_SESSION['franchise_create_pending']);
+            throw new Exception('OTP has expired. Please submit the form again to receive a new OTP.');
+        }
+        $pending = $_SESSION['franchise_create_pending'];
+        if (strcasecmp($pending['emailAddress'] ?? '', $emailAddress) !== 0
+            || ($pending['mobileNumber'] ?? '') !== $mobileNumber
+            || ($pending['companyname'] ?? '') !== $companyname) {
+            throw new Exception('Form data changed after OTP was sent. Please request a new OTP.');
+        }
+        if ((string) $_SESSION['franchise_create_otp'] !== $entered_otp) {
+            throw new Exception('Invalid OTP. Please try again.');
+        }
+
+        unset($_SESSION['franchise_create_otp'], $_SESSION['franchise_create_otp_time'], $_SESSION['franchise_create_pending']);
+
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $referral_code   = strtoupper(substr(md5($emailAddress . time()), 0, 8));
-        
-        // Insert into unified user_details table only
+        $referral_code = strtoupper(substr(md5($emailAddress . time()), 0, 8));
         $ip = mysqli_real_escape_string($connect, $_SERVER['REMOTE_ADDR'] ?? '');
-        $status = 'ACTIVE';
         $safeFullName = mysqli_real_escape_string($connect, $fullName);
         $safeEmail = mysqli_real_escape_string($connect, $emailAddress);
         $safeMobile = mysqli_real_escape_string($connect, $mobileNumber);
         $safeFranchiseeEmail = mysqli_real_escape_string($connect, $franchisee_email);
         $safeReferralCode = mysqli_real_escape_string($connect, $referral_code);
-        
+
         $insert_ud = mysqli_query($connect, "
             INSERT INTO user_details
                 (role, email, phone, name, password, password_hash, ip, status, created_at, referred_by, referral_code)
             VALUES
-                ('CUSTOMER', '$safeEmail', '$safeMobile', '$safeFullName', '$hashed_password', '$hashed_password', '$ip', '$status', NOW(), '$safeFranchiseeEmail', '$safeReferralCode')
+                ('CUSTOMER', '$safeEmail', '$safeMobile', '$safeFullName', '$hashed_password', '$hashed_password', '$ip', 'ACTIVE', NOW(), '$safeFranchiseeEmail', '$safeReferralCode')
         ");
-        
-        if ($insert_ud) {
-            // Create a basic digi_card entry
-            $card_insert_query = "INSERT INTO digi_card (user_email, f_user_email, d_comp_name, card_id, d_payment_status, d_card_status, uploaded_date, validity_date) 
-                                 VALUES (?, ?, ?, ?, 'Success','Active', NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR))";
-            $card_stmt = mysqli_prepare($connect, $card_insert_query);
-            if (!$card_stmt) {
-                throw new Exception('Card prepare failed: ' . mysqli_error($connect));
-            }
-            mysqli_stmt_bind_param($card_stmt, "ssss", $emailAddress, $franchisee_email, $companyname, $card_id);
-            
-            if (mysqli_stmt_execute($card_stmt)) {
-                $new_card_auto_id = mysqli_insert_id($connect);
-                mysqli_stmt_close($card_stmt);
-                
-                // Deduct Rs. 413 (Rs. 350 + GST)
-                $new_balance = $wallet_balance - 413;
-                $withdraw_amount_str = '-413';
-                $order_id_for_wallet = (string)$new_card_auto_id;
-                $wallet_insert = mysqli_prepare($connect, "INSERT INTO wallet (f_user_email, w_withdraw, w_order_id, w_balance, uploaded_date) VALUES (?, ?, ?, ?, NOW())");
-                if ($wallet_insert) {
-                    mysqli_stmt_bind_param($wallet_insert, "sssd", $franchisee_email, $withdraw_amount_str, $order_id_for_wallet, $new_balance);
-                    $wallet_insert_ok = mysqli_stmt_execute($wallet_insert);
-                    if (!$wallet_insert_ok) {
-                        error_log('wallet deduction insert failed: ' . mysqli_stmt_error($wallet_insert));
-                    }
-                    $wallet_txn_id = mysqli_insert_id($connect);
-                    mysqli_stmt_close($wallet_insert);
 
-                    // Create invoice for wallet deduction (Mini Website creation charge: Rs. 350 + GST = Rs. 413)
-                    if ($wallet_txn_id > 0) {
-                        $invoice_reference = 'WALLET-' . $wallet_txn_id;
-                        $check_invoice = mysqli_query($connect, "SELECT id FROM invoice_details WHERE reference_number='" . mysqli_real_escape_string($connect, $invoice_reference) . "' LIMIT 1");
-
-                        if (!$check_invoice || mysqli_num_rows($check_invoice) === 0) {
-                            $last_invoice_query = mysqli_query($connect, "SELECT MAX(CAST(SUBSTRING_INDEX(invoice_number, '/', -1) AS UNSIGNED)) as last_number FROM invoice_details WHERE invoice_number LIKE 'KIR/%'");
-                            $last_invoice_result = $last_invoice_query ? mysqli_fetch_array($last_invoice_query) : null;
-                            $next_number = (($last_invoice_result['last_number'] ?? 0) + 1);
-                            $invoice_number = 'KIR/' . str_pad((string)$next_number, 5, '0', STR_PAD_LEFT);
-                            $invoice_date = date('Y-m-d');
-                            $current_timestamp = date('Y-m-d H:i:s');
-
-                            $original_amount = 350.00;
-                            $discount_amount = 0.00;
-                            $subtotal_amount = 350.00;
-                            $igst_amount = 63.00;
-                            $cgst_amount = 0.00;
-                            $sgst_amount = 0.00;
-                            $final_total = 413.00;
-                            $gst_percentage = 18;
-
-                            $invoice_insert_query = "INSERT INTO invoice_details (
-                                invoice_number, invoice_date, card_id, user_email, user_name, user_contact,
-                                billing_name, billing_email, billing_contact, billing_address, billing_state,
-                                billing_city, billing_pincode, billing_gst_number, original_amount, discount_amount,
-                                final_amount, promo_code, promo_discount, razorpay_order_id, razorpay_payment_id,
-                                razorpay_signature, payment_status, payment_date, service_name, service_description,
-                                hsn_sac_code, quantity, unit_price, total_price, sub_total, igst_percentage,
-                                igst_amount, cgst_amount, sgst_amount, total_amount, payment_type, reference_number, created_at, updated_at
-                            ) VALUES (
-                                '" . mysqli_real_escape_string($connect, $invoice_number) . "',
-                                '" . mysqli_real_escape_string($connect, $invoice_date) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$new_card_auto_id) . "',
-                                '" . mysqli_real_escape_string($connect, $emailAddress) . "',
-                                '" . mysqli_real_escape_string($connect, $fullName) . "',
-                                '" . mysqli_real_escape_string($connect, $mobileNumber) . "',
-                                '" . mysqli_real_escape_string($connect, $fullName) . "',
-                                '" . mysqli_real_escape_string($connect, $emailAddress) . "',
-                                '" . mysqli_real_escape_string($connect, $mobileNumber) . "',
-                                '',
-                                '',
-                                '',
-                                '',
-                                '',
-                                '" . mysqli_real_escape_string($connect, (string)$original_amount) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$discount_amount) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
-                                '',
-                                '0',
-                                '',
-                                '',
-                                '',
-                                'Success',
-                                '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
-                                'Mini Website Creation',
-                                'Mini Website Creation (Wallet)',
-                                '998314',
-                                '1',
-                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$subtotal_amount) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$gst_percentage) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$igst_amount) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$cgst_amount) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$sgst_amount) . "',
-                                '" . mysqli_real_escape_string($connect, (string)$final_total) . "',
-                                'Wallet',
-                                '" . mysqli_real_escape_string($connect, $invoice_reference) . "',
-                                '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
-                                '" . mysqli_real_escape_string($connect, $current_timestamp) . "'
-                            )";
-                            $invoice_insert_ok = mysqli_query($connect, $invoice_insert_query);
-                            if (!$invoice_insert_ok) {
-                                error_log('wallet deduction invoice insert failed: ' . mysqli_error($connect));
-                            }
-                        }
-                    }
-                }
-                
-                // Send welcome email (if function exists)
-                $email_sent = false;
-                $franchisee_name = 'Franchisee';
-                $franchisee_esc = mysqli_real_escape_string($connect, $franchisee_email);
-                $franchisee_query = mysqli_query($connect, "SELECT f_user_name FROM franchisee_login WHERE f_user_email = '$franchisee_esc' LIMIT 1");
-                if ($franchisee_query && mysqli_num_rows($franchisee_query) > 0) {
-                    $franchisee_data = mysqli_fetch_array($franchisee_query);
-                    $franchisee_name = $franchisee_data['f_user_name'] ?? 'Franchisee';
-                }
-                if (file_exists(__DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php')) {
-                    require_once(__DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php');
-                    $email_sent = sendCustomerWelcomeEmail($fullName, $emailAddress, $password, $franchisee_name);
-                }
-
-                // MAIL TEMPLATE 04A — acknowledgement to franchisee (personal/login email)
-                $franchise_ack_email_sent = false;
-                if (file_exists(__DIR__ . '/../../common/mailtemplate/send_franchise_customer_created_ack_email.php')) {
-                    require_once __DIR__ . '/../../common/mailtemplate/send_franchise_customer_created_ack_email.php';
-                    $franchise_ack_email_sent = sendFranchiseCustomerCreatedAckEmail(
-                        $franchisee_email,
-                        $franchisee_name,
-                        $fullName,
-                        $emailAddress,
-                        $companyname,
-                        $mobileNumber
-                    );
-                }
-                
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Account created successfully' . ($email_sent ? ' and welcome email sent' : ' (email sending failed)'),
-                    'customer_id' => $customer_id,
-                    'email_sent' => $email_sent,
-                    'franchise_ack_email_sent' => $franchise_ack_email_sent
-                ]);
-            } else {
-                mysqli_stmt_close($card_stmt);
-                throw new Exception('Failed to create card: ' . mysqli_stmt_error($card_stmt));
-            }
-        } else {
+        if (!$insert_ud) {
             throw new Exception('Failed to create account: ' . mysqli_error($connect));
         }
-        
-    } catch (Exception $e) {
-        error_log("Customer account creation error: " . $e->getMessage());
+
+        $customer_id = mysqli_insert_id($connect);
+
+        $card_insert_query = "INSERT INTO digi_card (user_email, f_user_email, d_comp_name, card_id, d_payment_status, d_card_status, uploaded_date, validity_date)
+                             VALUES (?, ?, ?, ?, 'Success','Active', NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR))";
+        $card_stmt = mysqli_prepare($connect, $card_insert_query);
+        if (!$card_stmt) {
+            throw new Exception('Card prepare failed: ' . mysqli_error($connect));
+        }
+        mysqli_stmt_bind_param($card_stmt, 'ssss', $emailAddress, $franchisee_email, $companyname, $card_id);
+
+        if (!mysqli_stmt_execute($card_stmt)) {
+            $err = mysqli_stmt_error($card_stmt);
+            mysqli_stmt_close($card_stmt);
+            throw new Exception('Failed to create card: ' . $err);
+        }
+
+        $new_card_auto_id = mysqli_insert_id($connect);
+        mysqli_stmt_close($card_stmt);
+
+        $new_balance = $wallet_balance - 413;
+        $withdraw_amount_str = '-413';
+        $order_id_for_wallet = (string) $new_card_auto_id;
+        $wallet_insert = mysqli_prepare($connect, 'INSERT INTO wallet (f_user_email, w_withdraw, w_order_id, w_balance, uploaded_date) VALUES (?, ?, ?, ?, NOW())');
+        if ($wallet_insert) {
+            mysqli_stmt_bind_param($wallet_insert, 'sssd', $franchisee_email, $withdraw_amount_str, $order_id_for_wallet, $new_balance);
+            $wallet_insert_ok = mysqli_stmt_execute($wallet_insert);
+            if (!$wallet_insert_ok) {
+                error_log('wallet deduction insert failed: ' . mysqli_stmt_error($wallet_insert));
+            }
+            $wallet_txn_id = mysqli_insert_id($connect);
+            mysqli_stmt_close($wallet_insert);
+
+            if ($wallet_txn_id > 0) {
+                $invoice_reference = 'WALLET-' . $wallet_txn_id;
+                $check_invoice = mysqli_query($connect, "SELECT id FROM invoice_details WHERE reference_number='" . mysqli_real_escape_string($connect, $invoice_reference) . "' LIMIT 1");
+                if (!$check_invoice || mysqli_num_rows($check_invoice) === 0) {
+                    $last_invoice_query = mysqli_query($connect, "SELECT MAX(CAST(SUBSTRING_INDEX(invoice_number, '/', -1) AS UNSIGNED)) as last_number FROM invoice_details WHERE invoice_number LIKE 'KIR/%'");
+                    $last_invoice_result = $last_invoice_query ? mysqli_fetch_array($last_invoice_query) : null;
+                    $next_number = (($last_invoice_result['last_number'] ?? 0) + 1);
+                    $invoice_number = 'KIR/' . str_pad((string) $next_number, 5, '0', STR_PAD_LEFT);
+                    $current_timestamp = date('Y-m-d H:i:s');
+                    $invoice_insert_query = "INSERT INTO invoice_details (
+                        invoice_number, invoice_date, card_id, user_email, user_name, user_contact,
+                        billing_name, billing_email, billing_contact, billing_address, billing_state,
+                        billing_city, billing_pincode, billing_gst_number, original_amount, discount_amount,
+                        final_amount, promo_code, promo_discount, razorpay_order_id, razorpay_payment_id,
+                        razorpay_signature, payment_status, payment_date, service_name, service_description,
+                        hsn_sac_code, quantity, unit_price, total_price, sub_total, igst_percentage,
+                        igst_amount, cgst_amount, sgst_amount, total_amount, payment_type, reference_number, created_at, updated_at
+                    ) VALUES (
+                        '" . mysqli_real_escape_string($connect, $invoice_number) . "',
+                        '" . mysqli_real_escape_string($connect, date('Y-m-d')) . "',
+                        '" . mysqli_real_escape_string($connect, (string) $new_card_auto_id) . "',
+                        '" . mysqli_real_escape_string($connect, $emailAddress) . "',
+                        '" . mysqli_real_escape_string($connect, $fullName) . "',
+                        '" . mysqli_real_escape_string($connect, $mobileNumber) . "',
+                        '" . mysqli_real_escape_string($connect, $fullName) . "',
+                        '" . mysqli_real_escape_string($connect, $emailAddress) . "',
+                        '" . mysqli_real_escape_string($connect, $mobileNumber) . "',
+                        '', '', '', '', '',
+                        '350.00', '0.00', '413.00', '', '0', '', '', '', 'Success',
+                        '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+                        'Mini Website Creation', 'Mini Website Creation (Wallet)', '998314', '1',
+                        '413.00', '413.00', '350.00', '18', '63.00', '0.00', '0.00', '413.00',
+                        'Wallet', '" . mysqli_real_escape_string($connect, $invoice_reference) . "',
+                        '" . mysqli_real_escape_string($connect, $current_timestamp) . "',
+                        '" . mysqli_real_escape_string($connect, $current_timestamp) . "'
+                    )";
+                    mysqli_query($connect, $invoice_insert_query);
+                }
+            }
+        }
+
+        $email_sent = false;
+        $franchisee_name = 'Franchisee';
+        $franchisee_esc = mysqli_real_escape_string($connect, $franchisee_email);
+        $franchisee_query = mysqli_query($connect, "SELECT f_user_name FROM franchisee_login WHERE f_user_email = '$franchisee_esc' LIMIT 1");
+        if ($franchisee_query && mysqli_num_rows($franchisee_query) > 0) {
+            $franchisee_data = mysqli_fetch_array($franchisee_query);
+            $franchisee_name = $franchisee_data['f_user_name'] ?? 'Franchisee';
+        }
+        if (file_exists(__DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php')) {
+            require_once __DIR__ . '/../../common/mailtemplate/send_customer_welcome_email.php';
+            $email_sent = sendCustomerWelcomeEmail($fullName, $emailAddress, $password, $franchisee_name);
+        }
+
+        $franchise_ack_email_sent = false;
+        if (file_exists(__DIR__ . '/../../common/mailtemplate/send_franchise_customer_created_ack_email.php')) {
+            require_once __DIR__ . '/../../common/mailtemplate/send_franchise_customer_created_ack_email.php';
+            $franchise_ack_email_sent = sendFranchiseCustomerCreatedAckEmail(
+                $franchisee_email,
+                $franchisee_name,
+                $fullName,
+                $emailAddress,
+                $companyname,
+                $mobileNumber
+            );
+        }
+
         echo json_encode([
-            'success' => false,
-            'message' => $e->getMessage()
+            'success' => true,
+            'message' => 'Account created successfully' . ($email_sent ? ' and welcome email sent' : ' (welcome email sending failed)'),
+            'customer_id' => $customer_id,
+            'email_sent' => $email_sent,
+            'franchise_ack_email_sent' => $franchise_ack_email_sent,
         ]);
+    } catch (Exception $e) {
+        error_log('Customer account creation error: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
     exit;
 }
@@ -262,6 +271,7 @@ require_once(__DIR__ . '/../../app/config/database.php');
 include __DIR__ . '/../includes/header.php';
 
 require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
+require_once(__DIR__ . '/../../app/helpers/mw_card_status_helper.php');
 
 // Get current role
 $current_role = get_current_user_role();
@@ -276,6 +286,15 @@ $show_grow_with_mw = is_role_access_feature_visible_for_user(
     $user_email,
     $current_role
 );
+$show_create_mw_button = is_role_access_feature_visible(
+    $connect,
+    $ras_dash['profile_key'] ?? null,
+    'create_mw_button',
+    'textarea'
+);
+if ($current_role === 'FRANCHISEE') {
+    $show_create_mw_button = true;
+}
 
 // Clear any applied promocodes when accessing dashboard
 if (isset($_SESSION['promo_code'])) {
@@ -474,7 +493,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                     
                     <div class="FranchiseeDashboard-head">
                         <div class="mw-dash-card-grid">
-                            <!-- Create New Mini Website -->
+                            <!-- Create Your MW -->
                             <div class="card_area">
                                 <?php if ($is_verified && $has_sufficient_balance): ?>
                                     <a href="#" onclick="openCreateAccountModal(); return false;">
@@ -572,7 +591,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                                 $status_text = 'InActive';
                                             } else {
                                                 $status_class = 'not-eligible';
-                                                $status_text = 'Trial';
+                                                $status_text = 'Pending Payment';
                                             }
                                             
                                             $has_cards = !empty($user['card_id']);
@@ -611,6 +630,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                     <!-- CUSTOMER/TEAM DASHBOARD LAYOUT -->
                     <div class="CustomerDashboard-head">
                         <div class="mw-dash-card-grid">
+                            <?php if ($show_create_mw_button): ?>
                             <div class="card_area top_section">
                                 <a href="../website/business-name.php?new=1">
                                     <div class="card">
@@ -623,20 +643,7 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                     </div>
                                 </a>
                             </div>
-                            <?php if ($show_grow_with_mw): ?>
-                            <div class="card_area top_section">
-                                <a href="../grow-with-mw/">
-                                    <div class="card">
-                                        <div class="img mw-dash-card-icon mw-dash-card-icon--blue" aria-hidden="true">
-                                            <i class="fa-solid fa-line-chart"></i>
-                                        </div>
-                                        <div class="content">
-                                            <p>Grow with<br>MW Document</p>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <?php endif; ?>
+                         <?php endif; ?>                        
                         </div>
                     </div>
 
@@ -677,32 +684,9 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                         }
                                     }
                                     $payment_status = $row['d_payment_status'];
-                                     
-                                    // Check if user has collaboration enabled
-                                    if($row['complimentary_enabled'] == 'Yes') {
-                                        $status_class = 'bg-success';
-                                        $status_text = 'Active';
-                                    } else if ($payment_status == 'Success') {
-                                        // Paid: check validity_date for expiry
-                                        $is_expired = (!empty($row['validity_date']) && $row['validity_date'] != '0000-00-00 00:00:00') ? (strtotime($row['validity_date']) < time()) : false;
-                                        if ($is_expired) {
-                                            $status_class = 'bg-secondary lightGray';
-                                            $status_text = 'Expired <br/>on ' . date('d-m-Y', strtotime($row['validity_date']));
-                                        } else {
-                                            $status_class = 'bg-success';
-                                            $status_text = 'Active';
-                                        }
-                                    } else {
-                                        // Trial logic: show 7 Day Trial or Inactive after 7 days
-                                        $trial_end = date('Y-m-d H:i:s', strtotime($row['uploaded_date'] . ' +7 days'));
-                                        if (strtotime($trial_end) < time()) {
-                                            $status_class = 'bg-secondary lightGray';
-                                            $status_text = 'Inactive';
-                                        } else {
-                                            $status_class = 'bg-pending';
-                                            $status_text = '7 Day Trial';
-                                        }
-                                    }
+                                    $mw_status = mw_card_resolve_display_status($row);
+                                    $status_class = $mw_status['class'];
+                                    $status_text = $mw_status['text'];
                             ?>
                             <tr>
                                 <td><?php echo $row['id']; ?></td>
@@ -889,8 +873,9 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
             <h4 class="modal-title">Create An Account</h4>
         </div>
         <div class="modal-body">
-            <p class="modal-description">Create an account to create your Mini Website</p>
+            <p class="modal-description">Create an account to create your Mini Website. Customer will receive an OTP email with Terms &amp; Privacy Policy (MAIL 04B).</p>
             <form id="createAccountForm" method="POST" action="">
+                <div id="createAccountFields">
                 <div class="form-group">
                     <input type="text" class="form-control" id="fullName" name="fullName" placeholder="Full Name" required>
                 </div>
@@ -906,7 +891,14 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                 <div class="form-group">
                     <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
                 </div>
-                <button type="submit" class="btn-create-account">CREATE ACCOUNT</button>
+                </div>
+                <div id="createAccountOtpStep" style="display:none;">
+                    <p class="modal-description">Enter the OTP sent to the customer's email to verify and complete account creation.</p>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="customerOtp" name="customerOtp" placeholder="Enter OTP" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                    </div>
+                </div>
+                <button type="submit" class="btn-create-account" id="createAccountSubmitBtn">SEND OTP</button>
             </form>
         </div>
     </div>
@@ -1065,6 +1057,13 @@ function closeCreateAccountModal() {
     document.getElementById('createAccountModal').style.display = 'none';
     document.body.style.overflow = 'auto';
     document.getElementById('createAccountForm').reset();
+    var otpStep = document.getElementById('createAccountOtpStep');
+    var fields = document.getElementById('createAccountFields');
+    var submitBtn = document.getElementById('createAccountSubmitBtn');
+    if (otpStep) otpStep.style.display = 'none';
+    if (fields) fields.style.display = 'block';
+    if (submitBtn) submitBtn.textContent = 'SEND OTP';
+    window.franchiseOtpStepActive = false;
 }
 
 // Close modal when clicking outside
@@ -1088,24 +1087,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission handling
     var form = document.getElementById('createAccountForm');
     if (form) {
+        window.franchiseOtpStepActive = false;
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const confirmed = confirm('Please make sure your information is correct before proceeding. Click OK to finish creating the account.');
-            if (!confirmed) {
-                return;
-            }
-            
-            const submitBtn = document.querySelector('.btn-create-account');
+
+            const submitBtn = document.getElementById('createAccountSubmitBtn');
             const originalText = submitBtn.textContent;
-            
-            submitBtn.textContent = 'CREATING...';
+            const otpStep = document.getElementById('createAccountOtpStep');
+            const fields = document.getElementById('createAccountFields');
+
+            if (!window.franchiseOtpStepActive) {
+                const confirmed = confirm('Please make sure your information is correct before proceeding. An OTP will be sent to the customer email. Click OK to continue.');
+                if (!confirmed) return;
+            }
+
+            submitBtn.textContent = window.franchiseOtpStepActive ? 'CREATING...' : 'SENDING OTP...';
             submitBtn.classList.add('loading');
-            
+
             const formData = new FormData(this);
-            formData.append('action', 'create_customer_account');
             formData.append('franchisee_email', '<?php echo $franchisee_email; ?>');
-            
+
+            if (window.franchiseOtpStepActive) {
+                formData.append('action', 'create_customer_account');
+                formData.append('otp', document.getElementById('customerOtp').value.trim());
+            } else {
+                formData.append('action', 'franchise_send_create_otp');
+            }
+
             fetch('', {
                 method: 'POST',
                 body: formData
@@ -1114,17 +1122,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('application/json')) {
                     return response.json();
-                } else {
-                    return response.text().then(text => {
-                        throw new Error('Server returned non-JSON response: ' + text.substring(0, 200));
-                    });
                 }
+                return response.text().then(text => {
+                    throw new Error('Server returned non-JSON response: ' + text.substring(0, 200));
+                });
             })
             .then(data => {
+                if (data.success && data.requires_otp) {
+                    window.franchiseOtpStepActive = true;
+                    if (otpStep) otpStep.style.display = 'block';
+                    if (fields) fields.style.display = 'none';
+                    submitBtn.textContent = 'VERIFY & CREATE ACCOUNT';
+                    alert(data.message || 'OTP sent to customer email.');
+                    return;
+                }
                 if (data.success) {
                     let message = 'Account created successfully!';
                     if (data.email_sent !== undefined) {
-                        message += data.email_sent ? '\n✅ Welcome email sent to customer' : '\n⚠️ Account created but email sending failed';
+                        message += data.email_sent ? '\n✅ Welcome email sent to customer' : '\n⚠️ Account created but welcome email failed';
                     }
                     alert(message);
                     closeCreateAccountModal();
@@ -1135,10 +1150,12 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while creating the account: ' + error.message);
+                alert('An error occurred: ' + error.message);
             })
             .finally(() => {
-                submitBtn.textContent = originalText;
+                if (!window.franchiseOtpStepActive || submitBtn.textContent === 'CREATING...') {
+                    submitBtn.textContent = window.franchiseOtpStepActive ? 'VERIFY & CREATE ACCOUNT' : originalText;
+                }
                 submitBtn.classList.remove('loading');
             });
         });

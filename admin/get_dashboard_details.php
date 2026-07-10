@@ -1,5 +1,6 @@
 <?php
 require_once(__DIR__ . '/../app/config/database.php');
+require_once(__DIR__ . '/../app/helpers/mw_card_status_helper.php');
 
 if (!isset($_SESSION['admin_email'])) {
     header('Location: login.php');
@@ -62,28 +63,9 @@ if ($website_details_query) {
                     }
                     
                     // Determine MW Status
-                    if($website['complimentary_enabled'] == 'Yes') {
-                        $status_class = 'bg-success';
-                        $status_text = 'Active';
-                    } else if ($website['d_payment_status'] == 'Success') {
-                        $is_expired = (!empty($website['validity_date']) && $website['validity_date'] != '0000-00-00 00:00:00') ? (strtotime($website['validity_date']) < time()) : false;
-                        if ($is_expired) {
-                            $status_class = 'bg-secondary lightGray';
-                            $status_text = 'Expired <br/>on ' . date('d-m-Y', strtotime($website['validity_date']));
-                        } else {
-                            $status_class = 'bg-success';
-                            $status_text = 'Active';
-                        }
-                    } else {
-                        $trial_end = date('Y-m-d H:i:s', strtotime($website['uploaded_date'] . ' +7 days'));
-                        if (strtotime($trial_end) < time()) {
-                            $status_class = 'bg-secondary lightGray';
-                            $status_text = 'Inactive';
-                        } else {
-                            $status_class = 'bg-pending';
-                            $status_text = '7 Day Trial';
-                        }
-                    }
+                    $resolved = mw_card_resolve_display_status($website);
+                    $status_class = $resolved['class'];
+                    $status_text = $resolved['text'];
                 ?>
                 <tr style="border-bottom: 1px solid #dee2e6;">
                     <td style="padding: 12px;"><?php echo safe_h($website['id']); ?></td>

@@ -501,7 +501,7 @@ $mw_save_icon = '../../assets/images/Save.png';
                         </div>
                         <?php
                         $new_mw_save_btn = $requires_pay_for_new_mw
-                            ? ['type' => 'submit', 'name' => 'process1', 'label' => 'Pay Now', 'class' => 'save_btn', 'variant' => 'primary', 'icon' => 'fa-credit-card']
+                            ? ['type' => 'submit', 'name' => 'process1', 'label' => 'Submit & Pay', 'class' => 'save_btn', 'variant' => 'primary', 'icon' => 'fa-credit-card']
                             : ['type' => 'submit', 'name' => 'process1', 'label' => 'Save', 'class' => 'save_btn', 'img' => $mw_save_icon];
                         $new_mw_step_row = [
                             'back' => ['href' => '../dashboard/', 'label' => 'Back'],

@@ -590,10 +590,15 @@ if ($row) {
         }
     }
     // Special offers from card_special_offers
+    require_once __DIR__ . '/app/helpers/special_offer_helper.php';
+    mw_special_offer_auto_inactivate_expired($connect, $card_db_id);
     $offers = [];
-    $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge, start_date, end_date, start_time, end_time FROM card_special_offers WHERE card_id='$card_db_id' AND status='Active' ORDER BY display_order ASC");
+    $off_query = mysqli_query($connect, "SELECT offer_title, offer_description, offer_image, discount_percentage, badge, start_date, end_date, start_time, end_time, status FROM card_special_offers WHERE card_id='$card_db_id' AND status IN ('Active','Inactive') ORDER BY display_order ASC");
     if ($off_query) {
         while ($o = mysqli_fetch_assoc($off_query)) {
+            if (!mw_special_offer_visible_on_mw($o)) {
+                continue;
+            }
             if (!empty($o['offer_title'])) {
                 $img = $default_image;
                 if (!empty($o['offer_image']) && strpos($o['offer_image'], '.') !== false) {

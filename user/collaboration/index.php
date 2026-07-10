@@ -12,6 +12,7 @@ $user_email = $_SESSION['user_email'] ?? '';
 
 // Now include the header after all potential redirects
 include '../includes/header.php';
+require_once(__DIR__ . '/../../app/helpers/mw_card_status_helper.php');
 ?>
 <?php
 // Handle bank details submission
@@ -183,7 +184,8 @@ $referred_users_stmt = $connect->prepare("SELECT DISTINCT
     dc.validity_date as card_validity_date,
     dc.complimentary_enabled,
     dc.d_payment_status,
-    dc.d_payment_date
+    dc.d_payment_date,
+    dc.f_user_email
     FROM user_details ud_referred
     LEFT JOIN referral_earnings re 
         ON CONVERT(re.referred_email USING utf8mb4) = CONVERT(ud_referred.email USING utf8mb4)
@@ -407,13 +409,15 @@ $referred_users_result = $referred_users_stmt->get_result();
                                                 }
                                                 echo '<td class="text-left">' . $validity_display . '</td>';
                                                 // MW Status
-                                                $mw_status = '7 Day Trial';
-                                                if (($row['complimentary_enabled'] ?? '') === 'Yes') {
-                                                    $mw_status = 'Active';
-                                                } else if (($row['d_payment_status'] ?? '') === 'Success') {
-                                                    $mw_status = 'Active';
-                                                }
-                                                echo '<td class="text-left"><span class="' . ($mw_status === 'Active' ? 'bg-success' : 'bg-pending') . '">' . $mw_status . '</span></td>';
+                                                $mw_status_row = [
+                                                    'complimentary_enabled' => $row['complimentary_enabled'] ?? '',
+                                                    'd_payment_status' => $row['d_payment_status'] ?? '',
+                                                    'validity_date' => $row['card_validity_date'] ?? '',
+                                                    'uploaded_date' => $row['card_uploaded_date'] ?? '',
+                                                    'f_user_email' => $row['f_user_email'] ?? '',
+                                                ];
+                                                $mw_status = mw_card_resolve_short_status($mw_status_row);
+                                                echo '<td class="text-left"><span class="' . ($mw_status === 'Active' ? 'bg-success' : 'bg-pending') . '">' . htmlspecialchars($mw_status) . '</span></td>';
                                                 // User Payment Status with date
                                                 echo '<td class="text-left">';
                                                 if(($row['d_payment_status'] ?? '') === 'Success') {
