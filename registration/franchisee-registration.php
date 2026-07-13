@@ -145,11 +145,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             $referral_code = strtoupper(substr(md5($user_email . time()), 0, 8));
 
             // Insert user in unified user_details (used by login)
+            // Store the hashed password in BOTH columns so no plain-text password is persisted.
             $password_hash = password_hash($plain_password, PASSWORD_DEFAULT);
             $safe_role = 'FRANCHISEE';
             $insert_user_details = mysqli_query($connect, "INSERT INTO user_details
             (role, email, phone, name, password, password_hash, status, referral_code, referred_by)
-            VALUES ('$safe_role', '$user_email', '$user_contact', '$user_name', '$plain_password', '$password_hash', 'ACTIVE', '$referral_code', '$referrer_email')");
+            VALUES ('$safe_role', '$user_email', '$user_contact', '$user_name', '$password_hash', '$password_hash', 'ACTIVE', '$referral_code', '$referrer_email')");
             $insert = $insert_user_details;
 
         if ($insert) {

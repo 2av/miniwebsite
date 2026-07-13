@@ -104,6 +104,7 @@ function sendEmail($to, $subject, $message, $name = '') {
 	<form action="" method="POST" class="close_form" enctype="multipart/form-data" id="franchiseeForm">
 		
 		<h3></h3>
+		<div class="input_box"><p>User Name (Full Name) *</p><input type="text" name="f_user_name" maxlength="199" placeholder="Enter Full Name of franchisee" required></div>
 		<div class="input_box"><p>Login Email (Email ID) *</p><input type="email" name="f_user_email" maxlength="199" placeholder="Enter Login Email for franchisee login" required></div>
 		<div class="input_box"><p>Login Mobile (10 digits) *</p><input type="tel" name="f_user_contact" maxlength="10" minlength="10" pattern="[0-9]{10}" placeholder="Enter 10 digit Mobile Number" required></div>
 		<div class="input_box"><p>Login password *</p><input type="text" name="f_user_password" maxlength="199" placeholder="Enter Password" required></div>
@@ -115,11 +116,17 @@ function sendEmail($to, $subject, $message, $name = '') {
 
 	<script>
 	document.getElementById('franchiseeForm').addEventListener('submit', function(e) {
+		var name = document.querySelector('input[name="f_user_name"]').value;
 		var email = document.querySelector('input[name="f_user_email"]').value;
 		var contact = document.querySelector('input[name="f_user_contact"]').value;
 		var password = document.querySelector('input[name="f_user_password"]').value;
 		
 		var errors = [];
+		
+		// Validate name
+		if(!name.trim()) {
+			errors.push('User Name is required');
+		}
 		
 		// Validate email
 		if(!email.trim()) {
@@ -169,6 +176,11 @@ if(isset($_POST['process1'])){
 	
 	// Server-side validation
 	$errors = array();
+	
+	// Validate name
+	if(empty(trim($_POST['f_user_name'] ?? ''))) {
+		$errors[] = "User Name is required";
+	}
 	
 	// Validate email
 	if(empty($_POST['f_user_email'])) {
@@ -224,8 +236,8 @@ if(isset($_POST['process1'])){
 			$f_user_password_hash = mw_hash_password($f_user_password_raw);
 			$f_user_password_esc  = mysqli_real_escape_string($connect, $f_user_password_hash);
 			$f_user_contact_esc = mysqli_real_escape_string($connect, $_POST['f_user_contact']);
-			// Use email as name if name is not provided
-			$f_user_name_esc = mysqli_real_escape_string($connect, $_POST['f_user_email']);
+			// Full name provided in the form
+			$f_user_name_esc = mysqli_real_escape_string($connect, trim($_POST['f_user_name']));
 
 			try {
 				$insert = mysqli_query(
@@ -249,7 +261,7 @@ if(isset($_POST['process1'])){
 			if($insert){
 				// Send welcome email to the newly created franchisee
 				$user_email = $_POST['f_user_email'];
-				$user_name = $_POST['f_user_email']; // Using email as name since name is not collected in this form
+				$user_name = trim($_POST['f_user_name']);
 				
 				$email_template = buildFranchiseeWelcomeEmail($user_name, $user_email, $f_user_password_raw, [
 					'include_payment_step' => true,

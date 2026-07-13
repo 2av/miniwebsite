@@ -2109,14 +2109,22 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                             // Build query string for menu links if card_number exists
                             $card_query = !empty($card_number) ? '?card_number=' . htmlspecialchars($card_number) : '';
                             $current_page_ws = basename($_SERVER['PHP_SELF']);
+                            // Lock website-builder steps below Business Name until MW card exists (payment completed for 2nd+ MW)
+                            $lock_website_builder_steps = empty($card_number);
                         ?>
                             <?php
                             // Website-builder sidebar from user/menu_config.json → website_menu_items
                             $ws_items = [];
+                            $past_business_name = false;
                             foreach (load_website_menu_config() as $ws_cfg) {
                                 $path = trim((string) ($ws_cfg['path'] ?? ''), '/');
                                 $page_file = $path !== '' ? basename($path) : '';
                                 $is_dashboard = ($path === 'dashboard');
+                                $item_id = (string) ($ws_cfg['id'] ?? '');
+                                $locked = ($past_business_name && $lock_website_builder_steps);
+                                if ($item_id === 'ws_business_name') {
+                                    $past_business_name = true;
+                                }
                                 $ws_items[] = [
                                     'label'            => $ws_cfg['label'] ?? '',
                                     'icon'             => $ws_cfg['icon'] ?? 'circle-o',
@@ -2124,18 +2132,19 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                     'active'           => $is_dashboard ? ($current_dir === 'dashboard') : ($current_page_ws === $page_file),
                                     'target'           => null,
                                     'separator_before' => !empty($ws_cfg['separator_before']),
+                                    'locked'           => $locked,
                                 ];
                             }
                             if ($collaboration_enabled) {
-                                $ws_items[] = ['label' => 'Collaboration Details', 'icon' => 'exchange', 'url' => $nav_base . '/collaboration/',  'active' => ($current_dir == 'collaboration' || $current_dir == 'collaboration-details'), 'target' => null];
+                                $ws_items[] = ['label' => 'Collaboration Details', 'icon' => 'exchange', 'url' => $nav_base . '/collaboration/',  'active' => ($current_dir == 'collaboration' || $current_dir == 'collaboration-details'), 'target' => null, 'locked' => false];
                             }
                             if ($saleskit_enabled) {
-                                $ws_items[] = ['label' => 'Sales Kit',     'icon' => 'folder-open', 'url' => $nav_base . '/kit/', 'active' => ($current_dir == 'kit'), 'target' => null];
+                                $ws_items[] = ['label' => 'Sales Kit',     'icon' => 'folder-open', 'url' => $nav_base . '/kit/', 'active' => ($current_dir == 'kit'), 'target' => null, 'locked' => false];
                             }
                             if ($collaboration_enabled) {
-                                $ws_items[] = ['label' => 'Marketing Kit', 'icon' => 'bullhorn',  'url' => $nav_base . '/kit/', 'active' => ($current_dir == 'kit'), 'target' => null];
+                                $ws_items[] = ['label' => 'Marketing Kit', 'icon' => 'bullhorn',  'url' => $nav_base . '/kit/', 'active' => ($current_dir == 'kit'), 'target' => null, 'locked' => false];
                             }
-                            $ws_items[] = ['label' => 'Preview', 'icon' => 'external-link', 'url' => $assets_base . '/n.php?n=' . htmlspecialchars($business_name_slug), 'active' => !empty($business_name_slug), 'target' => '_blank', 'separator_before' => true];
+                            $ws_items[] = ['label' => 'Preview', 'icon' => 'external-link', 'url' => $assets_base . '/n.php?n=' . htmlspecialchars($business_name_slug), 'active' => !empty($business_name_slug), 'target' => '_blank', 'separator_before' => true, 'locked' => ($lock_website_builder_steps || empty($business_name_slug))];
 
                             foreach ($ws_items as $item):
                                 if (!empty($item['separator_before'])):
@@ -2144,9 +2153,19 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                             <?php
                                 endif;
                                 $is_active   = !empty($item['active']);
-                                $link_class  = $nav_link_classes . ($is_active ? ' ' . $nav_link_active : '');
+                                $is_locked   = !empty($item['locked']);
+                                $link_class  = $nav_link_classes . ($is_active && !$is_locked ? ' ' . $nav_link_active : '') . ($is_locked ? ' ' . $nav_disabled_classes : '');
                                 $target_attr = !empty($item['target']) ? ' target="' . htmlspecialchars($item['target'], ENT_QUOTES, 'UTF-8') . '" rel="noopener noreferrer"' : '';
+                                if ($is_locked):
                             ?>
+                            <span class="nav-link collapsed <?php echo $link_class; ?>" aria-disabled="true" title="Complete Business Name and payment to unlock">
+                                <div class="<?php echo $nav_icon_classes; ?> !bg-slate-50">
+                                    <?php echo render_nav_icon($item['icon'], $assets_base); ?>
+                                </div>
+                                <span class="<?php echo $nav_label_classes; ?> !text-slate-400"><?php echo htmlspecialchars($item['label']); ?></span>
+                                <i class="fa fa-lock !text-slate-400 !text-xs shrink-0" aria-hidden="true"></i>
+                            </span>
+                            <?php else: ?>
                             <a class="nav-link collapsed <?php echo $is_active ? 'active' : ''; ?> <?php echo $link_class; ?>" href="<?php echo $item['url']; ?>"<?php echo $target_attr; ?><?php echo $is_active ? ' aria-current="page"' : ''; ?>>
                                 <div class="<?php echo $nav_icon_classes; ?>">
                                     <?php echo render_nav_icon($item['icon'], $assets_base); ?>
@@ -2154,6 +2173,7 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                                 <span class="<?php echo $nav_label_classes; ?>"><?php echo $item['label']; ?></span>
                                 <div class="<?php echo $nav_arrow_classes; ?>"><i class="fa fa-angle-down" aria-hidden="true"></i></div>
                             </a>
+                            <?php endif; ?>
                             <?php endforeach; ?>
                         <?php
                         } else {
@@ -2224,9 +2244,12 @@ $site_base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'http
                             <?php
                                     continue;
                                 }
-                                if ($current_role === 'FRANCHISEE' && $menu_item_id === 'franchisee_kit' && !$franchise_verified_nav) {
+                                // FRANCHISEE: MW Sales Kit, Franchisee Sales Kit, Customer Manager and ID Card
+                                // stay locked until the franchise registration payment is successful.
+                                $franchisee_payment_locked_items = ['franchisee_mw_sales_kit', 'franchisee_franchise_sales_kit', 'customer_tracker', 'idcard'];
+                                if ($current_role === 'FRANCHISEE' && in_array($menu_item_id, $franchisee_payment_locked_items, true) && !$franchise_agreement_paid_nav) {
                             ?>
-                                <div class="nav-link collapsed <?php echo $nav_link_classes . ' ' . $nav_disabled_classes; ?>" title="Document verification required" aria-disabled="true">
+                                <div class="nav-link collapsed <?php echo $nav_link_classes . ' ' . $nav_disabled_classes; ?>" title="Complete franchise registration payment to unlock this section." aria-disabled="true">
                                     <div class="<?php echo $nav_icon_classes; ?>"><?php echo render_nav_icon($icon_path, $assets_base); ?></div>
                                     <span class="<?php echo $nav_label_classes; ?>"><?php echo htmlspecialchars($menu_item['label']); ?></span>
                                     <div class="<?php echo $nav_arrow_classes; ?>"><i class="fa fa-angle-down" aria-hidden="true"></i></div>

@@ -240,6 +240,17 @@ if(mysqli_num_rows($query) == 0){
     $cardRow = mysqli_fetch_array($query);
 }
 
+// Default state for the company State dropdown: prefer the saved company state (d_state);
+// otherwise fall back to the state the customer selected during registration.
+$registration_state_default = '';
+if (empty($cardRow['d_state']) && !empty($_SESSION['user_email'])) {
+    $reg_state_email_esc = mysqli_real_escape_string($connect, $_SESSION['user_email']);
+    $reg_state_q = mysqli_query($connect, "SELECT state FROM user_details WHERE email='$reg_state_email_esc' LIMIT 1");
+    if ($reg_state_q && ($reg_state_row = mysqli_fetch_assoc($reg_state_q))) {
+        $registration_state_default = trim($reg_state_row['state'] ?? '');
+    }
+}
+
 if (!function_exists('ensureDigiCardPreviousSlugMetaColumns')) {
     function ensureDigiCardPreviousSlugMetaColumn($connect, $column, $definition) {
         $column_esc = mysqli_real_escape_string($connect, $column);
@@ -1127,7 +1138,7 @@ include '../includes/header.php';
                             <div class="col-sm-3">
                                 <div class="form-group">
                                     <label for="d_state">State <span class="text-danger">*</span></label>
-                                    <select name="d_state" id="d_state" class="form-control" required disabled data-saved="<?php echo !empty($cardRow['d_state']) ? htmlspecialchars($cardRow['d_state']) : ''; ?>">
+                                    <select name="d_state" id="d_state" class="form-control" required disabled data-saved="<?php echo !empty($cardRow['d_state']) ? htmlspecialchars($cardRow['d_state']) : htmlspecialchars($registration_state_default); ?>">
                                         <option value="">Select State</option>
                                     </select>
                                 </div>

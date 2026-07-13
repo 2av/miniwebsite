@@ -1,4 +1,50 @@
 <?php
+/**
+ * Ensure the deals table has a deal_state column (state-wise MiniWebsite deals).
+ * Runs at most once per request.
+ */
+function mw_ensure_deal_state_column($connect) {
+    static $done = false;
+    if ($done || !($connect instanceof mysqli)) {
+        return;
+    }
+    $done = true;
+    $res = @mysqli_query($connect, "SHOW COLUMNS FROM deals LIKE 'deal_state'");
+    if ($res && mysqli_num_rows($res) === 0) {
+        @mysqli_query($connect, "ALTER TABLE deals ADD COLUMN deal_state VARCHAR(100) DEFAULT '' AFTER plan_type");
+    }
+}
+
+/**
+ * Find an active, valid, state-wise MiniWebsite deal for the given state.
+ * Returns the deal row array or null when none matches.
+ */
+function getActiveStateDealForMiniWebsite($connect, $state) {
+    mw_ensure_deal_state_column($connect);
+
+    $state = trim((string) $state);
+    if ($state === '' || !($connect instanceof mysqli)) {
+        return null;
+    }
+
+    $state_esc = mysqli_real_escape_string($connect, $state);
+    $today = date('Y-m-d');
+    $query = @mysqli_query($connect, "SELECT * FROM deals
+        WHERE deal_status='Active'
+          AND plan_type='MiniWebsite'
+          AND deal_state IS NOT NULL AND TRIM(deal_state) <> ''
+          AND LOWER(TRIM(deal_state)) = LOWER('$state_esc')
+          AND validity_date >= '$today'
+          AND (max_usage = 0 OR current_usage < max_usage)
+        ORDER BY id DESC
+        LIMIT 1");
+
+    if ($query && mysqli_num_rows($query) > 0) {
+        return mysqli_fetch_assoc($query);
+    }
+    return null;
+}
+
 function validateCoupon($coupon_code, $connect, $service_type) {
     $coupon_code = strtoupper(mysqli_real_escape_string($connect, $coupon_code));
     

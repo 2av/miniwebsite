@@ -25,6 +25,18 @@
       "always_visible": true
     },
     {
+      "id": "collaboration",
+      "label": "Referral Details",
+      "icon": "exchange",
+      "url": "/collaboration",
+      "roles": ["CUSTOMER"],
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": true
+        }
+      }
+    },
+    {
       "id": "verification",
       "label": "Verification",
       "icon": "check-square-o",
@@ -41,10 +53,19 @@
       "always_visible": true
     },
     {
-      "id": "franchisee_kit",
-      "label": "Creator Kit",
-      "icon": "briefcase",
+      "id": "franchisee_mw_sales_kit",
+      "label": "MW Sales Kit",
+      "icon": "folder-open",
       "url": "/kit",
+      "roles": ["FRANCHISEE"],
+      "role_access_feature": "kit_management",
+      "role_access_type": "text"
+    },
+    {
+      "id": "franchisee_franchise_sales_kit",
+      "label": "Franchisee Sales Kit",
+      "icon": "suitcase",
+      "url": "/kit?kit=franchise_sales",
       "roles": ["FRANCHISEE"],
       "role_access_feature": "kit_management",
       "role_access_type": "text"
@@ -109,20 +130,8 @@
       }
     },
     {
-      "id": "collaboration",
-      "label": "Collaboration Details",
-      "icon": "exchange",
-      "url": "/collaboration",
-      "roles": ["CUSTOMER"],
-      "conditions": {
-        "CUSTOMER": {
-          "collaboration_enabled": true
-        }
-      }
-    },
-    {
       "id": "kit",
-      "label": "Sales Kit",
+      "label": "MW Sales Kit",
       "icon": "folder-open",
       "url": "/kit",
       "roles": ["TEAM"],
@@ -188,6 +197,21 @@
       "conditions": {
         "CUSTOMER": {
           "collaboration_enabled": true
+        }
+      }
+    },
+    {
+      "id": "mw_sales_kit_influencer",
+      "label": "MW Sales Kit",
+      "icon": "folder-open",
+      "url": "/kit?kit=mw_sales",
+      "roles": ["CUSTOMER"],
+      "role_access_feature": "kit_management",
+      "role_access_type": "text",
+      "conditions": {
+        "CUSTOMER": {
+          "collaboration_enabled": true,
+          "influencer": true
         }
       }
     }

@@ -4,6 +4,45 @@
  * Keep franchisee-related email copy in one place.
  */
 
+if (!function_exists('resolveFranchiseeDisplayName')) {
+    /**
+     * Prefer a human-readable franchisee name for email greetings.
+     */
+    function resolveFranchiseeDisplayName($userName, $userEmail)
+    {
+        $displayName = trim((string) $userName);
+        $userEmail = trim((string) $userEmail);
+
+        $looksLikeEmail = static function ($value) {
+            return $value !== '' && strpos($value, '@') !== false;
+        };
+
+        if ($displayName === '' || strcasecmp($displayName, $userEmail) === 0 || $looksLikeEmail($displayName)) {
+            global $connect;
+            if (!empty($connect) && $userEmail !== '') {
+                $emailEsc = mysqli_real_escape_string($connect, $userEmail);
+                $nameQuery = mysqli_query(
+                    $connect,
+                    "SELECT name FROM user_details WHERE email='{$emailEsc}' AND role='FRANCHISEE' LIMIT 1"
+                );
+                if ($nameQuery && mysqli_num_rows($nameQuery) > 0) {
+                    $nameRow = mysqli_fetch_array($nameQuery);
+                    $dbName = trim((string) ($nameRow['name'] ?? ''));
+                    if ($dbName !== '' && strcasecmp($dbName, $userEmail) !== 0 && !$looksLikeEmail($dbName)) {
+                        $displayName = $dbName;
+                    }
+                }
+            }
+        }
+
+        if ($displayName === '' || strcasecmp($displayName, $userEmail) === 0 || $looksLikeEmail($displayName)) {
+            return 'there';
+        }
+
+        return $displayName;
+    }
+}
+
 if (!function_exists('buildFranchiseeWelcomeEmail')) {
     /**
      * Build franchisee welcome email.
@@ -16,6 +55,7 @@ if (!function_exists('buildFranchiseeWelcomeEmail')) {
      */
     function buildFranchiseeWelcomeEmail($userName, $userEmail, $userPassword, array $options = [])
     {
+        $displayName = resolveFranchiseeDisplayName($userName, $userEmail);
         $host = $_SERVER['HTTP_HOST'] ?? 'miniwebsite.in';
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
         $projectBasePath = dirname(dirname($scriptName));
@@ -35,7 +75,7 @@ if (!function_exists('buildFranchiseeWelcomeEmail')) {
 
         $message = '
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <p style="color: #333; font-size: 16px; line-height: 1.6;">Hi <strong>' . htmlspecialchars($userName) . '</strong>,</p>
+            <p style="color: #333; font-size: 16px; line-height: 1.6;">Hi <strong>' . htmlspecialchars($displayName) . '</strong>,</p>
             
             <p style="color: #333; font-size: 16px; line-height: 1.6;">Thank you for registering as a franchise with MiniWebsite.in.</p>
             

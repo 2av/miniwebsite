@@ -349,10 +349,12 @@ if(isset($_GET['remove_deal'])) {
                         <th>User Email</th>
                         <th>User Name</th>
                         <th>User Number</th>
+                        <th>State</th>
                         <th>Joined On</th>
                         <th>Referral Source</th>
                         <th>No. of MW</th>
-                        <th>Pending Amount</th>
+                        <th>Referral Amt</th>
+                        <th>MW Payment Status</th>
                         <th>Dashboard Details</th>
                         <th>Referral Details</th>
                         <th>Deal For MW</th>
@@ -379,6 +381,9 @@ if(isset($_GET['remove_deal'])) {
                     
                     // Add role filter for customers only
                     $where_conditions[] = "role='CUSTOMER'";
+                    
+                    // Hide collaboration-enabled users (they are managed on the Franchisee Distributor page)
+                    $where_conditions[] = "(collaboration_enabled IS NULL OR collaboration_enabled != 'YES')";
                     
                     // Search filter only
                     if(isset($_GET['search']) && $_GET['search']!='') {
@@ -440,7 +445,7 @@ if(isset($_GET['remove_deal'])) {
                         $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
                     }
                     
-                    $query = mysqli_query($connect, "SELECT id, email, phone, name, status, created_at, collaboration_enabled, saleskit_enabled, refund_status, refund_status_date, referred_by FROM user_details $where_clause ORDER BY id DESC LIMIT $start_from, $limit");
+                    $query = mysqli_query($connect, "SELECT id, email, phone, name, state, status, created_at, collaboration_enabled, saleskit_enabled, refund_status, refund_status_date, referred_by FROM user_details $where_clause ORDER BY id DESC LIMIT $start_from, $limit");
 
                     if(mysqli_num_rows($query)>0){
                         while($row=mysqli_fetch_array($query)){
@@ -448,6 +453,7 @@ if(isset($_GET['remove_deal'])) {
                             $user_email = $row['email'] ?? '';
                             $user_name = $row['name'] ?? '';
                             $user_contact = $row['phone'] ?? '';
+                            $user_state = $row['state'] ?? '';
                             $user_active = ($row['status'] ?? 'INACTIVE') === 'ACTIVE' ? 'YES' : 'NO';
                             $uploaded_date = $row['created_at'] ?? '';
                             
@@ -467,6 +473,7 @@ if(isset($_GET['remove_deal'])) {
                              echo '<td>'.htmlspecialchars($user_email).'</td>';
                              echo '<td>'.htmlspecialchars($user_name).'</td>';
                              echo '<td>'.htmlspecialchars($user_contact).'</td>';
+                             echo '<td>'.(!empty($user_state) ? htmlspecialchars($user_state) : '-').'</td>';
                              // Joined On
                              echo '<td><small class="text-muted">'.(!empty($uploaded_date) ? date('M d, Y', strtotime($uploaded_date)) : '-').'</small></td>';
                             // Referral Source (formatted, using unified user_details)
@@ -523,20 +530,42 @@ if(isset($_GET['remove_deal'])) {
                                      FROM referral_payment_history rph2 
                                      INNER JOIN referral_earnings re2 ON rph2.referral_id = re2.id 
                                      WHERE BINARY re2.referrer_email = BINARY re.referrer_email
-                                 ), 0) AS total_paid_amount
+                                 ), 0) AS total_paid_amount,
+                                 (
+                                     SELECT MAX(rph3.payment_date) 
+                                     FROM referral_payment_history rph3 
+                                     INNER JOIN referral_earnings re3 ON rph3.referral_id = re3.id 
+                                     WHERE BINARY re3.referrer_email = BINARY re.referrer_email
+                                 ) AS last_payment_date
                                  FROM referral_earnings re 
                                  WHERE re.referrer_email = '".mysqli_real_escape_string($connect, $user_email)."'");
                              $total_referral_amount = 0;
                              $total_paid_amount = 0;
+                             $last_payment_date = null;
                              if($ref_summary_q && mysqli_num_rows($ref_summary_q) > 0){
                                  $ref_summary = mysqli_fetch_array($ref_summary_q);
                                  $total_referral_amount = (float)($ref_summary['total_referral_amount'] ?? 0);
                                  $total_paid_amount = (float)($ref_summary['total_paid_amount'] ?? 0);
+                                 $last_payment_date = $ref_summary['last_payment_date'] ?? null;
                              }
                              $pending_amount = $total_referral_amount - $total_paid_amount;
                              if($pending_amount < 0){ $pending_amount = 0; }
                              echo '<td>₹'.number_format($pending_amount, 0).'</td>';
-                            
+
+                            // MW Payment Status (aggregate of referral earnings owed to this user as referrer)
+                            echo '<td>';
+                            if($total_referral_amount <= 0){
+                                echo '<span class="badge bg-secondary">Not Eligible</span>';
+                            } elseif($total_paid_amount >= $total_referral_amount){
+                                $mw_payment_date = !empty($last_payment_date) ? date('d-m-Y', strtotime($last_payment_date)) : date('d-m-Y');
+                                echo '<span class="badge bg-success">Paid on '.$mw_payment_date.'</span>';
+                            } elseif($total_paid_amount > 0){
+                                echo '<span class="badge bg-warning text-dark">Partial Payment</span>';
+                            } else {
+                                echo '<span class="badge bg-warning text-dark">Pending</span>';
+                            }
+                            echo '</td>';
+
                             // Dashboard Details popup trigger
                             echo '<td><button type="button" class="btn btn-sm btn-outline-info" onclick="showDashboardDetails(\''.$user_email.'\')">View</button></td>';
                             
@@ -649,7 +678,7 @@ if(isset($_GET['remove_deal'])) {
                             echo '</tr>';
                         }
                                          } else {
-                         echo '<tr><td colspan="13" class="text-center py-4">No users found matching the filters</td></tr>';
+                         echo '<tr><td colspan="18" class="text-center py-4">No users found matching the filters</td></tr>';
                      }
                     ?>
                 </tbody>
@@ -1049,8 +1078,8 @@ if(isset($_GET['remove_deal'])) {
     <!-- Pagination -->
     <div class="pagination-modern">
         <?php 
-        // Query user_details table for customers (all, regardless of collaboration)
-        $query2 = mysqli_query($connect,"SELECT COUNT(*) AS total FROM user_details WHERE role='CUSTOMER'");
+        // Query user_details table for customers, excluding collaboration-enabled users
+        $query2 = mysqli_query($connect,"SELECT COUNT(*) AS total FROM user_details WHERE role='CUSTOMER' AND (collaboration_enabled IS NULL OR collaboration_enabled != 'YES')");
         $rowCount = $query2 ? mysqli_fetch_assoc($query2) : ['total' => 0];
         $pages = ceil(($rowCount['total'] ?? 0) / $limit);
 

@@ -1,7 +1,57 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once(__DIR__ . '/../app/config/database.php');
 require('header.php');
+
+// Handle deal mapping (Mini Website)
+if(isset($_POST['map_deal'])) {
+    $user_email = mysqli_real_escape_string($connect, $_POST['user_email']);
+    $deal_id = mysqli_real_escape_string($connect, $_POST['deal_id']);
+
+    if(!empty($deal_id)) {
+        $check_query = mysqli_query($connect, "SELECT * FROM deal_customer_mapping WHERE deal_id='$deal_id' AND customer_email='$user_email'");
+        if(mysqli_num_rows($check_query) == 0) {
+            $created_by = isset($_SESSION['admin_email']) ? $_SESSION['admin_email'] : 'admin';
+            $insert = mysqli_query($connect, "INSERT INTO deal_customer_mapping (deal_id, customer_email, created_by, created_date) VALUES ('$deal_id', '$user_email', '$created_by', NOW())");
+            if($insert) {
+                echo '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Deal mapped successfully!</div>';
+            } else {
+                echo '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error mapping deal!</div>';
+            }
+        } else {
+            echo '<div class="alert alert-warning"><i class="fas fa-info-circle me-2"></i>Deal already mapped to this user!</div>';
+        }
+    }
+}
+
+// Handle franchise deal mapping
+if(isset($_POST['map_deal_franchise'])) {
+    $user_email = mysqli_real_escape_string($connect, $_POST['user_email']);
+    $deal_id = mysqli_real_escape_string($connect, $_POST['deal_id']);
+
+    if(!empty($deal_id)) {
+        $check_query = mysqli_query($connect, "SELECT * FROM deal_customer_mapping WHERE deal_id='$deal_id' AND customer_email='$user_email'");
+        if(mysqli_num_rows($check_query) == 0) {
+            $created_by = isset($_SESSION['admin_email']) ? $_SESSION['admin_email'] : 'admin';
+            $insert = mysqli_query($connect, "INSERT INTO deal_customer_mapping (deal_id, customer_email, created_by, created_date) VALUES ('$deal_id', '$user_email', '$created_by', NOW())");
+            if($insert) {
+                echo '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Franchise deal mapped successfully!</div>';
+            } else {
+                echo '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error mapping franchise deal!</div>';
+            }
+        } else {
+            echo '<div class="alert alert-warning"><i class="fas fa-info-circle me-2"></i>Franchise deal already mapped to this user!</div>';
+        }
+    }
+}
+
+// Handle deal removal
+if(isset($_GET['remove_deal'])) {
+    $mapping_id = mysqli_real_escape_string($connect, $_GET['remove_deal']);
+    $delete = mysqli_query($connect, "DELETE FROM deal_customer_mapping WHERE id='$mapping_id'");
+    if($delete) {
+        echo '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Deal mapping removed successfully!</div>';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -47,12 +97,11 @@ require('header.php');
                                         <th>Invoice</th>
                                         <th>No. of MW</th>
                                         <th>Pending Amount</th>
-                                        <th>Collaboration Details</th>
+                                        <th>Dashboard Details</th>
+                                        <th>Referral Details</th>
                                         <th>Deals for MW</th>
                                         <th>Deals for Franchisee</th>
-                                        <th>Joining Deal</th>
                                         <th>Collaboration</th>
-                                        <th>MW Referral ID</th>
                                         <th>Reset Password</th>
                                     </tr>
                                 </thead>
@@ -172,7 +221,7 @@ require('header.php');
                                             // Influencer status
                                             $influencer_status = isset($row['influencer']) ? $row['influencer'] : 'NO';
                                             echo '<td>';
-                                            echo '<select class="form-select form-select-sm influencer-status" data-user-email="'.htmlspecialchars($user_email).'" data-prev-value="'.htmlspecialchars($influencer_status).'">';
+                                            echo '<select class="form-select form-select-sm influencer-status" data-user-email="'.htmlspecialchars($user_email).'" data-prev-value="'.htmlspecialchars($influencer_status).'" onchange="handleInfluencerStatusChange(this)">';
                                             foreach (['No' => 'NO', 'Yes' => 'YES'] as $label => $value) {
                                                 $selected = ($influencer_status === $value) ? ' selected' : '';
                                                 echo '<option value="'.$value.'"'.$selected.'>'.$label.'</option>';
@@ -194,115 +243,66 @@ require('header.php');
                                             echo '<td class="invoice-cell">'.$invoice_display.'</td>';
                                             echo '<td>'.$website_count.'</td>';
                                             echo '<td>₹'.number_format($pending_amount, 0).'</td>';
+                                            echo '<td><button type="button" class="btn btn-sm btn-outline-info" onclick="showDashboardDetails(\''.$user_email.'\')">View</button></td>';
                                             echo '<td><button type="button" class="btn btn-sm btn-outline-primary" onclick="showReferralDetails(\''.$user_email.'\')">View</button></td>';
 
                                             // Deal for MW
                                             // Check mapping existence
-                                            $mapped_mw_deal_query = mysqli_query($connect, "SELECT dcm.*, d.deal_name FROM deal_customer_mapping dcm JOIN deals d ON dcm.deal_id = d.id WHERE dcm.customer_email='".$user_email."' AND d.plan_type='MiniWebsite' LIMIT 1");
+                                            $mapped_mw_deal_query = mysqli_query($connect, "SELECT dcm.*, d.deal_name, d.coupon_code FROM deal_customer_mapping dcm JOIN deals d ON dcm.deal_id = d.id WHERE dcm.customer_email='".$user_email."' AND d.plan_type='MiniWebsite' LIMIT 1");
                                             $has_mw_deal = $mapped_mw_deal_query && mysqli_num_rows($mapped_mw_deal_query) > 0;
                                             echo '<td>';
                                             if($has_mw_deal){
                                                 $deal_row = mysqli_fetch_array($mapped_mw_deal_query);
-                                                echo htmlspecialchars($deal_row['deal_name']);
+                                                echo '<span class="deal-badge">';
+                                                echo substr($deal_row['deal_name'], 0, 15) . '...';
+                                                echo '<a href="?remove_deal='.$deal_row['id'].'" onclick="return confirm(\'Remove this deal mapping?\')" class="remove-deal">×</a>';
+                                                echo '</span>';
                                             } else {
-                                                echo '-';
+                                                echo '<form method="POST" class="deal-form">';
+                                                echo '<input type="hidden" name="user_email" value="'.htmlspecialchars($user_email).'">';
+                                                echo '<input type="hidden" name="map_deal" value="1">';
+                                                echo '<select name="deal_id" class="form-select form-select-sm" required>';
+                                                echo '<option value="">Select Deal</option>';
+                                                $mw_deals_query = mysqli_query($connect, "SELECT * FROM deals WHERE deal_status='Active' AND plan_type='MiniWebsite' ORDER BY deal_name");
+                                                if($mw_deals_query && mysqli_num_rows($mw_deals_query) > 0) {
+                                                    while($deal = mysqli_fetch_array($mw_deals_query)) {
+                                                        echo '<option value="'.$deal['id'].'">'.substr($deal['deal_name'], 0, 20).'...</option>';
+                                                    }
+                                                } else {
+                                                    echo '<option value="" disabled>No Mini Website deals available</option>';
+                                                }
+                                                echo '</select>';
+                                                echo '</form>';
                                             }
                                             echo '</td>';
 
                                             // Deal for Franchisee
-                                            $mapped_fr_deal_query = mysqli_query($connect, "SELECT dcm.*, d.deal_name FROM deal_customer_mapping dcm JOIN deals d ON dcm.deal_id = d.id WHERE dcm.customer_email='".$user_email."' AND d.plan_type='Franchise' LIMIT 1");
+                                            $mapped_fr_deal_query = mysqli_query($connect, "SELECT dcm.*, d.deal_name, d.coupon_code FROM deal_customer_mapping dcm JOIN deals d ON dcm.deal_id = d.id WHERE dcm.customer_email='".$user_email."' AND d.plan_type='Franchise' LIMIT 1");
                                             $has_fr_deal = $mapped_fr_deal_query && mysqli_num_rows($mapped_fr_deal_query) > 0;
                                             echo '<td>';
                                             if($has_fr_deal){
                                                 $deal_row2 = mysqli_fetch_array($mapped_fr_deal_query);
-                                                echo htmlspecialchars($deal_row2['deal_name']);
+                                                echo '<span class="deal-badge">';
+                                                echo substr($deal_row2['deal_name'], 0, 15) . '...';
+                                                echo '<a href="?remove_deal='.$deal_row2['id'].'" onclick="return confirm(\'Remove this deal mapping?\')" class="remove-deal">×</a>';
+                                                echo '</span>';
                                             } else {
-                                                echo '-';
-                                            }
-                                            echo '</td>';
-
-                                            // Joining deal manage - check if user has active joining deal
-                                            // First check for pending upgrade deals
-                                            $pending_upgrade_query = mysqli_query($connect, "SELECT ujdm.*, jd.deal_name, jd.deal_code, jd.total_fees 
-                                                FROM user_joining_deals_mapping ujdm 
-                                                JOIN joining_deals jd ON ujdm.joining_deal_id = jd.id 
-                                                WHERE ujdm.user_email = '".$user_email."' 
-                                                AND ujdm.mapping_status = 'ACTIVE' 
-                                                AND ujdm.payment_status = 'PENDING'
-                                                AND (ujdm.expiry_date IS NULL OR ujdm.expiry_date > NOW()) 
-                                                ORDER BY ujdm.created_at DESC LIMIT 1");
-                                            
-                                            // Then check for active paid deals
-                                            $active_deal_query = mysqli_query($connect, "SELECT ujdm.*, jd.deal_name, jd.deal_code, jd.total_fees 
-                                                FROM user_joining_deals_mapping ujdm 
-                                                JOIN joining_deals jd ON ujdm.joining_deal_id = jd.id 
-                                                WHERE ujdm.user_email = '".$user_email."' 
-                                                AND ujdm.mapping_status = 'ACTIVE' 
-                                                AND ujdm.payment_status = 'PAID'
-                                                AND (ujdm.expiry_date IS NULL OR ujdm.expiry_date > NOW()) 
-                                                ORDER BY ujdm.created_at DESC LIMIT 1");
-                                            
-                                            echo '<td>';
-                                            
-                                            // Check if there's a pending upgrade
-                                            if($pending_upgrade_query && mysqli_num_rows($pending_upgrade_query) > 0) {
-                                                $pending_deal = mysqli_fetch_array($pending_upgrade_query);
-                                                
-                                                // Show pending upgrade deal
-                                                $payment_url = 'https://www.miniwebsite.in/franchisee-distributer-agreement.php?email=' . urlencode($user_email);
-                                                
-                                                // Check if this is an upgrade (has notes about upgrade)
-                                                $is_upgrade = strpos($pending_deal['notes'], 'Upgraded from') !== false;
-                                                $amount_label = $is_upgrade ? 'Remaining Amount' : 'Amount';
-                                                
-                                                echo '<div style="font-size: 10px; display: flex; gap: 6px; flex-wrap: nowrap; flex-direction: column;">';
-                                                echo '<div style="color: #ffc107; font-weight: bold;">🔄 UPGRADE PENDING</div>';
-                                                echo '<div>' . htmlspecialchars($pending_deal['deal_name']) . '</div>';
-                                                echo '<div><strong>' . $amount_label . ':</strong> ₹' . number_format($pending_deal['amount_paid'], 0) . '</div>';
-                                                echo '<div><strong>Requested:</strong> ' . (!empty($pending_deal['created_at']) ? date('d-m-Y H:i', strtotime($pending_deal['created_at'])) : 'N/A') . '</div>';
-                                                echo '<div><strong>Status:</strong> <span style="color: #dc3545;">Pending Payment</span></div>';
-                                                echo '<a href="' . $payment_url . '" target="_blank" class="btn btn-sm btn-success" style="font-size: 10px; padding: 2px 6px;">Pay Now</a>';
-                                                echo '</div>';
-                                                
-                                                // Also show current active deal below
-                                                if($active_deal_query && mysqli_num_rows($active_deal_query) > 0) {
-                                                    $active_deal = mysqli_fetch_array($active_deal_query);
-                                                    $start_date_formatted = !empty($active_deal['start_date']) ? date('d-m-Y', strtotime($active_deal['start_date'])) : '-';
-                                                    $expiry_date_formatted = !empty($active_deal['expiry_date']) ? date('d-m-Y', strtotime($active_deal['expiry_date'])) : '';
-                                                    
-                                                    echo '<div style="font-size: 9px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e9ecef; color: #6c757d;">';
-                                                    echo '<div style="color: #28a745; font-weight: bold;">✓ CURRENT ACTIVE</div>';
-                                                    echo '<div>' . htmlspecialchars($active_deal['deal_name']) . '</div>';
-                                                    echo '<div><strong>Status:</strong> <span style="color: #28a745;">Paid</span></div>';
-                                                    echo '<div><strong>Valid:</strong> ' . $start_date_formatted . ' to ' . $expiry_date_formatted . '</div>';
-                                                    echo '</div>';
+                                                echo '<form method="POST" class="deal-form-franchise">';
+                                                echo '<input type="hidden" name="user_email" value="'.htmlspecialchars($user_email).'">';
+                                                echo '<input type="hidden" name="map_deal_franchise" value="1">';
+                                                echo '<select name="deal_id" class="form-select form-select-sm" required>';
+                                                echo '<option value="">Select Deal</option>';
+                                                $fr_deals_query = mysqli_query($connect, "SELECT * FROM deals WHERE deal_status='Active' AND plan_type='Franchise' ORDER BY deal_name");
+                                                if($fr_deals_query && mysqli_num_rows($fr_deals_query) > 0) {
+                                                    while($deal = mysqli_fetch_array($fr_deals_query)) {
+                                                        echo '<option value="'.$deal['id'].'">'.substr($deal['deal_name'], 0, 20).'...</option>';
+                                                    }
+                                                } else {
+                                                    echo '<option value="" disabled>No Franchise deals available</option>';
                                                 }
-                                                
-                                            } else if($active_deal_query && mysqli_num_rows($active_deal_query) > 0) {
-                                                // Show only active deal (no pending upgrade)
-                                                $active_deal = mysqli_fetch_array($active_deal_query);
-                                                $start_date_formatted = !empty($active_deal['start_date']) ? date('d-m-Y', strtotime($active_deal['start_date'])) : '-';
-                                                $expiry_date_formatted = !empty($active_deal['expiry_date']) ? date('d-m-Y', strtotime($active_deal['expiry_date'])) : '-';
-                                                
-                                                echo '<div style="font-size: 10px; display: flex; gap: 6px; flex-wrap: nowrap; flex-direction: column;">';
-                                                echo '<div>' . htmlspecialchars($active_deal['deal_name']) . '</div>';
-                                                echo '<div><strong>Status:</strong> <span style="color: #28a745;">Paid</span></div>';
-                                                echo '<div><strong>Start:</strong> ' . $start_date_formatted . '</div>';
-                                                echo '<div><strong>Expire:</strong> ' . $expiry_date_formatted . '</div>';
-                                                
-                                                // Action buttons row
-                                                echo '<div style="display: flex;gap: 4px;align-content: space-between;flex-direction: column;align-items: center;">';
-                                                $startIso = !empty($active_deal['start_date']) ? date('Y-m-d', strtotime($active_deal['start_date'])) : '';
-                                                $expiryIso = !empty($active_deal['expiry_date']) ? date('Y-m-d', strtotime($active_deal['expiry_date'])) : '';
-                                                echo '<a href="#" title="Edit dates" onclick="openEditJoiningDates(' . intval($active_deal['id']) . ', \'' . $startIso . '\', \'' . $expiryIso . '\'); return false;" style="color:#0d6efd; text-decoration:none; font-size:12px;"><i class="fas fa-pen"></i></a>';
-                                                echo '<button type="button" class="btn btn-sm btn-warning" onclick="openTopupModal(\''.$user_email.'\', \''.htmlspecialchars($user_name).'\', \''.$active_deal['deal_code'].'\', \''.$active_deal['deal_name'].'\')" style="font-size: 8px; padding: 1px 4px;">Topup</button>';
-                                                echo '</div>';
-                                                echo '</div>';
-                                                
-                                            } else {
-                                                echo '<button type="button" class="btn btn-sm btn-info" onclick="showJoiningDealsModal(\''.$user_email.'\', \' '.htmlspecialchars($user_name).'\')">Manage</button>';
+                                                echo '</select>';
+                                                echo '</form>';
                                             }
-                                            
                                             echo '</td>';
 
                                             // Collaboration toggle
@@ -313,22 +313,13 @@ require('header.php');
                                             echo '</label>';
                                             echo '</td>';
 
-                                            // MW Referral ID toggle
-                                            $mw_referral_status = isset($row['mw_referral_id']) ? $row['mw_referral_id'] : 0;
-                                            echo '<td class="mw-referral-cell">';
-                                            echo '<label class="switch">';
-                                            echo '<input type="checkbox" class="mw-referral-toggle" data-user-email="'.htmlspecialchars($user_email).'" '.($mw_referral_status ? 'checked' : '').'>';
-                                            echo '<span class="slider"></span>';
-                                            echo '</label>';
-                                            echo '</td>';
-
                                             // Reset password
                                             echo '<td><a class="btn btn-sm btn-outline-danger" href="change-password.php?email='.urlencode($user_email).'">Reset</a></td>';
 
                                             echo '</tr>';
                                         }
                                     } else {
-                                        echo '<tr><td colspan="22" class="text-center py-4">No collaboration-enabled users found</td></tr>';
+                                        echo '<tr><td colspan="21" class="text-center py-4">No collaboration-enabled users found</td></tr>';
                                     }
                                     ?>
                                 </tbody>
@@ -356,6 +347,24 @@ require('header.php');
 </div>
 
 <script>
+// Open dashboard details modal
+function showDashboardDetails(userEmail){
+    const dashboardDetailsBody = document.getElementById('dashboardDetailsBody');
+    dashboardDetailsBody.innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner-border spinner-border-sm" role="status"></div><span style="margin-left:10px;">Loading...</span></div>';
+
+    fetch('get_dashboard_details.php?user_email=' + encodeURIComponent(userEmail))
+        .then(resp => resp.text())
+        .then(html => {
+            dashboardDetailsBody.innerHTML = html;
+            document.getElementById('dashboardDetailsModal').style.display = 'block';
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            dashboardDetailsBody.innerHTML = '<div style="padding:20px;"><div class="alert alert-danger mb-0">Failed to load dashboard details. Please try again.</div></div>';
+            document.getElementById('dashboardDetailsModal').style.display = 'block';
+        });
+}
+
 // Open referral details modal
 function showReferralDetails(userEmail){
     fetch('get_collaboration_details.php?referrer_email=' + encodeURIComponent(userEmail))
@@ -376,8 +385,83 @@ function showReferralDetails(userEmail){
         .catch(() => alert('Failed to load referral details'));
 }
 
+// Influencer dropdown change handler
+function handleInfluencerStatusChange(select) {
+    if (select._influencerReverting) {
+        return;
+    }
+
+    const userEmail = select.getAttribute('data-user-email');
+    const prevValue = select.getAttribute('data-prev-value') || 'NO';
+    const newStatus = select.value;
+
+    if (newStatus === prevValue) {
+        return;
+    }
+
+    const action = newStatus === 'YES' ? 'enable' : 'disable';
+    const confirmMessage = 'Are you sure you want to ' + action + ' influencer status for user: ' + userEmail + '?';
+
+    if (!confirm(confirmMessage)) {
+        select._influencerReverting = true;
+        select.value = prevValue;
+        select._influencerReverting = false;
+        return;
+    }
+
+    fetch('js_request.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            update_influencer_status: 'YES',
+            user_email: userEmail,
+            influencer_status: newStatus
+        })
+    })
+    .then(resp => resp.text())
+    .then(text => {
+        if (text.includes('success')) {
+            select.setAttribute('data-prev-value', newStatus);
+        } else {
+            select._influencerReverting = true;
+            select.value = prevValue;
+            select._influencerReverting = false;
+            alert('Failed to update influencer status');
+        }
+    })
+    .catch(() => {
+        select._influencerReverting = true;
+        select.value = prevValue;
+        select._influencerReverting = false;
+        alert('Failed to update influencer status');
+    });
+}
+
 // Collaboration toggle handler
 document.addEventListener('change', function(e) {
+    // Confirm then save deal mapping via AJAX
+    if(e.target && e.target.name === 'deal_id'){
+        const form = e.target.closest('form');
+        if(form && (form.classList.contains('deal-form') || form.classList.contains('deal-form-franchise'))){
+            const dealText = e.target.options[e.target.selectedIndex].textContent.trim();
+            if(e.target.value){
+                const isFranchise = form.classList.contains('deal-form-franchise');
+                const msg = 'Map this user to "' + dealText + '" for ' + (isFranchise ? 'Franchise' : 'Mini Website') + '?';
+                if(confirm(msg)){
+                    const formData = new FormData(form);
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(r => r.text())
+                    .then(() => { window.location.reload(); })
+                    .catch(() => { alert('Failed to save mapping. Please try again.'); });
+                } else {
+                    e.target.value = '';
+                }
+            }
+        }
+    }
     if (e.target && e.target.classList.contains('collaboration-toggle')) {
         const userEmail = e.target.getAttribute('data-user-email');
         const newStatus = e.target.checked ? 'YES' : 'NO';
@@ -405,45 +489,6 @@ document.addEventListener('change', function(e) {
         .then(resp => resp.text())
         .then(text => { if (!text.includes('success')) { toggleElement.checked = !toggleElement.checked; } })
         .catch(() => { toggleElement.checked = !toggleElement.checked; });
-    }
-    if (e.target && e.target.classList.contains('influencer-status')) {
-        const select = e.target;
-        const userEmail = select.getAttribute('data-user-email');
-        const prevValue = select.getAttribute('data-prev-value') || 'NO';
-        const newStatus = select.value;
-
-        if (newStatus === prevValue) {
-            return;
-        }
-
-        const label = newStatus === 'YES' ? 'Yes' : 'No';
-        if (!confirm('Set Influencer status to "' + label + '" for ' + userEmail + '?')) {
-            select.value = prevValue;
-            return;
-        }
-
-        fetch('js_request.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                update_influencer_status: 'YES',
-                user_email: userEmail,
-                influencer_status: newStatus
-            })
-        })
-        .then(resp => resp.text())
-        .then(text => {
-            if (text.includes('success')) {
-                select.setAttribute('data-prev-value', newStatus);
-            } else {
-                select.value = prevValue;
-                alert('Failed to update influencer status');
-            }
-        })
-        .catch(() => {
-            select.value = prevValue;
-            alert('Failed to update influencer status');
-        });
     }
     if (e.target && e.target.classList.contains('mw-referral-toggle')) {
         const userEmail = e.target.getAttribute('data-user-email');
@@ -1012,6 +1057,17 @@ function saveDealChanges() {
                 </div>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- Dashboard Details Modal -->
+<div class="modal" id="dashboardDetailsModal" style="display:none;">
+    <div class="modal-content" style="max-width:1100px;width:95%;margin:3% auto;">
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;background:#17a2b8;color:#fff;padding:12px 16px;">
+            <h3 style="margin:0;font-size:18px;">Dashboard Details</h3>
+            <span class="close" onclick="document.getElementById('dashboardDetailsModal').style.display='none'" style="cursor:pointer;font-size:22px;">&times;</span>
+        </div>
+        <div class="modal-body" id="dashboardDetailsBody" style="padding:20px;max-height:75vh;overflow:auto;"></div>
     </div>
 </div>
 

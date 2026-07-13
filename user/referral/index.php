@@ -120,7 +120,9 @@ $referred_users_query = mysqli_query($connect, "SELECT DISTINCT
     COALESCE(re.amount, 0) as amount,
     COALESCE(re.status, 'Pending') as status,
     COALESCE(re.payment_date, NULL) as payment_date,
+    COALESCE(re.is_collaboration, 'NO') as is_collaboration,
     ud_referred.id AS user_id,
+    ud_referred.role AS referred_role,
     ud_referred.email AS user_email,
     ud_referred.phone AS user_contact,
     ud_referred.name AS user_name,
@@ -305,8 +307,9 @@ $is_team_view = ($current_role === 'TEAM');
                                     <thead>
                                         <tr>
                                             <th class="text-center">User ID</th>
-                                            <th class="text-center">MW ID</th>
+                                            <th class="text-center">MW ID/FR ID</th>
                                             <th class="text-center">User Email</th>
+                                            <th class="text-center">User Type</th>
                                             <th class="text-center">User Name</th>
                                             <th class="text-center">User Number</th>
                                             <th class="text-center">Joined On</th>
@@ -331,9 +334,15 @@ $is_team_view = ($current_role === 'TEAM');
                                                 // User ID from unified table, N/A if not a registered customer yet
                                                 echo '<td class="text-center">' . (!empty($row['user_id']) ? (int)$row['user_id'] : 'N/A') . '</td>';
                                                 
-                                                // MW ID with view icon (card_id from digi_card)
+                                                // Determine referral type (used by MW ID/FR ID and User Type columns)
+                                                $is_franchise_referral = (($row['is_collaboration'] ?? 'NO') === 'YES')
+                                                    || strtoupper($row['referred_role'] ?? '') === 'FRANCHISEE';
+
+                                                // MW ID / FR ID based on referral type
                                                 echo '<td class="text-center">';
-                                                if (!empty($row['card_id'])) {
+                                                if ($is_franchise_referral && !empty($row['user_id'])) {
+                                                    echo 'FR - ' . str_pad((int)$row['user_id'], 3, '0', STR_PAD_LEFT);
+                                                } elseif (!empty($row['card_id'])) {
                                                     $cardId = (int)$row['card_id'];
                                                     echo '<a href="https://' . $_SERVER['HTTP_HOST'] . '/n.php?n=' . $cardId . '" target="_blank" rel="noopener noreferrer" class="mw-table-cell-inline text-primary hover:text-primary-dark !no-underline">';
                                                     echo '<i class="fa fa-eye" aria-hidden="true"></i> ' . $cardId;
@@ -343,8 +352,9 @@ $is_team_view = ($current_role === 'TEAM');
                                                 }
                                                 echo '</td>';
                                                 
-                                                // User Email / Name / Number
+                                                // User Email / Type / Name / Number
                                                 echo '<td class="text-center">' . htmlspecialchars($row['referred_email'] ?? $row['user_email'] ?? 'N/A') . '</td>';
+                                                echo '<td class="text-center">' . ($is_franchise_referral ? 'Franchise' : 'MW') . '</td>';
                                                 echo '<td class="text-center">' . htmlspecialchars($row['user_name'] ?? 'Unknown') . '</td>';
                                                 echo '<td class="text-center">' . htmlspecialchars($row['user_contact'] ?? 'N/A') . '</td>';
                                                 
@@ -418,7 +428,7 @@ $is_team_view = ($current_role === 'TEAM');
                                                 echo '</tr>';
                                             }
                                         } else {
-                                            $colspan = $is_team_view ? 10 : 13;
+                                            $colspan = $is_team_view ? 11 : 14;
                                             echo '<tr><td colspan="' . $colspan . '" class="text-center">No referrals found</td></tr>';
                                         }
                                         ?>

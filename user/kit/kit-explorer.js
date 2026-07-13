@@ -146,6 +146,14 @@
     return map[ext] || 'fa-file';
   }
 
+  function winFolderSvg() {
+    return '<svg class="win-folder-svg" viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<path d="M3 6a3 3 0 0 1 3-3h11.2a3 3 0 0 1 2.1.9L23 7h19a3 3 0 0 1 3 3v3H3z" fill="#E8A33D"/>' +
+      '<path d="M3 11a3 3 0 0 1 3-3h36a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z" fill="#FBC55B"/>' +
+      '<path d="M3 12h42v2H3z" fill="#ffffff" opacity="0.25"/>' +
+      '</svg>';
+  }
+
   function renderFolderGrid(folderIds) {
     var visible = folderIds.filter(function (id) { return folderHasContent(id); });
     if (!visible.length) return '';
@@ -156,7 +164,7 @@
       var count = countFolderItems(fid);
       html += '<div class="col-6 col-sm-4 col-md-3 col-lg-2">' +
         '<div class="kit-folder-tile" role="button" tabindex="0" data-kit-folder-id="' + fid + '" title="' + esc(folder.title) + '">' +
-        '<span class="kit-folder-icon" aria-hidden="true"><i class="fa fa-folder"></i></span>' +
+        '<span class="kit-folder-icon" aria-hidden="true">' + winFolderSvg() + '</span>' +
         '<span class="kit-folder-name">' + esc(folder.title) + '</span>' +
         '<span class="kit-folder-count">' + count + ' ' + (count === 1 ? 'item' : 'items') + '</span>' +
         '</div></div>';

@@ -481,12 +481,6 @@ $mw_save_icon = '../../assets/images/Save.png';
                                 <input type="text" id="d_comp_name" name="d_comp_name" class="form-control d_comp_name mw-input mw-input-lg" maxlength="199" placeholder="Enter Your Business URL" value="<?php echo htmlspecialchars($default_business_name); ?>" pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces and hyphen (-) are allowed." required>
                             </div>
                         </div>
-                        <?php if ($requires_pay_for_new_mw): ?>
-                            <div class=" mw-alert mw-alert-info mt-3">
-                                <i class="fa fa-info-circle mw-alert-icon" aria-hidden="true"></i>
-                                <div class="mw-alert-body">You already have a Mini Website. To create another one, complete payment after entering your business details below.</div>
-                            </div>
-                        <?php endif; ?>
                         <div class="mw-business-name-url-extra">
                             <div class="business_name_preview mt-2 d-none mw-alert mw-alert-info mw-alert-compact" aria-live="polite">
                                 <i class="fa fa-eye mw-alert-icon" aria-hidden="true"></i>
@@ -501,7 +495,7 @@ $mw_save_icon = '../../assets/images/Save.png';
                         </div>
                         <?php
                         $new_mw_save_btn = $requires_pay_for_new_mw
-                            ? ['type' => 'submit', 'name' => 'process1', 'label' => 'Submit & Pay', 'class' => 'save_btn', 'variant' => 'primary', 'icon' => 'fa-credit-card']
+                            ? ['type' => 'submit', 'name' => 'process1', 'label' => 'Pay Now & Proceed', 'class' => 'save_btn', 'variant' => 'primary', 'icon' => 'fa-credit-card']
                             : ['type' => 'submit', 'name' => 'process1', 'label' => 'Save', 'class' => 'save_btn', 'img' => $mw_save_icon];
                         $new_mw_step_row = [
                             'back' => ['href' => '../dashboard/', 'label' => 'Back'],

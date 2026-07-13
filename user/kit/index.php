@@ -3,6 +3,13 @@
 require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/access_control.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
+require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
+
+// Franchisee must complete the franchise registration payment before accessing the kit.
+$franchisee_email = $_SESSION['f_user_email'] ?? '';
+if (function_exists('get_current_user_role') && get_current_user_role() === 'FRANCHISEE' && !isFranchiseeRegistrationAgreementPaid($franchisee_email)) {
+    redirectFranchiseeToAgreementUntilPaid($franchisee_email);
+}
 
 // Check page access - redirects to dashboard if unauthorized
 require_page_access('/kit');
@@ -24,7 +31,14 @@ if ($current_role === 'FRANCHISEE') {
     $kit_category = ($get_kit === 'franchise_sales') ? 'marketing' : 'sales';
 } else {
     // `$collaboration_enabled` is defined in header.php (for customers)
-    $kit_category = ($collaboration_enabled ?? false) ? 'marketing' : 'sales';
+    // Collaboration customers (influencers) can view both Creator Kit (marketing)
+    // and MW Sales Kit (sales) via menu; kit param: mw_sales = sales.
+    $get_kit = isset($_GET['kit']) ? trim($_GET['kit']) : '';
+    if ($collaboration_enabled ?? false) {
+        $kit_category = ($get_kit === 'mw_sales') ? 'sales' : 'marketing';
+    } else {
+        $kit_category = 'sales';
+    }
 }
 
 // Get all active kit items for the selected category
@@ -113,6 +127,9 @@ function kitUserExplorerUrl($folder_id, $kit_category, $current_role) {
     $params = [];
     if ($current_role === 'TEAM' && $kit_category === 'marketing') {
         $params['kit'] = 'franchise_sales';
+    } elseif ($current_role !== 'TEAM' && $current_role !== 'FRANCHISEE' && $kit_category === 'sales') {
+        // Collaboration customer (influencer) viewing MW Sales Kit
+        $params['kit'] = 'mw_sales';
     }
     if ((int) $folder_id > 0) {
         $params['folder'] = (int) $folder_id;
@@ -341,6 +358,8 @@ if ($kit_explorer_mode) {
     $kit_query = [];
     if ($current_role === 'TEAM' && $kit_category === 'marketing') {
         $kit_query['kit'] = 'franchise_sales';
+    } elseif ($current_role !== 'TEAM' && $current_role !== 'FRANCHISEE' && $kit_category === 'sales') {
+        $kit_query['kit'] = 'mw_sales';
     }
     $kit_explorer_payload = [
         'kitLabel' => kitLabelCustomer($kit_category),
@@ -521,32 +540,39 @@ document.addEventListener('DOMContentLoaded', function() {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 1rem 0.5rem;
+    padding: 1.25rem 0.75rem 1rem;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-    min-height: 130px;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+    min-height: 180px;
 }
 
 .kit-folder-tile:hover,
 .kit-folder-tile:focus {
     background: #fff8eb;
     border-color: #fcd34d;
-    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.12);
+    box-shadow: 0 6px 16px rgba(234, 88, 12, 0.15);
     outline: none;
+    transform: translateY(-2px);
 }
 
 .kit-folder-icon {
-    font-size: 2.75rem;
+    font-size: 5.5rem;
     line-height: 1;
-    color: #f59e0b;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,0.12));
+}
+
+.kit-folder-icon .win-folder-svg {
+    width: 1em;
+    height: auto;
+    display: block;
 }
 
 .kit-folder-name {
-    font-size: 0.88rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #1e293b;
     line-height: 1.3;
@@ -555,9 +581,14 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .kit-folder-count {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: #64748b;
-    margin-top: 0.25rem;
+    margin-top: 0.3rem;
+}
+
+@media (max-width: 575.98px) {
+    .kit-folder-icon { font-size: 4rem; }
+    .kit-folder-tile { min-height: 140px; }
 }
 
 /* Enhanced styling for the new layout */

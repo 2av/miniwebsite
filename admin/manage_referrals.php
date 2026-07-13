@@ -177,19 +177,21 @@ if(isset($_POST['update_bank_details'])) {
                         // Refund status (referrer)
                         $refundStatus = $row['ref_user_refund_status'] ?? 'None';
 
-                        // MW payment status (latest card) with formatted display
-                        $paymentStatus = $row['d_payment_status'] ?? '';
-                        $paymentDate = $row['d_payment_date'] ?? '';
-                        
-                        if($paymentStatus === 'Success' && !empty($paymentDate) && $paymentDate !== '0000-00-00 00:00:00') {
-                            $formattedDate = date('d-m-Y', strtotime($paymentDate));
-                            $mwPayStatus = '<span class="badge bg-success">Paid on ' . $formattedDate . '</span>';
-                        } elseif($paymentStatus === 'Failed') {
-                            $mwPayStatus = '<span class="badge bg-danger">Not Eligible</span>';
-                        } elseif($paymentStatus === 'Created' || $paymentStatus === 'Pending' || empty($paymentStatus)) {
+                        // MW Payment Status (referral earnings status), same logic as user/referral/index.php
+                        $referralStatus = $row['status'] ?? '';
+                        $referralPaymentDate = $row['payment_date'] ?? '';
+                        $cardPaymentStatus = $row['d_payment_status'] ?? '';
+
+                        if($referralStatus === 'Paid') {
+                            $mwPaymentDate = !empty($referralPaymentDate) && $referralPaymentDate !== '0000-00-00 00:00:00'
+                                ? date('d-m-Y', strtotime($referralPaymentDate)) : 'N/A';
+                            $mwPayStatus = '<span class="badge bg-success">Paid on ' . $mwPaymentDate . '</span>';
+                        } elseif($referralStatus === 'Partial' && $cardPaymentStatus === 'Success') {
+                            $mwPayStatus = '<span class="badge bg-warning">Partial Payment</span>';
+                        } elseif($referralStatus === 'Pending' && $cardPaymentStatus === 'Success') {
                             $mwPayStatus = '<span class="badge bg-warning">Pending</span>';
                         } else {
-                            $mwPayStatus = '<span class="badge bg-secondary">' . htmlspecialchars($paymentStatus) . '</span>';
+                            $mwPayStatus = '<span class="badge bg-danger">Not Eligible</span>';
                         }
 
                         // Bank details button

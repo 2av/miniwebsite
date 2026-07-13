@@ -144,14 +144,16 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         
         // Get customer contact and referral info
         $user_email_lower = strtolower(trim($row['user_email']));
-        $customer_query = mysqli_query($connect, "SELECT phone as user_contact, referred_by FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
+        $customer_query = mysqli_query($connect, "SELECT phone as user_contact, referred_by, state FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
         $contactno = "";
         $referred_by = "";
+        $customer_state = "";
         $is_referred_by_team = false;
         if ($customer_query && mysqli_num_rows($customer_query) > 0) {
             $customer_row = mysqli_fetch_array($customer_query);
             $contactno = $customer_row['user_contact'] ?? '';
             $referred_by = $customer_row['referred_by'] ?? '';
+            $customer_state = $customer_row['state'] ?? '';
             
             // Check if referred_by is a team member
             if (!empty($referred_by)) {
@@ -207,6 +209,24 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         // Check for referral auto-promo: only non-team referrers (direct signup and team-referred never auto-apply DMW001)
         $is_referral_customer = !empty($referred_by);
         $is_first_payment = ($status == "Created" || $status != "Success");
+
+        // State-wise deal auto-apply (default for MW customers registered in a deal's state).
+        // Takes priority over the generic referral coupon; skipped for team ₹500 pricing.
+        if ($is_first_payment && !$promo_applied && !$use_team_500_pricing) {
+            $state_deal = getActiveStateDealForMiniWebsite($connect, $customer_state);
+            if ($state_deal) {
+                $state_discount = getCouponDiscount($original_amount, $state_deal);
+                if ($state_discount > 0 && $state_discount <= $original_amount) {
+                    $_SESSION['promo_code'] = $state_deal['coupon_code'];
+                    $_SESSION['promo_discount'] = $state_discount;
+                    $_SESSION['auto_applied_promo'] = true;
+                    $promo_applied = true;
+                    $promo_discount = $state_discount;
+                    $is_auto_applied = true;
+                    $promo_message = '<div class="promo-success">State offer ' . htmlspecialchars($state_deal['coupon_code']) . ' applied automatically! Discount: ₹' . $state_discount . '</div>';
+                }
+            }
+        }
         
         if ($is_referral_customer && !$is_referred_by_team && $is_first_payment && !$promo_applied && !$is_team_source) {
             // Try to auto-apply DMW001 or mapped deal
@@ -335,14 +355,16 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
     }
 
     $user_email_lower = strtolower(trim($pending_user_email));
-    $customer_query = mysqli_query($connect, "SELECT phone as user_contact, referred_by, name FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
+    $customer_query = mysqli_query($connect, "SELECT phone as user_contact, referred_by, name, state FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
     $contactno = '';
     $referred_by = '';
+    $customer_state = '';
     $customer_name = $_SESSION['user_name'] ?? '';
     if ($customer_query && mysqli_num_rows($customer_query) > 0) {
         $customer_row = mysqli_fetch_array($customer_query);
         $contactno = $customer_row['user_contact'] ?? '';
         $referred_by = $customer_row['referred_by'] ?? '';
+        $customer_state = $customer_row['state'] ?? '';
         if (!empty($customer_row['name'])) {
             $customer_name = $customer_row['name'];
         }
@@ -388,6 +410,24 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
     $_SESSION['payment_user_email'] = $pending_user_email;
 
     $is_referral_customer = !empty($referred_by);
+
+    // State-wise deal auto-apply (default for MW customers registered in a deal's state).
+    if (!$promo_applied && !$use_team_500_pricing) {
+        $state_deal = getActiveStateDealForMiniWebsite($connect, $customer_state);
+        if ($state_deal) {
+            $state_discount = getCouponDiscount($original_amount, $state_deal);
+            if ($state_discount > 0 && $state_discount <= $original_amount) {
+                $_SESSION['promo_code'] = $state_deal['coupon_code'];
+                $_SESSION['promo_discount'] = $state_discount;
+                $_SESSION['auto_applied_promo'] = true;
+                $promo_applied = true;
+                $promo_discount = $state_discount;
+                $is_auto_applied = true;
+                $promo_message = '<div class="promo-success">State offer ' . htmlspecialchars($state_deal['coupon_code']) . ' applied automatically! Discount: ₹' . $state_discount . '</div>';
+            }
+        }
+    }
+
     if ($is_referral_customer && !$is_referred_by_team && !$promo_applied && !$is_team_source) {
         $auto_promo_code = 'DMW001';
         $validation = validateCoupon($auto_promo_code, $connect, 'card_payment');

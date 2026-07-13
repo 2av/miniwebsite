@@ -3,8 +3,15 @@ require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
 require_once(__DIR__ . '/../../app/helpers/access_control.php');
+require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
 
 require_login('/login/customer.php');
+
+// Franchisee must complete the franchise registration payment before accessing the ID Card.
+$franchisee_email = $_SESSION['f_user_email'] ?? '';
+if (function_exists('get_current_user_role') && get_current_user_role() === 'FRANCHISEE' && !isFranchiseeRegistrationAgreementPaid($franchisee_email)) {
+    redirectFranchiseeToAgreementUntilPaid($franchisee_email);
+}
 
 $ras = get_current_user_role_access_settings($connect);
 $profile_key = $ras['profile_key'] ?? null;
@@ -132,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_profile']) && 
         $_SESSION['idcard_profile_image'] = $profile_image_path;
         
         $team_member_id = get_user_id();
+        $save_role = (get_current_user_role() === 'FRANCHISEE') ? 'FRANCHISEE' : 'TEAM';
         if (!empty($team_member_id)) {
             $check_profile_image = mysqli_query($connect, "SHOW COLUMNS FROM user_details LIKE 'profile_image'");
             if ($check_profile_image && mysqli_num_rows($check_profile_image) == 0) {
@@ -139,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_profile']) && 
             }
             
             $safe_path = mysqli_real_escape_string($connect, $profile_image_path);
-            mysqli_query($connect, "UPDATE user_details SET profile_image = '{$safe_path}' WHERE id = '" . (int)$team_member_id . "' AND role='TEAM'");
+            mysqli_query($connect, "UPDATE user_details SET profile_image = '{$safe_path}' WHERE id = '" . (int)$team_member_id . "' AND role='" . mysqli_real_escape_string($connect, $save_role) . "'");
         }
         
         $upload_message = 'Profile picture uploaded successfully!';
@@ -150,7 +158,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_profile']) && 
     }
 }
 
-// Get TEAM member data from unified user_details table
+// Role-aware ID card (TEAM = Sales Executive, FRANCHISEE = Franchise Partner)
+$current_role   = get_current_user_role();
+$is_franchisee  = ($current_role === 'FRANCHISEE');
+$card_role      = $is_franchisee ? 'FRANCHISEE' : 'TEAM';
+$id_prefix      = $is_franchisee ? 'FR ID: ' : 'ID: ';
+$designation    = $is_franchisee ? 'Franchise Partner' : 'Sales Executive';
+
+// Get member data from unified user_details table
 $team_member_id = get_user_id();
 $auto_id        = '';
 $auto_email     = get_user_email() ?? '';
@@ -169,12 +184,14 @@ if (!empty($team_member_id)) {
         mysqli_query($connect, "ALTER TABLE user_details ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL");
     }
     
-    // Get TEAM member data including profile image from user_details
-    $member_query  = "SELECT id, name, email, phone, department, profile_image FROM user_details WHERE id = '" . (int)$team_member_id . "' AND role='TEAM' LIMIT 1";
+    // Get member data including profile image from user_details (role-aware)
+    $member_query  = "SELECT id, name, email, phone, department, profile_image FROM user_details WHERE id = '" . (int)$team_member_id . "' AND role='" . mysqli_real_escape_string($connect, $card_role) . "' LIMIT 1";
     $member_result = mysqli_query($connect, $member_query);
     if ($member_result && $member = mysqli_fetch_assoc($member_result)) {
-        // Use actual user_details ID (6 digits with leading zeros)
-        $auto_id        = str_pad((int)$member['id'], 6, '0', STR_PAD_LEFT);
+        // Franchisee ID as FR - style (3 digits); TEAM ID as 6 digits with leading zeros
+        $auto_id        = $is_franchisee
+            ? str_pad((int)$member['id'], 3, '0', STR_PAD_LEFT)
+            : str_pad((int)$member['id'], 6, '0', STR_PAD_LEFT);
         $auto_email     = $member['email']       ?? $auto_email;
         $auto_department= $member['department']  ?? '';
         $auto_mobile    = $member['phone']       ?? '';
@@ -184,6 +201,16 @@ if (!empty($team_member_id)) {
         if (!empty($member['profile_image']) && file_exists(__DIR__ . '/' . $member['profile_image'])) {
             $profile_image_path = $member['profile_image'];
             $_SESSION['idcard_profile_image'] = $profile_image_path;
+        }
+    }
+
+    // Fallback: some franchisee rows have an empty phone (e.g. converted accounts).
+    // Pull the phone from any user_details row that shares this email.
+    if (trim((string)$auto_mobile) === '' && trim((string)$auto_email) !== '') {
+        $email_esc = mysqli_real_escape_string($connect, $auto_email);
+        $phone_q = mysqli_query($connect, "SELECT phone FROM user_details WHERE email='{$email_esc}' AND phone IS NOT NULL AND phone <> '' ORDER BY id DESC LIMIT 1");
+        if ($phone_q && $phone_row = mysqli_fetch_assoc($phone_q)) {
+            $auto_mobile = $phone_row['phone'] ?? '';
         }
     }
 }
@@ -281,6 +308,8 @@ $website_name = 'www.miniwebsite.in';
                     
                     <!-- Hidden inputs for JavaScript to access PHP values -->
                     <input type="hidden" id="employeeId" value="<?php echo htmlspecialchars($auto_id); ?>">
+                    <input type="hidden" id="idPrefix" value="<?php echo htmlspecialchars($id_prefix); ?>">
+                    <input type="hidden" id="designation" value="<?php echo htmlspecialchars($designation); ?>">
                     <input type="hidden" id="name" value="<?php echo htmlspecialchars($auto_name); ?>">
                     <input type="hidden" id="phone" value="<?php echo htmlspecialchars($auto_mobile); ?>">
                     <input type="hidden" id="email" value="<?php echo htmlspecialchars($auto_email); ?>">
@@ -359,11 +388,13 @@ function drawIdCard() {
     
     // Draw ID number in top-right corner (white text)
     const employeeId = document.getElementById('employeeId').value || '';
+    const idPrefixEl = document.getElementById('idPrefix');
+    const idPrefix = idPrefixEl ? idPrefixEl.value : 'ID: ';
     if (employeeId) {
         ctx.fillStyle = '#ffffff';
         ctx.font = `${Math.max(scaleY(20), 14)}px "Poppins", sans-serif`;
         ctx.textAlign = 'right';
-        ctx.fillText('ID: ' + employeeId, cardWidth - scaleX(30), scaleY(30));
+        ctx.fillText(idPrefix + employeeId, cardWidth - scaleX(30), scaleY(30));
         ctx.textAlign = 'left'; // Reset alignment
     }
     
@@ -420,14 +451,16 @@ function drawIdCard() {
     currentY += lineHeight + 3;
     ctx.fillStyle = '#0066CC';
     ctx.font = `bold ${Math.max(scaleY(33), 16)}px "Poppins", sans-serif`;
-    ctx.fillText('(Sales Executive)', centerX, currentY);
+    const designationEl = document.getElementById('designation');
+    const designation = (designationEl && designationEl.value) ? designationEl.value : 'Sales Executive';
+    ctx.fillText('(' + designation + ')', centerX, currentY);
     
     // Contact information
     currentY += lineHeight + scaleY(15);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#000000';
-    ctx.font = `${Math.max(scaleY(25), 12)}px "Poppins", sans-serif`;
+    ctx.font = `${Math.max(scaleY(21), 10)}px "Poppins", sans-serif`;
     const contactIconX = (cardWidth / 2) - scaleX(160);
     const iconColumnWidth = scaleX(28);
     const iconTextGap = scaleX(10);

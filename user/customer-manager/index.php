@@ -3,9 +3,17 @@ require_once(__DIR__ . '/../../app/config/database.php');
 require_once(__DIR__ . '/../../app/helpers/role_helper.php');
 require_once(__DIR__ . '/../../app/helpers/role_access_helper.php');
 require_once(__DIR__ . '/../../app/helpers/access_control.php');
+require_once(__DIR__ . '/../../app/helpers/verification_helper.php');
 require_once(__DIR__ . '/../../app/includes/product_categories_helper.php');
 
 require_login('/login/customer.php');
+
+// Franchisee must complete the franchise registration payment before accessing Customer Manager.
+$franchisee_email = $_SESSION['f_user_email'] ?? '';
+if (function_exists('get_current_user_role') && get_current_user_role() === 'FRANCHISEE' && !isFranchiseeRegistrationAgreementPaid($franchisee_email)) {
+    redirectFranchiseeToAgreementUntilPaid($franchisee_email);
+}
+
 require_page_access('/customer-manager');
 
 $current_role = get_current_user_role();
@@ -605,8 +613,8 @@ if ($stmtBiz) {
 
 $business_primary_options = getBusinessPrimaryCategoryOptions($connect, $owner_id);
 
-$default_template = "Hello ðŸ˜Š\nThis is [Business Name] from [Area, City].\n\nWe have added some latest special offers for you.ðŸ‘‡\nðŸ‘‰ [MiniWebsite Link]\n\nIf anything interests you, feel free to message us on WhatsApp.\n\nLimited time offers hain, jaldi check karein ðŸ‘\n\nThank you ðŸ™";
-$default_whatsapp_template = "Hello ðŸ˜Š\nHope you are doing well.\n\nWe have added few new products & offers for you.ðŸ‘‡\nðŸ‘‰ [MiniWebsite Link]\n\nYou can check. And please let us know if any requirements.\n\nThank you ðŸ™";
+$default_template = "Hello 😊\nThis is [Business Name] from [Area, City].\n\nWe have added some latest special offers for you.👇\n👉 [MiniWebsite Link]\n\nIf anything interests you, feel free to message us on WhatsApp.\n\nLimited time offers hain, jaldi check karein 👍\n\nThank you 🙏";
+$default_whatsapp_template = "Hello 😊\nHope you are doing well.\n\nWe have added few new products & offers for you.👇\n👉 [MiniWebsite Link]\n\nYou can check. And please let us know if any requirements.\n\nThank you 🙏";
 $preview_template = str_replace(
     ['[Business Name]', '[Area, City]', '[MiniWebsite Link]'],
     [$business_name, $area_city_business, $mini_link],
@@ -1168,7 +1176,7 @@ require_once __DIR__ . '/../../common/mw_modal.php';
         <div class="col-12 col-lg-7 order-1">
             <label class="form-label" for="offerMessage">Message</label>
             <div class="wa-message-field">
-                <textarea id="offerMessage" class="form-control" rows="12" maxlength="2000" placeholder="Your messageâ€¦"><?php echo htmlspecialchars($preview_template); ?></textarea>
+                <textarea id="offerMessage" class="form-control" rows="12" maxlength="2000" placeholder="Your message…"><?php echo htmlspecialchars($preview_template); ?></textarea>
                 <div class="wa-char-count" id="offerMessageCharWrap" aria-hidden="true"><span id="offerMessageCharCount">0</span>/2000</div>
             </div>
             <p class="small text-muted mt-2 mb-0">Placeholders: [Business Name], [Area, City], [MiniWebsite Link], [Customer Name]</p>
@@ -1204,11 +1212,34 @@ require_once __DIR__ . '/../../common/mw_modal.php';
 <div class="mw-modal-footer"><button class="btn btn-primary">Save Customer</button></div>
 </form></div></div>
 
+<div class="mw-modal" id="customValueModal" role="dialog" aria-modal="true" aria-labelledby="customValueModalTitle" hidden>
+<div class="mw-modal-backdrop" data-mw-modal-close aria-hidden="true"></div>
+<div class="mw-modal-panel mw-modal-sm"><form id="customValueForm" class="mw-modal-form">
+<div class="mw-modal-header">
+    <div class="mw-modal-header-main">
+        <span class="mw-modal-header-icon" aria-hidden="true"><i class="fa fa-plus-circle"></i></span>
+        <div class="mw-modal-header-text-wrap">
+            <h2 class="mw-modal-title" id="customValueModalTitle">Add Custom Value</h2>
+        </div>
+    </div>
+    <button type="button" class="mw-modal-close" data-mw-modal-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
+</div>
+<div class="mw-modal-body">
+    <div class="form-group mb-2">
+        <label class="form-label" for="customValueInput" id="customValueLabel">Value <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="customValueInput" placeholder="Enter value" required>
+        <small class="form-text text-muted" id="customValueHint">This value will be added to the list</small>
+    </div>
+    <div id="customValueError" class="alert alert-danger" style="display:none;" role="alert"></div>
+</div>
+<div class="mw-modal-footer"><button type="button" class="btn btn-light border" data-mw-modal-close>Cancel</button><button class="btn mw-btn-accent" type="submit" id="customValueSaveBtn"><i class="fa fa-plus me-1" aria-hidden="true"></i> Add</button></div>
+</form></div></div>
+
 <script>
 // Keep modals attached to <body> so they center against full viewport,
 // not inside sidebar/content container.
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('#customerModal, #customerFullModal, #shareOfferModal, #leadCaptureModal, .mw-modal[id^="viewModal"], .mw-modal[id^="historyModal"]').forEach(function (modalEl) {
+    document.querySelectorAll('#customerModal, #customerFullModal, #shareOfferModal, #leadCaptureModal, #customValueModal, .mw-modal[id^="viewModal"], .mw-modal[id^="historyModal"]').forEach(function (modalEl) {
         if (modalEl && modalEl.parentElement !== document.body) {
             document.body.appendChild(modalEl);
         }
@@ -1328,20 +1359,74 @@ function setupCustomizableSelect(selectEl, options, maxCustomLen) {
             selectEl.appendChild(option);
         }
     });
-    const custom = document.createElement('option');
-    custom.value = '__custom__';
-    custom.textContent = 'Add Custom';
-    selectEl.appendChild(custom);
-    selectEl.addEventListener('change', function () {
-        if (this.value !== '__custom__') return;
-        const userValue = safeSlice(window.prompt('Enter custom value (max ' + maxCustomLen + ' characters):', ''), maxCustomLen);
-        if (userValue) {
-            ensureSelectHasOption(this, userValue, maxCustomLen);
-        } else {
-            this.selectedIndex = 0;
+    attachCustomValueButton(selectEl, maxCustomLen);
+}
+function attachCustomValueButton(selectEl, maxCustomLen) {
+    if (selectEl.dataset.customBtnAttached === '1') return;
+    selectEl.dataset.customBtnAttached = '1';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mw-select-add-wrap';
+    wrapper.style.display = 'flex';
+    wrapper.style.gap = '8px';
+    selectEl.parentNode.insertBefore(wrapper, selectEl);
+    selectEl.style.flex = '1';
+    wrapper.appendChild(selectEl);
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn btn-outline-primary btn-sm flex-shrink-0';
+    addBtn.style.minWidth = '40px';
+    addBtn.style.padding = '0';
+    addBtn.title = 'Add custom value';
+    addBtn.innerHTML = '<i class="fa fa-plus" aria-hidden="true"></i>';
+    let fieldLabel = '';
+    const labelEl = selectEl.closest('.col-md-6, .col-12, .col')?.querySelector('label.form-label');
+    if (labelEl) fieldLabel = labelEl.textContent.replace('*', '').trim();
+    addBtn.addEventListener('click', function () {
+        openCustomValueModal(selectEl, maxCustomLen, fieldLabel);
+    });
+    wrapper.appendChild(addBtn);
+}
+
+let customValueTargetSelect = null;
+let customValueMaxLen = 18;
+function openCustomValueModal(selectEl, maxCustomLen, fieldLabel) {
+    customValueTargetSelect = selectEl;
+    customValueMaxLen = maxCustomLen || 18;
+    const input = document.getElementById('customValueInput');
+    const err = document.getElementById('customValueError');
+    const label = document.getElementById('customValueLabel');
+    const hint = document.getElementById('customValueHint');
+    const titleEl = document.getElementById('customValueModalTitle');
+    if (input) { input.value = ''; input.maxLength = customValueMaxLen; }
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    if (label) label.innerHTML = (fieldLabel || 'Value') + ' <span class="text-danger">*</span>';
+    if (hint) hint.textContent = 'Max ' + customValueMaxLen + ' characters. This value will be added to the list.';
+    if (titleEl) titleEl.textContent = fieldLabel ? ('Add Custom ' + fieldLabel) : 'Add Custom Value';
+    if (typeof MwModal !== 'undefined' && MwModal.open) {
+        MwModal.open('customValueModal');
+        if (input) setTimeout(function () { input.focus(); }, 150);
+    }
+}
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('customValueForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const input = document.getElementById('customValueInput');
+        const err = document.getElementById('customValueError');
+        const value = safeSlice(input ? input.value : '', customValueMaxLen);
+        if (!value) {
+            if (err) { err.textContent = 'Please enter a value.'; err.style.display = 'block'; }
+            return;
+        }
+        if (customValueTargetSelect) {
+            ensureSelectHasOption(customValueTargetSelect, value, customValueMaxLen);
+        }
+        if (typeof MwModal !== 'undefined' && MwModal.close) {
+            MwModal.close('customValueModal');
         }
     });
-}
+});
 function setupFixedSelect(selectEl, options) {
     selectEl.innerHTML = '';
     options.forEach(function (opt) {

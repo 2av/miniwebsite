@@ -446,12 +446,14 @@ if ($current_role != 'FRANCHISEE' && isset($user_email)) {
     }
 }
 
-// Get MW Referral ID status from user_details table
+// Get MW Referral ID status and influencer flag from user_details table
 $mw_referral_id = 0;
-$mw_referral_query = mysqli_query($connect, "SELECT mw_referral_id FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
+$user_influencer = 'NO';
+$mw_referral_query = mysqli_query($connect, "SELECT mw_referral_id, influencer FROM user_details WHERE LOWER(TRIM(email))='$user_email_lower' LIMIT 1");
 if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
     $mw_referral_data = mysqli_fetch_array($mw_referral_query);
     $mw_referral_id = intval($mw_referral_data['mw_referral_id'] ?? 0);
+    $user_influencer = strtoupper(trim($mw_referral_data['influencer'] ?? 'NO'));
 }
 ?>
 
@@ -656,9 +658,9 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
                                     <th>Company Name</th>
                                     <th>Date Created</th>
                                     <th>Validity Date</th>
-                                    <th style="text-align: left;">MW Status</th>
+                                    <th>MW Status</th>
                                     <th>View/Edit/Share</th>
-                                    <th style="text-align: left;">User Payment Status</th>
+                                    <th>User Payment Status</th>
                                     <?php if ($show_invoice_column): ?>
                                     <th>Invoice</th>
                                     <?php endif; ?>
@@ -815,9 +817,70 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 
                                 <div class="social-icons">
                                     <p>Refer Mini Website</p>
-                                    <?php $customer_ref_url = $site_base_url . '/registration/customer-registration.php?ref=' . $user_referral_code; ?>
+                                    <?php
+                                    $customer_ref_url = $site_base_url . '/registration/customer-registration.php?ref=' . $user_referral_code;
+
+                                    // Choose MW referral WhatsApp template based on role:
+                                    // Template 07A -> FSE Team OR Franchisee Distributor freelancer (collaboration, not influencer)
+                                    // Template 07  -> regular MW user OR Franchisee Distributor Influencer/Creator
+                                    $is_freelancer_share = ($current_role == 'TEAM') || ($collaboration_enabled && $user_influencer !== 'YES');
+
+                                    if ($is_freelancer_share) {
+                                        // WHATSAPP MESSAGE TEMPLATE 07A
+                                        $mw_share_message = "🚀 Grow Your Business with MiniWebsite\n\n"
+                                            . "Hi 👋\n\n"
+                                            . "In today's digital world, every business needs a professional online presence.\n\n"
+                                            . "With MiniWebsite, you can showcase your complete business at one place and make it easier for customers to connect with you.\n\n"
+                                            . "✅ Professional Business Website\n"
+                                            . "✅ WhatsApp Inquiry System\n"
+                                            . "✅ Products / Services Catalog with Price\n"
+                                            . "✅ Dynamic QR Code\n"
+                                            . "✅ Special Offers\n"
+                                            . "✅ Photo Gallery & Videos\n"
+                                            . "✅ Call, WhatsApp, Google Map & Email Buttons\n"
+                                            . "✅ Customer Management Tools\n"
+                                            . "✅ Purane Customers se Dobara Business (Repeat Sales)\n\n"
+                                            . "💰 Original Price ₹1299/- for 1 Year (GST Included)\n"
+                                            . "💰 [NEW DISCOUNTED PRICE] is Just ₹999/- for 1 Year (GST Included)\n"
+                                            . "(Only for FIRST 500 CUSTOMERS)\n\n"
+                                            . "👉 Less than ₹3 per day to bring your business online and grow your sales.\n\n"
+                                            . "No technical knowledge required.\n"
+                                            . "Manage and update your MiniWebsite anytime from your own dashboard.\n\n"
+                                            . "👇 Create Your MiniWebsite Today\n\n"
+                                            . $customer_ref_url . "\n\n"
+                                            . "🌐 www.MiniWebsite.in\n\n"
+                                            . "Your business deserves a professional online identity!";
+                                    } else {
+                                        // WHATSAPP MESSAGE TEMPLATE 07
+                                        $mw_share_message = "🚀 Grow Your Business with MiniWebsite\n\n"
+                                            . "In today's digital world, every business needs a professional online presence.\n\n"
+                                            . "With MiniWebsite, you can showcase your complete business at one place and make it easier for customers to connect with you.\n\n"
+                                            . "✅ Professional Business Website\n"
+                                            . "✅ WhatsApp Inquiry System\n"
+                                            . "✅ Product / Service Catalog with Price\n"
+                                            . "✅ Dynamic QR Code\n"
+                                            . "✅ Special Offers\n"
+                                            . "✅ Photo Gallery & Videos\n"
+                                            . "✅ Call, WhatsApp, Google Map & Email Buttons\n"
+                                            . "✅ Customer Management Tools\n"
+                                            . "✅ Purane Customers se Dobara Business (Repeat Sales)\n\n"
+                                            . "💰 Original Price ₹1299/- for 1 Year (GST Included)\n"
+                                            . "💰 [NEW DISCOUNTED PRICE] is Just ₹999/- for 1 Year (GST Included)\n\n"
+                                            . "👉 Less than ₹3 per day to bring your business online & boost your sales.\n\n"
+                                            . "No technical knowledge required.\n"
+                                            . "Manage and update your MiniWebsite anytime from your own dashboard.\n\n"
+                                            . "🎁 Exclusive ADDITIONAL REFERRAL DISCOUNT for FIRST 500 CUSTOMERS\n\n"
+                                            . "✅ ₹100 OFF on 1 Year Plan\n"
+                                            . "✅ ₹200 OFF on 2 Year Plan\n"
+                                            . "✅ ₹300 OFF on 3 Year Plan\n\n"
+                                            . "👇 Create Your MiniWebsite Today\n\n"
+                                            . $customer_ref_url . "\n\n"
+                                            . "🌐 www.MiniWebsite.in\n\n"
+                                            . "Your business deserves a professional online identity!";
+                                    }
+                                    ?>
                                     <ul>
-                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my referral link: ' . $customer_ref_url); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
+                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode($mw_share_message); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
                                         <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($customer_ref_url); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
                                         <li><a href="https://www.instagram.com/share?url=<?php echo urlencode($customer_ref_url); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
                                         <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my referral link: ' . $customer_ref_url); ?>&url=<?php echo urlencode($customer_ref_url); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>
@@ -846,9 +909,74 @@ if ($mw_referral_query && mysqli_num_rows($mw_referral_query) > 0) {
 
                                 <div class="social-icons">
                                     <p>Refer Franchise</p>
-                                    <?php $franchisee_ref_url = $site_base_url . '/registration/franchisee-registration.php?ref=' . $user_referral_code; ?>
+                                    <?php
+                                    $franchisee_ref_url = $site_base_url . '/registration/franchisee-registration.php?ref=' . $user_referral_code;
+
+                                    // Choose Franchise referral WhatsApp template based on role:
+                                    // Template 08  -> Influencer/Creator (has ₹3,000 instant discount benefit)
+                                    // Template 09  -> FSE Team OR Franchisee Distributor freelancer (All Freelancers)
+                                    if ($user_influencer === 'YES') {
+                                        // WHATSAPP MESSAGE TEMPLATE 08 (Influencer/Creator)
+                                        $franchise_share_message = "🚀 Start Your Own Digital Business with MiniWebsite\n\n"
+                                            . "Hi 👋\n\n"
+                                            . "If you're looking for a genuine business opportunity with low investment and high earning potential, this is worth checking out.\n\n"
+                                            . "MiniWebsite.in is expanding its Franchise Network across India.\n\n"
+                                            . "Become a MiniWebsite Franchise Partner and help businesses go online while building your own profitable business.\n\n"
+                                            . "💼 Why Become a MiniWebsite Franchise Partner?\n\n"
+                                            . "✅ High-demand digital product\n"
+                                            . "✅ Every business is your potential customer\n"
+                                            . "✅ No technical knowledge required\n"
+                                            . "✅ Work from anywhere\n"
+                                            . "✅ Dedicated Franchise Dashboard\n"
+                                            . "✅ Complete Training & Marketing Support\n"
+                                            . "✅ Long-term business opportunity\n\n"
+                                            . "⭐ MW Full Franchise Plan\n"
+                                            . "₹35,400 (GST Included | One-Time)\n\n"
+                                            . "🎁 EXCLUSIVE REFERRAL BENEFIT\n\n"
+                                            . "Use my referral link and get\n"
+                                            . "🎉 ₹3,000 INSTANT DISCOUNT\n"
+                                            . "on Franchise Registration.*\n"
+                                            . "(Limited Time Offer)\n\n"
+                                            . "💵 Approx. Franchise Profit Per MiniWebsite Sale\n\n"
+                                            . "🟢 1 Year Plan → ₹586\n"
+                                            . "🔵 2 Year Plan → ₹1,003\n"
+                                            . "🟣 3 Year Plan → ₹1,416\n\n"
+                                            . "Additional Renewal Earning - 20% of the total renewal amount (without  GST)\n\n"
+                                            . "📈 Join early and grow with MiniWebsite as we expand across India.\n\n"
+                                            . "👇 Apply Now\n\n"
+                                            . $franchisee_ref_url . "\n\n"
+                                            . "🌐 www.MiniWebsite.in";
+                                    } else {
+                                        // WHATSAPP MESSAGE TEMPLATE 09 (FSE Team / Franchise Distributor freelancer)
+                                        $franchise_share_message = "🚀 Start Your Own Digital Business with MiniWebsite\n\n"
+                                            . "Hi 👋\n\n"
+                                            . "If you're looking for a genuine business opportunity with low investment and long-term earning potential, this is worth checking out.\n\n"
+                                            . "MiniWebsite.in is expanding its Franchise Network across India.\n\n"
+                                            . "Become a MiniWebsite Franchise Partner and help businesses go online while building your own profitable business.\n\n"
+                                            . "💼 Why Become a MiniWebsite Franchise Partner?\n\n"
+                                            . "✅ High-demand digital product\n"
+                                            . "✅ Every business is your potential customer\n"
+                                            . "✅ No technical knowledge required\n"
+                                            . "✅ Work from anywhere\n"
+                                            . "✅ Dedicated Franchise Dashboard\n"
+                                            . "✅ Complete Training & Marketing Support\n"
+                                            . "✅ Long-term business opportunity\n\n"
+                                            . "💰 Franchise Plans\n\n"
+                                            . "⭐ MW Full Franchise\n"
+                                            . "Only ₹35,400 (GST Included | One-Time)\n\n"
+                                            . "💵 Approx.  Franchise Profit Per MiniWebsite Sale\n\n"
+                                            . "🟢 1 Year Plan → ₹586\n"
+                                            . "🔵 2 Year Plan → ₹1,003\n"
+                                            . "🟣 3 Year Plan → ₹1,416\n\n"
+                                            . "Additional Renewal Earning - 20% of the total renewal amount (without  GST)\n\n"
+                                            . "📈 With active selling, many partners recover their investment early and continue building a profitable business.\n\n"
+                                            . "👇 Apply Now\n\n"
+                                            . $franchisee_ref_url . "\n\n"
+                                            . "🌐 www.MiniWebsite.in";
+                                    }
+                                    ?>
                                     <ul>
-                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode('Join using my collaboration link: ' . $franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
+                                        <li><a href="https://api.whatsapp.com/send?text=<?php echo urlencode($franchise_share_message); ?>" target="_blank"><img src="../../assets/images/whatsapp.png" alt=""></a></li>
                                         <li><a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode($franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/facebook.png" alt=""></a></li>
                                         <li><a href="https://www.instagram.com/share?url=<?php echo urlencode($franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/instagram.png" alt=""></a></li>
                                         <li><a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join using my collaboration link: ' . $franchisee_ref_url); ?>&url=<?php echo urlencode($franchisee_ref_url); ?>" target="_blank"><img src="../../assets/images/twitter.png" alt=""></a></li>

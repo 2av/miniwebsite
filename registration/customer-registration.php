@@ -62,6 +62,16 @@ if (isset($_SESSION['sender_token'])) {
 // Define error messages
 $errors = [];
 
+// List of Indian states and union territories (used by the registration State dropdown)
+$indian_states = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+    'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
+    'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan',
+    'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+    'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+    'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
+
 // Function to send email using PHPMailer
 function sendEmail($to, $subject, $message, $name = '') {
     global $phpmailer_available;
@@ -167,6 +177,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
         $user_name = mysqli_real_escape_string($connect, $user_data['user_name']);
         $user_email = mysqli_real_escape_string($connect, $user_data['user_email']);
         $user_contact = mysqli_real_escape_string($connect, $user_data['user_contact']);
+        $user_state = mysqli_real_escape_string($connect, $user_data['user_state'] ?? '');
         $hashed_password = $user_data['hashed_password'];
         $plain_password = $user_data['plain_password'] ?? '';
         $referrer_email = !empty($user_data['referrer_email']) ? mysqli_real_escape_string($connect, trim($user_data['referrer_email'])) : '';
@@ -204,14 +215,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
             $safe_referral_code  = mysqli_real_escape_string($connect, $referral_code);
             $insert = mysqli_query($connect, "
                 INSERT INTO user_details 
-                    (role, email, phone, name, password, password_hash, ip, status, created_at, referred_by, referral_code)
+                    (role, email, phone, name, state, password, password_hash, ip, status, created_at, referred_by, referral_code)
                 VALUES
-                    ('CUSTOMER', '$user_email', '$user_contact', '$user_name', '$hashed_password', '$hashed_password', '$ip_address', '$status', NOW(), $referred_by_value, '$safe_referral_code')
+                    ('CUSTOMER', '$user_email', '$user_contact', '$user_name', '$user_state', '$hashed_password', '$hashed_password', '$ip_address', '$status', NOW(), $referred_by_value, '$safe_referral_code')
                 ON DUPLICATE KEY UPDATE 
                     referred_by    = $referred_by_value,
                     referral_code  = '$safe_referral_code',
                     phone          = '$user_contact',
                     name           = '$user_name',
+                    state          = '$user_state',
                     password       = '$hashed_password',
                     password_hash  = '$hashed_password',
                     updated_at     = NOW()
@@ -322,6 +334,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
     $user_name = trim($_POST['user_name']);
     $user_email = trim($_POST['user_email']);
     $user_contact = trim($_POST['user_contact']);
+    $user_state = trim($_POST['user_state'] ?? '');
     $user_password = trim($_POST['user_password']);
 
     // Validation
@@ -335,6 +348,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
     
     if (empty($user_contact) || !preg_match("/^[0-9]{10}$/", $user_contact)) {
         $errors[] = "Valid 10-digit mobile number is required.";
+    }
+
+    if (empty($user_state) || !in_array($user_state, $indian_states, true)) {
+        $errors[] = "Please select a valid State.";
     }
     
     if (empty($user_password) || strlen($user_password) < 6) {
@@ -399,6 +416,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
                 'user_name' => $user_name,
                 'user_email' => $user_email,
                 'user_contact' => $user_contact,
+                'user_state' => $user_state,
                 'hashed_password' => $hashed_password,
                 'plain_password' => $user_password,
                 'referrer_email' => $referrer_email
@@ -462,6 +480,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             </div>
             <div class="mb-3">
                 <input type="text" class="form-control" placeholder="Mobile Number" name="user_contact" value="<?php echo isset($_POST['user_contact']) ? htmlspecialchars($_POST['user_contact']) : ''; ?>" required>
+            </div>
+            <div class="mb-3">
+                <?php $selected_state = isset($_POST['user_state']) ? $_POST['user_state'] : ''; ?>
+                <select class="form-control" name="user_state" required>
+                    <option value="">Select State</option>
+                    <?php foreach ($indian_states as $state_name): ?>
+                    <option value="<?php echo htmlspecialchars($state_name); ?>" <?php echo ($selected_state === $state_name) ? 'selected' : ''; ?>><?php echo htmlspecialchars($state_name); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="mb-3">
                 <input type="password" class="form-control" placeholder="Password" name="user_password" required>

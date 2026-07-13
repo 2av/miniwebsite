@@ -557,25 +557,6 @@ if (empty($tableError) && !empty($teamMembers)) {
         $mid   = (int)$tm['id'];
         $email = $tm['member_email'];
 
-        // Total MW Created = Count all referred users from referral_earnings (regardless of payment status)
-        // Use CONVERT for better performance
-        $mwCount = 0;
-        $mwStmt = $connect->prepare("
-            SELECT COUNT(*) as cnt
-            FROM referral_earnings re
-            WHERE CONVERT(re.referrer_email USING utf8mb4) = CONVERT(? USING utf8mb4)
-        ");
-        if ($mwStmt) {
-            $mwStmt->bind_param('s', $email);
-            if ($mwStmt->execute()) {
-                $mwRes = $mwStmt->get_result();
-                if ($mwRow = $mwRes->fetch_assoc()) {
-                    $mwCount = (int)$mwRow['cnt'];
-                }
-            }
-            $mwStmt->close();
-        }
-
         // Total Sales = Count MWs that have "Paid on Date" (payment status = 'Success' and has payment date)
         // Use CONVERT for better performance
         $salesCount = 0;
@@ -661,11 +642,26 @@ if (empty($tableError) && !empty($teamMembers)) {
             $referredByStmt->close();
         }
 
+        // MW ID(s) of Mini Website(s) the team member created under their own account
+        $ownMwIds = [];
+        $ownMwStmt = $connect->prepare("SELECT id FROM digi_card WHERE CONVERT(user_email USING utf8mb4) = CONVERT(? USING utf8mb4) ORDER BY id DESC");
+        if ($ownMwStmt) {
+            $ownMwStmt->bind_param('s', $email);
+            if ($ownMwStmt->execute()) {
+                $ownMwRes = $ownMwStmt->get_result();
+                while ($ownMwRow = $ownMwRes->fetch_assoc()) {
+                    $ownMwIds[] = (int)$ownMwRow['id'];
+                }
+            }
+            $ownMwStmt->close();
+        }
+
         $teamStats[$mid] = [
             'total_sales'      => $salesCount,
-            'total_mw_created' => $mwCount,
+            'total_mw_created' => count($ownMwIds),
             'tracker_count'    => $trackerCount,
             'referral_count'   => $referralCount,
+            'own_mw_ids'       => $ownMwIds,
         ];
     }
 }
@@ -799,15 +795,16 @@ if (empty($tableError) && !empty($teamMembers)) {
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th scope="col">Teams Id</th>
+                                <th scope="col">User ID</th>
                                 <th scope="col">Member</th>
                                 <th scope="col">Mobile</th>
+                                <th scope="col">MW ID</th>
                                 <th scope="col">Total MW Created</th>
                                 <th scope="col">Total Sales</th>
                                 <th scope="col">Dashboard Details</th>
                                 <th scope="col">Referral Details</th>
                                 <th scope="col">Customer Tracker</th>
-                                <th scope="col">Email</th>
+                                <th scope="col">User email</th>
                                 <th scope="col">District</th>
                                 <th scope="col">State</th>
                                 <th scope="col">Status</th>
@@ -840,7 +837,23 @@ if (empty($tableError) && !empty($teamMembers)) {
                                     
                                     <!-- Mobile -->
                                     <td><?php echo htmlspecialchars($member['member_phone'] ?: '—'); ?></td>
-                                    
+
+                                    <!-- MW ID (Mini Website created by the team member) -->
+                                    <td>
+                                        <?php
+                                        $ownMwIds = $stats['own_mw_ids'] ?? [];
+                                        if (!empty($ownMwIds)) {
+                                            $mwLinks = [];
+                                            foreach ($ownMwIds as $ownMwId) {
+                                                $mwLinks[] = '<a href="https://' . htmlspecialchars($_SERVER['HTTP_HOST']) . '/n.php?n=' . (int)$ownMwId . '" target="_blank" rel="noopener noreferrer">' . (int)$ownMwId . '</a>';
+                                            }
+                                            echo implode(', ', $mwLinks);
+                                        } else {
+                                            echo '<span class="text-muted">—</span>';
+                                        }
+                                        ?>
+                                    </td>
+
                                     <!-- Total MW Created -->
                                     <td><?php echo (int)$stats['total_mw_created']; ?></td>
                                     

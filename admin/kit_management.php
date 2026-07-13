@@ -136,8 +136,8 @@ function kitCountSubfolders($children_map, $folder_id) {
 }
 
 function kitLabel($key) {
-    if ($key === 'sales') return 'Sales Kit';
-    if ($key === 'marketing') return 'Marketing Kit';
+    if ($key === 'sales') return 'MW Sales Kit';
+    if ($key === 'marketing') return 'Creator Kit';
     if ($key === 'franchise_sales') return 'Franchise Sales Kit';
     return '';
 }
@@ -683,6 +683,18 @@ foreach ($kit_items as $item) {
 
 $folder_children_map = kitBuildFolderChildrenMap($kit_folders);
 
+// Explorer navigation state (Windows-style folder browsing)
+$kit_folders_by_id = kitAdminFoldersById($kit_folders);
+$current_folder_id = (int)($_GET['folder'] ?? 0);
+if ($current_folder_id > 0 && !isset($kit_folders_by_id[$current_folder_id])) {
+    $current_folder_id = 0; // invalid id or belongs to another category
+}
+$kit_breadcrumb = kitAdminBreadcrumb($current_folder_id, $kit_folders_by_id);
+$current_subfolders = isset($folder_children_map[$current_folder_id]) ? $folder_children_map[$current_folder_id] : [];
+$current_folder_items = ($current_folder_id === 0)
+    ? $uncategorized_items
+    : (isset($items_by_folder[$current_folder_id]) ? $items_by_folder[$current_folder_id] : []);
+
 function renderKitFolderCard($folder, $children_map, $items_by_folder, $kit_upload_dir, $depth = 0) {
     $folder_id = (int)$folder['id'];
     $folder_items = isset($items_by_folder[$folder_id]) ? $items_by_folder[$folder_id] : [];
@@ -807,7 +819,91 @@ function renderKitFolderItem($item, $kit_upload_dir) {
             </div>
         </div>
         <?php
+    } elseif ($type === 'file') {
+        $file_extension = strtoupper(pathinfo($item['file_path'], PATHINFO_EXTENSION));
+        $folder_of = (int)(isset($item['folder_id']) ? $item['folder_id'] : 0);
+        ?>
+        <div class="col-md-4 col-lg-3">
+            <div class="kit-item-card h-100">
+                <div class="card-body p-3 text-center">
+                    <div class="mb-2"><i class="fas fa-file-alt fa-3x text-primary"></i></div>
+                    <h6 class="card-title mb-1"><?php echo htmlspecialchars($item['title'] ?: 'Untitled File'); ?></h6>
+                    <p class="card-text text-muted small mb-2"><?php echo htmlspecialchars($file_extension); ?> File</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <small class="text-muted">Order: <?php echo (int)$item['display_order']; ?></small>
+                        <span class="status-badge <?php echo $item['status'] == 'active' ? 'status-active' : 'status-inactive'; ?>"><?php echo ucfirst($item['status']); ?></span>
+                    </div>
+                    <div class="action-buttons">
+                        <a href="../assets/upload/kits/<?php echo htmlspecialchars($item['file_path']); ?>" target="_blank" class="btn btn-outline-info btn-action" title="Download"><i class="fas fa-download"></i></a>
+                        <button type="button" class="btn btn-outline-secondary btn-action" onclick="openMoveItem(<?php echo (int)$item['id']; ?>, 'file', <?php echo $folder_of; ?>)" title="Move to Folder"><i class="fas fa-folder"></i></button>
+                        <button type="button" class="btn btn-outline-primary btn-action" onclick="editItem(<?php echo (int)$item['id']; ?>, 'file')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn btn-outline-<?php echo $item['status'] == 'active' ? 'warning' : 'success'; ?> btn-action" onclick="toggleStatus(<?php echo (int)$item['id']; ?>, '<?php echo $item['status']; ?>')" title="Toggle"><i class="fas fa-<?php echo $item['status'] == 'active' ? 'eye-slash' : 'eye'; ?>"></i></button>
+                        <button type="button" class="btn btn-outline-danger btn-action" onclick="deleteItem(<?php echo (int)$item['id']; ?>, 'file')" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
     }
+}
+
+// ---- Windows-style explorer helpers (admin) ----
+function kitAdminExplorerUrl($current_kit, $folder_id) {
+    $params = ['kit' => $current_kit];
+    if ((int)$folder_id > 0) {
+        $params['folder'] = (int)$folder_id;
+    }
+    return '?' . http_build_query($params);
+}
+
+function kitAdminFoldersById($folders) {
+    $map = [];
+    foreach ($folders as $f) {
+        $map[(int)$f['id']] = $f;
+    }
+    return $map;
+}
+
+function kitAdminBreadcrumb($folder_id, $folders_by_id) {
+    $crumbs = [];
+    $current = (int)$folder_id;
+    $guard = 0;
+    while ($current > 0 && isset($folders_by_id[$current]) && $guard < 50) {
+        $crumbs[] = $folders_by_id[$current];
+        $current = !empty($folders_by_id[$current]['parent_id']) ? (int)$folders_by_id[$current]['parent_id'] : 0;
+        $guard++;
+    }
+    return array_reverse($crumbs);
+}
+
+function kitAdminWinFolderSvg() {
+    return '<svg class="win-folder-svg" viewBox="0 0 48 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+        . '<path d="M3 6a3 3 0 0 1 3-3h11.2a3 3 0 0 1 2.1.9L23 7h19a3 3 0 0 1 3 3v3H3z" fill="#E8A33D"/>'
+        . '<path d="M3 11a3 3 0 0 1 3-3h36a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z" fill="#FBC55B"/>'
+        . '<path d="M3 12h42v2H3z" fill="#ffffff" opacity="0.25"/>'
+        . '</svg>';
+}
+
+function renderKitAdminFolderTile($folder, $children_map, $items_by_folder, $current_kit) {
+    $fid = (int)$folder['id'];
+    $direct_items = isset($items_by_folder[$fid]) ? count($items_by_folder[$fid]) : 0;
+    $subfolders = isset($children_map[$fid]) ? count($children_map[$fid]) : 0;
+    $url = kitAdminExplorerUrl($current_kit, $fid);
+    ?>
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <div class="kit-folder-tile" title="<?php echo htmlspecialchars($folder['title']); ?>">
+            <a class="kit-folder-link" href="<?php echo htmlspecialchars($url); ?>">
+                <span class="kit-folder-icon" aria-hidden="true"><?php echo kitAdminWinFolderSvg(); ?></span>
+                <span class="kit-folder-name"><?php echo htmlspecialchars($folder['title']); ?></span>
+                <span class="kit-folder-count"><?php echo $subfolders; ?> sub · <?php echo $direct_items; ?> items</span>
+            </a>
+            <div class="kit-folder-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="editFolder(<?php echo $fid; ?>)" title="Rename"><i class="fas fa-edit"></i></button>
+                <button type="button" class="btn btn-sm btn-light text-danger" onclick="deleteFolder(<?php echo $fid; ?>, '<?php echo htmlspecialchars(addslashes($folder['title'])); ?>')" title="Delete"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    </div>
+    <?php
 }
 ?>
 
@@ -889,6 +985,72 @@ function renderKitFolderItem($item, $kit_upload_dir) {
             box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
             color: white;
         }
+        /* Windows-style folder tiles */
+        .kit-admin-breadcrumb { font-size: 0.95rem; }
+        .kit-admin-breadcrumb a { color: #fff; text-decoration: none; opacity: 0.95; }
+        .kit-admin-breadcrumb a:hover { text-decoration: underline; }
+        .kit-admin-breadcrumb .crumb-sep { margin: 0 0.4rem; opacity: 0.75; }
+        .kit-admin-breadcrumb .crumb-current { font-weight: 600; }
+        .kit-folder-tile {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1.25rem 0.75rem 1rem;
+            border: 1px solid #eef0f4;
+            border-radius: 12px;
+            background: #fff;
+            transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+            min-height: 180px;
+            height: 100%;
+        }
+        .kit-folder-tile:hover {
+            background: #fff8eb;
+            border-color: #fcd34d;
+            box-shadow: 0 6px 16px rgba(234, 88, 12, 0.15);
+            transform: translateY(-2px);
+        }
+        .kit-folder-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none !important;
+            color: inherit;
+            width: 100%;
+        }
+        .kit-folder-icon {
+            font-size: 5.5rem;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 3px 4px rgba(0,0,0,0.12));
+        }
+        .kit-folder-icon .win-folder-svg { width: 1em; height: auto; display: block; }
+        .kit-folder-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.3;
+            word-break: break-word;
+            max-width: 100%;
+        }
+        .kit-folder-count { font-size: 0.78rem; color: #64748b; margin-top: 0.3rem; }
+        .kit-folder-actions {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .kit-folder-tile:hover .kit-folder-actions { opacity: 1; }
+        .kit-folder-actions .btn { padding: 2px 7px; border: 1px solid #e2e8f0; }
+        @media (max-width: 575.98px) {
+            .kit-folder-icon { font-size: 4rem; }
+            .kit-folder-tile { min-height: 140px; }
+            .kit-folder-actions { opacity: 1; }
+        }
         .kit-item-card {
             background: white;
             border-radius: 12px;
@@ -968,21 +1130,38 @@ function renderKitFolderItem($item, $kit_upload_dir) {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px;
-            padding: 25px;
+            padding: 18px 20px;
             margin-bottom: 30px;
+        }
+        .stats-overview .stats-row {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: stretch;
+        }
+        .stats-overview .stat-col {
+            flex: 1 1 0;
+            min-width: 0;
         }
         .stat-item {
             text-align: center;
-            padding: 20px;
+            padding: 8px 6px;
         }
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 1.6rem;
             font-weight: 700;
-            margin-bottom: 5px;
+            line-height: 1.1;
+            margin-bottom: 3px;
         }
         .stat-label {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             opacity: 0.9;
+            white-space: nowrap;
+        }
+        @media (max-width: 575.98px) {
+            .stats-overview .stats-row { flex-wrap: wrap; }
+            .stats-overview .stat-col { flex: 1 1 33.333%; }
+            .stat-number { font-size: 1.3rem; }
+            .stat-label { font-size: 0.7rem; }
         }
         .empty-state {
             text-align: center;
@@ -1036,23 +1215,6 @@ function renderKitFolderItem($item, $kit_upload_dir) {
                     </div>
                     <p class="text-muted mb-0">Manage promotional materials and resources for franchisees</p>
                 </div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal" onclick="openCreateSubfolder('')">
-                        <i class="fas fa-folder-plus me-2"></i>Create Folder
-                    </button>
-                    <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#addfileModal" onclick="setModalFolder('file_folder_id', '')">
-                        <i class="fas fa-plus me-2"></i>Add File
-                    </button>
-                    <button type="button" class="btn btn-custom-warning" data-bs-toggle="modal" data-bs-target="#addImageModal" onclick="setModalFolder('image_folder_id', '')">
-                        <i class="fas fa-plus me-2"></i>Add Images
-                    </button>
-                    <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addVideoModal" onclick="setModalFolder('video_folder_id', '')">
-                        <i class="fas fa-video me-2"></i>Add Video Link
-                    </button>
-                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addVideoFileModal" onclick="setModalFolder('video_file_folder_id', '')">
-                        <i class="fas fa-upload me-2"></i>Upload Video
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -1093,38 +1255,38 @@ function renderKitFolderItem($item, $kit_upload_dir) {
 
         <!-- Stats Overview -->
         <div class="stats-overview">
-            <div class="row">
-                <div class="col-md-2">
+            <div class="stats-row">
+                <div class="stat-col">
                     <div class="stat-item">
                         <div class="stat-number"><?php echo count($kit_folders); ?></div>
                         <div class="stat-label">Folders</div>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="stat-col">
                     <div class="stat-item">
                         <div class="stat-number"><?php echo count(array_filter($kit_items, function($item) { return $item['type'] == 'image'; })); ?></div>
                         <div class="stat-label">Images</div>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="stat-col">
                     <div class="stat-item">
                         <div class="stat-number"><?php echo count(array_filter($kit_items, function($item) { return $item['type'] == 'video'; })); ?></div>
                         <div class="stat-label">Videos</div>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="stat-col">
                     <div class="stat-item">
                         <div class="stat-number"><?php echo count(array_filter($kit_items, function($item) { return $item['type'] == 'file'; })); ?></div>
                         <div class="stat-label">Files</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="stat-col">
                     <div class="stat-item">
                         <div class="stat-number"><?php echo count(array_filter($kit_items, function($item) { return $item['status'] == 'active'; })); ?></div>
                         <div class="stat-label">Active Items</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="stat-col">
                     <div class="stat-item">
                         <div class="stat-number"><?php echo count($kit_items); ?></div>
                         <div class="stat-label">Total Items</div>
@@ -1203,293 +1365,71 @@ function renderKitFolderItem($item, $kit_upload_dir) {
         </div>
         <?php endif; ?>
 
-        <!-- Folders Section -->
+        <!-- Kit Explorer (Windows-style folder browsing) -->
         <div class="content-card">
             <div class="card-header-custom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-folder me-2"></i>Kit Folders</h5>
-                    <span class="badge bg-light text-dark"><?php echo count($kit_folders); ?> folders</span>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <nav aria-label="Folder navigation" class="kit-admin-breadcrumb">
+                        <a href="<?php echo htmlspecialchars(kitAdminExplorerUrl($current_kit, 0)); ?>"><i class="fas fa-home me-1"></i><?php echo htmlspecialchars(kitLabel($current_kit)); ?></a>
+                        <?php foreach ($kit_breadcrumb as $crumb): ?>
+                            <span class="crumb-sep">›</span>
+                            <?php if ((int)$crumb['id'] === $current_folder_id): ?>
+                                <span class="crumb-current"><?php echo htmlspecialchars($crumb['title']); ?></span>
+                            <?php else: ?>
+                                <a href="<?php echo htmlspecialchars(kitAdminExplorerUrl($current_kit, (int)$crumb['id'])); ?>"><?php echo htmlspecialchars($crumb['title']); ?></a>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </nav>
+                    <span class="badge bg-light text-dark"><?php echo count($current_subfolders); ?> folders · <?php echo count($current_folder_items); ?> items</span>
                 </div>
             </div>
             <div class="card-body p-4">
-                <?php if (!empty($kit_folders)): ?>
-                    <?php
-                    $root_folders = isset($folder_children_map[0]) ? $folder_children_map[0] : [];
-                    foreach ($root_folders as $folder) {
-                        renderKitFolderCard($folder, $folder_children_map, $items_by_folder, $kit_upload_dir, 0);
-                    }
-                    ?>
-                <?php else: ?>
+                <!-- Action toolbar (scoped to current folder) -->
+                <div class="d-flex gap-2 flex-wrap mb-4">
+                    <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal" onclick="openCreateSubfolder('<?php echo $current_folder_id; ?>')">
+                        <i class="fas fa-folder-plus me-2"></i>Add Folder
+                    </button>
+                    <button type="button" class="btn btn-custom-warning" data-bs-toggle="modal" data-bs-target="#addImageModal" onclick="setModalFolder('image_folder_id', '<?php echo $current_folder_id; ?>')">
+                        <i class="fas fa-image me-2"></i>Add Images
+                    </button>
+                    <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addVideoModal" onclick="setModalFolder('video_folder_id', '<?php echo $current_folder_id; ?>')">
+                        <i class="fas fa-video me-2"></i>Add Video Link
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addVideoFileModal" onclick="setModalFolder('video_file_folder_id', '<?php echo $current_folder_id; ?>')">
+                        <i class="fas fa-upload me-2"></i>Upload Video
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addfileModal" onclick="setModalFolder('file_folder_id', '<?php echo $current_folder_id; ?>')">
+                        <i class="fas fa-plus me-2"></i>Add File
+                    </button>
+                </div>
+
+                <!-- Subfolders -->
+                <?php if (!empty($current_subfolders)): ?>
+                    <div class="kit-explorer-folders row g-3 mb-4">
+                        <?php foreach ($current_subfolders as $folder) {
+                            renderKitAdminFolderTile($folder, $folder_children_map, $items_by_folder, $current_kit);
+                        } ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Items in the current folder -->
+                <?php if (!empty($current_folder_items)): ?>
+                    <div class="row g-4">
+                        <?php foreach ($current_folder_items as $item) { renderKitFolderItem($item, $kit_upload_dir); } ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Empty state -->
+                <?php if (empty($current_subfolders) && empty($current_folder_items)): ?>
                     <div class="empty-state py-4">
-                        <i class="fas fa-folder"></i>
-                        <h5>No Folders Yet</h5>
-                        <p>Create folders to organize images and videos for franchisees</p>
-                        <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal">
-                            <i class="fas fa-folder-plus me-2"></i>Create Your First Folder
-                        </button>
+                        <i class="fas fa-folder-open"></i>
+                        <h5><?php echo $current_folder_id === 0 ? 'No Folders or Items Yet' : 'This Folder is Empty'; ?></h5>
+                        <p>Use <strong>Add Folder</strong> to create <?php echo $current_folder_id === 0 ? 'a folder' : 'a subfolder'; ?>, or add images, videos and files here.</p>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
 
-        <!-- Images Section -->
-        <div class="content-card">
-            <div class="card-header-custom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-images me-2"></i>Promotional Images (Uncategorized)</h5>
-                    <span class="badge bg-light text-dark"><?php echo count(array_filter($uncategorized_items, function($item) { return $item['type'] == 'image'; })); ?> items</span>
-                </div>
-            </div>
-            <div class="card-body p-4">
-                <?php 
-                $image_items = array_filter($uncategorized_items, function($item) { return $item['type'] == 'image'; });
-                if (!empty($image_items)): ?>
-                    <div class="row g-4">
-                        <?php foreach ($image_items as $item): ?>
-                            <div class="col-md-4 col-lg-3">
-                                <div class="kit-item-card">
-                                    <img src="../assets/upload/kits/<?php echo htmlspecialchars($item['file_path']); ?>" 
-                                         class="kit-image" 
-                                         alt="<?php echo htmlspecialchars($item['title'] ?: 'Untitled'); ?>">
-                                    <div class="card-body p-3">
-                                        <h6 class="card-title mb-2"><?php echo htmlspecialchars($item['title'] ?: 'Untitled Image'); ?></h6>
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <small class="text-muted">Order: <?php echo $item['display_order']; ?></small>
-                                            <span class="status-badge <?php echo $item['status'] == 'active' ? 'status-active' : 'status-inactive'; ?>">
-                                                <?php echo ucfirst($item['status']); ?>
-                                            </span>
-                                        </div>
-                                        <div class="action-buttons">
-                                            <button type="button" class="btn btn-outline-secondary btn-action"
-                                                    onclick="openMoveItem(<?php echo $item['id']; ?>, 'image', 0)" title="Move to Folder">
-                                                <i class="fas fa-folder"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-action" 
-                                                    onclick="editItem(<?php echo $item['id']; ?>, 'image')" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-<?php echo $item['status'] == 'active' ? 'warning' : 'success'; ?> btn-action" 
-                                                    onclick="toggleStatus(<?php echo $item['id']; ?>, '<?php echo $item['status']; ?>')" 
-                                                    title="<?php echo $item['status'] == 'active' ? 'Deactivate' : 'Activate'; ?>">
-                                                <i class="fas fa-<?php echo $item['status'] == 'active' ? 'eye-slash' : 'eye'; ?>"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-danger btn-action" 
-                                                    onclick="deleteItem(<?php echo $item['id']; ?>, 'image')" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-images"></i>
-                        <h5>No Images Added Yet</h5>
-                        <p>Start building your franchisee kit by adding promotional images</p>
-                        <button type="button" class="btn btn-custom-warning" data-bs-toggle="modal" data-bs-target="#addImageModal">
-                            <i class="fas fa-plus me-2"></i>Add Your First Image
-                        </button>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Videos Section -->
-        <div class="content-card">
-            <div class="card-header-custom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-video me-2"></i>Video Resources (Uncategorized)</h5>
-                    <span class="badge bg-light text-dark"><?php echo count(array_filter($uncategorized_items, function($item) { return $item['type'] == 'video'; })); ?> items</span>
-                </div>
-            </div>
-            <div class="card-body p-4">
-                <?php 
-                $video_items = array_filter($uncategorized_items, function($item) { return $item['type'] == 'video'; });
-                if (!empty($video_items)): ?>
-                    <div class="row g-4">
-                        <?php foreach ($video_items as $item): ?>
-                            <div class="col-md-6 col-lg-4">
-                                <div class="kit-video-card">
-                                    <div class="mb-3">
-                                        <?php if (!empty($item['file_path'])): ?>
-                                            <video controls style="width:100%;max-height:180px;border-radius:8px;">
-                                                <source src="<?php echo htmlspecialchars($kit_upload_dir . $item['file_path']); ?>">
-                                            </video>
-                                        <?php else: ?>
-                                            <i class="fas fa-play-circle" style="font-size: 3rem; color: #667eea;"></i>
-                                        <?php endif; ?>
-                                    </div>
-                                    <h6 class="card-title mb-2"><?php echo htmlspecialchars($item['title'] ?: 'Untitled Video'); ?></h6>
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <small class="text-muted">Order: <?php echo $item['display_order']; ?></small>
-                                        <span class="status-badge <?php echo $item['status'] == 'active' ? 'status-active' : 'status-inactive'; ?>">
-                                            <?php echo ucfirst($item['status']); ?>
-                                        </span>
-                                    </div>
-                                    <p class="card-text mb-3">
-                                        <?php if (!empty($item['video_url'])): ?>
-                                        <small class="text-break"><?php echo htmlspecialchars($item['video_url']); ?></small>
-                                        <?php elseif (!empty($item['file_path'])): ?>
-                                        <small class="text-muted">Uploaded video file</small>
-                                        <?php endif; ?>
-                                    </p>
-                                    <?php if (!empty($item['video_url'])): ?>
-                                    <div class="mb-3">
-                                        <a href="<?php echo htmlspecialchars($item['video_url']); ?>" 
-                                           target="_blank" 
-                                           class="btn btn-primary btn-sm">
-                                            <i class="fas fa-external-link-alt me-1"></i>Open Video
-                                        </a>
-                                    </div>
-                                    <?php endif; ?>
-                                    <div class="action-buttons">
-                                        <button type="button" class="btn btn-outline-secondary btn-action"
-                                                onclick="openMoveItem(<?php echo $item['id']; ?>, 'video', 0)" title="Move to Folder">
-                                            <i class="fas fa-folder"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline-primary btn-action" 
-                                                onclick="editItem(<?php echo $item['id']; ?>, 'video')" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline-<?php echo $item['status'] == 'active' ? 'warning' : 'success'; ?> btn-action" 
-                                                onclick="toggleStatus(<?php echo $item['id']; ?>, '<?php echo $item['status']; ?>')" 
-                                                title="<?php echo $item['status'] == 'active' ? 'Deactivate' : 'Activate'; ?>">
-                                            <i class="fas fa-<?php echo $item['status'] == 'active' ? 'eye-slash' : 'eye'; ?>"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline-danger btn-action" 
-                                                onclick="deleteItem(<?php echo $item['id']; ?>, 'video')" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-video"></i>
-                        <h5>No Videos Added Yet</h5>
-                        <p>Add YouTube video links to help franchisees with training and marketing</p>
-                        <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addVideoModal">
-                            <i class="fas fa-plus me-2"></i>Add Your First Video
-                        </button>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Files Section -->
-        <div class="content-card">
-            <div class="card-header-custom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-file me-2"></i>File Resources (Uncategorized)</h5>
-                    <span class="badge bg-light text-dark"><?php echo count(array_filter($uncategorized_items, function($item) { return $item['type'] == 'file'; })); ?> items</span>
-                </div>
-            </div>
-            <div class="card-body p-4">
-                <?php 
-                $file_items = array_filter($uncategorized_items, function($item) { return $item['type'] == 'file'; });
-                if (!empty($file_items)): ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>File Name</th>
-                                    <th>Title</th>
-                                    <th>File Type</th>
-                                    <th>Size</th>
-                                    <th>Order</th>
-                                    <th>Status</th>
-                                    <th>Upload Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($file_items as $item): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <i class="fas fa-file me-2 text-primary"></i>
-                                                <span><?php echo htmlspecialchars($item['file_path']); ?></span>
-                                            </div>
-                                        </td>
-                                        <td><?php echo htmlspecialchars($item['title'] ?: 'Untitled File'); ?></td>
-                                        <td>
-                                            <?php 
-                                            $file_extension = strtoupper(pathinfo($item['file_path'], PATHINFO_EXTENSION));
-                                            echo $file_extension;
-                                            ?>
-                                        </td>
-                                        <td>
-                                            <?php 
-                                            $file_path = '../assets/upload/kits/' . $item['file_path'];
-                                            if (file_exists($file_path)) {
-                                                $file_size = filesize($file_path);
-                                                echo formatFileSize($file_size);
-                                            } else {
-                                                echo '<span class="text-muted">Unknown</span>';
-                                            }
-                                            ?>
-                                        </td>
-                                        <td><?php echo $item['display_order']; ?></td>
-                                        <td>
-                                            <span class="status-badge <?php echo $item['status'] == 'active' ? 'status-active' : 'status-inactive'; ?>">
-                                                <?php echo ucfirst($item['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td><?php 
-                                            $date_field = isset($item['created_at']) ? $item['created_at'] : (isset($item['uploaded_date']) ? $item['uploaded_date'] : 'now');
-                                            echo date('d-m-Y H:i', strtotime($date_field)); 
-                                        ?></td>
-                                        <td>
-                                            <div class="action-buttons">
-                                                <a href="../assets/upload/kits/<?php echo htmlspecialchars($item['file_path']); ?>" 
-                                                   target="_blank" 
-                                                   class="btn btn-outline-info btn-action" 
-                                                   title="Download">
-                                                    <i class="fas fa-download"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-outline-secondary btn-action"
-                                                        onclick="openMoveItem(<?php echo $item['id']; ?>, 'file', 0)"
-                                                        title="Move to Folder">
-                                                    <i class="fas fa-folder"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-outline-primary btn-action" 
-                                                        onclick="editItem(<?php echo $item['id']; ?>, 'file')" 
-                                                        title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-outline-<?php echo $item['status'] == 'active' ? 'warning' : 'success'; ?> btn-action" 
-                                                        onclick="toggleStatus(<?php echo $item['id']; ?>, '<?php echo $item['status']; ?>')" 
-                                                        title="<?php echo $item['status'] == 'active' ? 'Deactivate' : 'Activate'; ?>">
-                                                    <i class="fas fa-<?php echo $item['status'] == 'active' ? 'eye-slash' : 'eye'; ?>"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-outline-danger btn-action" 
-                                                        onclick="deleteItem(<?php echo $item['id']; ?>, 'file')" 
-                                                        title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-file"></i>
-                        <h5>No Files Added Yet</h5>
-                        <p>Upload documents, presentations, and other resources for franchisees</p>
-                        <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#addfileModal">
-                            <i class="fas fa-plus me-2"></i>Add Your First File
-                        </button>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
     </div>
 
     <!-- Create Folder Modal -->

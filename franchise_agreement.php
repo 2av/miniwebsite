@@ -644,12 +644,12 @@ if ($connect) {
 <body>
        <div class="container">
         <?php if(isset($content['last_updated'])): ?>
-        <div style="font-size: 0.9em; color: #6c757d; font-style: italic; margin-bottom: 20px;">
+        <div style="font-size: 0.9em; color: #6c757d; font-style: italic; margin-bottom: 20px; display: none;">
             Last updated: <?php echo date('F j, Y', strtotime($content['last_updated'])); ?>
         </div>
         <?php endif; ?>
         
-        <div class="content">
+        <div class="content" style="display: none;">
             <?php echo $page_content; ?>
         </div>
         
@@ -931,11 +931,8 @@ if ($connect) {
         document.querySelector('input[name="email"]').value = '<?php echo $prefill_email; ?>';
         <?php endif; ?>
 
-        // Initialize promo code functionality
+        // Initialize promo code functionality (runs the initial GST calculation internally)
         initializePromoCode();
-        
-        // Initial calculation update
-        updateAmountDisplay();
         
         // Check for updated deals on page load and periodically
         checkForUpdatedDeals();
@@ -1250,6 +1247,11 @@ let originalAmount = planConfig[selectedPlan].baseAmount;
         }
 
         updatePlanCardsUi();
+
+        // Initial calculation on load (in scope here) so a prefilled/entered GST
+        // number that does not start with the company state code (06) correctly
+        // applies IGST 18% instead of CGST+SGST.
+        updateAmountDisplay();
     }
 </script>
 <form action="payment/verify_miniwebsite.php" method="POST" name="franchiseRazorpayForm" style="display:none;">

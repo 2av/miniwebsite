@@ -314,7 +314,10 @@ function parse_mw_plans_from_setting($setting_value, $use_team_500_pricing = fal
     $v = strtolower((string) $setting_value);
     $plans = [];
 
-    if ((strpos($v, '6 month') !== false || strpos($v, '6month') !== false) && $use_team_500_pricing) {
+    // The 6-month (₹500) plan is team-only pricing. Any team-eligible account
+    // (team link or team-referred customer) should always be offered it,
+    // regardless of what the profile's plan-visibility text lists.
+    if ($use_team_500_pricing) {
         $plans[] = 'plan_team500';
     }
     if (preg_match('/\b1\s*(?:year|,|&)/', $v) || preg_match('/\b1\s*year\b/', $v)) {

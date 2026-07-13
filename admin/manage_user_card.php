@@ -86,7 +86,10 @@ $query = mysqli_query($connect, "
             WHEN '$filter' = 'All' THEN dc.d_payment_status LIKE '%'
             ELSE dc.d_payment_status = '$filter'
         END
-        AND dc.f_user_email = ''
+        AND NOT EXISTS (
+            SELECT 1 FROM user_details ut 
+            WHERE BINARY ut.email = BINARY dc.user_email AND ut.role = 'TEAM'
+        )
         $search_condition
     ORDER BY dc.id DESC 
     LIMIT $start_from, $limit
@@ -206,9 +209,33 @@ $query = mysqli_query($connect, "
                     $user_contact = !empty($row['user_contact']) ? $row['user_contact'] : '-';
                     echo '<td class="email-cell">'.$user_contact.'</td>';
                     
-                    // Referral Source (using referred_by from unified table)
-                    $ref_source = !empty($row['referred_by']) ? $row['referred_by'] : 'Direct';
-                    echo '<td class="email-cell">'.substr($ref_source, 0, 20).'</td>';
+                    // Referral Source (formatted as ID, same as manage_franchisee_distributor.php)
+                    $ref_source_display = 'Direct';
+                    $ref_by = isset($row['referred_by']) ? trim($row['referred_by']) : '';
+                    if($ref_by !== ''){
+                        $safe_ref_by = mysqli_real_escape_string($connect, $ref_by);
+                        $ref_user_q = mysqli_query($connect, "SELECT id, role FROM user_details WHERE email='".$safe_ref_by."' LIMIT 1");
+                        if($ref_user_q && mysqli_num_rows($ref_user_q) > 0){
+                            $ref_user = mysqli_fetch_array($ref_user_q);
+                            $ref_id = intval($ref_user['id']);
+                            $ref_role = strtoupper($ref_user['role'] ?? '');
+
+                            if ($ref_role === 'FRANCHISEE') {
+                                $ref_source_display = 'FR - '.str_pad($ref_id, 3, '0', STR_PAD_LEFT);
+                            } elseif ($ref_role === 'TEAM') {
+                                $ref_source_display = 'Team - '.$ref_id;
+                            } elseif ($ref_role === 'ADMIN') {
+                                $ref_source_display = 'Admin - '.$ref_id;
+                            } else {
+                                $ref_source_display = 'User - '.$ref_id;
+                            }
+
+                            $safe_user_email = mysqli_real_escape_string($connect, $user_email);
+                            $frd_q = mysqli_query($connect, "SELECT 1 FROM referral_earnings WHERE referrer_email COLLATE utf8mb3_general_ci='".$safe_ref_by."' AND referred_email COLLATE utf8mb3_general_ci='".$safe_user_email."' AND is_collaboration='YES' LIMIT 1");
+                            if($frd_q && mysqli_num_rows($frd_q) > 0){ $ref_source_display .= ' (FRD)'; }
+                        }
+                    }
+                    echo '<td class="email-cell">'.htmlspecialchars($ref_source_display).'</td>';
 
                     // Company Name
                     $billing_name = !empty($row['billing_name']) ? substr($row['billing_name'], 0, 25) : '-';
@@ -382,13 +409,16 @@ $query = mysqli_query($connect, "
 
         $countSql = "
             SELECT COUNT(*) AS total
-            FROM digi_card 
+            FROM digi_card dc
             WHERE
                 CASE
-                    WHEN '$filter' = 'All' THEN d_payment_status LIKE '%'
-                    ELSE d_payment_status = '$filter'
+                    WHEN '$filter' = 'All' THEN dc.d_payment_status LIKE '%'
+                    ELSE dc.d_payment_status = '$filter'
                 END
-                AND f_user_email = ''  
+                AND NOT EXISTS (
+                    SELECT 1 FROM user_details ut 
+                    WHERE BINARY ut.email = BINARY dc.user_email AND ut.role = 'TEAM'
+                )
                 $search_condition_pagination
         ";
         $countRes = mysqli_query($connect, $countSql);
