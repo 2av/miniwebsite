@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiniWebsite.Application.Common.Models;
@@ -8,9 +7,13 @@ using MiniWebsite.Shared.Constants;
 
 namespace MiniWebsite.Api.Controllers.V1;
 
+/// <summary>
+/// Fetches / manages rows from live <c>user_details</c> table.
+/// Auth temporarily open — secure later.
+/// </summary>
 [ApiController]
 [Route(ApiConstants.ApiRoutePrefix + "/users")]
-[Authorize]
+[AllowAnonymous]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _users;
@@ -20,17 +23,8 @@ public class UsersController : ControllerBase
         _users = users;
     }
 
-    [HttpGet("me")]
-    public async Task<ActionResult<ApiResult<UserDto>>> Me(CancellationToken ct)
-    {
-        var userId = GetUserId();
-        if (userId == null) return Unauthorized(ApiResult<UserDto>.Fail("Unauthorized."));
-        var result = await _users.GetMeAsync(userId.Value, ct);
-        return result.Success ? Ok(result) : NotFound(result);
-    }
-
+    /// <summary>List users from user_details (paged).</summary>
     [HttpGet]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResult<PagedResult<UserDto>>>> List(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -42,8 +36,8 @@ public class UsersController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Get one user by id.</summary>
     [HttpGet("{id:int}")]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResult<UserDto>>> GetById(int id, CancellationToken ct)
     {
         var result = await _users.GetByIdAsync(id, ct);
@@ -51,7 +45,6 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResult<UserDto>>> Create([FromBody] CreateUserRequest request, CancellationToken ct)
     {
         var result = await _users.CreateAsync(request, ct);
@@ -59,7 +52,6 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResult<UserDto>>> Update(int id, [FromBody] UpdateUserRequest request, CancellationToken ct)
     {
         var result = await _users.UpdateAsync(id, request, ct);
@@ -67,16 +59,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResult>> Delete(int id, CancellationToken ct)
     {
         var result = await _users.SoftDeleteAsync(id, ct);
         return result.Success ? Ok(result) : NotFound(result);
-    }
-
-    private int? GetUserId()
-    {
-        var id = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        return int.TryParse(id, out var userId) ? userId : null;
     }
 }

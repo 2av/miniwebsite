@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
         services.Configure<RazorpayOptions>(configuration.GetSection(RazorpayOptions.SectionName));
+        services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("Default")
             ?? "Server=localhost;Port=3306;Database=miniwebsite_api;User=root;Password=;";
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IPaymentGateway, RazorpayPaymentGateway>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
+        services.AddScoped<IDealBonusLookup, DealBonusLookup>();
 
         var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
         var signingKey = string.IsNullOrWhiteSpace(jwt.Key) || jwt.Key.Length < 32

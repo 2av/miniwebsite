@@ -13,6 +13,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<RegistrationPending> RegistrationPendings => Set<RegistrationPending>();
+    public DbSet<ReferralEarning> ReferralEarnings => Set<ReferralEarning>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

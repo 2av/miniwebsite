@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using MiniWebsite.Application.Auth;
+using MiniWebsite.Application.Registration;
 using MiniWebsite.Application.Users;
 using System.Reflection;
 
@@ -13,6 +14,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IRegistrationService, RegistrationService>();
         return services;
     }
 }

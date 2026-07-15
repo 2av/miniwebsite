@@ -36,26 +36,7 @@ try
             Description = "Backend API for MiniWebsite — Auth, CRUD, Payments, Email."
         });
 
-        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-        {
-            Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
-            Name = "Authorization",
-            In = ParameterLocation.Header,
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT"
-        });
-
-        c.AddSecurityRequirement(new OpenApiSecurityRequirement
-        {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-                },
-                Array.Empty<string>()
-            }
-        });
+        // Bearer auth temporarily removed from Swagger — re-add AddSecurityDefinition later.
     });
 
     builder.Services.AddCors(options =>
@@ -94,7 +75,11 @@ try
         app.UseSwaggerUI();
     }
 
-    app.UseHttpsRedirection();
+    // Skip HTTPS redirect in Development so Swagger on http://localhost:5209
+    // is not bounced to https://localhost:7236 (Failed to fetch / SSL trust).
+    if (!app.Environment.IsDevelopment())
+        app.UseHttpsRedirection();
+
     app.UseCors("Frontend");
     app.UseAuthentication();
     app.UseAuthorization();

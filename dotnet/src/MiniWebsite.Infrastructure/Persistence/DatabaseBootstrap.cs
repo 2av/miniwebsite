@@ -4,15 +4,12 @@ using Microsoft.Extensions.Logging;
 namespace MiniWebsite.Infrastructure.Persistence;
 
 /// <summary>
-/// Live DB already has PHP tables. Only ensure API-only auth tables exist.
-/// Never run EnsureCreated against miniwebsite_live (it would no-op or fight the schema).
+/// Live DB already has PHP tables. Only ensure API-only tables exist.
 /// </summary>
 public static class DatabaseBootstrap
 {
     public static async Task EnsureAuthTablesAsync(ApplicationDbContext db, ILogger logger, CancellationToken ct = default)
     {
-        // Create auxiliary tables needed by JWT refresh / password reset.
-        // Safe on both local and live (IF NOT EXISTS).
         const string sql = """
             CREATE TABLE IF NOT EXISTS refresh_tokens (
               Id INT NOT NULL AUTO_INCREMENT,
@@ -40,9 +37,29 @@ public static class DatabaseBootstrap
               PRIMARY KEY (Id),
               KEY IX_password_reset_tokens_UserId (UserId)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+            CREATE TABLE IF NOT EXISTS registration_pending (
+              Id INT NOT NULL AUTO_INCREMENT,
+              Role VARCHAR(20) NOT NULL,
+              Email VARCHAR(255) NOT NULL,
+              Phone VARCHAR(25) NOT NULL,
+              Name VARCHAR(150) NOT NULL,
+              State VARCHAR(100) NULL,
+              PasswordHash VARCHAR(255) NOT NULL,
+              PlainPassword VARCHAR(255) NOT NULL,
+              ReferrerEmail VARCHAR(255) NULL,
+              Otp VARCHAR(10) NOT NULL,
+              ExpiresAt DATETIME(6) NOT NULL,
+              IsConsumed TINYINT(1) NOT NULL DEFAULT 0,
+              CreatedAt DATETIME(6) NOT NULL,
+              UpdatedAt DATETIME(6) NULL,
+              IsDeleted TINYINT(1) NOT NULL DEFAULT 0,
+              PRIMARY KEY (Id),
+              KEY IX_registration_pending_Email_Role (Email, Role)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """;
 
         await db.Database.ExecuteSqlRawAsync(sql, ct);
-        logger.LogInformation("Auth auxiliary tables verified (refresh_tokens, password_reset_tokens).");
+        logger.LogInformation("Auxiliary tables verified (auth + registration_pending).");
     }
 }

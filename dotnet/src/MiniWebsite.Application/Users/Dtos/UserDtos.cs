@@ -2,21 +2,34 @@ namespace MiniWebsite.Application.Users.Dtos;
 
 public record UserDto(
     int Id,
+    string Role,
     string Email,
     string? Phone,
     string Name,
-    string Role,
     string Status,
-    string? State,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt,
     string? ReferralCode,
     string? ReferredBy,
-    DateTime CreatedAt);
+    string? District,
+    string? State,
+    string? Department,
+    string? ProfileImage,
+    string CollaborationEnabled,
+    string SaleskitEnabled,
+    string Influencer,
+    string? WalletBalance,
+    string? SelectService,
+    uint? MwReferralId,
+    uint? SenderUserId);
 
 public record UpdateUserRequest(
     string? Name,
     string? Phone,
     string? State,
-    string? Status);
+    string? District,
+    string? Status,
+    string? Department);
 
 public record CreateUserRequest(
     string Name,
@@ -24,4 +37,5 @@ public record CreateUserRequest(
     string Phone,
     string Password,
     string Role,
-    string? State = null);
+    string? State = null,
+    string? District = null);

@@ -53,17 +53,25 @@ public class AuthService : IAuthService
                 referredBy = referrer.Email;
         }
 
+        var hash = _passwordHasher.Hash(request.Password);
         var user = new User
         {
             Name = request.Name.Trim(),
             Email = email,
             Phone = phone,
-            PasswordHash = _passwordHasher.Hash(request.Password),
+            Password = hash,
+            PasswordHash = hash,
             Role = UserRole.Customer,
             Status = "ACTIVE",
+            CollaborationEnabled = "NO",
+            SaleskitEnabled = "NO",
+            Influencer = "NO",
             State = string.IsNullOrWhiteSpace(request.State) ? null : request.State.Trim(),
             ReferralCode = GenerateReferralCode(email),
-            ReferredBy = referredBy
+            ReferredBy = referredBy,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now,
+            IsDeleted = false
         };
 
         _db.Users.Add(user);
@@ -89,7 +97,7 @@ public class AuthService : IAuthService
         var user = await _db.Users.FirstOrDefaultAsync(
             u => u.Email.ToLower() == emailKey || u.Phone == userId, ct);
 
-        if (user == null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
+        if (user == null || !VerifyPassword(request.Password, user))
             return ApiResult<AuthResponse>.Fail("Invalid user id or password.");
 
         if (!string.Equals(user.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
@@ -163,7 +171,10 @@ public class AuthService : IAuthService
         if (token == null || !token.IsValid)
             return ApiResult.Fail("Invalid or expired reset token.");
 
-        user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        var passwordHash = _passwordHasher.Hash(request.NewPassword);
+        user.Password = passwordHash;
+        user.PasswordHash = passwordHash;
+        user.UpdatedAt = DateTime.Now;
         token.UsedAt = DateTime.UtcNow;
 
         var activeRefresh = await _db.RefreshTokens
@@ -210,6 +221,15 @@ public class AuthService : IAuthService
             accessToken,
             refreshToken,
             expiresAt);
+    }
+
+    private bool VerifyPassword(string password, User user)
+    {
+        if (!string.IsNullOrWhiteSpace(user.PasswordHash) && _passwordHasher.Verify(password, user.PasswordHash))
+            return true;
+        if (!string.IsNullOrWhiteSpace(user.Password) && _passwordHasher.Verify(password, user.Password))
+            return true;
+        return false;
     }
 
     private static string GenerateReferralCode(string email) =>
