@@ -24,6 +24,8 @@ if((!isset($_GET['card_number']) || empty($_GET['card_number'])) || (isset($_GET
 // Count existing Mini Websites for this user (1st MW is free; 2nd+ requires payment before creation)
 $user_mw_count = 0;
 $requires_pay_for_new_mw = false;
+$is_demo_account = !empty($_SESSION['user_email'])
+    && strcasecmp(trim($_SESSION['user_email']), 'demo@miniwebsite.in') === 0;
 if (!empty($_SESSION['user_email'])) {
     $user_email_cnt_esc = mysqli_real_escape_string($connect, $_SESSION['user_email']);
     $mw_count_query = mysqli_query($connect, 'SELECT COUNT(*) AS cnt FROM digi_card WHERE user_email="' . $user_email_cnt_esc . '"');
@@ -31,7 +33,8 @@ if (!empty($_SESSION['user_email'])) {
         $user_mw_count = (int) ($mw_count_row['cnt'] ?? 0);
     }
 }
-if ((!isset($_GET['card_number']) || empty($_GET['card_number'])) && $user_mw_count >= 1) {
+// Demo account: never require payment for new Mini Websites
+if ((!$is_demo_account) && (!isset($_GET['card_number']) || empty($_GET['card_number'])) && $user_mw_count >= 1) {
     $requires_pay_for_new_mw = true;
 }
 
@@ -135,12 +138,16 @@ if(isset($_POST['process1'])){
         }
 
         // First Mini Website — create card immediately (free; complimentary per role profile)
+        // Demo account: skip payment for any MW count and set 3-year validity
         $date = date('Y-m-d H:i:s');
         $ras_create = get_current_user_role_access_settings($connect);
         $complimentary_rules = get_complimentary_website_rules($connect, $ras_create['profile_key'] ?? null);
         $complimentary_flag = 'No';
         $validity_sql = 'DATE_ADD("' . $date . '", INTERVAL 7 DAY)';
-        if (!empty($complimentary_rules['apply'])) {
+        if ($is_demo_account) {
+            $complimentary_flag = 'Yes';
+            $validity_sql = 'DATE_ADD("' . $date . '", INTERVAL 3 YEAR)';
+        } elseif (!empty($complimentary_rules['apply'])) {
             $complimentary_flag = 'Yes';
             $validity_sql = complimentary_validity_sql($complimentary_rules);
         }

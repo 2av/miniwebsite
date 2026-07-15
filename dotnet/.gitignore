@@ -1,0 +1,16 @@
+##
+# MiniWebsite .NET API
+##
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+*.swp
+appsettings.*.local.json
+**/secrets.json
+logs/
+*.log
+.env
+.env.*

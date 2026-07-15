@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniWebsite — Code Quality Fix Prompts</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --warn: #f59e0b;
+            --critical: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 28px;
+            font-size: 0.95rem;
+        }
+        .phase {
+            margin-bottom: 32px;
+        }
+        .phase-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+        .badge-critical { background: rgba(239,68,68,0.2); color: #fca5a5; }
+        .badge-high { background: rgba(245,158,11,0.2); color: #fcd34d; }
+        .badge-medium { background: rgba(59,130,246,0.2); color: #93c5fd; }
+        .badge-low { background: rgba(34,197,94,0.2); color: #86efac; }
+        .prompt-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
+        }
+        .prompt-header h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .copy-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .copy-btn:hover { background: var(--accent-hover); }
+        .copy-btn.copied { background: var(--success); }
+        .prompt-body {
+            padding: 16px;
+            font-size: 0.88rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #cbd5e1;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .note {
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 28px;
+            font-size: 0.9rem;
+            color: #93c5fd;
+        }
+        .rating-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 28px;
+        }
+        .rating-box strong { color: #fbbf24; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<h1>MiniWebsite — Code Quality Fix Prompts</h1>
+<p class="subtitle">Har prompt ko <strong>Copy</strong> click karke Cursor / AI me paste karo. Functionality break nahi honi chahiye — har prompt me safe approach likhi hai.</p>
+
+<div class="note">
+    <strong>Current rating:</strong> 4.8 / 10 &nbsp;|&nbsp; Target after Phase 1–2: 6.5–7 / 10<br>
+    <strong>Rule:</strong> Ek time pe ek prompt use karo → test karo → phir next.
+</div>
+
+<div class="rating-box">
+    <strong>Overall: 4.8 / 10</strong><br>
+    Security 2.5 · Architecture 4.5 · Maintainability 4.0 · Features 7.5 · Testing 2.0
+</div>
+
+<!-- PHASE 1 -->
+<div class="phase">
+    <div class="phase-title"><span class="badge badge-critical">Phase 1</span> Security — Critical (Week 1)</div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>1. Secrets ko git se hatao (DB, SMTP, Razorpay)</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">MiniWebsite PHP project me live secrets git me committed hain (app/config/database.php, app/config/payment.php, common/email_config.php).
+
+Task:
+1. Create app/config/config.local.php.example (template with placeholders, committed to git)
+2. Create app/config/config.local.php loading pattern in database.php, email.php, payment.php — read from local file if exists, else fallback to current values (no break on local dev)
+3. Add root .gitignore: config.local.php, .env, admin/error_log, uploads/*
+4. Remove hardcoded Razorpay keys from payment/create_razorpay_order.php, payment/verify_wallet_recharge.php, franchise_agreement.php — use app/config/payment.php only
+5. Do NOT store razorpay_key_secret in $_SESSION (app/config/payment.php)
+
+Constraints:
+- Zero functionality change — same DB connection, same payment flow, same email sending
+- Do not rotate actual credentials in code; only restructure where secrets are loaded
+- List all files changed at the end</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>2. Admin auth guard — har admin page protect karo</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">admin/ folder me bahut pages bina login ke accessible hain. admin/header.php sirf UI dikhata hai, auth check nahi karta.
+
+Task:
+1. Create admin/auth_guard.php that checks $_SESSION['admin_is_logged_in'] === true (same session key as admin/login.php uses)
+2. If not logged in, redirect to admin/login.php and exit
+3. Add require_once auth_guard.php at the TOP of every admin/*.php file EXCEPT: login.php, logout.php, and any public install scripts
+4. auth_guard must run BEFORE any POST handling or database writes
+
+Files to start with: admin/manage_user.php, admin/manage_deals.php, admin/manage_franchisee_distributor.php, admin/kit_management.php, admin/teams-management.php
+
+Constraints:
+- Logged-in admin experience must be identical
+- Do not change admin login logic or session variable names
+- Test that login.php still works without guard blocking it</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>3. Production display_errors off + safe error logging</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">Payment and admin scripts me display_errors = 1 hai jo production pe stack traces leak karta hai.
+
+Task:
+1. Create app/config/environment.php with IS_PRODUCTION constant (detect via hostname or env)
+2. In production: display_errors=0, log_errors=1, error_log path outside web root if possible
+3. Update payment/pay_miniwebsite.php, payment/verify_miniwebsite.php, payment/verify.php, app/config/payment.php, admin/toggle_complimentary.php
+4. database.php: replace die() with connection error with generic user message + log real error
+
+Constraints:
+- Local XAMPP dev should still show errors (or use a simple DEBUG flag)
+- No change to payment success/failure logic</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>4. SQL injection fix — admin high-risk files</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">Convert string-interpolated mysqli_query to prepared statements in these admin files only (one pass):
+
+- admin/contact_download.php ($_GET['id'])
+- admin/check_column.php ($_GET['test_id'])
+- admin/login.php (admin email/phone login)
+- admin/manage_user.php (POST deal mapping queries)
+
+Rules:
+- Use $connect->prepare() + bind_param()
+- Keep exact same query results and redirects
+- Do not change table/column names or business logic
+- After each file, note what was tested manually
+
+Do NOT touch user/website or payment files in this task — admin only.</div>
+    </div>
+</div>
+
+<!-- PHASE 2 -->
+<div class="phase">
+    <div class="phase-title"><span class="badge badge-high">Phase 2</span> Auth & Session (Week 2)</div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>5. session_regenerate_id after successful login</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">Add session_regenerate_id(true) immediately after successful authentication in:
+
+- login/customer.php
+- login/franchisee.php
+- login/team.php
+- admin/login.php
+
+Place it AFTER password verify and BEFORE setting session variables (or immediately after all session vars set — pick one consistent approach).
+
+Constraints:
+- User must land on same dashboard redirect as before
+- Do not clear existing session data needed for redirect
+- No other login flow changes</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>6. CSRF helper + critical forms (soft launch)</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">Project me CSRF protection zero hai.
+
+Task:
+1. Create app/helpers/csrf_helper.php with:
+   - csrf_token() — get or create token in session
+   - csrf_field() — returns hidden input HTML
+   - csrf_verify() — validates POST token
+2. Add csrf_field() to: admin/login.php form, login/customer.php form, login/franchisee.php form
+3. Verify on POST — for first release: log invalid token to error_log but still allow request (soft mode) OR use a CSRF_STRICT=false constant
+
+Constraints:
+- Forms must submit successfully when token present
+- AJAX payment billing forms can be phase 2b</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>7. Plaintext password migration (auto-rehash on login)</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">app/helpers/password_helper.php me plaintext fallback hai. registration/franchisee-registration.php ab hash save karta hai but purane users plaintext ho sakte hain.
+
+Task:
+1. Add mw_maybe_rehash_password_on_login($connect, $email, $role, $plain, $row) in password_helper.php
+2. On successful login (customer, franchisee, team, admin): if password column looks like plaintext (not bcrypt $2y$), hash it and UPDATE user_details SET password=hash, password_hash=hash
+3. Keep plaintext verify fallback until migration complete
+4. Optional: one-time admin script to count remaining plaintext rows (read-only report)
+
+Constraints:
+- Users with old plaintext passwords must still login
+- After login their password should be hashed in DB
+- Do not force password reset email</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>8. SQL injection fix — user website builder files</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">Convert highest-risk queries to prepared statements in:
+
+- user/website/business-name.php
+- user/website/company-details.php (POST save section only — not full 167KB refactor)
+
+Focus on:
+- Queries using $_SESSION['user_email'], $_SESSION['card_id_inprocess']
+- Queries using $_POST fields for digi_card updates
+
+Constraints:
+- MW creation, company details save, state default from registration — all must work identically
+- Do not split or refactor file structure in this task — SQL only</div>
+    </div>
+</div>
+
+<!-- PHASE 3 -->
+<div class="phase">
+    <div class="phase-title"><span class="badge badge-medium">Phase 3</span> Config & Consistency (Week 3)</div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>9. Duplicate email/payment config merge</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">common/email_config.php and app/config/email.php are duplicates. Razorpay keys duplicated in many payment files.
+
+Task:
+1. Make app/config/email.php the single source; common/email_config.php should only require it
+2. Make app/config/payment.php the single source for Razorpay keyId/keySecret
+3. Update payment/create_razorpay_order.php, payment/verify_wallet_recharge.php, payment/joining_deal_pay.php, franchise_agreement.php to require payment config instead of inline keys
+
+Constraints:
+- SMTP and Razorpay flows unchanged
+- Grep for remaining hardcoded rzp_live_ strings and eliminate</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>10. Admin tables — professional style (manage_user.php)</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">admin/manage_deals.php me professional HTML table + full-width layout hai. Same pattern apply karo admin/manage_user.php pe.
+
+Task:
+1. Replace cramped grid/card_row layout with proper &lt;table&gt; inside scrollable wrapper
+2. Full-width container override (same as manage_deals.php)
+3. Status badges, action icon buttons, zebra rows
+4. Keep ALL columns and PHP logic identical — only HTML/CSS change
+
+Constraints:
+- Deal mapping, collaboration toggle, reset password — all buttons must still work
+- No query changes</div>
+    </div>
+</div>
+
+<!-- PHASE 4 -->
+<div class="phase">
+    <div class="phase-title"><span class="badge badge-low">Phase 4</span> Refactor (Ongoing — safe extract only)</div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>11. company-details.php — AJAX handlers extract (no behavior change)</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">user/website/company-details.php is ~167KB god file.
+
+Task (extract only, phase 1):
+1. Move top-of-file AJAX handlers (process_logo_ajax, similar) to user/website/ajax/company-details-ajax.php
+2. company-details.php includes or routes to same logic via require
+3. Zero change to request URLs, POST keys, JSON responses
+
+Do NOT refactor HTML, CSS, or main form save in this task.
+
+Test: logo upload, form save, state dropdown default from registration state.</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>12. Full code quality re-audit (after Phase 1–2)</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">MiniWebsite PHP project ka code quality dobara review karo. Pehle ye fixes ho chuke hain: [list what you completed].
+
+Provide:
+1. Updated rating out of 10 (category-wise)
+2. Remaining critical/high issues with file paths
+3. What is now safe vs still risky
+4. Next 5 prompts priority order
+
+Do not suggest full rewrite. Focus on incremental safe fixes.</div>
+    </div>
+
+    <div class="prompt-card">
+        <div class="prompt-header">
+            <h3>13. Manual test checklist run</h3>
+            <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="prompt-body">MiniWebsite project me recent code quality / security changes ke baad ye flows verify karo. Har flow ke liye pass/fail likho:
+
+1. Customer registration (with State dropdown) + OTP + auto login
+2. Customer login (email + mobile)
+3. MW payment: normal user, team-referred (6-month plan), state-wise deal auto-apply
+4. Franchisee registration via referral link + password hashed in DB
+5. Franchisee login + menu lock before payment / unlock after payment
+6. Admin login + manage_user, manage_deals, kit_management access when logged in
+7. Admin pages redirect to login when NOT logged in
+8. company-details.php — state default from registration
+9. franchise_agreement.php — IGST when GST not starting with 06
+
+Report any broken flow with file path and suggested fix. Do not change code unless a test fails.</div>
+    </div>
+</div>
+
+<script>
+function copyPrompt(btn) {
+    const card = btn.closest('.prompt-card');
+    const text = card.querySelector('.prompt-body').innerText;
+    navigator.clipboard.writeText(text).then(function() {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+        }, 2000);
+    }).catch(function() {
+        const range = document.createRange();
+        range.selectNode(card.querySelector('.prompt-body'));
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        try {
+            document.execCommand('copy');
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+        } catch (e) {
+            alert('Copy failed — select text manually');
+        }
+    });
+}
+</script>
+
+</body>
+</html>
