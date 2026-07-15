@@ -11,5 +11,11 @@ public interface IApplicationDbContext
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
     DbSet<RegistrationPending> RegistrationPendings { get; }
     DbSet<ReferralEarning> ReferralEarnings { get; }
+    DbSet<DigiCard> DigiCards { get; }
+    DbSet<DigiCardPreviousSlug> DigiCardPreviousSlugs { get; }
+    DbSet<CardProductPricing> CardProducts { get; }
+    DbSet<CardProductService> CardServices { get; }
+    DbSet<CardImageGallery> CardGallery { get; }
+    DbSet<CardSpecialOffer> CardOffers { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

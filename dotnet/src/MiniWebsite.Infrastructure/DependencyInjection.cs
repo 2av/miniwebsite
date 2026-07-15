@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
         services.AddScoped<IDealBonusLookup, DealBonusLookup>();
+        services.AddScoped<IWalletBalanceLookup, WalletBalanceLookup>();
 
         var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
         var signingKey = string.IsNullOrWhiteSpace(jwt.Key) || jwt.Key.Length < 32

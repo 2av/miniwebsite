@@ -21,4 +21,10 @@
     <ProjectReference Include="..\MiniWebsite.Infrastructure\MiniWebsite.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Never ship local secrets to the server -->
+  <ItemGroup>
+    <Content Update="appsettings.Development.local.json" CopyToPublishDirectory="Never" />
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>

@@ -37,3 +37,25 @@ Amounts in **rupees** as `decimal` with 2 places in API contracts. Payment gatew
 `Authorization: Bearer {access_token}`
 
 Roles: `Customer`, `Franchisee`, `Team`, `Admin`
+
+## Website media (PHP upload → .NET save filename)
+
+API and PHP are on different domains. **Do not upload files to the .NET API.**
+
+1. Frontend uploads file to **PHP** (later) → PHP saves under `/assets/upload/websites/{folder}/`
+2. PHP returns `{ fileName }`
+3. Frontend calls .NET with that `fileName` only (`logoLocation`, `productImage`, `galleryImage`, `offerImage`)
+4. .NET responses include both filename and full PHP URL (`logoUrl`, `productImageUrl`, …)
+
+Contract endpoint: `GET /api/v1/digi-cards/media/upload-contract`
+
+Folder map:
+
+| Type | Folder |
+|------|--------|
+| Logo / hero | `company_details` |
+| Products | `product-pricing` |
+| Services | `product-and-services` |
+| Gallery | `image-gallery` |
+| Offers | `special-offers` |
+

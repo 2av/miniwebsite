@@ -69,7 +69,9 @@ try
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseSerilogRequestLogging();
 
-    if (app.Environment.IsDevelopment())
+    var enableSwagger = app.Environment.IsDevelopment()
+        || app.Configuration.GetValue("App:EnableSwagger", false);
+    if (enableSwagger)
     {
         app.UseSwagger();
         app.UseSwaggerUI();

@@ -15,6 +15,12 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<RegistrationPending> RegistrationPendings => Set<RegistrationPending>();
     public DbSet<ReferralEarning> ReferralEarnings => Set<ReferralEarning>();
+    public DbSet<DigiCard> DigiCards => Set<DigiCard>();
+    public DbSet<DigiCardPreviousSlug> DigiCardPreviousSlugs => Set<DigiCardPreviousSlug>();
+    public DbSet<CardProductPricing> CardProducts => Set<CardProductPricing>();
+    public DbSet<CardProductService> CardServices => Set<CardProductService>();
+    public DbSet<CardImageGallery> CardGallery => Set<CardImageGallery>();
+    public DbSet<CardSpecialOffer> CardOffers => Set<CardSpecialOffer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
