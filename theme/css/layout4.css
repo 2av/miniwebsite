@@ -41,7 +41,14 @@ html {
 
 /* Contact grid */
 .mw-action-grid .grid {
-    gap: 0.875rem;
+    gap:40px;
+}
+@media (max-width:768px) {
+    .mw-action-grid .grid{
+        display: flex;
+        flex-direction: column;
+    }
+    
 }
 
 .mw-action-grid .mw-card {
