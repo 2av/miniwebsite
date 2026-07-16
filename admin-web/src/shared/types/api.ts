@@ -500,3 +500,352 @@ export type UpsertContentPayload = {
   metaKeywords?: string
   updatedBy?: string
 }
+
+export type ManageCategoryRow = {
+  id: number
+  businessProfileType: string
+  businessHeading: string
+  businessCategory: string
+  businessCategorySlug: string
+  productCategory: string
+  productCategorySlug: string
+  directoryPriority: number
+  isActive: boolean
+  activeLabel: string
+  activeTone: string
+  keywords: string
+  tags: string
+}
+
+export type ManageCategoriesPage = {
+  categories: ManageCategoryRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type ManageCategoriesMeta = {
+  csvHeaders: string[]
+}
+
+export type UpsertCategoryPayload = {
+  businessProfileType: string
+  businessHeading: string
+  businessCategory: string
+  businessCategorySlug?: string
+  productCategory: string
+  productCategorySlug?: string
+  directoryPriority: number
+  isActive: boolean
+  keywords?: string
+  tags?: string
+  createdBy?: string
+}
+
+export type CategoryImportResult = {
+  imported: number
+  skipped: number
+  errors: string[]
+}
+
+export type ManageTeamRow = {
+  id: number
+  legacyTeamId?: number | null
+  name: string
+  email: string
+  phone: string
+  district: string
+  state: string
+  status: string
+  statusTone: string
+  createdAtDisplay: string
+  totalSales: number
+  totalMwCreated: number
+  referralCount: number
+  trackerCount: number
+  ownMwIds: number[]
+}
+
+export type ManageTeamsPage = {
+  members: ManageTeamRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type TeamReferralRow = {
+  userId?: number | null
+  referredName: string
+  referredEmail: string
+  phone: string
+  type: string
+  mwPaymentStatus: string
+  mwPaymentStatusTone: string
+  paidOnDisplay: string
+  referralDateDisplay: string
+}
+
+export type TeamReferrals = {
+  memberName: string
+  memberEmail: string
+  totalSales: number
+  totalMwCreated: number
+  rows: TeamReferralRow[]
+}
+
+export type TeamTrackerRow = {
+  id: number
+  shopName: string
+  contactNumber: string
+  approachedFor: string
+  address: string
+  dateVisitedDisplay: string
+  finalStatus: string
+  finalStatusTone: string
+  lastUpdatedDisplay: string
+}
+
+export type TeamTracker = {
+  memberName: string
+  memberEmail: string
+  rows: TeamTrackerRow[]
+}
+
+export type DocSectionOption = {
+  id: number
+  title: string
+}
+
+export type GrowWithMwMeta = {
+  sections: DocSectionOption[]
+  publicDocsPrefix: string
+  growWithMwPrefix: string
+}
+
+export type DocPageListItem = {
+  id: number
+  title: string
+  slug: string
+  status: string
+  statusTone: string
+  sortOrder: number
+  updatedAtDisplay: string
+  sectionId: number
+  sectionTitle: string
+}
+
+export type DocPagesPage = {
+  pages: DocPageListItem[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type DocPageOrderItem = {
+  id: number
+  title: string
+  slug: string
+  status: string
+  sortOrder: number
+}
+
+export type DocPageDetail = {
+  id: number
+  sectionId: number
+  sectionTitle: string
+  title: string
+  slug: string
+  status: string
+  contentHtml: string
+  metaTitle: string
+  metaDescription: string
+  metaKeywords: string
+  sortOrder: number
+  publishedAtDisplay?: string | null
+  updatedAtDisplay: string
+  publicUrl: string
+  sectionPages: DocPageOrderItem[]
+}
+
+export type UpsertDocPagePayload = {
+  sectionId: number
+  title: string
+  slug?: string
+  contentHtml?: string
+  metaTitle?: string
+  metaDescription?: string
+  metaKeywords?: string
+  action: 'draft' | 'publish'
+}
+
+export type DocSection = {
+  id: number
+  title: string
+  slug: string
+  description: string
+  sortOrder: number
+  collapsedDefault: boolean
+  pageCount: number
+}
+
+export type UpsertDocSectionPayload = {
+  title: string
+  slug?: string
+  description?: string
+  collapsedDefault: boolean
+}
+
+export type DocMediaItem = {
+  id: number
+  filename: string
+  relPath: string
+  url: string
+  mime: string
+  sizeBytes: number
+  uploadedBy?: string | null
+  createdAtDisplay: string
+  isImage: boolean
+}
+
+export type DocMediaList = {
+  items: DocMediaItem[]
+}
+
+export type KitCategoryMeta = {
+  key: string
+  label: string
+  itemCount: number
+}
+
+export type KitManagementMeta = {
+  categories: KitCategoryMeta[]
+  uploadsPublicPrefix: string
+}
+
+export type KitStats = {
+  folders: number
+  images: number
+  videos: number
+  files: number
+  activeItems: number
+  totalItems: number
+}
+
+export type KitBreadcrumb = {
+  id: number
+  title: string
+}
+
+export type KitFolderTile = {
+  id: number
+  title: string
+  displayOrder: number
+  status: string
+  directItemCount: number
+  subfolderCount: number
+}
+
+export type KitFolderOption = {
+  id: number
+  title: string
+  depth: number
+  parentId?: number | null
+}
+
+export type KitItem = {
+  id: number
+  type: string
+  title: string
+  filePath?: string | null
+  fileUrl?: string | null
+  videoUrl?: string | null
+  displayOrder: number
+  status: string
+  folderId?: number | null
+  createdAt?: string | null
+}
+
+export type KitExplorer = {
+  category: string
+  categoryLabel: string
+  folderId: number
+  stats: KitStats
+  breadcrumb: KitBreadcrumb[]
+  subfolders: KitFolderTile[]
+  items: KitItem[]
+  folderOptions: KitFolderOption[]
+}
+
+export type CreateKitFolderPayload = {
+  category: string
+  title: string
+  parentId?: number | null
+  displayOrder: number
+}
+
+export type UpdateKitFolderPayload = {
+  category: string
+  title: string
+  parentId?: number | null
+  displayOrder: number
+  status: string
+}
+
+export type UpdateKitVideoPayload = {
+  category: string
+  title: string
+  videoUrl?: string | null
+  folderId?: number | null
+  displayOrder: number
+  status: string
+}
+
+export type MoveKitItemPayload = {
+  category: string
+  folderId?: number | null
+}
+
+export type RoleAccessProfile = {
+  id: number
+  profileKey: string
+  profileLabel: string
+  baseRole: string
+  requiresCollaboration: string
+  requiresInfluencer: string
+  sortOrder: number
+}
+
+export type RoleAccessFeature = {
+  id: number
+  featureKey: string
+  featureLabel: string
+  featureGroup: string
+  fieldType: string
+  sortOrder: number
+}
+
+export type RoleAccessFeatureGroup = {
+  name: string
+  features: RoleAccessFeature[]
+}
+
+export type RoleAccessCell = {
+  settingId: number
+  profileKey: string
+  featureKey: string
+  isNotApplicable: boolean
+  settingValue: string
+}
+
+export type RoleAccessMatrix = {
+  tablesExist: boolean
+  profiles: RoleAccessProfile[]
+  featureGroups: RoleAccessFeatureGroup[]
+  cells: RoleAccessCell[]
+}
+
+export type UpdateRoleAccessSettingPayload = {
+  isNotApplicable: boolean
+  settingValue?: string | null
+  updatedBy?: string | null
+}

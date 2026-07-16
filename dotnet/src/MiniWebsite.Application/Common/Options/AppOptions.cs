@@ -22,4 +22,25 @@ public class AppOptions
 
     /// <summary>Root folder under PHP site for website uploads.</summary>
     public string WebsiteUploadsPath { get; set; } = "/assets/upload/websites";
+
+    /// <summary>
+    /// Absolute filesystem path for documentation image uploads (PHP <c>uploads/documentation</c>).
+    /// Example: C:\xampp\htdocs\miniwebsite\uploads\documentation
+    /// </summary>
+    public string DocumentationUploadsFsPath { get; set; } = "";
+
+    /// <summary>Public URL prefix for docs help center (relative to PhpSiteBaseUrl if starts with /).</summary>
+    public string DocumentationPublicPrefix { get; set; } = "/docs/";
+
+    /// <summary>Public URL prefix for Grow with MW user hub.</summary>
+    public string GrowWithMwPublicPrefix { get; set; } = "/user/grow-with-mw/";
+
+    /// <summary>
+    /// Absolute filesystem path for kit uploads (PHP <c>assets/upload/kits</c>).
+    /// Example: C:\xampp\htdocs\miniwebsite\assets\upload\kits
+    /// </summary>
+    public string KitsUploadsFsPath { get; set; } = "";
+
+    /// <summary>Public URL path for kit files (relative to PhpSiteBaseUrl unless absolute URL).</summary>
+    public string KitsUploadsPublicPath { get; set; } = "/assets/upload/kits";
 }
