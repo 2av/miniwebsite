@@ -6,6 +6,12 @@ using MiniWebsite.Application.Admin.Franchisees;
 using MiniWebsite.Application.Admin.Invoices;
 using MiniWebsite.Application.Admin.ManageCards;
 using MiniWebsite.Application.Admin.ManageUsers;
+using MiniWebsite.Application.Admin.ManageContent;
+using MiniWebsite.Application.Admin.ManageFaqs;
+using MiniWebsite.Application.Admin.ManageDeals;
+using MiniWebsite.Application.Admin.ManageReferrals;
+using MiniWebsite.Application.Admin.WalletRecharge;
+using MiniWebsite.Application.Admin.UserDeletions;
 using MiniWebsite.Application.Auth;
 using MiniWebsite.Application.DigiCards;
 using MiniWebsite.Application.Registration;
@@ -31,6 +37,12 @@ public static class DependencyInjection
         services.AddScoped<IAdminFranchiseesService, AdminFranchiseesService>();
         services.AddScoped<IAdminAllOrdersService, AdminAllOrdersService>();
         services.AddScoped<IAdminInvoiceAccessService, AdminInvoiceAccessService>();
+        services.AddScoped<IAdminUserDeletionsService, AdminUserDeletionsService>();
+        services.AddScoped<IAdminManageReferralsService, AdminManageReferralsService>();
+        services.AddScoped<IAdminManageDealsService, AdminManageDealsService>();
+        services.AddScoped<IAdminWalletRechargeService, AdminWalletRechargeService>();
+        services.AddScoped<IAdminManageFaqsService, AdminManageFaqsService>();
+        services.AddScoped<IAdminManageContentService, AdminManageContentService>();
         return services;
     }
 }

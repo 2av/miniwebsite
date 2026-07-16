@@ -10,4 +10,5 @@ public class ReferralEarning
     public string Status { get; set; } = "Pending";
     public decimal Amount { get; set; }
     public string? IsCollaboration { get; set; }
+    public DateTime? PaymentDate { get; set; }
 }

@@ -269,3 +269,234 @@ export type FranchiseeDashboard = {
   email: string
   websites: FranchiseeWebsite[]
 }
+
+export type UserDeletionRow = {
+  id: number
+  email: string
+  name: string
+  role: string
+  status: string
+  isDeleted: boolean
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type UserDeletionPage = {
+  users: UserDeletionRow[]
+  totalCount: number
+  activeCount: number
+  deletedCount: number
+  page: number
+  pageSize: number
+}
+
+export type ManageReferralRow = {
+  referralId: number
+  referrerEmail: string
+  userIdDisplay: string
+  userName: string
+  userPhone: string
+  referredToDisplay: string
+  referralAmountDisplay: string
+  referralAmount: number
+  refundStatus: string
+  mwPaymentStatusLabel: string
+  mwPaymentStatusTone: string
+  latestCardId?: number | null
+  hasInvoice: boolean
+}
+
+export type ManageReferralsPage = {
+  referrals: ManageReferralRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type ReferrerPaymentLine = {
+  referralId: number
+  referredEmail: string
+  referredName: string
+  referralDate: string
+  userPaymentStatusLabel: string
+  userPaymentStatusTone: string
+  totalAmount: number
+  paidAmount: number
+  pendingAmount: number
+  statusLabel: string
+  statusTone: string
+  canAddPayment: boolean
+  hasHistory: boolean
+}
+
+export type ReferrerPaymentDetails = {
+  referrerEmail: string
+  referrerName: string
+  lines: ReferrerPaymentLine[]
+}
+
+export type ReferralPaymentHistoryItem = {
+  paymentDate: string
+  amount: number
+  transactionNumber: string
+  paymentMethod: string
+  paymentNotes?: string | null
+  processedBy: string
+}
+
+export type ReferralPaymentHistory = {
+  referralId: number
+  referrerName: string
+  referredName: string
+  referralAmount: number
+  items: ReferralPaymentHistoryItem[]
+}
+
+export type ManageReferralBankDetails = {
+  userEmail: string
+  accountHolderName?: string | null
+  accountNumber?: string | null
+  ifscCode?: string | null
+  bankName?: string | null
+  upiId?: string | null
+  upiName?: string | null
+}
+
+export type ManageDealRow = {
+  id: number
+  planName: string
+  planType: string
+  dealState?: string | null
+  dealStateDisplay: string
+  dealName: string
+  couponCode: string
+  createdAt?: string | null
+  createdAtDisplay: string
+  bonusAmount: number
+  bonusAmountDisplay: string
+  discountAmount: number
+  discountPercentage: number
+  discountDisplay: string
+  validityDate: string
+  validityDateDisplay: string
+  isExpired: boolean
+  maxUsage: number
+  currentUsage: number
+  usageDisplay: string
+  dealStatus: string
+  statusTone: string
+}
+
+export type ManageDealsPage = {
+  deals: ManageDealRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type ManageDealsMeta = {
+  states: string[]
+}
+
+export type UpsertDealPayload = {
+  planName: string
+  planType: string
+  dealName: string
+  couponCode: string
+  bonusAmount: number
+  discountAmount: number
+  discountPercentage: number
+  validityDate: string
+  maxUsage: number
+  dealState?: string
+  createdBy?: string
+}
+
+export type FranchiseeWalletLookup = {
+  userId: number
+  email: string
+  name: string
+  phone?: string | null
+  currentBalance: number
+  currentBalanceDisplay: string
+}
+
+export type WalletRechargeResult = {
+  userEmail: string
+  userName: string
+  amountCredited: number
+  newBalance: number
+  amountDisplay: string
+  newBalanceDisplay: string
+  message: string
+}
+
+export type ManageFaqRow = {
+  id: number
+  pageType: string
+  pageTypeDisplay: string
+  question: string
+  answer: string
+  answerPreview: string
+  sortOrder: number
+  status: string
+  statusTone: string
+}
+
+export type ManageFaqsPage = {
+  faqs: ManageFaqRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type FaqPageTypeOption = {
+  value: string
+  label: string
+}
+
+export type ManageFaqsMeta = {
+  pageTypes: FaqPageTypeOption[]
+}
+
+export type UpsertFaqPayload = {
+  pageType: string
+  question: string
+  answer: string
+  sortOrder: number
+  status?: string
+}
+
+export type ContentTypeOption = {
+  value: string
+  label: string
+  badge: string
+}
+
+export type ManageContentMeta = {
+  contentTypes: ContentTypeOption[]
+}
+
+export type ManageContentItem = {
+  contentType: string
+  title: string
+  content: string
+  metaDescription: string
+  metaKeywords: string
+  lastUpdated?: string | null
+  lastUpdatedDisplay?: string | null
+  updatedBy?: string | null
+}
+
+export type ManageContentList = {
+  items: ManageContentItem[]
+}
+
+export type UpsertContentPayload = {
+  contentType: string
+  title: string
+  content: string
+  metaDescription?: string
+  metaKeywords?: string
+  updatedBy?: string
+}

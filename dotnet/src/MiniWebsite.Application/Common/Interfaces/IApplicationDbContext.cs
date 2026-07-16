@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using MiniWebsite.Application.Common.Interfaces;
 using MiniWebsite.Domain.Entities;
 
 namespace MiniWebsite.Application.Common.Interfaces;
@@ -11,6 +10,7 @@ public interface IApplicationDbContext
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
     DbSet<RegistrationPending> RegistrationPendings { get; }
     DbSet<ReferralEarning> ReferralEarnings { get; }
+    DbSet<Deal> Deals { get; }
     DbSet<DigiCard> DigiCards { get; }
     DbSet<DigiCardPreviousSlug> DigiCardPreviousSlugs { get; }
     DbSet<CardProductPricing> CardProducts { get; }

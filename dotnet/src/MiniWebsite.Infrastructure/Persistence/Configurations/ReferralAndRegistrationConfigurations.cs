@@ -37,5 +37,6 @@ public class ReferralEarningConfiguration : IEntityTypeConfiguration<ReferralEar
         builder.Property(x => x.Status).HasColumnName("status").HasMaxLength(50);
         builder.Property(x => x.Amount).HasColumnName("amount").HasPrecision(12, 2);
         builder.Property(x => x.IsCollaboration).HasColumnName("is_collaboration").HasMaxLength(10);
+        builder.Property(x => x.PaymentDate).HasColumnName("payment_date");
     }
 }
