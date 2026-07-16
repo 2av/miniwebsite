@@ -21,7 +21,7 @@ public class AdminFranchiseDistributorsService : IAdminFranchiseDistributorsServ
         FranchiseDistributorQuery query, CancellationToken ct = default)
     {
         query.Page = query.Page < 1 ? 1 : query.Page;
-        query.PageSize = query.PageSize is < 1 or > 100 ? 15 : query.PageSize;
+        query.PageSize = query.PageSize is < 1 or > 100 ? 10 : query.PageSize;
 
         var q = _db.Users.AsNoTracking()
             .Where(u => u.Role == UserRole.Customer

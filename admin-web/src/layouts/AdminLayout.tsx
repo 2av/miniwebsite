@@ -6,6 +6,9 @@ import {
   LogOut,
   Menu,
   Building2,
+  ShoppingBag,
+  CreditCard,
+  DeleteIcon,
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/shared/ui/primitives'
@@ -14,8 +17,10 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/user-details', label: 'User Details', icon: Users },
   { to: '/miniwebsite-details', label: 'Miniwebsite Details', icon: Globe2 },
-  { to: '/franchise-details', label: 'Franchise Details', icon: Building2 },
-  
+  { to: '/franchisee-details', label: 'Franchisee Details', icon: Building2 },
+  { to: '/franchisee-distributor-details', label: 'Franchisee Distributor', icon: ShoppingBag },
+  { to: '/all-orders', label: 'All Orders', icon: CreditCard },
+  { to: '/user-deletion', label: 'User Deletion', icon: DeleteIcon },
 ]
 
 export function AdminLayout() {

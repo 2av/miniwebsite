@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 import { fetchManageCards, setComplimentary } from '@/features/manage-cards/api'
 import type { ManageCardRow } from '@/shared/types/api'
 import { ApiError } from '@/shared/api/client'
+import { openInvoiceByCardId } from '@/shared/lib/invoiceDownload'
 import { useToast } from '@/shared/ui/Toast'
 import { Badge, Button, Card, Input, Select, Toggle } from '@/shared/ui/primitives'
 
@@ -36,12 +37,6 @@ function shareCard(url: string) {
   const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent)
   if (isMobile) window.location.href = `whatsapp://send?text=${text}`
   else window.open(`https://wa.me/?text=${text}`, '_blank')
-}
-
-function invoiceUrl(cardId: number) {
-  // PHP admin invoice until .NET PDF exists
-  const phpBase = import.meta.env.VITE_PHP_SITE_URL || 'https://miniwebsite.in'
-  return `${phpBase.replace(/\/$/, '')}/admin/invoice_admin_access.php?id=${cardId}`
 }
 
 export function ManageCardsPage() {
@@ -305,15 +300,14 @@ function CardRow({
       <td className="px-3 py-3">{c.orderAmount ? `₹${c.orderAmount}` : '-'}</td>
       <td className="px-3 py-3">
         {c.hasInvoice ? (
-          <a
-            href={invoiceUrl(c.id)}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
             className="inline-flex items-center gap-1 text-rose-600 hover:underline"
             title="Download invoice"
+            onClick={() => openInvoiceByCardId(c.id)}
           >
             <Download size={16} />
-          </a>
+          </button>
         ) : (
           <span className="text-slate-300">-</span>
         )}

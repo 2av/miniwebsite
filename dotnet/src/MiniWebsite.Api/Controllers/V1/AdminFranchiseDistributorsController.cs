@@ -22,7 +22,7 @@ public class AdminFranchiseDistributorsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiResult<FranchiseDistributorPageDto>>> List(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 15,
+        [FromQuery] int pageSize = 10,
         [FromQuery] string? search = null,
         CancellationToken ct = default)
     {

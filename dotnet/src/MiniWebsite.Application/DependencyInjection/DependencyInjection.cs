@@ -1,6 +1,9 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using MiniWebsite.Application.Admin.AllOrders;
 using MiniWebsite.Application.Admin.FranchiseDistributors;
+using MiniWebsite.Application.Admin.Franchisees;
+using MiniWebsite.Application.Admin.Invoices;
 using MiniWebsite.Application.Admin.ManageCards;
 using MiniWebsite.Application.Admin.ManageUsers;
 using MiniWebsite.Application.Auth;
@@ -25,6 +28,9 @@ public static class DependencyInjection
         services.AddScoped<IAdminManageUsersService, AdminManageUsersService>();
         services.AddScoped<IAdminManageCardsService, AdminManageCardsService>();
         services.AddScoped<IAdminFranchiseDistributorsService, AdminFranchiseDistributorsService>();
+        services.AddScoped<IAdminFranchiseesService, AdminFranchiseesService>();
+        services.AddScoped<IAdminAllOrdersService, AdminAllOrdersService>();
+        services.AddScoped<IAdminInvoiceAccessService, AdminInvoiceAccessService>();
         return services;
     }
 }

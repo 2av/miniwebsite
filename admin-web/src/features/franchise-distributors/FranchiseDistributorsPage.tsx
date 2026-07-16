@@ -14,6 +14,7 @@ import {
 } from '@/features/manage-users/api'
 import type { BankDetails, FranchiseDistributorRow } from '@/shared/types/api'
 import { ApiError } from '@/shared/api/client'
+import { openInvoiceById } from '@/shared/lib/invoiceDownload'
 import { useToast } from '@/shared/ui/Toast'
 import { Badge, Button, Card, Input, Modal, Select, Toggle } from '@/shared/ui/primitives'
 
@@ -22,11 +23,6 @@ function formatDate(value?: string | null) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '-'
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function invoiceUrl(invoiceId: number) {
-  const phpBase = import.meta.env.VITE_PHP_SITE_URL || 'https://miniwebsite.in'
-  return `${phpBase.replace(/\/$/, '')}/admin/invoice_admin_access.php?invoice_id=${invoiceId}`
 }
 
 function cardsSearchUrl(email: string) {
@@ -57,7 +53,7 @@ export function FranchiseDistributorsPage() {
     return () => window.clearTimeout(t)
   }, [searchInput])
 
-  const filters = useMemo(() => ({ page, pageSize: 15, search: search || undefined }), [page, search])
+  const filters = useMemo(() => ({ page, pageSize: 10, search: search || undefined }), [page, search])
   const queryKey = useMemo(() => ['franchise-distributors', filters] as const, [filters])
 
   const listQuery = useQuery({
@@ -99,7 +95,7 @@ export function FranchiseDistributorsPage() {
       <div className="flex shrink-0 flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-slate-900">
-            Franchise Details
+            Franchisee Distributor
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Collaboration-enabled customers · {data?.totalCount ?? '—'} total
@@ -373,9 +369,14 @@ function Row({
       <td className="px-3 py-3">{u.frdFeeDisplay}</td>
       <td className="px-3 py-3">
         {invoiceId ? (
-          <a href={invoiceUrl(invoiceId)} target="_blank" rel="noreferrer" className="text-rose-600 hover:underline" title="Download invoice">
+          <button
+            type="button"
+            className="text-rose-600 hover:underline"
+            title="Download invoice"
+            onClick={() => openInvoiceById(invoiceId)}
+          >
             <Download size={16} />
-          </a>
+          </button>
         ) : (
           <span className="text-slate-300">-</span>
         )}

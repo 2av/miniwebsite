@@ -202,3 +202,70 @@ export type FranchiseDistributorPage = {
   page: number
   pageSize: number
 }
+
+export type AllOrderRow = {
+  invoiceId: number
+  userIdDisplay: string
+  mwIdDisplay?: string | null
+  paymentStatusLabel: string
+  paymentStatusTone: string
+  paidOnDisplay?: string | null
+  totalAmount: number
+  totalAmountDisplay: string
+}
+
+export type AllOrdersPage = {
+  orders: AllOrderRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type FranchiseeRow = {
+  id: number
+  email: string
+  name: string
+  phone?: string | null
+  createdAt?: string | null
+  referralSourceDisplay: string
+  companyName: string
+  status: string
+  isActive: boolean
+  firstCardId?: number | null
+  firstCardUserEmail?: string | null
+  publicUrl: string
+  editUrl: string
+  paymentStatusLabel: string
+  paymentStatusTone: string
+  paidOnDisplay?: string | null
+  franchiseFee: number
+  franchiseFeeDisplay: string
+  franchiseInvoiceId?: number | null
+  websiteCount: number
+  documentStatus: string
+  documentStatusTone: string
+  walletBalance: number
+  walletBalanceDisplay: string
+}
+
+export type FranchiseePage = {
+  franchisees: FranchiseeRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export type FranchiseeWebsite = {
+  id: number
+  companyName?: string | null
+  uploadedDate?: string | null
+  validityDate?: string | null
+  statusText: string
+  paymentLabel: string
+  publicUrl: string
+}
+
+export type FranchiseeDashboard = {
+  email: string
+  websites: FranchiseeWebsite[]
+}
